@@ -285,9 +285,19 @@ async function enforceClassificationRateLimit(
   }
 }
 
+export type AnalyzeConversationBatchOptions = {
+  /**
+   * O limite por usuário existe para conter abuso de quem está logado.
+   * A classificação agendada não tem usuário, então roda com ele desligado
+   * e é contida pelo `limit` de cada chamada.
+   */
+  enforceRateLimit?: boolean;
+};
+
 export async function analyzeConversationBatch(
   scope: AnalystScope,
   limit = 4,
+  options: AnalyzeConversationBatchOptions = {},
 ) {
   const context = new AnalystDataContext(scope);
   const candidates = await context.getAnalysisCandidates(limit);
@@ -302,7 +312,9 @@ export async function analyzeConversationBatch(
     };
   }
 
-  await enforceClassificationRateLimit(scope, candidates.length);
+  if (options.enforceRateLimit !== false) {
+    await enforceClassificationRateLimit(scope, candidates.length);
+  }
 
   const openai = getOpenAIClient();
   const admin = createAdminClient();
@@ -316,7 +328,8 @@ export async function analyzeConversationBatch(
       .insert({
         canal: candidate.canal,
         cliente_slug: scope.clienteSlug,
-        criado_por: scope.userId,
+        // Sem usuário quando a classificação vem do agendamento.
+        criado_por: scope.userId || null,
         modelo: getClassifierModel(),
         periodo_fim: scope.range.end.toISOString(),
         periodo_inicio: scope.range.start.toISOString(),
