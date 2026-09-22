@@ -287,6 +287,13 @@ async function enforceClassificationRateLimit(
 
 export type AnalyzeConversationBatchOptions = {
   /**
+   * Instante (Date.now()) a partir do qual nenhuma conversa nova é iniciada.
+   * Cada chamada à OpenAI pode levar dezenas de segundos, então o corte
+   * precisa acontecer entre conversas: assim a função devolve o que já
+   * conseguiu em vez de ser morta pelo limite de execução da Vercel.
+   */
+  deadlineAt?: number;
+  /**
    * O limite por usuário existe para conter abuso de quem está logado.
    * A classificação agendada não tem usuário, então roda com ele desligado
    * e é contida pelo `limit` de cada chamada.
@@ -299,6 +306,7 @@ export async function analyzeConversationBatch(
   limit = 4,
   options: AnalyzeConversationBatchOptions = {},
 ) {
+  const deadlineAt = options.deadlineAt ?? Number.POSITIVE_INFINITY;
   const context = new AnalystDataContext(scope);
   const candidates = await context.getAnalysisCandidates(limit);
   const coverageBefore = await context.getCoverage();
@@ -309,6 +317,7 @@ export async function analyzeConversationBatch(
       coverage: coverageBefore,
       failed: 0,
       pending: coverageBefore.pendingConversations,
+      skipped: 0,
     };
   }
 
@@ -320,8 +329,14 @@ export async function analyzeConversationBatch(
   const admin = createAdminClient();
   let analyzed = 0;
   let failed = 0;
+  let skipped = 0;
 
   for (const candidate of candidates) {
+    if (Date.now() >= deadlineAt) {
+      skipped += 1;
+      continue;
+    }
+
     const executionStarted = Date.now();
     const { data: execution } = await admin
       .from("lexia_ai_execucoes")
@@ -409,13 +424,16 @@ export async function analyzeConversationBatch(
     }
   }
 
-  const freshContext = new AnalystDataContext(scope);
-  const coverage = await freshContext.getCoverage();
+  // Só a base analítica mudou: reaproveitar o contexto evita reler todo o
+  // histórico de mensagens do cliente uma segunda vez.
+  context.invalidateInsights();
+  const coverage = await context.getCoverage();
 
   return {
     analyzed,
     coverage,
     failed,
     pending: coverage.pendingConversations,
+    skipped,
   };
 }

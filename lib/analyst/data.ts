@@ -392,6 +392,15 @@ export class AnalystDataContext {
     return this.insightsPromise;
   }
 
+  /**
+   * Descarta só o cache da base analítica, mantendo conversas e mensagens
+   * já carregadas. Usado depois de gravar insights novos: recalcular a
+   * cobertura não pode custar outra leitura do histórico inteiro do cliente.
+   */
+  invalidateInsights() {
+    this.insightsPromise = null;
+  }
+
   private isInsightCurrent(
     insight: AnalystInsightRow,
     data: LoadedAnalystData,

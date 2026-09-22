@@ -257,8 +257,24 @@ Arquivos de referência:
 | `/api/analista/sessions` | `GET` | Lista ou abre sessões e informa se existe execução pendente. |
 | `/api/analista/n8n/tool` | `POST` | API server-to-server assinada com ferramentas somente leitura e escopo reconstruído da execução. |
 | `/api/analista/n8n/callback` | `POST` | Recebe resultado assinado, valida fontes, persiste a resposta e encerra a execução. |
+| `/api/analista/cron/classificar` | `POST` | Classificação agendada. Sem usuário logado: autoriza por `Authorization: Bearer LEXIA_CRON_SECRET` comparado em tempo constante. Chamada pelo n8n (Schedule Trigger + HTTP Request). |
 | `/api/analista/analyze` | `POST` | Legado: classificação direta via OpenAI; não é chamada pela página atual. |
 | `/api/analista/coverage` | `GET` | Legado: cobertura dos insights persistidos. |
+
+Corpo aceito por `/api/analista/cron/classificar`, todos opcionais: `cliente_slug`
+(restringe a um cliente; o padrão percorre todos os `lexia_clientes` ativos),
+`limite` (conversas por cliente, 1–8, padrão 4), `dias` (janela de histórico,
+1–366, padrão 90), `orcamento_ms` (corte de tempo, 5 000–50 000, padrão 38 000)
+e `apenas_medir: true` (mede a leitura do histórico e devolve a cobertura sem
+chamar a OpenAI, para separar lentidão de banco de lentidão de classificação).
+
+A resposta traz `analyzed`, `failed`, `pending`, `skipped` (conversas que não
+couberam no orçamento), `skippedForTime` (clientes não iniciados), `durationMs`
+e o mesmo detalhamento por cliente em `clientes[]`. O orçamento é verificado
+antes de cada conversa, não só entre clientes: a função devolve resultado
+parcial em vez de ser morta pelo `maxDuration` de 60 s da Vercel. Nenhuma
+transcrição sai da plataforma — o n8n apenas agenda, e a chamada à OpenAI
+continua em `lib/analyst/classifier.ts`.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 

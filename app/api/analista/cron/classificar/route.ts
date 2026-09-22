@@ -29,8 +29,12 @@ export async function POST(request: Request) {
     const clienteSlug = String(body.cliente_slug ?? "").trim();
     const result = await runClassificationCycle({
       clienteSlug: clienteSlug || undefined,
+      dryRun: body.apenas_medir === true,
       limit: body.limite === undefined ? undefined : Number(body.limite),
       lookbackDays: body.dias === undefined ? undefined : Number(body.dias),
+      // Permite afinar o corte pelo n8n sem precisar de outro deploy.
+      timeBudgetMs:
+        body.orcamento_ms === undefined ? undefined : Number(body.orcamento_ms),
     });
 
     return Response.json(result);

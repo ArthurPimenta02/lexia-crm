@@ -7,6 +7,7 @@ import { getClientTimezone } from "@/lib/metrics/external-client-metrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { analyzeConversationBatch } from "./classifier";
+import { AnalystDataContext } from "./data";
 import { AnalystRequestError } from "./scope";
 import type { AnalystScope } from "./types";
 
@@ -22,22 +23,32 @@ const maxBatchLimit = 8;
 const defaultLookbackDays = 90;
 const maxLookbackDays = 366;
 
-/** Margem para responder antes do limite de execução da função na Vercel. */
-const defaultTimeBudgetMs = 45_000;
+/**
+ * Margem para responder antes do limite de execução da função na Vercel.
+ * O limite declarado na rota é 60s; parar aos 38s deixa espaço para o
+ * recálculo de cobertura e para a resposta HTTP sair a tempo.
+ */
+const defaultTimeBudgetMs = 38_000;
+/** Nunca ultrapassar o `maxDuration` declarado na rota. */
+const maxTimeBudgetMs = 50_000;
 
 export type ClassificationClientResult = {
   analyzed: number;
   clienteSlug: string;
   coveragePercentage: number | null;
+  durationMs: number;
   failed: number;
   pending: number;
+  skipped: number;
 };
 
 export type ClassificationCycleResult = {
   analyzed: number;
   clientes: ClassificationClientResult[];
+  durationMs: number;
   failed: number;
   pending: number;
+  skipped: number;
   skippedForTime: string[];
 };
 
@@ -132,6 +143,12 @@ async function listActiveClients(clienteSlug?: string) {
 
 export type ClassificationCycleInput = {
   clienteSlug?: string;
+  /**
+   * Mede só a leitura do histórico e a cobertura, sem chamar a OpenAI.
+   * Serve para separar "o banco está lento" de "a classificação está lenta"
+   * quando o ciclo estoura o tempo de execução.
+   */
+  dryRun?: boolean;
   limit?: number;
   lookbackDays?: number;
   timeBudgetMs?: number;
@@ -154,7 +171,10 @@ export async function runClassificationCycle(
   );
   const timeBudgetMs = Math.max(
     5_000,
-    Number(input.timeBudgetMs ?? defaultTimeBudgetMs) || defaultTimeBudgetMs,
+    Math.min(
+      Number(input.timeBudgetMs ?? defaultTimeBudgetMs) || defaultTimeBudgetMs,
+      maxTimeBudgetMs,
+    ),
   );
 
   const clients = await listActiveClients(input.clienteSlug);
@@ -166,15 +186,38 @@ export async function runClassificationCycle(
   const results: ClassificationClientResult[] = [];
   const skippedForTime: string[] = [];
 
+  const deadlineAt = startedAt + timeBudgetMs;
+
   for (const client of clients) {
-    if (Date.now() - startedAt > timeBudgetMs) {
+    // Sem uma conversa cabendo no que sobra do orçamento, nem vale começar:
+    // carregar o histórico do cliente já custa tempo.
+    if (Date.now() >= deadlineAt) {
       skippedForTime.push(client.slug);
       continue;
     }
 
+    const clientStartedAt = Date.now();
+
     try {
       const scope = buildSystemScope(client, lookbackDays);
+
+      if (input.dryRun) {
+        const coverage = await new AnalystDataContext(scope).getCoverage();
+
+        results.push({
+          analyzed: 0,
+          clienteSlug: client.slug,
+          coveragePercentage: coverage.coveragePercentage,
+          durationMs: Date.now() - clientStartedAt,
+          failed: 0,
+          pending: coverage.pendingConversations,
+          skipped: 0,
+        });
+        continue;
+      }
+
       const result = await analyzeConversationBatch(scope, limit, {
+        deadlineAt,
         enforceRateLimit: false,
       });
 
@@ -182,8 +225,10 @@ export async function runClassificationCycle(
         analyzed: result.analyzed,
         clienteSlug: client.slug,
         coveragePercentage: result.coverage.coveragePercentage,
+        durationMs: Date.now() - clientStartedAt,
         failed: result.failed,
         pending: result.pending,
+        skipped: result.skipped,
       });
     } catch (error) {
       // Um cliente com problema não pode impedir os outros de serem processados.
@@ -196,8 +241,10 @@ export async function runClassificationCycle(
         analyzed: 0,
         clienteSlug: client.slug,
         coveragePercentage: null,
+        durationMs: Date.now() - clientStartedAt,
         failed: 1,
         pending: 0,
+        skipped: 0,
       });
     }
   }
@@ -205,8 +252,10 @@ export async function runClassificationCycle(
   return {
     analyzed: results.reduce((total, item) => total + item.analyzed, 0),
     clientes: results,
+    durationMs: Date.now() - startedAt,
     failed: results.reduce((total, item) => total + item.failed, 0),
     pending: results.reduce((total, item) => total + item.pending, 0),
+    skipped: results.reduce((total, item) => total + item.skipped, 0),
     skippedForTime,
   };
 }
