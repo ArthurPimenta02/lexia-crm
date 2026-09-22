@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lexia CRM
 
-## Getting Started
+Painel web da Lexia AI para acompanhar agentes, conversas omnichannel,
+agendamentos, follow-ups, testes, feedbacks e handoffs, com um analista de IA
+baseado em métricas e evidências das conversas.
 
-First, run the development server:
+Produção: `https://app.uselexia.app`
+
+## Documentação Obrigatória
+
+- [`Agent.MD`](./Agent.MD): mapa completo da arquitetura, integrações, banco,
+  métricas, rotas, operação, riscos e regras para mudanças seguras.
+- [`PLAN.MD`](./PLAN.MD): plano priorizado de estabilização e evolução, com
+  critérios de aceite e rollback.
+- [`docs/LEXIA_CRM_E_ANALISTA_N8N.md`](./docs/LEXIA_CRM_E_ANALISTA_N8N.md):
+  guia completo do projeto e contrato passo a passo do Analista no n8n.
+- [`AGENTS.md`](./AGENTS.md): instruções obrigatórias para agentes de código.
+
+Leia esses documentos antes de alterar o projeto. Nunca adicione credenciais,
+service roles, senhas ou URLs privadas de webhook ao repositório.
+
+## Desenvolvimento
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+A aplicação local abre em `http://localhost:3000`. As variáveis necessárias
+estão documentadas por nome em `Agent.MD`; os valores devem permanecer apenas
+em `.env.local` e nos ambientes protegidos da Vercel.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+O Analista Lexia também exige a migration
+`supabase/migrations/202609220001_lexia_ai_analyst.sql` no Supabase central e
+as variáveis server-only `LEXIA_APP_URL`, `N8N_ANALYST_WEBHOOK_URL` e
+`N8N_ANALYST_WEBHOOK_SECRET`. O workflow e o procedimento de ativação estão no
+guia do n8n acima.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Validação
 
-## Learn More
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+npm audit
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O estado de qualidade e os riscos conhecidos estão registrados em `Agent.MD` e
+devem ser consultados antes de qualquer deploy.
