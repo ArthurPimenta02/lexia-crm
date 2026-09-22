@@ -263,7 +263,8 @@ Arquivos de referência:
 
 Corpo aceito por `/api/analista/cron/classificar`, todos opcionais: `cliente_slug`
 (restringe a um cliente; o padrão percorre todos os `lexia_clientes` ativos),
-`limite` (conversas por cliente, 1–8, padrão 4), `dias` (janela de histórico,
+`limite` (conversas por cliente, 1–8, padrão 4), `paralelas` (conversas
+simultâneas, 1–6, padrão 4), `dias` (janela de histórico,
 1–366, padrão 90), `orcamento_ms` (corte de tempo, 5 000–50 000, padrão 38 000)
 e `apenas_medir: true` (mede a leitura do histórico e devolve a cobertura sem
 chamar a OpenAI, para separar lentidão de banco de lentidão de classificação).
@@ -283,6 +284,16 @@ raciocínio saem do mesmo orçamento do JSON, e com o esforço padrão sobrava
 pouco para a resposta do schema. Ao trocar de modelo, conferir os dois valores
 juntos. Resposta cortada é detectada por `response.status === "incomplete"` e
 reportada com o motivo, em vez de estourar no `JSON.parse`.
+
+Medição em 22/09/2026 no `miranda_skin_experts`: uma conversa levou 20,9 s e
+duas levaram 42,1 s. A leitura do histórico é desprezível; o custo é a espera
+pela OpenAI, cerca de 21 s por conversa. Por isso o `analyzeConversationBatch`
+processa as conversas em ondas paralelas de `concurrency` (padrão 4), e não
+uma a uma. Cada requisição tem `timeout` de 40 s, e uma onda nova só começa se
+o tempo restante cobrir a onda mais lenta já observada com 30% de folga — as
+conversas que não couberem voltam em `skipped`, sem erro. `limite` acima de
+`paralelas` gera mais de uma onda e quase sempre estoura o orçamento; manter
+os dois valores iguais.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 

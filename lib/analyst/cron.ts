@@ -143,6 +143,8 @@ async function listActiveClients(clienteSlug?: string) {
 
 export type ClassificationCycleInput = {
   clienteSlug?: string;
+  /** Conversas classificadas em paralelo dentro de cada cliente. */
+  concurrency?: number;
   /**
    * Mede só a leitura do histórico e a cobertura, sem chamar a OpenAI.
    * Serve para separar "o banco está lento" de "a classificação está lenta"
@@ -217,6 +219,7 @@ export async function runClassificationCycle(
       }
 
       const result = await analyzeConversationBatch(scope, limit, {
+        concurrency: input.concurrency,
         deadlineAt,
         enforceRateLimit: false,
       });

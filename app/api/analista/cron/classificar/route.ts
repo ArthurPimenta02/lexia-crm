@@ -29,6 +29,8 @@ export async function POST(request: Request) {
     const clienteSlug = String(body.cliente_slug ?? "").trim();
     const result = await runClassificationCycle({
       clienteSlug: clienteSlug || undefined,
+      concurrency:
+        body.paralelas === undefined ? undefined : Number(body.paralelas),
       dryRun: body.apenas_medir === true,
       limit: body.limite === undefined ? undefined : Number(body.limite),
       lookbackDays: body.dias === undefined ? undefined : Number(body.dias),
