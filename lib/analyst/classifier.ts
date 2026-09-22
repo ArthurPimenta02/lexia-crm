@@ -212,12 +212,28 @@ function filterEvidenceIds(
   };
 }
 
+/**
+ * Só os modelos de raciocínio aceitam `reasoning`. Enviar esse campo para um
+ * `gpt-4.1`, por exemplo, faz a API recusar a requisição inteira.
+ */
+function isReasoningModel(model: string) {
+  return /^(gpt-5|o1|o3|o4)/.test(model);
+}
+
 async function classifyConversation(
   openai: OpenAI,
   candidate: AnalystConversationCandidate,
 ) {
   const model = getClassifierModel();
   const response = await openai.responses.create({
+    // Nos modelos de raciocínio os tokens de raciocínio saem do mesmo
+    // `max_output_tokens` do JSON. Com esforço médio eles consumiam quase todo
+    // o orçamento e a resposta era cortada no meio de uma string. Esta é uma
+    // tarefa de extração com schema fechado: esforço baixo basta, é mais
+    // barato e reduz muito a duração de cada conversa.
+    ...(isReasoningModel(model)
+      ? { reasoning: { effort: "low" as const } }
+      : {}),
     input: [
       {
         role: "user",
@@ -233,7 +249,8 @@ async function classifyConversation(
       "Toda afirmação relevante deve apontar IDs [m:...] realmente presentes na conversa.",
       "Não inclua telefone, e-mail, nome completo ou URL na saída.",
     ].join("\n"),
-    max_output_tokens: 2200,
+    // Folga para o raciocínio e para o JSON completo do schema.
+    max_output_tokens: 6000,
     model,
     store: false,
     text: {
@@ -245,6 +262,19 @@ async function classifyConversation(
       },
     },
   });
+
+  // Uma resposta cortada chega como JSON inválido e o erro vira um
+  // "Unterminated string", que esconde a causa. Nomear o motivo aqui evita
+  // repetir esse diagnóstico.
+  if (response.status === "incomplete") {
+    const reason = response.incomplete_details?.reason ?? "desconhecido";
+    throw new Error(
+      `A classificação foi interrompida antes do fim (motivo: ${reason}). ` +
+        `Tokens de saída usados: ${response.usage?.output_tokens ?? "?"} de ${
+          response.max_output_tokens ?? "?"
+        }.`,
+    );
+  }
 
   if (!response.output_text) {
     throw new Error("A classificação não retornou conteúdo.");

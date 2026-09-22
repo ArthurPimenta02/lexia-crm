@@ -276,6 +276,14 @@ parcial em vez de ser morta pelo `maxDuration` de 60 s da Vercel. Nenhuma
 transcrição sai da plataforma — o n8n apenas agenda, e a chamada à OpenAI
 continua em `lib/analyst/classifier.ts`.
 
+No `classifyConversation`, modelos de raciocínio (`gpt-5*`, `o1`, `o3`, `o4`)
+recebem `reasoning.effort: "low"` e `max_output_tokens: 6000`. Em 22/09/2026 a
+classificação falhava com `Unterminated string in JSON`: os tokens de
+raciocínio saem do mesmo orçamento do JSON, e com o esforço padrão sobrava
+pouco para a resposta do schema. Ao trocar de modelo, conferir os dois valores
+juntos. Resposta cortada é detectada por `response.status === "incomplete"` e
+reportada com o motivo, em vez de estourar no `JSON.parse`.
+
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 
 Rotas fora da navegação devem ser preservadas. A ausência no menu não significa que estejam obsoletas.
