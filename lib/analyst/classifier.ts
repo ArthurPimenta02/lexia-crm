@@ -223,6 +223,7 @@ function isReasoningModel(model: string) {
 async function classifyConversation(
   openai: OpenAI,
   candidate: AnalystConversationCandidate,
+  requestTimeoutMs = classificationRequestTimeoutMs,
 ) {
   const model = getClassifierModel();
   const response = await openai.responses.create(
@@ -263,7 +264,7 @@ async function classifyConversation(
         },
       },
     },
-    { timeout: classificationRequestTimeoutMs },
+    { timeout: requestTimeoutMs },
   );
 
   // Uma resposta cortada chega como JSON inválido e o erro vira um
@@ -323,6 +324,8 @@ const defaultConcurrency = 4;
 const maxConcurrency = 6;
 /** Uma requisição travada não pode consumir o orçamento inteiro da chamada. */
 const classificationRequestTimeoutMs = 40_000;
+/** Menos que isto não dá tempo de classificar nada; melhor nem tentar. */
+const minimumRequestTimeoutMs = 8_000;
 
 /**
  * Classifica e persiste uma conversa. Nunca lança: devolve `true` se o insight
@@ -333,6 +336,7 @@ async function classifyAndPersistConversation(
   openai: OpenAI,
   scope: AnalystScope,
   candidate: AnalystConversationCandidate,
+  requestTimeoutMs: number,
 ): Promise<boolean> {
   const admin = createAdminClient();
   const executionStarted = Date.now();
@@ -354,7 +358,11 @@ async function classifyAndPersistConversation(
     .maybeSingle();
 
   try {
-    const result = await classifyConversation(openai, candidate);
+    const result = await classifyConversation(
+      openai,
+      candidate,
+      requestTimeoutMs,
+    );
     const insight = result.insight;
     const { error } = await admin
       .from("lexia_conversation_insights")
@@ -493,10 +501,21 @@ export async function analyzeConversationBatch(
       continue;
     }
 
+    // O timeout encolhe conforme o orçamento acaba, para que nenhuma
+    // requisição sobreviva ao prazo do ciclo e derrube a função inteira.
+    const requestTimeoutMs = Math.max(
+      minimumRequestTimeoutMs,
+      Math.min(classificationRequestTimeoutMs, remainingMs),
+    );
     const waveStarted = Date.now();
     const outcomes = await Promise.all(
       wave.map((candidate) =>
-        classifyAndPersistConversation(openai, scope, candidate),
+        classifyAndPersistConversation(
+          openai,
+          scope,
+          candidate,
+          requestTimeoutMs,
+        ),
       ),
     );
 

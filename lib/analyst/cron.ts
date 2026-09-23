@@ -24,13 +24,20 @@ const defaultLookbackDays = 90;
 const maxLookbackDays = 366;
 
 /**
- * Margem para responder antes do limite de execução da função na Vercel.
- * O limite declarado na rota é 60s; parar aos 38s deixa espaço para o
- * recálculo de cobertura e para a resposta HTTP sair a tempo.
+ * Parede de tempo do ciclo, não apenas um aviso: nenhuma chamada à OpenAI
+ * pode terminar depois dela, porque o `timeout` de cada requisição é
+ * encurtado para o que sobrar daqui. O limite declarado na rota é 60s, e os
+ * segundos restantes cobrem o recálculo de cobertura e a resposta HTTP.
  */
-const defaultTimeBudgetMs = 38_000;
+const defaultTimeBudgetMs = 50_000;
 /** Nunca ultrapassar o `maxDuration` declarado na rota. */
-const maxTimeBudgetMs = 50_000;
+const maxTimeBudgetMs = 54_000;
+/**
+ * Abaixo disto não compensa começar outro cliente: a classificação seria
+ * abortada no meio e só deixaria uma execução com erro para trás. Uma rodada
+ * de seis conversas em paralelo levou entre 18s e 27s nas medições.
+ */
+const minimumClientBudgetMs = 20_000;
 
 export type ClassificationClientResult = {
   analyzed: number;
@@ -117,6 +124,17 @@ function buildSystemScope(
   };
 }
 
+function shuffle<T>(items: T[]) {
+  const result = [...items];
+
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1));
+    [result[index], result[target]] = [result[target], result[index]];
+  }
+
+  return result;
+}
+
 async function listActiveClients(clienteSlug?: string) {
   const admin = createAdminClient();
   let query = admin
@@ -138,7 +156,11 @@ async function listActiveClients(clienteSlug?: string) {
     );
   }
 
-  return (data ?? []) as { nome: string | null; slug: string }[];
+  // Cada execução só alcança os primeiros clientes antes de esgotar o tempo.
+  // Numa ordem fixa, quem está no fim do alfabeto nunca seria classificado.
+  // Embaralhar dá a todos a mesma chance ao longo das execuções, sem precisar
+  // guardar de quem foi a vez anterior.
+  return shuffle((data ?? []) as { nome: string | null; slug: string }[]);
 }
 
 export type ClassificationCycleInput = {
@@ -191,9 +213,9 @@ export async function runClassificationCycle(
   const deadlineAt = startedAt + timeBudgetMs;
 
   for (const client of clients) {
-    // Sem uma conversa cabendo no que sobra do orçamento, nem vale começar:
-    // carregar o histórico do cliente já custa tempo.
-    if (Date.now() >= deadlineAt) {
+    // Não basta o prazo ainda não ter passado: o que sobra precisa dar para
+    // uma rodada inteira. Começar em cima da hora só produziria erro.
+    if (deadlineAt - Date.now() < minimumClientBudgetMs) {
       skippedForTime.push(client.slug);
       continue;
     }

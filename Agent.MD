@@ -265,7 +265,7 @@ Corpo aceito por `/api/analista/cron/classificar`, todos opcionais: `cliente_slu
 (restringe a um cliente; o padrão percorre todos os `lexia_clientes` ativos),
 `limite` (conversas por cliente, 1–8, padrão 4), `paralelas` (conversas
 simultâneas, 1–6, padrão 4), `dias` (janela de histórico,
-1–366, padrão 90), `orcamento_ms` (corte de tempo, 5 000–50 000, padrão 38 000)
+1–366, padrão 90), `orcamento_ms` (corte de tempo, 5 000–54 000, padrão 50 000)
 e `apenas_medir: true` (mede a leitura do histórico e devolve a cobertura sem
 chamar a OpenAI, para separar lentidão de banco de lentidão de classificação).
 
@@ -294,6 +294,18 @@ o tempo restante cobrir a onda mais lenta já observada com 30% de folga — as
 conversas que não couberem voltam em `skipped`, sem erro. `limite` acima de
 `paralelas` gera mais de uma onda e quase sempre estoura o orçamento; manter
 os dois valores iguais.
+
+O `orcamento_ms` é uma parede, não um aviso: o `timeout` de cada requisição à
+OpenAI é encurtado para o que sobra dele, então nenhuma chamada sobrevive ao
+prazo do ciclo. Um cliente novo só começa com pelo menos 20 s de folga, para
+não produzir uma rodada inteira de execuções abortadas. Em 23/09/2026 um ciclo
+com quatro clientes levou 47,9 s dos 60 s da rota, com a margem vindo dessas
+duas regras.
+
+`listActiveClients` embaralha os clientes. Em ordem alfabética fixa, o
+orçamento se esgotava sempre nos primeiros e `miranda_skin_experts`, por ser o
+último, nunca era classificado. O embaralhamento distribui as vagas ao longo
+das execuções sem precisar guardar de quem foi a vez anterior.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 
