@@ -6,11 +6,6 @@ export type ExternalClientMetrics = {
   appointmentWeekdays: { label: string; value: number }[];
   appointments: number | null;
   isConfigured: boolean;
-  recurringCustomers: {
-    newCustomers: number;
-    percentage: number | null;
-    recurringCustomers: number;
-  };
   services: { label: string; value: number }[];
 };
 
@@ -22,7 +17,6 @@ type MetricsRange = {
 type ExternalClientConfig = {
   appointments: {
     appointmentDateColumn: string;
-    customerColumn: string;
     dateColumn: string;
     hasClienteSlug: boolean;
     serviceColumn: string;
@@ -37,7 +31,6 @@ const clientConfigs: Record<string, ExternalClientConfig> = {
   detail_by_cordeiro: {
     appointments: {
       appointmentDateColumn: "data_inicio",
-      customerColumn: "telefone",
       dateColumn: "criado_em",
       hasClienteSlug: true,
       serviceColumn: "servico",
@@ -50,7 +43,6 @@ const clientConfigs: Record<string, ExternalClientConfig> = {
   miranda_skin_experts: {
     appointments: {
       appointmentDateColumn: "inicio",
-      customerColumn: "telefone",
       dateColumn: "criado_em",
       hasClienteSlug: false,
       serviceColumn: "servico",
@@ -77,11 +69,6 @@ function emptyExternalMetrics(isConfigured: boolean): ExternalClientMetrics {
     appointmentWeekdays: emptyAppointmentWeekdays,
     appointments: null,
     isConfigured,
-    recurringCustomers: {
-      newCustomers: 0,
-      percentage: null,
-      recurringCustomers: 0,
-    },
     services: [],
   };
 }
@@ -129,7 +116,6 @@ async function listAppointments(
     new Set([
       "id",
       config.appointments.appointmentDateColumn,
-      config.appointments.customerColumn,
       config.appointments.dateColumn,
       config.appointments.serviceColumn,
     ]),
@@ -142,47 +128,6 @@ async function listAppointments(
       .in(config.appointments.statusColumn, config.appointments.statusValues)
       .gte(config.appointments.dateColumn, range.start.toISOString())
       .lt(config.appointments.dateColumn, range.end.toISOString());
-
-    if (config.appointments.hasClienteSlug) {
-      query = query.eq("cliente_slug", clienteSlug);
-    }
-
-    const result = await query
-      .order(config.appointments.dateColumn, { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to);
-
-    return {
-      data: (result.data ?? []) as unknown as Record<string, unknown>[],
-      error: result.error,
-    };
-  });
-}
-
-async function listHistoricalAppointments(
-  supabase: ReturnType<typeof createExternalClient>,
-  config: ExternalClientConfig,
-  clienteSlug: string,
-  range: MetricsRange,
-) {
-  if (!supabase) {
-    return { data: null, error: null };
-  }
-
-  const selectedColumns = Array.from(
-    new Set([
-      "id",
-      config.appointments.customerColumn,
-      config.appointments.dateColumn,
-    ]),
-  ).join(",");
-
-  return fetchAllSupabaseRows<Record<string, unknown>>(async (from, to) => {
-    let query = supabase
-      .from(config.appointments.table)
-      .select(selectedColumns)
-      .in(config.appointments.statusColumn, config.appointments.statusValues)
-      .lt(config.appointments.dateColumn, range.start.toISOString());
 
     if (config.appointments.hasClienteSlug) {
       query = query.eq("cliente_slug", clienteSlug);
@@ -270,52 +215,6 @@ function buildWeekdayCounts(
   return counts;
 }
 
-function buildRecurringMetrics(
-  periodRows: Record<string, unknown>[],
-  historicalRows: Record<string, unknown>[],
-  config: ExternalClientConfig,
-) {
-  const normalizeCustomer = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-
-    return digits || value.toLocaleLowerCase();
-  };
-  const historicalCustomers = new Set<string>();
-
-  for (const row of historicalRows) {
-    const customer = getTextValue(row, config.appointments.customerColumn);
-
-    if (!customer) {
-      continue;
-    }
-
-    historicalCustomers.add(normalizeCustomer(customer));
-  }
-
-  const periodCustomers = new Set(
-    periodRows
-      .map((row) => getTextValue(row, config.appointments.customerColumn))
-      .filter((value): value is string => Boolean(value))
-      .map(normalizeCustomer),
-  );
-  let recurringCustomers = 0;
-
-  for (const customer of periodCustomers) {
-    if (historicalCustomers.has(customer)) {
-      recurringCustomers += 1;
-    }
-  }
-
-  const total = periodCustomers.size;
-
-  return {
-    newCustomers: Math.max(total - recurringCustomers, 0),
-    percentage:
-      total > 0 ? Math.round((recurringCustomers / total) * 1000) / 10 : null,
-    recurringCustomers,
-  };
-}
-
 export async function getExternalClientMetrics(
   clienteSlug: string,
   range: MetricsRange,
@@ -331,11 +230,12 @@ export async function getExternalClientMetrics(
   if (!supabase) {
     return emptyExternalMetrics(false);
   }
-  const [appointmentsListResult, historicalAppointmentsResult] =
-    await Promise.all([
-      listAppointments(supabase, config, clienteSlug, range),
-      listHistoricalAppointments(supabase, config, clienteSlug, range),
-    ]);
+  const appointmentsListResult = await listAppointments(
+    supabase,
+    config,
+    clienteSlug,
+    range,
+  );
 
   if (appointmentsListResult.error) {
     console.error(
@@ -344,18 +244,8 @@ export async function getExternalClientMetrics(
     );
   }
 
-  if (historicalAppointmentsResult.error) {
-    console.error(
-      "Erro ao listar histórico de agendamentos externos",
-      historicalAppointmentsResult.error,
-    );
-  }
-
   const appointmentRows =
     ((appointmentsListResult.data ?? []) as Record<string, unknown>[]) ?? [];
-  const historicalRows =
-    ((historicalAppointmentsResult.data ?? []) as Record<string, unknown>[]) ??
-    [];
 
   return {
     appointmentWeekdays: appointmentsListResult.error
@@ -367,14 +257,6 @@ export async function getExternalClientMetrics(
         ),
     appointments: appointmentsListResult.error ? null : appointmentRows.length,
     isConfigured: true,
-    recurringCustomers:
-      appointmentsListResult.error || historicalAppointmentsResult.error
-        ? {
-            newCustomers: 0,
-            percentage: null,
-            recurringCustomers: 0,
-          }
-        : buildRecurringMetrics(appointmentRows, historicalRows, config),
     services: appointmentsListResult.error
       ? []
       : buildServiceRanking(appointmentRows, config),

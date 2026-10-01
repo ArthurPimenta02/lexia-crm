@@ -314,7 +314,6 @@ Criar fixtures para:
 - [ ] horários na mudança de DST de Lisboa e New York;
 - [ ] agendamento `confirmado` Miranda;
 - [ ] agendamento `confirmada` e `pendente_sinal` Detail;
-- [ ] cliente recorrente com formatos diferentes de telefone;
 - [ ] resposta acima de 1 hora;
 - [ ] filtro de canal sem atribuição de agendamento.
 

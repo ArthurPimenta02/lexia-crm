@@ -727,7 +727,6 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
       messagesSent: sentMessageCounts.get(client.slug) ?? 0,
       outOfHours: outOfHoursByClient.get(client.slug) ?? null,
       pendingFeedbacks: pendingFeedbackCounts.get(client.slug) ?? 0,
-      recurringCustomers: metrics?.recurringCustomers ?? null,
       services: metrics?.services ?? [],
       unknownChannel: unknownChannelCounts.get(client.slug) ?? 0,
       whatsapp: whatsappCounts.get(client.slug) ?? 0,
@@ -746,12 +745,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
       handoffs: current.handoffs + row.handoffs,
       messagesReceived: current.messagesReceived + row.messagesReceived,
       messagesSent: current.messagesSent + row.messagesSent,
-      newCustomers:
-        current.newCustomers + (row.recurringCustomers?.newCustomers ?? 0),
       pendingFeedbacks: current.pendingFeedbacks + row.pendingFeedbacks,
-      recurringCustomers:
-        current.recurringCustomers +
-        (row.recurringCustomers?.recurringCustomers ?? 0),
     }),
     {
       appointments: 0,
@@ -761,9 +755,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
       handoffs: 0,
       messagesReceived: 0,
       messagesSent: 0,
-      newCustomers: 0,
       pendingFeedbacks: 0,
-      recurringCustomers: 0,
     },
   );
 
@@ -771,14 +763,6 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     selectedChannel ? null : totals.appointments,
     totals.conversations,
   );
-  const totalRecurringPercentage =
-    totals.recurringCustomers + totals.newCustomers > 0
-      ? Math.round(
-          (totals.recurringCustomers /
-            (totals.recurringCustomers + totals.newCustomers)) *
-            1000,
-        ) / 10
-      : null;
   const channelRanking = [
     {
       label: "WhatsApp",
@@ -1048,15 +1032,6 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           description={`${firstResponse.samples} conversas iniciadas com primeira resposta automática em até 1h.`}
           label="Primeira resposta média"
           value={formatSeconds(firstResponse.averageSeconds)}
-        />
-        <StatCard
-          description={`${totals.recurringCustomers} recorrentes e ${totals.newCustomers} novos com agendamento no período.`}
-          label="Clientes recorrentes"
-          value={
-            totalRecurringPercentage === null
-              ? "--"
-              : `${totalRecurringPercentage}%`
-          }
         />
         <StatCard
           description="Feedbacks ainda pendentes de análise."

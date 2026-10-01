@@ -468,7 +468,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <MetricCard
           description="Mensagens automáticas de retomada efectivamente registadas no período."
           label="Follow-ups enviados"
@@ -508,7 +508,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2">
         <MetricCard
           description={`${outOfHours.outsideCount} de ${outOfHours.sentCount} respostas do agente fora de 9h-19h ou fim de semana.`}
           label="Atendimento fora do horário"
@@ -520,15 +520,6 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
           description={`${firstResponse.samples} conversas iniciadas com primeira resposta automática em até 1h.`}
           label="Primeira resposta média"
           value={formatSeconds(firstResponse.averageSeconds)}
-        />
-        <MetricCard
-          description={`${externalMetrics.recurringCustomers.recurringCustomers} recorrentes e ${externalMetrics.recurringCustomers.newCustomers} novos com agendamento no período.`}
-          label="Clientes recorrentes"
-          value={
-            externalMetrics.recurringCustomers.percentage === null
-              ? "--"
-              : `${externalMetrics.recurringCustomers.percentage}%`
-          }
         />
       </div>
 

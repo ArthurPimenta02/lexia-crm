@@ -1,7 +1,7 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 30/09/2026.
+> Última auditoria: 01/10/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
@@ -634,7 +634,6 @@ As métricas externas são configuradas em código em `lib/metrics/external-clie
 - Data usada para dia da semana do agendamento: `inicio`.
 - Status válido: `confirmado`.
 - Serviço: `servico`.
-- Identidade do cliente recorrente: `telefone` normalizado para dígitos.
 - Não aplica filtro de slug, pois o banco/tabela são dedicados.
 
 Campos conhecidos da tabela:
@@ -653,7 +652,6 @@ Existe no Supabase da Miranda uma tabela `lexia_followups`, mas a aplicação we
 - Data usada para dia da semana: `data_inicio`.
 - Status válidos: `confirmada`, `pendente_sinal`.
 - Serviço: `servico`.
-- Identidade do cliente recorrente: `telefone` normalizado.
 - Aplica `cliente_slug = detail_by_cordeiro`.
 
 Campos conhecidos:
@@ -678,8 +676,8 @@ Não existe atribuição individual entre conversa e agendamento. O texto da UI 
 - Erro de consulta: erro é registrado no servidor e o painel devolve valores vazios/nulos.
 - `isConfigured` indica presença das variáveis, não sucesso da consulta.
 - As consultas usam service role e paginam em blocos de 1.000.
-- A consulta do período seleciona apenas as colunas necessárias para contagem, serviço, dia e recorrência.
-- O histórico anterior seleciona apenas identidade do cliente e data; período e histórico são consultados em paralelo.
+- A consulta do período seleciona apenas as colunas necessárias para contagem, serviço e dia.
+- Desde 01/10/2026, o dashboard não calcula nem exibe clientes recorrentes e não consulta o histórico anterior de agendamentos para essa finalidade.
 
 ## 12. Contrato com n8n e Canais
 
@@ -928,12 +926,6 @@ Não representa todos os leads de anúncio.
 - Exclui `humano` e `painel_cliente`.
 - Descarta amostras negativas e respostas acima de 1 hora.
 - Mostra média e número de amostras.
-
-### Clientes recorrentes
-
-- Identifica clientes por telefone normalizado.
-- Um cliente atual é recorrente se já tinha agendamento válido antes do início do período.
-- Conta clientes únicos no período, não quantidade de agendamentos.
 
 ### Serviços mais agendados
 
