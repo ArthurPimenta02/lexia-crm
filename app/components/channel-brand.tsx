@@ -121,7 +121,7 @@ export function ChannelFilterLink({
 
   return (
     <Link
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+      className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
         active ? meta.active : inactive
       }`}
       href={href}

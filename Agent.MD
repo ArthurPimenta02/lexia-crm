@@ -1,7 +1,7 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 22/09/2026.
+> Última auditoria: 30/09/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
@@ -29,7 +29,8 @@ Regras inegociáveis:
 - Hospedagem: Vercel.
 - Projeto Vercel localmente vinculado: `lexia-crm`.
 - Domínio: `app.uselexia.app`, com DNS administrado fora do repositório.
-- Verificação em 19/09/2026: `/login` respondeu HTTP 200 pela Vercel.
+- Verificação em 30/09/2026: deploy Production concluído, `/login` respondeu HTTP 200 e as rotas autenticadas `/app` e `/app/conversas` responderam HTTP 200.
+- Referência após aquecimento em 30/09/2026, medida de fora da Vercel: `/app` em aproximadamente 1,2 s e `/app/conversas` em aproximadamente 1,1 s de resposta completa. São valores operacionais, não um SLA.
 
 ### Situação do código-fonte
 
@@ -74,6 +75,7 @@ As funções atuais são:
 - Cadastro administrativo de ajustes de agente.
 - Histórico técnico de execuções.
 - Analista Lexia em chat, com métricas exatas, análise de objeções, qualidade das respostas, feedbacks e fontes rastreáveis por conversa.
+- Navegação interna sem recarga completa nos filtros, feedback imediato de carregamento e bloqueio de envios duplicados em ações administrativas e de clientes.
 
 ## 4. Fronteiras do Sistema
 
@@ -184,6 +186,8 @@ app/
     execucoes/                       histórico técnico do cliente
     configuracoes/                   leitura de dados básicos
   components/                        UI compartilhada (app-sidebar, handoff-cards, pausa do agente)
+    form-submit-button.tsx           estado pendente uniforme para Server Actions e filtros
+    app-route-loading.tsx            fallback imediato durante navegação entre páginas
   api/analista/                      fila, status, ferramentas, callback e rotas legadas da IA
   login/                             login
 lib/
@@ -191,11 +195,12 @@ lib/
   auth/profile.ts                    resolução de usuário e perfil
   conversations/message-display.ts  ordenação e expansão visual de mensagens
   dashboard/date-range.ts            períodos e fusos
+  dashboard/message-metrics-data.ts  consultas enxutas das métricas por período
   dashboard/operational-metrics.ts   definições das métricas centrais
   metrics/external-client-metrics.ts Supabase externo e agendamentos
   redis/agent-locks.ts               travas do agente no Redis (server-only)
   redis/pause-durations.ts           opções de pausa manual (seguro p/ client)
-  supabase/                          clientes browser, SSR, admin e paginação
+  supabase/                          clientes browser, SSR, admin e paginação concorrente
 public/lexia/                        símbolos claro e escuro da Lexia
 supabase/migrations/                 migrations incrementais versionadas
 ```
@@ -318,9 +323,10 @@ Rotas fora da navegação devem ser preservadas. A ausência no menu não signif
 1. `loginAction` chama `supabase.auth.signInWithPassword`.
 2. `getLoggedInUserProfile` chama `auth.getUser()`.
 3. O perfil é lido de `lexia_usuarios_clientes` por `user_id`.
-4. Sem perfil, a sessão é encerrada.
-5. `lexia_admin` entra em `/admin/area-testes`.
-6. `cliente_admin` e `cliente_operador` entram em `/app/area-testes`.
+4. `getLoggedInUserProfile` usa `React.cache`, portanto layout e página compartilham a mesma leitura somente dentro da requisição atual; não existe cache de sessão entre usuários ou requisições.
+5. Sem perfil, a sessão é encerrada.
+6. `lexia_admin` entra em `/admin/area-testes`.
+7. `cliente_admin` e `cliente_operador` entram em `/app/area-testes`.
 
 ### Roles
 
@@ -404,6 +410,11 @@ As três variáveis são server-only. O segredo precisa ter ao menos 32
 caracteres e ser o mesmo da credencial Header Auth do n8n. A URL do webhook
 precisa ser a Production URL publicada. O contrato completo está em
 `docs/LEXIA_CRM_E_ANALISTA_N8N.md`.
+
+O workflow que cumpre esse contrato está versionado em
+`n8n/analista-chat.json`, com o passo a passo de importação e as credenciais
+esperadas em `n8n/README.md`. O export não contém segredos: as credenciais são
+referenciadas por nome e precisam existir no n8n antes da importação.
 
 ### Analista Lexia (OpenAI direto, legado)
 
@@ -666,7 +677,9 @@ Não existe atribuição individual entre conversa e agendamento. O texto da UI 
 - Sem configuração: `appointments = null` e UI mostra `--`.
 - Erro de consulta: erro é registrado no servidor e o painel devolve valores vazios/nulos.
 - `isConfigured` indica presença das variáveis, não sucesso da consulta.
-- As consultas usam service role, fazem `select("*")` e paginam em blocos de 1.000.
+- As consultas usam service role e paginam em blocos de 1.000.
+- A consulta do período seleciona apenas as colunas necessárias para contagem, serviço, dia e recorrência.
+- O histórico anterior seleciona apenas identidade do cliente e data; período e histórico são consultados em paralelo.
 
 ## 12. Contrato com n8n e Canais
 
@@ -844,12 +857,12 @@ As definições abaixo são contrato de produto. Não mudar sem aprovação e te
 
 ### Conversas iniciadas
 
-1. Busca todo o histórico anterior ao fim do período.
-2. Agrupa por `cliente_slug + identificador_conversa`.
-3. Encontra a primeira mensagem `recebida` de cada conversa.
-4. Conta a conversa apenas se essa primeira entrada caiu no período.
+1. Busca as mensagens do período e separa as conversas que tiveram mensagem `recebida`.
+2. Para essas candidatas, consulta somente mensagens recebidas anteriores ao início do período, em lotes de identificadores.
+3. Agrupa por `cliente_slug + identificador_conversa` e elimina toda candidata que já possuía entrada anterior.
+4. As restantes são exatamente as conversas cuja primeira mensagem recebida caiu no período.
 
-Isso impede que aumentar o período faça a mesma conversa “mudar de data” por usar uma mensagem recente.
+Isso preserva a definição anterior sem transferir todo o histórico de todos os clientes para cada abertura do dashboard. A implementação fica em `lib/dashboard/message-metrics-data.ts`.
 
 ### Conversas ativas
 
@@ -1288,11 +1301,11 @@ Verificar:
 - Ausência de testes e CI.
 - Status de usuário não aplicado uniformemente.
 - Ausência de `proxy.ts`/fluxo documentado de renovação Supabase SSR.
-- Consultas de dashboard carregam todo o histórico anterior ao fim do período.
+- Métricas ainda são agregadas no servidor Next.js; índices do banco, view/RPC e comportamento com volume dez vezes maior ainda precisam de auditoria.
 - Gestão de múltiplos workflows incompleta.
 - Criação de usuário pode deixar Auth órfão.
 - Chamada de webhook sem timeout e sem tratamento de exceção de rede.
-- Dados externos configurados em código e `select("*")`.
+- Dados externos configurados em código.
 - Webhook URL pode aparecer em logs de erro administrativos.
 - Sem observabilidade estruturada ou alertas.
 - O painel depende do formato das chaves Redis dos workflows; não há teste automatizado desse contrato.
@@ -1448,8 +1461,8 @@ O contrato integral e a montagem nó a nó do workflow estão em
 
 ### Ferramentas permitidas
 
-- `obter_desempenho`: reutiliza as mesmas funções determinísticas do dashboard e a integração externa de agendamentos.
-- `analisar_objecoes`: agrega somente insights atualizados e sempre informa cobertura.
+- `obter_desempenho`: reutiliza as mesmas funções determinísticas do dashboard e a integração externa de agendamentos. Além dos totais, devolve `por_canal` com conversas iniciadas, conversas ativas, mensagens, autonomia e tempo de primeira resposta de cada canal, ordenado por conversas iniciadas.
+- `analisar_objecoes`: agrega somente insights atualizados e sempre informa cobertura. Cada objeção traz `por_canal` com as conversas daquele canal que a levantaram, e o retorno traz `cobertura_por_canal` com a base analisada de cada canal.
 - `analisar_qualidade`: entrega pontos fortes e oportunidades observados nas conversas classificadas.
 - `buscar_conversas`: busca lexical por termos nas mensagens com atividade no período.
 - `abrir_conversa`: abre, por referência opaca, até 80 mensagens recentes e no máximo 30 mil caracteres.
@@ -1466,6 +1479,8 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 - A classificação qualitativa e sua cobertura usam conversas iniciadas no período; busca textual pode encontrar qualquer conversa com atividade no período.
 - Insight fica pendente novamente quando a conversa ganha novas mensagens dentro do escopo.
 - Percentual de objeções usa como denominador apenas conversas com insight atual. Se a cobertura não for 100%, a resposta precisa declarar isso e não pode generalizar para toda a base.
+- O percentual dentro de `por_canal` usa como denominador as conversas analisadas daquele canal, não o total. São bases diferentes e não podem ser somadas nem comparadas com o percentual geral.
+- O canal de uma conversa vem do contacto e é normalizado em minúsculas; conversa sem canal cai em `desconhecido` em vez de ser descartada da quebra.
 - Agendamentos externos são agregados e não estão ligados individualmente à conversa. O analista não pode afirmar causalidade ou atribuir um agendamento a um lead específico.
 - Com canal específico, agendamentos retornam indisponíveis em vez de repetir o total geral e sugerir uma atribuição falsa.
 - `followup_rapido` não representa todos os leads de anúncio e não pode ser rotulado dessa forma.

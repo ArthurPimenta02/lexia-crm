@@ -13,6 +13,7 @@ import {
   buildAdminConversationHref,
   parseFeedbackComentario,
 } from "@/app/components/feedback-conversation-utils";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -684,22 +685,22 @@ export default async function ClientDetailPage({
                     <td className="px-3 py-3 align-top">
                       <div className="flex flex-col gap-2">
                         <form action={activateAction}>
-                          <button
+                          <FormSubmitButton
                             className="h-9 w-full rounded-md border border-zinc-300 px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
                             disabled={clientUser.status === "ativo"}
-                            type="submit"
+                            pendingLabel="Ativando..."
                           >
                             Ativar
-                          </button>
+                          </FormSubmitButton>
                         </form>
                         <form action={deactivateAction}>
-                          <button
+                          <FormSubmitButton
                             className="h-9 w-full rounded-md border border-zinc-300 px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
                             disabled={clientUser.status === "inativo"}
-                            type="submit"
+                            pendingLabel="Inativando..."
                           >
                             Inativar
-                          </button>
+                          </FormSubmitButton>
                         </form>
                       </div>
                     </td>

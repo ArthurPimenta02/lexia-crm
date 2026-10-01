@@ -1,9 +1,12 @@
+import Form from "next/form";
+
 import { AdminTestChat } from "@/app/admin/area-testes/admin-test-chat";
 import {
   type AdminTestExecution,
   type AdminTestSession,
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminClient = {
@@ -103,7 +106,12 @@ export default async function AdminTestAreaPage({
         </p>
       </div>
 
-      <form className="flex flex-wrap items-end gap-3" method="get">
+      <Form
+        action="/admin/area-testes"
+        className="flex flex-wrap items-end gap-3"
+        replace
+        scroll={false}
+      >
         <div className="flex min-w-72 flex-col gap-2">
           <label className="text-sm font-medium text-zinc-700" htmlFor="cliente">
             Cliente
@@ -122,13 +130,13 @@ export default async function AdminTestAreaPage({
             ))}
           </select>
         </div>
-        <button
+        <FormSubmitButton
           className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-          type="submit"
+          pendingLabel="Selecionando..."
         >
           Selecionar
-        </button>
-      </form>
+        </FormSubmitButton>
+      </Form>
 
       {!selectedClient ? (
         <div className="rounded-md border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-zinc-500">

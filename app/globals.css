@@ -19,6 +19,47 @@ body {
   overflow-x: hidden;
 }
 
+button,
+summary,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+button:not(:disabled),
+summary,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+button:not(:disabled):active,
+summary:active,
+[role="button"]:not([aria-disabled="true"]):active {
+  opacity: 0.78;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+@media (pointer: coarse) {
+  button,
+  summary,
+  [role="button"] {
+    min-height: 44px;
+  }
+}
+
 .lexia-chat-wallpaper {
   background-color: #ecebe7;
   background-image:

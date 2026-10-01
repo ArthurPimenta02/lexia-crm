@@ -1,4 +1,7 @@
 import Link from "next/link";
+import Form from "next/form";
+
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 
 import {
   dashboardPeriodOptions,
@@ -104,7 +107,7 @@ export function ConversationPeriodFilter({
           return (
             <Link
               aria-current={isActive ? "page" : undefined}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                 isActive
                   ? "border-zinc-950 bg-zinc-950 text-white"
                   : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
@@ -126,10 +129,11 @@ export function ConversationPeriodFilter({
       </div>
 
       {period.key === "personalizado" ? (
-        <form
+        <Form
           action={basePath}
           className="mt-3 grid grid-cols-2 gap-2"
-          method="get"
+          replace
+          scroll={false}
         >
           <input name="periodo" type="hidden" value="personalizado" />
           <input name="fuso" type="hidden" value={timezone} />
@@ -158,13 +162,13 @@ export function ConversationPeriodFilter({
               type="date"
             />
           </label>
-          <button
+          <FormSubmitButton
             className="col-span-2 h-9 rounded-md bg-zinc-950 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800"
-            type="submit"
+            pendingLabel="Aplicando..."
           >
             Aplicar período
-          </button>
-        </form>
+          </FormSubmitButton>
+        </Form>
       ) : null}
     </div>
   );

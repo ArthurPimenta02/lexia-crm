@@ -1,10 +1,13 @@
 "use client";
 
+import { FormSubmitButton } from "@/app/components/form-submit-button";
+
 type ConfirmSubmitButtonProps = {
   children: React.ReactNode;
   className: string;
   confirmMessage: string;
   disabled?: boolean;
+  pendingLabel?: string;
 };
 
 export function ConfirmSubmitButton({
@@ -12,9 +15,10 @@ export function ConfirmSubmitButton({
   className,
   confirmMessage,
   disabled,
+  pendingLabel,
 }: ConfirmSubmitButtonProps) {
   return (
-    <button
+    <FormSubmitButton
       className={className}
       disabled={disabled}
       onClick={(event) => {
@@ -22,9 +26,9 @@ export function ConfirmSubmitButton({
           event.preventDefault();
         }
       }}
-      type="submit"
+      pendingLabel={pendingLabel}
     >
       {children}
-    </button>
+    </FormSubmitButton>
   );
 }

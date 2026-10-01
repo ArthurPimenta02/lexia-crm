@@ -235,33 +235,80 @@ export default async function ClientConversationsPage({
   );
   const requestedConversation = getSearchValue(params.conversa);
   const supabase = await createClient();
-
-  const { data: contactsData, error: contactsError } =
-    await fetchAllSupabaseRows<Contact>(async (from, to) => {
-      let query = supabase
-        .from("lexia_contactos")
+  const emptyMessagesResult = { data: [] as Message[], error: null };
+  const loadConversationHistory = (conversationIdentifier: string) =>
+    fetchAllSupabaseRows<Message>(async (from, to) => {
+      const result = await supabase
+        .from("lexia_mensagens")
         .select(
-          "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
+          "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
         )
         .eq("cliente_slug", profile.cliente_slug)
-        .not("identificador_conversa", "like", "teste:%");
-
-      if (selectedChannel) {
-        query = query.eq("canal", selectedChannel);
-      }
-
-      const result = await query
-        .order("atualizado_em", { ascending: false })
-        .order("id", { ascending: false })
+        .eq("identificador_conversa", conversationIdentifier)
+        .order("criado_em", { ascending: true })
+        .order("id", { ascending: true })
         .range(from, to);
 
       return {
-        data: (result.data ?? []) as Contact[],
+        data: (result.data ?? []) as Message[],
         error: result.error,
       };
     });
+  const contactsPromise = fetchAllSupabaseRows<Contact>(async (from, to) => {
+    let query = supabase
+      .from("lexia_contactos")
+      .select(
+        "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
+      )
+      .eq("cliente_slug", profile.cliente_slug)
+      .not("identificador_conversa", "like", "teste:%");
 
-  if (contactsError) {
+    if (selectedChannel) {
+      query = query.eq("canal", selectedChannel);
+    }
+
+    const result = await query
+      .order("atualizado_em", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
+
+    return {
+      data: (result.data ?? []) as Contact[],
+      error: result.error,
+    };
+  });
+  const periodMessagesPromise = fetchAllSupabaseRows<Message>(
+    async (from, to) => {
+      const result = await supabase
+        .from("lexia_mensagens")
+        .select(
+          "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
+        )
+        .eq("cliente_slug", profile.cliente_slug)
+        .not("identificador_conversa", "like", "teste:%")
+        .gte("criado_em", range.start.toISOString())
+        .lt("criado_em", range.end.toISOString())
+        .order("criado_em", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+
+      return {
+        data: (result.data ?? []) as Message[],
+        error: result.error,
+      };
+    },
+  );
+  const requestedHistoryPromise = requestedConversation
+    ? loadConversationHistory(requestedConversation)
+    : Promise.resolve(emptyMessagesResult);
+  const [contactsResult, messagesResult, requestedHistoryResult] =
+    await Promise.all([
+      contactsPromise,
+      periodMessagesPromise,
+      requestedHistoryPromise,
+    ]);
+
+  if (contactsResult.error) {
     return (
       <section className="flex w-full min-w-0 flex-col gap-6">
         <div>
@@ -274,30 +321,7 @@ export default async function ClientConversationsPage({
     );
   }
 
-  const { data: messagesData, error: messagesError } =
-    contactsData.length > 0
-      ? await fetchAllSupabaseRows<Message>(async (from, to) => {
-          const result = await supabase
-            .from("lexia_mensagens")
-            .select(
-              "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
-            )
-            .eq("cliente_slug", profile.cliente_slug)
-            .not("identificador_conversa", "like", "teste:%")
-            .gte("criado_em", range.start.toISOString())
-            .lt("criado_em", range.end.toISOString())
-            .order("criado_em", { ascending: true })
-            .order("id", { ascending: true })
-            .range(from, to);
-
-          return {
-            data: (result.data ?? []) as Message[],
-            error: result.error,
-          };
-        })
-      : { data: [], error: null };
-
-  if (messagesError) {
+  if (messagesResult.error) {
     return (
       <section className="flex w-full min-w-0 flex-col gap-6">
         <div>
@@ -310,12 +334,12 @@ export default async function ClientConversationsPage({
     );
   }
 
-  const messages = messagesData as Message[];
+  const messages = messagesResult.data as Message[];
   const summaries = buildSummaries(messages);
   const conversationsInPeriod = new Set(
     messages.map((message) => message.identificador_conversa),
   );
-  const contacts = contactsData.filter((contact) =>
+  const contacts = contactsResult.data.filter((contact) =>
     conversationsInPeriod.has(contact.identificador_conversa),
   );
   const sortedContacts = [...contacts].sort(
@@ -329,31 +353,13 @@ export default async function ClientConversationsPage({
     ) ??
     sortedContacts[0] ??
     null;
-  const { data: selectedMessages, error: selectedMessagesError } =
-    selectedContact
-      ? await fetchAllSupabaseRows<Message>(async (from, to) => {
-          const result = await supabase
-            .from("lexia_mensagens")
-            .select(
-              "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
-            )
-            .eq("cliente_slug", profile.cliente_slug)
-            .eq(
-              "identificador_conversa",
-              selectedContact.identificador_conversa,
-            )
-            .order("criado_em", { ascending: true })
-            .order("id", { ascending: true })
-            .range(from, to);
+  const selectedMessagesResult = selectedContact
+    ? selectedContact.identificador_conversa === requestedConversation
+      ? requestedHistoryResult
+      : await loadConversationHistory(selectedContact.identificador_conversa)
+    : emptyMessagesResult;
 
-          return {
-            data: (result.data ?? []) as Message[],
-            error: result.error,
-          };
-        })
-      : { data: [], error: null };
-
-  if (selectedMessagesError) {
+  if (selectedMessagesResult.error) {
     return (
       <section className="flex w-full min-w-0 flex-col gap-6">
         <div>
@@ -370,6 +376,7 @@ export default async function ClientConversationsPage({
     selectedContact &&
       selectedContact.identificador_conversa === requestedConversation,
   );
+  const selectedMessages = selectedMessagesResult.data;
   const displayMessages = prepareConversationMessages(selectedMessages);
   const selectedSummary = selectedContact
     ? buildSummaries(selectedMessages).get(

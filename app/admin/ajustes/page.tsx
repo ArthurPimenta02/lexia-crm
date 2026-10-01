@@ -1,3 +1,4 @@
+import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import {
@@ -8,6 +9,7 @@ import {
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { parseFeedbackComentario } from "@/app/components/feedback-conversation-utils";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -246,12 +248,12 @@ function AdjustmentForm({
         />
       ) : null}
 
-      <button
+      <FormSubmitButton
         className="h-10 w-fit rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-        type="submit"
+        pendingLabel="Guardando..."
       >
         Guardar ajuste
-      </button>
+      </FormSubmitButton>
     </form>
   );
 }
@@ -365,9 +367,11 @@ export default async function AdminAdjustmentsPage({
         </div>
       ) : null}
 
-      <form
+      <Form
         action="/admin/ajustes"
         className="rounded-md border border-zinc-200 bg-white p-5"
+        replace
+        scroll={false}
       >
         <div className="grid gap-4 md:grid-cols-[1fr_220px_auto]">
           <div className="flex flex-col gap-2">
@@ -414,15 +418,15 @@ export default async function AdminAdjustmentsPage({
           </div>
 
           <div className="flex items-end">
-            <button
+            <FormSubmitButton
               className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-              type="submit"
+              pendingLabel="Filtrando..."
             >
               Filtrar
-            </button>
+            </FormSubmitButton>
           </div>
         </div>
-      </form>
+      </Form>
 
       <section className="rounded-md border border-zinc-200 bg-white p-5">
         <AdjustmentForm

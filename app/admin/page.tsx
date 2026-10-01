@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -18,12 +20,13 @@ import {
   getFollowupsSentCount,
   getOutOfHoursMetrics,
   getReceivedMessagesHeatmap,
-  getStartedConversationKeys,
-  getStartedConversationCountsByClient,
   getUniqueConversationCountsByClient,
-  isMessageInRange,
   type DashboardMessageMetricRow,
 } from "@/lib/dashboard/operational-metrics";
+import {
+  fetchDashboardPeriodMessages,
+  findStartedConversationKeys,
+} from "@/lib/dashboard/message-metrics-data";
 import {
   getClientTimezone,
   getExternalClientMetrics,
@@ -355,167 +358,91 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     return createdAt >= clientRange.start && createdAt < clientRange.end;
   };
 
-  const { data: contactsData, error: contactsError } =
-    await fetchAllSupabaseRows<Contact>(async (from, to) => {
-      let contactsQuery = supabase
-        .from("lexia_contactos")
-        .select(
-          "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
-        )
-        .not("identificador_conversa", "like", "teste:%");
+  const contactsPromise =
+    selectedClientSlugs.length === 0
+      ? Promise.resolve({ data: [] as Contact[], error: null })
+      : fetchAllSupabaseRows<Contact>(async (from, to) => {
+          let contactsQuery = supabase
+            .from("lexia_contactos")
+            .select(
+              "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
+            )
+            .not("identificador_conversa", "like", "teste:%");
 
-      if (selectedClientSlugs.length > 0) {
-        contactsQuery = contactsQuery.in("cliente_slug", selectedClientSlugs);
-      }
+          contactsQuery = contactsQuery.in(
+            "cliente_slug",
+            selectedClientSlugs,
+          );
 
-      if (selectedChannel) {
-        contactsQuery = contactsQuery.eq("canal", selectedChannel);
-      }
+          if (selectedChannel) {
+            contactsQuery = contactsQuery.eq("canal", selectedChannel);
+          }
 
-      const result = await contactsQuery
-        .order("criado_em", { ascending: false })
-        .order("id", { ascending: false })
-        .range(from, to);
+          const result = await contactsQuery
+            .order("criado_em", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to);
 
-      return {
-        data: (result.data ?? []) as Contact[],
-        error: result.error,
-      };
-    });
-
-  if (contactsError) {
-    throw new Error("Não foi possível buscar as conversas.");
-  }
-
-  const contacts = contactsData;
-  const contactsByConversation = new Map(
-    contacts.map((contact) => [getConversationKey(contact), contact]),
+          return {
+            data: (result.data ?? []) as Contact[],
+            error: result.error,
+          };
+        });
+  const messagesPromise = fetchDashboardPeriodMessages(
+    supabase,
+    selectedClientSlugs,
+    rangesByClient,
   );
-  const channelConversationKeys = new Set(contactsByConversation.keys());
-  const periodContacts = contacts.filter(isRowInClientRange);
+  const feedbacksPromise =
+    selectedClientSlugs.length === 0
+      ? Promise.resolve({ data: [] as Feedback[], error: null })
+      : fetchAllSupabaseRows<Feedback>(async (from, to) => {
+          const feedbackQuery = supabase
+            .from("lexia_feedbacks")
+            .select("id, cliente_slug, status, criado_em")
+            .in("cliente_slug", selectedClientSlugs)
+            .gte("criado_em", queryStart.toISOString())
+            .lt("criado_em", queryEnd.toISOString());
 
-  // O histórico anterior ao filtro identifica a primeira mensagem de cada conversa.
-  const { data: messagesData, error: messagesError } =
-    await fetchAllSupabaseRows<Message>(async (from, to) => {
-      let messagesQuery = supabase
-        .from("lexia_mensagens")
-        .select(
-          "id, cliente_slug, identificador_conversa, direccao, origem, criado_em",
-        )
-        .not("identificador_conversa", "like", "teste:%")
-        .lt("criado_em", queryEnd.toISOString());
+          const result = await feedbackQuery
+            .order("criado_em", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
 
-      if (selectedClientSlugs.length > 0) {
-        messagesQuery = messagesQuery.in("cliente_slug", selectedClientSlugs);
-      }
+          return {
+            data: (result.data ?? []) as Feedback[],
+            error: result.error,
+          };
+        });
+  const handoffsPromise =
+    selectedClientSlugs.length === 0
+      ? Promise.resolve({ data: [] as Handoff[], error: null })
+      : fetchAllSupabaseRows<Handoff>(async (from, to) => {
+          const handoffQuery = supabase
+            .from("lexia_handoffs")
+            .select("id, cliente_slug, status, criado_em")
+            .in("cliente_slug", selectedClientSlugs)
+            .gte("criado_em", queryStart.toISOString())
+            .lt("criado_em", queryEnd.toISOString());
 
-      const result = await messagesQuery
-        .order("criado_em", { ascending: true })
-        .order("id", { ascending: true })
-        .range(from, to);
+          const result = await handoffQuery
+            .order("criado_em", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, to);
 
-      return {
-        data: (result.data ?? []) as Message[],
-        error: result.error,
-      };
-    });
-
-  if (messagesError) {
-    throw new Error("Não foi possível buscar as mensagens.");
-  }
-
-  const messageHistory = messagesData.filter((message) => {
-    const clientRange = rangesByClient.get(message.cliente_slug);
-
-    if (!clientRange || !message.criado_em) {
-      return false;
-    }
-
-    return (
-      new Date(message.criado_em) < clientRange.end &&
-      (!selectedChannel ||
-        channelConversationKeys.has(getConversationKey(message)))
-    );
-  });
-  const messages = messageHistory.filter((message) => {
-    const clientRange = rangesByClient.get(message.cliente_slug);
-
-    return clientRange ? isMessageInRange(message, clientRange) : false;
-  });
-
-  const { data: feedbacksData, error: feedbacksError } =
-    await fetchAllSupabaseRows<Feedback>(async (from, to) => {
-      let feedbackQuery = supabase
-        .from("lexia_feedbacks")
-        .select("id, cliente_slug, status, criado_em")
-        .gte("criado_em", queryStart.toISOString())
-        .lt("criado_em", queryEnd.toISOString());
-
-      if (selectedClientSlugs.length > 0) {
-        feedbackQuery = feedbackQuery.in("cliente_slug", selectedClientSlugs);
-      }
-
-      const result = await feedbackQuery
-        .order("criado_em", { ascending: true })
-        .order("id", { ascending: true })
-        .range(from, to);
-
-      return {
-        data: (result.data ?? []) as Feedback[],
-        error: result.error,
-      };
-    });
-
-  if (feedbacksError) {
-    throw new Error("Não foi possível buscar os feedbacks.");
-  }
-
-  const { data: handoffsData, error: handoffsError } =
-    await fetchAllSupabaseRows<Handoff>(async (from, to) => {
-      let handoffQuery = supabase
-        .from("lexia_handoffs")
-        .select("id, cliente_slug, status, criado_em")
-        .gte("criado_em", queryStart.toISOString())
-        .lt("criado_em", queryEnd.toISOString());
-
-      if (selectedClientSlugs.length > 0) {
-        handoffQuery = handoffQuery.in("cliente_slug", selectedClientSlugs);
-      }
-
-      const result = await handoffQuery
-        .order("criado_em", { ascending: true })
-        .order("id", { ascending: true })
-        .range(from, to);
-
-      return {
-        data: (result.data ?? []) as Handoff[],
-        error: result.error,
-      };
-    });
-
-  if (handoffsError) {
-    throw new Error("Não foi possível buscar os handoffs.");
-  }
-
-  let workflowQuery = supabase
-    .from("lexia_workflows")
-    .select("cliente_slug, status");
-
-  if (selectedClientSlugs.length > 0) {
-    workflowQuery = workflowQuery.in("cliente_slug", selectedClientSlugs);
-  }
-
-  const { data: workflowsData, error: workflowsError } = await workflowQuery;
-
-  if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows.");
-  }
-
-  const feedbacks = feedbacksData.filter(isRowInClientRange);
-  const handoffs = handoffsData.filter(isRowInClientRange);
-  const workflows = (workflowsData ?? []) as Workflow[];
-
-  const externalMetricsEntries = await Promise.all(
+          return {
+            data: (result.data ?? []) as Handoff[],
+            error: result.error,
+          };
+        });
+  const workflowsPromise =
+    selectedClientSlugs.length === 0
+      ? Promise.resolve({ data: [] as Workflow[], error: null })
+      : supabase
+          .from("lexia_workflows")
+          .select("cliente_slug, status")
+          .in("cliente_slug", selectedClientSlugs);
+  const externalMetricsPromise = Promise.all(
     selectedClientSlugs.map(async (clienteSlug) => [
       clienteSlug,
       selectedChannel
@@ -526,30 +453,92 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           ),
     ] as const),
   );
+  const [
+    contactsResult,
+    messagesResult,
+    feedbacksResult,
+    handoffsResult,
+    workflowsResult,
+    externalMetricsEntries,
+  ] = await Promise.all([
+    contactsPromise,
+    messagesPromise,
+    feedbacksPromise,
+    handoffsPromise,
+    workflowsPromise,
+    externalMetricsPromise,
+  ]);
+
+  if (contactsResult.error) {
+    throw new Error("Não foi possível buscar as conversas.");
+  }
+
+  if (messagesResult.error) {
+    throw new Error("Não foi possível buscar as mensagens.");
+  }
+
+  if (feedbacksResult.error) {
+    throw new Error("Não foi possível buscar os feedbacks.");
+  }
+
+  if (handoffsResult.error) {
+    throw new Error("Não foi possível buscar os handoffs.");
+  }
+
+  if (workflowsResult.error) {
+    throw new Error("Não foi possível buscar os workflows.");
+  }
+
+  const contacts = contactsResult.data;
+  const contactsByConversation = new Map(
+    contacts.map((contact) => [getConversationKey(contact), contact]),
+  );
+  const channelConversationKeys = new Set(contactsByConversation.keys());
+  const periodContacts = contacts.filter(isRowInClientRange);
+  const messages = (messagesResult.data as Message[]).filter(
+    (message) =>
+      !selectedChannel || channelConversationKeys.has(getConversationKey(message)),
+  );
+  const startedConversationsResult = await findStartedConversationKeys(
+    supabase,
+    messages,
+    rangesByClient,
+  );
+
+  if (startedConversationsResult.error) {
+    throw new Error("Não foi possível identificar as conversas iniciadas.");
+  }
+
+  const feedbacks = feedbacksResult.data.filter(isRowInClientRange);
+  const handoffs = handoffsResult.data.filter(isRowInClientRange);
+  const workflows = (workflowsResult.data ?? []) as Workflow[];
   const externalMetrics = new Map(externalMetricsEntries);
 
   const messageMetricRows = messages as DashboardMessageMetricRow[];
-  const historyMetricRows = messageHistory as DashboardMessageMetricRow[];
-  const startedConversationCounts = getStartedConversationCountsByClient(
-    historyMetricRows,
-    rangesByClient,
-  );
+  const startedConversationKeys = startedConversationsResult.data;
+  const startedConversationCounts = new Map<string, number>();
+
+  for (const conversationKey of startedConversationKeys) {
+    const separatorIndex = conversationKey.indexOf(":");
+    const clienteSlug = conversationKey.slice(0, separatorIndex);
+
+    startedConversationCounts.set(
+      clienteSlug,
+      (startedConversationCounts.get(clienteSlug) ?? 0) + 1,
+    );
+  }
+
   const activeConversationCounts =
     getUniqueConversationCountsByClient(messageMetricRows);
   const startedConversationKeysByClient = new Map(
-    selectedClientSlugs.map((clienteSlug) => {
-      const clientRange = rangesByClient.get(clienteSlug) ?? range;
-
-      return [
-        clienteSlug,
-        getStartedConversationKeys(
-          historyMetricRows.filter(
-            (message) => message.cliente_slug === clienteSlug,
-          ),
-          clientRange,
+    selectedClientSlugs.map((clienteSlug) => [
+      clienteSlug,
+      new Set(
+        Array.from(startedConversationKeys).filter((key) =>
+          key.startsWith(`${clienteSlug}:`),
         ),
-      ] as const;
-    }),
+      ),
+    ] as const),
   );
   const autonomyMetricsByClient = new Map(
     selectedClientSlugs.map((clienteSlug) => {
@@ -591,7 +580,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     const clientRange = rangesByClient.get(clienteSlug) ?? range;
 
     return getFollowupRecoveryMetrics(
-      historyMetricRows.filter(
+      messageMetricRows.filter(
         (message) => message.cliente_slug === clienteSlug,
       ),
       clientRange,
@@ -619,8 +608,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     const clientRange = rangesByClient.get(clienteSlug) ?? range;
 
     return getFirstResponseMetrics(
-      historyMetricRows.filter(
-        (message) => message.cliente_slug === clienteSlug,
+      messageMetricRows.filter(
+        (message) =>
+          message.cliente_slug === clienteSlug &&
+          startedConversationKeys.has(getConversationKey(message)),
       ),
       clientRange,
     );
@@ -841,7 +832,12 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
       </div>
 
       <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-        <form className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end" method="get">
+        <Form
+          action="/admin"
+          className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
+          replace
+          scroll={false}
+        >
           <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
             Cliente
             <select
@@ -873,13 +869,13 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             </select>
           </label>
 
-          <button
+          <FormSubmitButton
             className="h-11 rounded-md bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800"
-            type="submit"
+            pendingLabel="Aplicando..."
           >
             Aplicar filtros
-          </button>
-        </form>
+          </FormSubmitButton>
+        </Form>
 
         <div className="mt-5 flex flex-col gap-4 border-t border-zinc-100 pt-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -904,7 +900,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
 
               return (
                 <Link
-                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                     isActive
                       ? "border-zinc-950 bg-zinc-950 text-white"
                       : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
@@ -920,7 +916,12 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
         </div>
 
         {range.key === "personalizado" ? (
-          <form className="mt-4 flex flex-wrap items-end gap-3" method="get">
+          <Form
+            action="/admin"
+            className="mt-4 flex flex-wrap items-end gap-3"
+            replace
+            scroll={false}
+          >
             <input name="periodo" type="hidden" value="personalizado" />
             {selectedClient ? (
               <input name="cliente" type="hidden" value={selectedClient} />
@@ -955,13 +956,13 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                 type="date"
               />
             </label>
-            <button
+            <FormSubmitButton
               className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-              type="submit"
+              pendingLabel="Aplicando..."
             >
               Aplicar
-            </button>
-          </form>
+            </FormSubmitButton>
+          </Form>
         ) : null}
       </div>
 

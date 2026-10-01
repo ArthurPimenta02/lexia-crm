@@ -1,8 +1,10 @@
 import Link from "next/link";
+import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { TechnicalDetailsModal } from "@/app/admin/execucoes/technical-details-modal";
 import { ExpandableText } from "@/app/components/expandable-text";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -298,9 +300,11 @@ export default async function AdminExecutionsPage({
         ))}
       </div>
 
-      <form
+      <Form
         action="/admin/execucoes"
         className="rounded-md border border-zinc-200 bg-white p-5"
+        replace
+        scroll={false}
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_220px_auto_auto]">
           <div className="flex flex-col gap-2">
@@ -363,12 +367,12 @@ export default async function AdminExecutionsPage({
           </div>
 
           <div className="flex items-end">
-            <button
+            <FormSubmitButton
               className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-              type="submit"
+              pendingLabel="Filtrando..."
             >
               Filtrar
-            </button>
+            </FormSubmitButton>
           </div>
 
           <div className="flex items-end">
@@ -380,7 +384,7 @@ export default async function AdminExecutionsPage({
             </Link>
           </div>
         </div>
-      </form>
+      </Form>
 
       <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
         {executions.length > 0 ? (

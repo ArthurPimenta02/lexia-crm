@@ -125,10 +125,20 @@ async function listAppointments(
     return { data: null, error: null };
   }
 
+  const selectedColumns = Array.from(
+    new Set([
+      "id",
+      config.appointments.appointmentDateColumn,
+      config.appointments.customerColumn,
+      config.appointments.dateColumn,
+      config.appointments.serviceColumn,
+    ]),
+  ).join(",");
+
   return fetchAllSupabaseRows<Record<string, unknown>>(async (from, to) => {
     let query = supabase
       .from(config.appointments.table)
-      .select("*")
+      .select(selectedColumns)
       .in(config.appointments.statusColumn, config.appointments.statusValues)
       .gte(config.appointments.dateColumn, range.start.toISOString())
       .lt(config.appointments.dateColumn, range.end.toISOString());
@@ -143,7 +153,7 @@ async function listAppointments(
       .range(from, to);
 
     return {
-      data: (result.data ?? []) as Record<string, unknown>[],
+      data: (result.data ?? []) as unknown as Record<string, unknown>[],
       error: result.error,
     };
   });
@@ -159,10 +169,18 @@ async function listHistoricalAppointments(
     return { data: null, error: null };
   }
 
+  const selectedColumns = Array.from(
+    new Set([
+      "id",
+      config.appointments.customerColumn,
+      config.appointments.dateColumn,
+    ]),
+  ).join(",");
+
   return fetchAllSupabaseRows<Record<string, unknown>>(async (from, to) => {
     let query = supabase
       .from(config.appointments.table)
-      .select("*")
+      .select(selectedColumns)
       .in(config.appointments.statusColumn, config.appointments.statusValues)
       .lt(config.appointments.dateColumn, range.start.toISOString());
 
@@ -176,7 +194,7 @@ async function listHistoricalAppointments(
       .range(from, to);
 
     return {
-      data: (result.data ?? []) as Record<string, unknown>[],
+      data: (result.data ?? []) as unknown as Record<string, unknown>[],
       error: result.error,
     };
   });
@@ -313,18 +331,11 @@ export async function getExternalClientMetrics(
   if (!supabase) {
     return emptyExternalMetrics(false);
   }
-  const appointmentsListResult = await listAppointments(
-    supabase,
-    config,
-    clienteSlug,
-    range,
-  );
-  const historicalAppointmentsResult = await listHistoricalAppointments(
-    supabase,
-    config,
-    clienteSlug,
-    range,
-  );
+  const [appointmentsListResult, historicalAppointmentsResult] =
+    await Promise.all([
+      listAppointments(supabase, config, clienteSlug, range),
+      listHistoricalAppointments(supabase, config, clienteSlug, range),
+    ]);
 
   if (appointmentsListResult.error) {
     console.error(

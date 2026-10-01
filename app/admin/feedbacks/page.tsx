@@ -5,6 +5,7 @@ import {
   type AdminFeedbackStatus,
 } from "@/app/admin/feedbacks/actions";
 import { ExpandableText } from "@/app/components/expandable-text";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
   buildAdminConversationHref,
   isLikelyImageUrl,
@@ -230,13 +231,13 @@ export default async function AdminFeedbacksPage() {
                             )}
                             key={action.status}
                           >
-                            <button
-                              className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            <FormSubmitButton
+                              className="min-h-10 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
                               disabled={feedback.status === action.status}
-                              type="submit"
+                              pendingLabel="Salvando..."
                             >
                               {action.label}
-                            </button>
+                            </FormSubmitButton>
                           </form>
                         ))}
                       </div>

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -18,11 +20,13 @@ import {
   getFollowupsSentCount,
   getOutOfHoursMetrics,
   getReceivedMessagesHeatmap,
-  getStartedConversationKeys,
   getUniqueConversationCount,
-  isMessageInRange,
   type DashboardMessageMetricRow,
 } from "@/lib/dashboard/operational-metrics";
+import {
+  fetchDashboardPeriodMessages,
+  findStartedConversationKeys,
+} from "@/lib/dashboard/message-metrics-data";
 import {
   getClientTimezone,
   getExternalClientMetrics,
@@ -244,30 +248,16 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   const timezone = getClientTimezone(profile.cliente_slug);
   const range = getDateRange(period, customStart, customEnd, timezone);
   const supabase = await createClient();
-
-  // O histórico anterior ao filtro identifica a primeira mensagem de cada conversa.
-  const { data: messagesData, error: messagesError } =
-    await fetchAllSupabaseRows<DashboardMessageMetricRow>(async (from, to) => {
-      const result = await supabase
-        .from("lexia_mensagens")
-        .select(
-          "id, cliente_slug, identificador_conversa, direccao, origem, criado_em",
-        )
-        .eq("cliente_slug", profile.cliente_slug)
-        .not("identificador_conversa", "like", "teste:%")
-        .lt("criado_em", range.end.toISOString())
-        .order("criado_em", { ascending: true })
-        .order("id", { ascending: true })
-        .range(from, to);
-
-      return {
-        data: (result.data ?? []) as DashboardMessageMetricRow[],
-        error: result.error,
-      };
-    });
-
-  const { data: contactsData, error: contactsError } =
-    await fetchAllSupabaseRows<ContactMetricRow>(async (from, to) => {
+  const rangesByClient = new Map([
+    [profile.cliente_slug, { end: range.end, start: range.start }],
+  ]);
+  const messagesPromise = fetchDashboardPeriodMessages(
+    supabase,
+    [profile.cliente_slug],
+    rangesByClient,
+  );
+  const contactsPromise = fetchAllSupabaseRows<ContactMetricRow>(
+    async (from, to) => {
       const result = await supabase
         .from("lexia_contactos")
         .select("id, cliente_slug, identificador_conversa, canal, criado_em")
@@ -281,21 +271,38 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         data: (result.data ?? []) as ContactMetricRow[],
         error: result.error,
       };
-    });
+    },
+  );
+  const externalMetricsPromise = getExternalClientMetrics(profile.cliente_slug, {
+    end: range.end,
+    start: range.start,
+  });
+  const messagesResult = await messagesPromise;
+  const startedConversationsPromise = messagesResult.error
+    ? Promise.resolve({ data: new Set<string>(), error: messagesResult.error })
+    : findStartedConversationKeys(
+        supabase,
+        messagesResult.data,
+        rangesByClient,
+      );
+  const [contactsResult, externalMetrics, startedConversationsResult] =
+    await Promise.all([
+      contactsPromise,
+      externalMetricsPromise,
+      startedConversationsPromise,
+    ]);
 
-  if (messagesError || contactsError) {
+  if (
+    messagesResult.error ||
+    contactsResult.error ||
+    startedConversationsResult.error
+  ) {
     throw new Error("Não foi possível buscar as métricas do dashboard.");
   }
 
-  const messageHistory = messagesData;
-  const messages = messageHistory.filter((message) =>
-    isMessageInRange(message, range),
-  );
-  const contacts = contactsData;
-  const startedConversationKeys = getStartedConversationKeys(
-    messageHistory,
-    range,
-  );
+  const messages = messagesResult.data as DashboardMessageMetricRow[];
+  const contacts = (contactsResult.data ?? []) as ContactMetricRow[];
+  const startedConversationKeys = startedConversationsResult.data;
   const startedConversations = startedConversationKeys.size;
   const activeConversations = getUniqueConversationCount(messages);
   const channelCounts = countConversationsByChannel(
@@ -311,14 +318,15 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   ).length;
   const autonomyMetrics = getAutonomyMetrics(messages, range);
   const followupsSent = getFollowupsSentCount(messages);
-  const followupRecovery = getFollowupRecoveryMetrics(messageHistory, range);
+  const followupRecovery = getFollowupRecoveryMetrics(messages, range);
   const outOfHours = getOutOfHoursMetrics(messages, timezone);
-  const firstResponse = getFirstResponseMetrics(messageHistory, range);
+  const firstResponse = getFirstResponseMetrics(
+    messages.filter((message) =>
+      startedConversationKeys.has(getConversationKey(message)),
+    ),
+    range,
+  );
   const heatmapCells = getReceivedMessagesHeatmap(messages, timezone);
-  const externalMetrics = await getExternalClientMetrics(profile.cliente_slug, {
-    end: range.end,
-    start: range.start,
-  });
   const conversionRate = formatConversionRate(
     externalMetrics.appointments,
     startedConversations,
@@ -364,7 +372,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
 
               return (
                 <Link
-                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                     isActive
                       ? "border-zinc-950 bg-zinc-950 text-white"
                       : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
@@ -380,7 +388,12 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         </div>
 
         {range.key === "personalizado" ? (
-          <form className="mt-4 flex flex-wrap items-end gap-3" method="get">
+          <Form
+            action="/app"
+            className="mt-4 flex flex-wrap items-end gap-3"
+            replace
+            scroll={false}
+          >
             <input name="periodo" type="hidden" value="personalizado" />
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
               Início
@@ -405,13 +418,13 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                 type="date"
               />
             </label>
-            <button
+            <FormSubmitButton
               className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-              type="submit"
+              pendingLabel="Aplicando..."
             >
               Aplicar
-            </button>
-          </form>
+            </FormSubmitButton>
+          </Form>
         ) : null}
       </div>
 

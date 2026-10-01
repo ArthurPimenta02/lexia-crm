@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Form from "next/form";
 import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 
@@ -11,6 +12,7 @@ import {
 } from "@/app/components/channel-brand";
 import { ConversationAgentStatus } from "@/app/components/conversation-agent-status";
 import { ConversationFeedbackAction } from "@/app/components/conversation-feedback-action";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
   ConversationDaySeparator,
   ConversationMessageBubble,
@@ -255,69 +257,100 @@ export default async function AdminConversationsPage({
 
   let contacts: Contact[] = [];
   let messages: Message[] = [];
+  const emptyMessagesResult = { data: [] as Message[], error: null };
+  let requestedHistoryResult: { data: Message[]; error: unknown } =
+    emptyMessagesResult;
+  const loadConversationHistory = (
+    clienteSlug: string,
+    conversationIdentifier: string,
+  ) =>
+    fetchAllSupabaseRows<Message>(async (from, to) => {
+      const result = await supabase
+        .from("lexia_mensagens")
+        .select(
+          "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
+        )
+        .eq("cliente_slug", clienteSlug)
+        .eq("identificador_conversa", conversationIdentifier)
+        .order("criado_em", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+
+      return {
+        data: (result.data ?? []) as Message[],
+        error: result.error,
+      };
+    });
 
   if (selectedClient) {
-    const { data: contactsData, error: contactsError } =
-      await fetchAllSupabaseRows<Contact>(async (from, to) => {
-        let query = supabase
-          .from("lexia_contactos")
+    const contactsPromise = fetchAllSupabaseRows<Contact>(async (from, to) => {
+      let query = supabase
+        .from("lexia_contactos")
+        .select(
+          "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
+        )
+        .eq("cliente_slug", selectedClient.slug)
+        .not("identificador_conversa", "like", "teste:%");
+
+      if (selectedChannel) {
+        query = query.eq("canal", selectedChannel);
+      }
+
+      const result = await query
+        .order("atualizado_em", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+
+      return {
+        data: (result.data ?? []) as Contact[],
+        error: result.error,
+      };
+    });
+    const periodMessagesPromise = fetchAllSupabaseRows<Message>(
+      async (from, to) => {
+        const result = await supabase
+          .from("lexia_mensagens")
           .select(
-            "id, cliente_slug, canal, identificador_conversa, nome, telefone, criado_em, atualizado_em",
+            "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
           )
           .eq("cliente_slug", selectedClient.slug)
-          .not("identificador_conversa", "like", "teste:%");
-
-        if (selectedChannel) {
-          query = query.eq("canal", selectedChannel);
-        }
-
-        const result = await query
-          .order("atualizado_em", { ascending: false })
-          .order("id", { ascending: false })
+          .not("identificador_conversa", "like", "teste:%")
+          .gte("criado_em", range.start.toISOString())
+          .lt("criado_em", range.end.toISOString())
+          .order("criado_em", { ascending: true })
+          .order("id", { ascending: true })
           .range(from, to);
 
         return {
-          data: (result.data ?? []) as Contact[],
+          data: (result.data ?? []) as Message[],
           error: result.error,
         };
-      });
+      },
+    );
+    const requestedHistoryPromise = requestedConversation
+      ? loadConversationHistory(selectedClient.slug, requestedConversation)
+      : Promise.resolve(emptyMessagesResult);
+    const [contactsResult, messagesResult, preloadedHistoryResult] =
+      await Promise.all([
+        contactsPromise,
+        periodMessagesPromise,
+        requestedHistoryPromise,
+      ]);
 
-    if (contactsError) {
+    if (contactsResult.error) {
       throw new Error("Não foi possível buscar as conversas.");
     }
 
-    const { data: messagesData, error: messagesError } =
-      contactsData.length > 0
-        ? await fetchAllSupabaseRows<Message>(async (from, to) => {
-            const result = await supabase
-              .from("lexia_mensagens")
-              .select(
-                "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
-              )
-              .eq("cliente_slug", selectedClient.slug)
-              .not("identificador_conversa", "like", "teste:%")
-              .gte("criado_em", range.start.toISOString())
-              .lt("criado_em", range.end.toISOString())
-              .order("criado_em", { ascending: true })
-              .order("id", { ascending: true })
-              .range(from, to);
-
-            return {
-              data: (result.data ?? []) as Message[],
-              error: result.error,
-            };
-          })
-        : { data: [], error: null };
-
-    if (messagesError) {
+    if (messagesResult.error) {
       throw new Error("Não foi possível buscar as mensagens.");
     }
 
-    messages = messagesData as Message[];
+    requestedHistoryResult = preloadedHistoryResult;
+    messages = messagesResult.data as Message[];
     const conversationsInPeriod = new Set(
       messages.map((message) => message.identificador_conversa),
     );
-    contacts = contactsData.filter((contact) =>
+    contacts = contactsResult.data.filter((contact) =>
       conversationsInPeriod.has(contact.identificador_conversa),
     );
   }
@@ -334,31 +367,17 @@ export default async function AdminConversationsPage({
     ) ??
     sortedContacts[0] ??
     null;
-  const { data: selectedMessages, error: selectedMessagesError } =
+  const selectedMessagesResult =
     selectedClient && selectedContact
-      ? await fetchAllSupabaseRows<Message>(async (from, to) => {
-          const result = await supabase
-            .from("lexia_mensagens")
-            .select(
-              "id, cliente_slug, contacto_id, identificador_conversa, direccao, tipo, conteudo, origem, criado_em",
-            )
-            .eq("cliente_slug", selectedClient.slug)
-            .eq(
-              "identificador_conversa",
-              selectedContact.identificador_conversa,
-            )
-            .order("criado_em", { ascending: true })
-            .order("id", { ascending: true })
-            .range(from, to);
+      ? selectedContact.identificador_conversa === requestedConversation
+        ? requestedHistoryResult
+        : await loadConversationHistory(
+            selectedClient.slug,
+            selectedContact.identificador_conversa,
+          )
+      : emptyMessagesResult;
 
-          return {
-            data: (result.data ?? []) as Message[],
-            error: result.error,
-          };
-        })
-      : { data: [], error: null };
-
-  if (selectedMessagesError) {
+  if (selectedMessagesResult.error) {
     throw new Error("Não foi possível buscar o histórico da conversa.");
   }
 
@@ -366,6 +385,7 @@ export default async function AdminConversationsPage({
     selectedContact &&
       selectedContact.identificador_conversa === requestedConversation,
   );
+  const selectedMessages = selectedMessagesResult.data;
   const displayMessages = prepareConversationMessages(selectedMessages);
   const selectedSummary = selectedContact
     ? buildSummaries(selectedMessages).get(
@@ -384,9 +404,11 @@ export default async function AdminConversationsPage({
         </p>
       </div>
 
-      <form
+      <Form
+        action="/admin/conversas"
         className="flex flex-wrap items-end gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
-        method="get"
+        replace
+        scroll={false}
       >
         <div className="flex min-w-72 flex-col gap-2">
           <label className="text-sm font-medium text-zinc-700" htmlFor="cliente">
@@ -421,13 +443,13 @@ export default async function AdminConversationsPage({
           </>
         ) : null}
 
-        <button
+        <FormSubmitButton
           className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-          type="submit"
+          pendingLabel="Selecionando..."
         >
           Seleccionar
-        </button>
-      </form>
+        </FormSubmitButton>
+      </Form>
 
       {!selectedClient ? (
         <div className="rounded-md border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-zinc-500">

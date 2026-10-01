@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ExpandableText } from "@/app/components/expandable-text";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 
 export type HandoffStatusValue =
   | "pendente"
@@ -192,7 +193,7 @@ export function HandoffCard({
 
           return (
             <form action={item.action} key={item.status}>
-              <button
+              <FormSubmitButton
                 aria-pressed={isCurrent}
                 className={`h-10 w-full rounded-full border px-1 text-xs font-semibold transition disabled:cursor-default ${
                   isCurrent
@@ -200,10 +201,10 @@ export function HandoffCard({
                     : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-950"
                 }`}
                 disabled={isCurrent}
-                type="submit"
+                pendingLabel="Salvando..."
               >
                 {item.label}
-              </button>
+              </FormSubmitButton>
             </form>
           );
         })}

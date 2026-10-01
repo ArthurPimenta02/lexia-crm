@@ -346,19 +346,28 @@ Critério de aceite:
 
 ## 9. P1 - Performance do Dashboard
 
-Problema atual: dashboard carrega todo o histórico anterior ao fim do período para descobrir a primeira mensagem da conversa. Isso cresce linearmente com o tempo.
+Mitigação aplicada em 30/09/2026: o dashboard passou a buscar somente mensagens do período. Para preservar a fórmula de conversas iniciadas, faz uma segunda busca leve apenas por entradas anteriores das conversas candidatas. Autenticação/perfil são memoizados dentro da requisição, consultas independentes rodam em paralelo e os Supabase externos selecionam apenas as colunas necessárias.
+
+Validação em Production em 30/09/2026: build e typecheck da Vercel aprovados; `/app` e `/app/conversas` autenticados responderam HTTP 200, com aproximadamente 1,2 s e 1,1 s de tempo total após aquecimento.
+
+Risco restante: a agregação ainda ocorre no servidor Next.js e o desempenho depende dos índices remotos. A solução de longo prazo continua sendo uma view/RPC ou tabela incremental auditada contra as fórmulas atuais.
 
 ### Plano
 
-- [ ] Medir tempo, linhas lidas e memória por página.
+- [-] Medir tempo, linhas lidas e memória por página. O volume central foi medido, mas falta instrumentação contínua em produção.
 - [ ] Criar índice para `cliente_slug, identificador_conversa, criado_em`.
 - [ ] Criar índice para `cliente_slug, criado_em`.
 - [ ] Verificar índices de `contactos`, `feedbacks` e `handoffs`.
+- [x] Parar de transferir todo o histórico para identificar a primeira mensagem; a verificação atual consulta apenas as candidatas do período.
 - [ ] Avaliar view/RPC para primeira mensagem recebida.
 - [ ] Avaliar tabela agregada incremental por conversa.
 - [ ] Calcular métricas no Postgres em vez de transferir todo o histórico.
 - [ ] Manter a fórmula e o fuso idênticos.
 - [ ] Adicionar cache curto somente depois de garantir invalidação.
+- [x] Executar consultas independentes do dashboard e das métricas externas em paralelo.
+- [x] Paginar consultas acima de 1.000 linhas em lotes concorrentes de quatro páginas, preservando a ordem dos resultados.
+- [x] Memoizar usuário/perfil por requisição com `React.cache`.
+- [x] Pré-carregar em paralelo o histórico da conversa explicitamente selecionada.
 
 Critério de aceite:
 

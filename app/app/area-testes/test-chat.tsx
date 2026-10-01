@@ -446,7 +446,7 @@ export function TestChat({
             onClick={handleCreateSession}
             type="button"
           >
-            Nova conversa
+            {isCreating ? "Criando..." : "Nova conversa"}
           </button>
         </div>
 
@@ -731,8 +731,8 @@ export function TestChat({
                 !message.trim()
               }
               type="submit"
-            >
-              Enviar
+          >
+              {isSending ? "Enviando..." : "Enviar"}
             </button>
           </form>
         </div>

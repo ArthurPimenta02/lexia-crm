@@ -367,7 +367,7 @@ export function AdminTestChat({
             onClick={handleCreateSession}
             type="button"
           >
-            Nova
+            {isCreating ? "Criando..." : "Nova"}
           </button>
         </div>
 
@@ -544,8 +544,8 @@ export function AdminTestChat({
                 !message.trim()
               }
               type="submit"
-            >
-              Enviar
+          >
+              {isSending ? "Enviando..." : "Enviar"}
             </button>
           </form>
         </div>

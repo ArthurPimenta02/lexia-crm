@@ -1,6 +1,8 @@
 "use client";
 
+import { LoaderCircle } from "lucide-react";
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 type SidebarNavItem = {
@@ -14,6 +16,23 @@ type SidebarNavProps = {
   onNavigate?: () => void;
   variant?: "light" | "dark";
 };
+
+function SidebarLinkStatus() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-4 w-4 shrink-0 items-center justify-center"
+    >
+      <LoaderCircle
+        className={`h-4 w-4 animate-spin transition-opacity ${
+          pending ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </span>
+  );
+}
 
 export function SidebarNav({
   groupLabel,
@@ -40,7 +59,7 @@ export function SidebarNav({
 
             return (
               <Link
-                className={`rounded-md px-3 py-2.5 text-sm font-medium transition ${
+                className={`flex min-h-11 items-center justify-between gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition ${
                   isActive
                     ? isDark
                       ? "bg-zinc-50 text-zinc-950 shadow-sm"
@@ -53,7 +72,8 @@ export function SidebarNav({
                 key={item.href}
                 onClick={onNavigate}
               >
-                {item.label}
+                <span>{item.label}</span>
+                <SidebarLinkStatus />
               </Link>
             );
           })}

@@ -101,9 +101,29 @@ type LoadedAnalystData = {
 };
 
 const maxToolSources = 12;
+const unknownChannelKey = "desconhecido";
 
 function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
+}
+
+/**
+ * O canal chega do n8n em grafias inconsistentes e às vezes nulo. Agrupar pelo
+ * valor cru produziria "Instagram" e "instagram" como canais diferentes.
+ */
+function normalizeChannelKey(value: string | null | undefined) {
+  return value?.trim().toLowerCase() || unknownChannelKey;
+}
+
+/**
+ * Do canal mais volumoso para o menos volumoso. O modelo lê a primeira entrada
+ * como "o maior" com frequência, então a ordem precisa ser verdadeira.
+ */
+function sortChannelEntries<T>(
+  entries: [string, T][],
+  weight: (item: T) => number,
+) {
+  return entries.sort((a, b) => weight(b[1]) - weight(a[1]));
 }
 
 function getErrorCode(error: unknown) {
@@ -670,6 +690,77 @@ export class AnalystDataContext {
     return Array.from(resolved.values());
   }
 
+  /**
+   * O canal é um filtro do painel, não uma dimensão das métricas agregadas.
+   * Sem esta quebra o analista não consegue responder "qual canal trouxe mais
+   * conversa", que é das perguntas mais frequentes. Os dados já estão em
+   * memória: agrupar não custa leitura extra no banco.
+   */
+  private getChannelBreakdown(data: LoadedAnalystData) {
+    type ChannelBucket = {
+      activeConversations: Set<string>;
+      messages: AnalystMessageRow[];
+      messagesInRange: AnalystMessageRow[];
+      startedConversations: number;
+    };
+
+    const channels = new Map<string, ChannelBucket>();
+    const channelOf = (identifier: string) =>
+      normalizeChannelKey(data.contactsByConversation.get(identifier)?.canal);
+    const ensure = (key: string) => {
+      const current = channels.get(key) ?? {
+        activeConversations: new Set<string>(),
+        messages: [],
+        messagesInRange: [],
+        startedConversations: 0,
+      };
+      channels.set(key, current);
+      return current;
+    };
+
+    for (const identifier of data.startedConversationIds) {
+      ensure(channelOf(identifier)).startedConversations += 1;
+    }
+
+    for (const message of data.messages) {
+      ensure(channelOf(message.identificador_conversa)).messages.push(message);
+    }
+
+    for (const message of data.messagesInRange) {
+      const bucket = ensure(channelOf(message.identificador_conversa));
+      bucket.messagesInRange.push(message);
+      bucket.activeConversations.add(message.identificador_conversa);
+    }
+
+    return sortChannelEntries(
+      Array.from(channels.entries()),
+      (bucket) => bucket.startedConversations,
+    ).map(([canal, bucket]) => {
+      const autonomy = getAutonomyMetrics(
+        bucket.messagesInRange,
+        this.scope.range,
+      );
+      const firstResponse = getFirstResponseMetrics(
+        bucket.messages,
+        this.scope.range,
+      );
+
+      return {
+        autonomia_percentual: autonomy.percentage,
+        canal,
+        conversas_ativas: bucket.activeConversations.size,
+        conversas_iniciadas: bucket.startedConversations,
+        mensagens_enviadas: bucket.messagesInRange.filter(
+          (message) => message.direccao === "enviada",
+        ).length,
+        mensagens_recebidas: bucket.messagesInRange.filter(
+          (message) => message.direccao === "recebida",
+        ).length,
+        tempo_primeira_resposta_segundos: firstResponse.averageSeconds,
+      };
+    });
+  }
+
   async getPerformanceOverview(): Promise<AnalystToolExecution> {
     const data = await this.data();
     const externalMetrics =
@@ -725,6 +816,11 @@ export class AnalystDataContext {
         mensagens_recebidas: received,
         mensagens_enviadas: sent,
         periodo: this.scope.range.label,
+        por_canal: this.getChannelBreakdown(data),
+        por_canal_observacao:
+          this.scope.channel === "todos"
+            ? "Quebra das mesmas conversas do período por canal de origem do contacto."
+            : `A consulta já está filtrada pelo canal ${this.scope.channel}, então a quebra traz apenas ele.`,
         respostas_fora_horario: outOfHours,
         tempo_primeira_resposta: firstResponse,
       },
@@ -750,12 +846,16 @@ export class AnalystDataContext {
     const objectionMap = new Map<
       string,
       {
+        channels: Map<string, number>;
         conversations: Set<string>;
         evidenceIds: Set<string>;
         label: string;
         summaries: Set<string>;
       }
     >();
+    // Percentual por canal só faz sentido contra a base analisada daquele
+    // canal, não contra a cobertura geral.
+    const analyzedByChannel = new Map<string, number>();
 
     for (const insight of insights) {
       if (
@@ -764,6 +864,12 @@ export class AnalystDataContext {
       ) {
         continue;
       }
+      const channel = normalizeChannelKey(
+        insight.canal ??
+          data.contactsByConversation.get(insight.identificador_conversa)
+            ?.canal,
+      );
+      analyzedByChannel.set(channel, (analyzedByChannel.get(channel) ?? 0) + 1);
       const objections = asArray<ConversationObjection>(insight.objecoes);
       const seenInConversation = new Set<string>();
 
@@ -773,12 +879,14 @@ export class AnalystDataContext {
         seenInConversation.add(category);
 
         const current = objectionMap.get(category) ?? {
+          channels: new Map<string, number>(),
           conversations: new Set<string>(),
           evidenceIds: new Set<string>(),
           label: objection.rotulo || category,
           summaries: new Set<string>(),
         };
         current.conversations.add(insight.identificador_conversa);
+        current.channels.set(channel, (current.channels.get(channel) ?? 0) + 1);
         if (objection.resumo) current.summaries.add(objection.resumo);
         for (const id of objection.evidence_message_ids ?? []) {
           current.evidenceIds.add(id);
@@ -800,6 +908,19 @@ export class AnalystDataContext {
                   1000,
               ) / 10
             : null,
+        porCanal: sortChannelEntries(
+          Array.from(item.channels.entries()),
+          (count) => count,
+        ).map(([channel, count]) => {
+          const analyzed = analyzedByChannel.get(channel) ?? 0;
+
+          return {
+            canal: channel,
+            conversas: count,
+            percentual:
+              analyzed > 0 ? Math.round((count / analyzed) * 1000) / 10 : null,
+          };
+        }),
         sourceConversationIds: Array.from(item.conversations),
         sourceMessageIds: Array.from(item.evidenceIds),
       }))
@@ -822,6 +943,13 @@ export class AnalystDataContext {
       name: "analisar_objecoes",
       result: {
         cobertura: coverage,
+        cobertura_por_canal: sortChannelEntries(
+          Array.from(analyzedByChannel.entries()),
+          (count) => count,
+        ).map(([channel, count]) => ({
+          canal: channel,
+          conversas_analisadas: count,
+        })),
         observacao:
           coverage.coveragePercentage === 100
             ? "Todas as conversas iniciadas no período foram analisadas."
@@ -834,7 +962,10 @@ export class AnalystDataContext {
           ),
           label: item.label,
           percentual: item.percentual,
+          por_canal: item.porCanal,
         })),
+        por_canal_observacao:
+          "Em `por_canal`, `percentual` é sobre as conversas analisadas daquele canal (`cobertura_por_canal`), não sobre o total.",
       },
       sources,
     };

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
+import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { LexiaBrand } from "@/app/components/lexia-brand";
 import { SidebarNav } from "@/app/components/sidebar-nav";
 
@@ -105,12 +106,12 @@ export function AppSidebar({ items, subtitle }: AppSidebarProps) {
         />
 
         <form action={logoutAction}>
-          <button
-            className="h-10 w-full rounded-md border border-white/10 bg-white/[0.03] px-4 text-sm font-medium text-zinc-200 transition hover:bg-white/10 hover:text-white"
-            type="submit"
+          <FormSubmitButton
+            className="h-11 w-full rounded-md border border-white/10 bg-white/[0.03] px-4 text-sm font-medium text-zinc-200 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
+            pendingLabel="Saindo..."
           >
             Sair
-          </button>
+          </FormSubmitButton>
         </form>
       </aside>
     </>
