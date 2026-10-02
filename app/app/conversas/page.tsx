@@ -26,7 +26,8 @@ import {
 } from "@/app/components/conversation-timezone";
 import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import { getDateRange, getSearchValue } from "@/lib/dashboard/date-range";
+import { getSearchValue } from "@/lib/dashboard/date-range";
+import { getConversationDateRange } from "@/lib/conversations/date-range";
 import {
   getConversationDayKey,
   getConversationMessagePreview,
@@ -210,7 +211,7 @@ export default async function ClientConversationsPage({
   const selectedPeriod = getSearchValue(params.periodo) || "mes";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
-  const range = getDateRange(
+  const range = getConversationDateRange(
     selectedPeriod,
     customStart,
     customEnd,

@@ -16,7 +16,7 @@ import {
   getSelectedTimezone,
   TimezoneSwitcher,
 } from "@/app/components/conversation-timezone";
-import { dashboardPeriodOptions } from "@/lib/dashboard/date-range";
+import { conversationPeriodOptions } from "@/lib/conversations/date-range";
 
 const channelFilters = [
   { label: "Todas", value: "" },
@@ -110,7 +110,8 @@ export function ConversationFilterBar({
 }: ConversationFilterBarProps) {
   const selectedTimezone = getSelectedTimezone(timezone);
   const periodLabel =
-    dashboardPeriodOptions.find((option) => option.key === period.key)?.label ??
+    conversationPeriodOptions.find((option) => option.key === period.key)
+      ?.label ??
     rangeLabel;
   const activeFilterCount =
     Number(Boolean(channel)) +
