@@ -516,7 +516,8 @@ Critério de aceite:
 ## 16. P2 - Experiência de Conversa
 
 - [x] Workspace compacto em desktop e conversa em tela cheia no mobile, priorizando a quantidade de mensagens visíveis.
-- [ ] Busca por nome, telefone e conteúdo.
+- [x] Caixa de entrada unificada, filtros recolhidos e busca global por nome ou telefone.
+- [ ] Busca por conteúdo das mensagens.
 - [ ] Paginação virtual/cursor na lista lateral.
 - [ ] Carregamento incremental para conversas muito longas.
 - [ ] Preservar posição ao carregar histórico anterior.

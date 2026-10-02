@@ -5,26 +5,24 @@ import { Fragment, Suspense } from "react";
 import { saveClientConversationFeedback } from "@/app/app/conversas/actions";
 import {
   ChannelBadge,
-  ChannelFilterLink,
   ChannelIcon,
   getChannelLabel,
 } from "@/app/components/channel-brand";
 import { ConversationAgentStatus } from "@/app/components/conversation-agent-status";
 import { ConversationFeedbackAction } from "@/app/components/conversation-feedback-action";
+import { ConversationFilterBar } from "@/app/components/conversation-filter-bar";
 import {
   ConversationDaySeparator,
   ConversationMessageBubble,
 } from "@/app/components/conversation-message-bubble";
 import {
   appendConversationPeriodParams,
-  ConversationPeriodFilter,
   type ConversationPeriodState,
   getConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
 import {
   formatDateInTimezone,
   getSelectedTimezone,
-  TimezoneSwitcher,
 } from "@/app/components/conversation-timezone";
 import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -42,6 +40,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type ConversationsPageProps = {
   searchParams: Promise<{
+    busca?: string | string[];
     canal?: string | string[];
     conversa?: string | string[];
     fim?: string | string[];
@@ -70,12 +69,6 @@ type ConversationSummary = {
   messageCount: number;
 };
 
-const channelFilters = [
-  { label: "Todas", value: "" },
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "Messenger", value: "messenger" },
-  { label: "Instagram", value: "instagram" },
-];
 const allowedChannels = ["whatsapp", "messenger", "instagram"];
 
 function buildSummaries(messages: Message[]) {
@@ -123,6 +116,7 @@ function getFilterHref(
   channel: string,
   timezone: string,
   period: ConversationPeriodState,
+  searchQuery: string,
 ) {
   const params = new URLSearchParams();
 
@@ -131,6 +125,10 @@ function getFilterHref(
 
   if (channel) {
     params.set("canal", channel);
+  }
+
+  if (searchQuery) {
+    params.set("busca", searchQuery);
   }
 
   return `/app/conversas?${params.toString()}`;
@@ -141,6 +139,7 @@ function getConversationHref(
   channel: string,
   timezone: string,
   period: ConversationPeriodState,
+  searchQuery: string,
 ) {
   const params = new URLSearchParams();
 
@@ -149,6 +148,10 @@ function getConversationHref(
 
   if (channel) {
     params.set("canal", channel);
+  }
+
+  if (searchQuery) {
+    params.set("busca", searchQuery);
   }
 
   params.set("conversa", conversationId);
@@ -156,36 +159,18 @@ function getConversationHref(
   return `/app/conversas?${params.toString()}`;
 }
 
-function getTimezoneHref(
-  channel: string,
-  conversationId: string | null,
-  timezone: string,
-  period: ConversationPeriodState,
-) {
-  const params = new URLSearchParams();
+function getConversationCountText(count: number, searchQuery: string) {
+  const label = searchQuery ? "resultado" : "conversa";
 
-  params.set("fuso", timezone);
-  appendConversationPeriodParams(params, period);
-
-  if (channel) {
-    params.set("canal", channel);
-  }
-
-  if (conversationId) {
-    params.set("conversa", conversationId);
-  }
-
-  return `/app/conversas?${params.toString()}`;
+  return `${count} ${label}${count === 1 ? "" : "s"}`;
 }
 
-function getConversationCountText(count: number, channel: string) {
-  const base = `${count} conversa${count === 1 ? "" : "s"}`;
-  const channelLabel = channelFilters.find((item) => item.value === channel)
-    ?.label;
-
-  return channelLabel && channel
-    ? `${base} no ${channelLabel}`
-    : base;
+function normalizeConversationSearch(value: string | null) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
 }
 
 export default async function ClientConversationsPage({
@@ -215,12 +200,14 @@ export default async function ClientConversationsPage({
   }
 
   const params = await searchParams;
+  const searchQuery = getSearchValue(params.busca).trim().slice(0, 80);
+  const normalizedSearch = normalizeConversationSearch(searchQuery);
   const requestedChannel = getSearchValue(params.canal);
   const selectedChannel = allowedChannels.includes(requestedChannel)
     ? requestedChannel
     : "";
   const selectedTimezone = getSelectedTimezone(params.fuso);
-  const selectedPeriod = getSearchValue(params.periodo);
+  const selectedPeriod = getSearchValue(params.periodo) || "mes";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
   const range = getDateRange(
@@ -340,7 +327,11 @@ export default async function ClientConversationsPage({
     messages.map((message) => message.identificador_conversa),
   );
   const contacts = contactsResult.data.filter((contact) =>
-    conversationsInPeriod.has(contact.identificador_conversa),
+    normalizedSearch
+      ? normalizeConversationSearch(
+          `${contact.nome ?? ""} ${contact.telefone ?? ""}`,
+        ).includes(normalizedSearch)
+      : conversationsInPeriod.has(contact.identificador_conversa),
   );
   const sortedContacts = [...contacts].sort(
     (firstContact, secondContact) =>
@@ -387,75 +378,52 @@ export default async function ClientConversationsPage({
     displayMessages[displayMessages.length - 1]?.displayId ?? "sem-mensagens";
 
   return (
-    <section className="flex w-full min-w-0 flex-col gap-3 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
-      <div className="flex shrink-0 items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.28em] text-zinc-500 uppercase">
-            Agente
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">
-            Conversas
-          </h1>
-        </div>
-        <p className="hidden text-sm text-zinc-500 xl:block">
-          Conversas reais registadas pelo agente em produção.
-        </p>
-      </div>
+    <section className="flex w-full min-w-0 flex-col gap-2 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
+      <h1 className="sr-only">Conversas</h1>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+      <ConversationFilterBar
+        basePath="/app/conversas"
+        channel={selectedChannel}
+        conversationId={selectedContact?.identificador_conversa}
+        period={periodState}
+        rangeLabel={range.label}
+        searchQuery={searchQuery}
+        timezone={selectedTimezone.value}
+      />
+
+      <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
         <aside
           className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 shadow-[0_14px_36px_rgba(0,0,0,0.05)] backdrop-blur ${
             isChatOpenOnMobile ? "max-lg:hidden" : ""
           }`}
         >
-          <div className="border-b border-zinc-200/70 bg-white/95 p-3">
+          <div className="border-b border-zinc-200/70 bg-white/95 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-zinc-950">
                   Conversas
                 </h2>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {getConversationCountText(contacts.length, selectedChannel)}
+                <p className="mt-0.5 text-xs text-zinc-500">
+                  {getConversationCountText(
+                    sortedContacts.length,
+                    searchQuery,
+                  )}
                 </p>
               </div>
-              {selectedChannel ? (
-                <ChannelBadge channel={selectedChannel} />
-              ) : null}
+              <span className="text-[11px] text-zinc-400">Mais recentes</span>
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-1.5">
-              {channelFilters.map((filter) => {
-                const isActive = selectedChannel === filter.value;
-
-                return (
-                  <ChannelFilterLink
-                    active={isActive}
-                    channel={filter.value}
-                    href={getFilterHref(
-                      filter.value,
-                      selectedTimezone.value,
-                      periodState,
-                    )}
-                    key={filter.label}
-                  />
-                );
-              })}
-            </div>
-            <ConversationPeriodFilter
-              basePath="/app/conversas"
-              channel={selectedChannel}
-              period={periodState}
-              rangeLabel={range.label}
-              timezone={selectedTimezone.value}
-            />
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-[#f7f7f5] p-2">
             {sortedContacts.length > 0 ? (
               sortedContacts.map((contact) => {
-                const summary = summaries.get(contact.identificador_conversa);
                 const isSelected =
                   selectedContact?.identificador_conversa ===
                   contact.identificador_conversa;
+                const summary = isSelected
+                  ? selectedSummary ??
+                    summaries.get(contact.identificador_conversa)
+                  : summaries.get(contact.identificador_conversa);
                 const lastActivity = getContactLastActivity(contact, summaries);
 
                 return (
@@ -470,6 +438,7 @@ export default async function ClientConversationsPage({
                       selectedChannel,
                       selectedTimezone.value,
                       periodState,
+                      searchQuery,
                     )}
                     key={contact.id}
                   >
@@ -497,7 +466,9 @@ export default async function ClientConversationsPage({
                         isSelected ? "text-white/85" : "text-zinc-600"
                       }`}
                     >
-                      {getConversationMessagePreview(summary?.lastMessage)}
+                      {summary
+                        ? getConversationMessagePreview(summary.lastMessage)
+                        : "Abrir histórico completo"}
                     </p>
 
                     <div
@@ -505,7 +476,11 @@ export default async function ClientConversationsPage({
                         isSelected ? "text-white/80" : "text-zinc-500"
                       }`}
                     >
-                      <span>{summary?.messageCount ?? 0} mensagens</span>
+                      <span>
+                        {summary
+                          ? `${summary.messageCount} mensagens`
+                          : "Histórico disponível"}
+                      </span>
                       <span className="shrink-0">
                         {formatDateInTimezone(
                           lastActivity,
@@ -518,7 +493,9 @@ export default async function ClientConversationsPage({
               })
             ) : (
               <div className="px-4 py-10 text-center text-sm text-zinc-500">
-                Não há conversas com mensagens neste período.
+                {searchQuery
+                  ? `Nenhuma conversa encontrada para “${searchQuery}”.`
+                  : "Não há conversas com mensagens neste período."}
               </div>
             )}
           </div>
@@ -543,6 +520,7 @@ export default async function ClientConversationsPage({
                         selectedChannel,
                         selectedTimezone.value,
                         periodState,
+                        searchQuery,
                       )}
                     >
                       <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 20 20">
@@ -596,19 +574,6 @@ export default async function ClientConversationsPage({
                       />
                     </Suspense>
                   </div>
-                </div>
-                <div className="mt-1.5 overflow-x-auto">
-                  <TimezoneSwitcher
-                    activeValue={selectedTimezone.value}
-                    buildHref={(timezone) =>
-                      getTimezoneHref(
-                        selectedChannel,
-                        selectedContact.identificador_conversa,
-                        timezone,
-                        periodState,
-                      )
-                    }
-                  />
                 </div>
               </div>
 

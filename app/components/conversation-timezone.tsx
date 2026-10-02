@@ -46,7 +46,7 @@ export function TimezoneSwitcher({
   return (
     <div className="flex min-w-0 items-center gap-2">
       <p
-        className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] max-xl:sr-only ${
+        className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] ${
           variant === "dark" ? "text-zinc-200" : "text-zinc-500"
         }`}
       >

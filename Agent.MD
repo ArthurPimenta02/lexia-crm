@@ -791,6 +791,14 @@ O campo `mensagens` pode ser array JSON, objeto, JSON serializado ou texto. O pa
 - Balões recebidos ficam à esquerda; enviados, à direita.
 - Cliente e admin usam o mesmo helper de preparação visual.
 
+### Caixa de entrada e filtros
+
+- A lista abre com todos os canais misturados e ordenados pela atividade mais recente, no estilo de uma caixa de entrada única.
+- Sem parâmetros na URL, a tela usa `Este Mês`, `Todos os canais` e `Brasil`; períodos mais restritos são opt-in.
+- Busca por nome ou telefone fica sempre visível na barra superior, ignora acentos e maiúsculas e pesquisa todos os contactos do tenant, mesmo quando a última atividade ocorreu fora do período selecionado.
+- Canal, período e fuso ficam recolhidos no popover `Filtros`. O resumo do escopo permanece visível na barra sem ocupar a coluna da lista.
+- Ao abrir um resultado da busca, o painel continua carregando o histórico completo da conversa.
+
 ### Filtros de período
 
 - `Hoje`.
