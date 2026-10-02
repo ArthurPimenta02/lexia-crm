@@ -68,7 +68,7 @@ export function ConversationFeedbackAction({
   if (isSaved && !isOpen) {
     return (
       <div
-        className={`mt-2 text-xs font-medium ${
+        className={`text-[10px] font-medium ${
           appearance === "light" ? "text-emerald-700" : "text-emerald-300"
         }`}
       >
@@ -78,10 +78,10 @@ export function ConversationFeedbackAction({
   }
 
   return (
-    <div className="mt-2">
+    <div>
       {!isOpen ? (
         <button
-          className={`rounded-full px-0 text-xs font-medium underline-offset-2 transition hover:underline ${
+          className={`rounded-full px-0 text-[10px] font-medium underline-offset-2 transition hover:underline ${
             appearance === "light"
               ? "text-zinc-500 hover:text-zinc-800"
               : "text-white/65 hover:text-white"
@@ -92,7 +92,7 @@ export function ConversationFeedbackAction({
           }}
           type="button"
         >
-          Marcar problema
+          Reportar
         </button>
       ) : (
         <form

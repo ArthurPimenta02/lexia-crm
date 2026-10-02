@@ -18,8 +18,8 @@ const mediaTypes = new Set(["imagem", "video", "audio", "documento"]);
 
 export function ConversationDaySeparator({ label }: { label: string }) {
   return (
-    <div className="sticky top-2 z-10 flex justify-center py-1">
-      <span className="rounded-md bg-white/95 px-3 py-1.5 text-[11px] font-medium text-zinc-600 shadow-sm ring-1 ring-black/5 backdrop-blur">
+    <div className="sticky top-1 z-10 flex justify-center py-0.5">
+      <span className="rounded-md bg-white/95 px-2.5 py-1 text-[10px] font-medium text-zinc-600 shadow-sm ring-1 ring-black/5 backdrop-blur">
         {label}
       </span>
     </div>
@@ -45,7 +45,7 @@ export function ConversationMessageBubble({
       id={anchorId}
     >
       <div
-        className={`relative max-w-[86%] rounded-lg px-3 py-2 text-[14px] leading-5 text-[#111b21] shadow-[0_1px_1px_rgba(11,20,26,0.13)] sm:max-w-[76%] ${
+        className={`relative max-w-[91%] rounded-lg px-3 py-1.5 text-[14px] leading-[1.35] text-[#111b21] shadow-[0_1px_1px_rgba(11,20,26,0.13)] sm:max-w-[82%] xl:max-w-[76%] ${
           isSent
             ? "rounded-tr-sm bg-[#d9fdd3]"
             : "rounded-tl-sm bg-white"
@@ -70,7 +70,8 @@ export function ConversationMessageBubble({
           <p className="text-zinc-500">{fallbackContent}</p>
         ) : null}
 
-        <div className="mt-1 flex items-center justify-end gap-1 text-[11px] leading-none text-[#667781]">
+        <div className="mt-1 flex min-h-4 items-end justify-between gap-3 text-[10px] leading-none text-[#667781]">
+          {feedback ? <div className="min-w-0">{feedback}</div> : <span />}
           <span>
             {formatDateInTimezone(message.criado_em, timeZone, {
               hour: "2-digit",
@@ -79,7 +80,6 @@ export function ConversationMessageBubble({
           </span>
         </div>
 
-        {feedback}
       </div>
     </div>
   );

@@ -44,21 +44,21 @@ export function TimezoneSwitcher({
   variant?: "light" | "dark";
 }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <p
-        className={`text-xs font-semibold uppercase tracking-[0.22em] max-lg:hidden ${
+        className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] max-xl:sr-only ${
           variant === "dark" ? "text-zinc-200" : "text-zinc-500"
         }`}
       >
         Fuso horário
       </p>
-      <div className="flex gap-2 lg:flex-wrap">
+      <div className="flex min-w-0 gap-1.5 overflow-x-auto">
         {timezoneOptions.map((timezone) => {
           const isActive = activeValue === timezone.value;
 
           return (
             <Link
-              className={`inline-flex min-h-10 shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex min-h-8 shrink-0 items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                 isActive
                   ? variant === "dark"
                     ? "border-white bg-white text-zinc-950"
