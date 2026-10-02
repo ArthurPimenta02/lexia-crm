@@ -5,21 +5,23 @@ import { Check } from "lucide-react";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 
 import {
-  dashboardPeriodOptions,
-  type DashboardDateRange,
-  type DashboardPeriod,
   getDateInputValue,
   getInclusiveRangeEnd,
 } from "@/lib/dashboard/date-range";
+import {
+  type ConversationDateRange,
+  conversationPeriodOptions,
+  type ConversationPeriod,
+} from "@/lib/conversations/date-range";
 
 export type ConversationPeriodState = {
   end: string;
-  key: DashboardPeriod;
+  key: ConversationPeriod;
   start: string;
 };
 
 export function getConversationPeriodState(
-  range: DashboardDateRange,
+  range: ConversationDateRange,
   timeZone: string,
 ): ConversationPeriodState {
   return {
@@ -54,7 +56,7 @@ function buildPeriodHref({
   channel: string;
   clientSlug?: string;
   currentPeriod: ConversationPeriodState;
-  period: DashboardPeriod;
+  period: ConversationPeriod;
   searchQuery?: string;
   timezone: string;
 }) {
@@ -110,7 +112,7 @@ export function ConversationPeriodFilter({
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {dashboardPeriodOptions.map((option) => {
+        {conversationPeriodOptions.map((option) => {
           const isActive = option.key === period.key;
 
           return (
