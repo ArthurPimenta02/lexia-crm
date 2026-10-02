@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Form from "next/form";
+import { Check } from "lucide-react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 
@@ -92,7 +93,7 @@ export function ConversationPeriodFilter({
   timezone: string;
 }) {
   return (
-    <div className="mt-4 border-t border-zinc-200/70 pt-4">
+    <div className="mt-3 border-t border-zinc-200/70 pt-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
           Período
@@ -100,14 +101,14 @@ export function ConversationPeriodFilter({
         <p className="text-xs text-zinc-500">{rangeLabel}</p>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {dashboardPeriodOptions.map((option) => {
           const isActive = option.key === period.key;
 
           return (
             <Link
               aria-current={isActive ? "page" : undefined}
-              className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex min-h-8 items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                 isActive
                   ? "border-zinc-950 bg-zinc-950 text-white"
                   : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
@@ -131,7 +132,7 @@ export function ConversationPeriodFilter({
       {period.key === "personalizado" ? (
         <Form
           action={basePath}
-          className="mt-3 grid grid-cols-2 gap-2"
+          className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-end gap-1.5"
           replace
           scroll={false}
         >
@@ -144,29 +145,31 @@ export function ConversationPeriodFilter({
             <input name="canal" type="hidden" value={channel} />
           ) : null}
 
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-zinc-600">
-            Início
+          <label className="min-w-0">
+            <span className="sr-only">Início</span>
             <input
-              className="h-9 min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
+              className="h-8 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
               defaultValue={period.start}
               name="inicio"
               type="date"
             />
           </label>
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-zinc-600">
-            Fim
+          <label className="min-w-0">
+            <span className="sr-only">Fim</span>
             <input
-              className="h-9 min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
+              className="h-8 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
               defaultValue={period.end}
               name="fim"
               type="date"
             />
           </label>
           <FormSubmitButton
-            className="col-span-2 h-9 rounded-md bg-zinc-950 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800"
-            pendingLabel="Aplicando..."
+            aria-label="Aplicar período"
+            className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-950 text-white transition hover:bg-zinc-800"
+            pendingLabel=""
+            title="Aplicar período"
           >
-            Aplicar período
+            <Check aria-hidden="true" className="h-4 w-4" />
           </FormSubmitButton>
         </Form>
       ) : null}

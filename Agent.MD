@@ -786,6 +786,7 @@ O campo `mensagens` pode ser array JSON, objeto, JSON serializado ou texto. O pa
 - Ordena por `criado_em` ascendente e, em empate, por `id` ascendente.
 - Tem rolagem própria.
 - Abre no fim e reage ao ID da última mensagem.
+- Em desktop, o workspace ocupa a altura útil do viewport; filtros, lista lateral, cabeçalho, fuso e metadados dos balões usam uma densidade compacta para priorizar o histórico visível.
 - Insere separadores de dia no fuso selecionado.
 - Balões recebidos ficam à esquerda; enviados, à direita.
 - Cliente e admin usam o mesmo helper de preparação visual.
@@ -823,6 +824,7 @@ Essa divisão é uma heurística de apresentação. Ela não recupera timestamp,
 
 - Abaixo de `lg`, a navegação vira barra superior fixa com menu hambúrguer (`app/components/app-sidebar.tsx`).
 - Em Conversas, o mobile segue o padrão do WhatsApp: a lista ocupa a tela e, quando a URL tem `conversa`, o chat abre em tela cheia com botão de voltar. Sem o parâmetro, o mobile mostra só a lista; o desktop continua a selecionar a primeira conversa.
+- O chat aberto usa `100dvh`, cabeçalho compacto, controles horizontais e espaçamento reduzido entre balões, mantendo o histórico como área dominante da tela.
 - A aba de Handoffs usa cartões (`app/components/handoff-cards.tsx`) em vez de tabelas.
 
 ### Limitação para ser “espelho do WhatsApp”

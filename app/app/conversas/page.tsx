@@ -387,26 +387,28 @@ export default async function ClientConversationsPage({
     displayMessages[displayMessages.length - 1]?.displayId ?? "sem-mensagens";
 
   return (
-    <section className="flex w-full min-w-0 flex-col gap-6">
-      <div>
-        <p className="text-sm font-semibold tracking-[0.32em] text-zinc-500 uppercase">
-          Agente
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-          Conversas
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600">
+    <section className="flex w-full min-w-0 flex-col gap-3 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
+      <div className="flex shrink-0 items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-semibold tracking-[0.28em] text-zinc-500 uppercase">
+            Agente
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-950">
+            Conversas
+          </h1>
+        </div>
+        <p className="hidden text-sm text-zinc-500 xl:block">
           Conversas reais registadas pelo agente em produção.
         </p>
       </div>
 
-      <div className="grid gap-5 lg:h-[calc(100vh-190px)] lg:min-h-[560px] lg:grid-cols-[380px_1fr]">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
         <aside
-          className={`flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-zinc-200/80 bg-white/90 shadow-[0_18px_45px_rgba(0,0,0,0.06)] backdrop-blur ${
+          className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 shadow-[0_14px_36px_rgba(0,0,0,0.05)] backdrop-blur ${
             isChatOpenOnMobile ? "max-lg:hidden" : ""
           }`}
         >
-          <div className="border-b border-zinc-200/70 bg-white/95 px-4 py-4">
+          <div className="border-b border-zinc-200/70 bg-white/95 p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-zinc-950">
@@ -420,7 +422,7 @@ export default async function ClientConversationsPage({
                 <ChannelBadge channel={selectedChannel} />
               ) : null}
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
               {channelFilters.map((filter) => {
                 const isActive = selectedChannel === filter.value;
 
@@ -447,7 +449,7 @@ export default async function ClientConversationsPage({
             />
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto bg-[#f7f7f5] p-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-[#f7f7f5] p-2">
             {sortedContacts.length > 0 ? (
               sortedContacts.map((contact) => {
                 const summary = summaries.get(contact.identificador_conversa);
@@ -458,7 +460,7 @@ export default async function ClientConversationsPage({
 
                 return (
                   <Link
-                    className={`rounded-[18px] border px-4 py-3 transition ${
+                    className={`rounded-[14px] border px-3 py-2.5 transition ${
                       isSelected
                         ? "border-zinc-950 bg-zinc-950 text-white shadow-[0_16px_32px_rgba(0,0,0,0.16)]"
                         : "border-transparent bg-white text-zinc-950 shadow-sm hover:border-zinc-200 hover:shadow-md"
@@ -472,14 +474,14 @@ export default async function ClientConversationsPage({
                     key={contact.id}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 gap-3">
+                      <div className="flex min-w-0 gap-2">
                         <ChannelIcon channel={contact.canal} />
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">
                             {contact.nome || contact.telefone || "Sem nome"}
                           </p>
                           <p
-                            className={`mt-1 truncate text-xs ${
+                            className={`mt-0.5 truncate text-[11px] ${
                               isSelected ? "text-white/85" : "text-zinc-500"
                             }`}
                           >
@@ -491,7 +493,7 @@ export default async function ClientConversationsPage({
                     </div>
 
                     <p
-                      className={`mt-2 line-clamp-2 text-xs ${
+                      className={`mt-1.5 line-clamp-1 text-xs ${
                         isSelected ? "text-white/85" : "text-zinc-600"
                       }`}
                     >
@@ -499,23 +501,18 @@ export default async function ClientConversationsPage({
                     </p>
 
                     <div
-                      className={`mt-3 flex items-center justify-between gap-3 text-xs ${
+                      className={`mt-2 flex items-center justify-between gap-3 text-[11px] ${
                         isSelected ? "text-white/80" : "text-zinc-500"
                       }`}
                     >
                       <span>{summary?.messageCount ?? 0} mensagens</span>
+                      <span className="shrink-0">
+                        {formatDateInTimezone(
+                          lastActivity,
+                          selectedTimezone.timeZone,
+                        )}
+                      </span>
                     </div>
-
-                    <p
-                      className={`mt-1 text-xs ${
-                        isSelected ? "text-white/80" : "text-zinc-500"
-                      }`}
-                    >
-                      {formatDateInTimezone(
-                        lastActivity,
-                        selectedTimezone.timeZone,
-                      )}
-                    </p>
                   </Link>
                 );
               })
@@ -528,20 +525,20 @@ export default async function ClientConversationsPage({
         </aside>
 
         <section
-          className={`flex min-h-0 flex-col overflow-hidden rounded-[22px] border border-zinc-200/80 bg-white shadow-[0_18px_45px_rgba(0,0,0,0.06)] ${
+          className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_14px_36px_rgba(0,0,0,0.05)] ${
             isChatOpenOnMobile
-              ? "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:rounded-none max-lg:border-0"
+              ? "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:h-dvh max-lg:rounded-none max-lg:border-0"
               : "max-lg:hidden"
           }`}
         >
           {selectedContact ? (
             <>
-              <div className="border-b border-zinc-200/70 bg-white/95 px-3 pt-[max(0.625rem,env(safe-area-inset-top))] pb-2.5 lg:px-5 lg:py-4">
+              <div className="shrink-0 border-b border-zinc-200/70 bg-white/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:py-2.5">
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div className="flex min-w-0 items-center gap-2 lg:items-start lg:gap-3">
                     <Link
                       aria-label="Voltar para a lista de conversas"
-                      className="-ml-1 flex h-10 w-8 shrink-0 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 lg:hidden"
+                      className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 lg:hidden"
                       href={getFilterHref(
                         selectedChannel,
                         selectedTimezone.value,
@@ -567,16 +564,18 @@ export default async function ClientConversationsPage({
                             selectedContact.telefone ||
                             "Conversa"}
                         </h2>
-                        <ChannelBadge channel={selectedContact.canal} />
+                        <span className="max-sm:hidden">
+                          <ChannelBadge channel={selectedContact.canal} />
+                        </span>
                       </div>
-                      <p className="mt-1 text-sm text-zinc-500">
+                      <p className="mt-0.5 truncate text-xs text-zinc-500 max-sm:hidden">
                         {selectedContact.telefone ?? "Sem telefone"} ·{" "}
                         {getChannelLabel(selectedContact.canal)}
                       </p>
                     </div>
                   </div>
-                  <div className="flex min-w-0 flex-col gap-2 md:items-end">
-                    <div className="text-sm text-zinc-500 max-lg:hidden">
+                  <div className="flex min-w-0 flex-col gap-1.5 md:items-end">
+                    <div className="text-xs text-zinc-500 max-lg:hidden">
                       {formatDateInTimezone(
                         selectedSummary?.lastActivityAt ??
                           selectedContact.atualizado_em,
@@ -587,7 +586,9 @@ export default async function ClientConversationsPage({
                       <ConversationAgentStatus
                         clienteSlug={profile.cliente_slug}
                         contactLabel={
-                          selectedContact.nome || selectedContact.telefone || undefined
+                          selectedContact.nome ||
+                          selectedContact.telefone ||
+                          undefined
                         }
                         identificadorConversa={
                           selectedContact.identificador_conversa
@@ -596,7 +597,7 @@ export default async function ClientConversationsPage({
                     </Suspense>
                   </div>
                 </div>
-                <div className="mt-2 overflow-x-auto lg:mt-4">
+                <div className="mt-1.5 overflow-x-auto">
                   <TimezoneSwitcher
                     activeValue={selectedTimezone.value}
                     buildHref={(timezone) =>
@@ -612,7 +613,7 @@ export default async function ClientConversationsPage({
               </div>
 
               <ScrollToBottomPanel
-                className="lexia-chat-wallpaper flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-4 py-5 sm:px-6"
+                className="lexia-chat-wallpaper flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2.5 sm:px-4 sm:py-3"
                 scrollKey={`${selectedContact.identificador_conversa}:${displayMessages.length}:${lastSelectedMessageId}`}
               >
                 {displayMessages.length > 0 ? (

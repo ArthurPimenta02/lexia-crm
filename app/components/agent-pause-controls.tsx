@@ -116,7 +116,7 @@ export function AgentPauseControls({
     );
   }
 
-  const buttonBase = `inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:text-xs ${
+  const buttonBase = `inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
     fullWidth ? "w-full sm:w-auto" : ""
   }`;
 
