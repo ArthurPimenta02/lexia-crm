@@ -47,6 +47,7 @@ function buildPeriodHref({
   clientSlug,
   currentPeriod,
   period,
+  searchQuery,
   timezone,
 }: {
   basePath: string;
@@ -54,6 +55,7 @@ function buildPeriodHref({
   clientSlug?: string;
   currentPeriod: ConversationPeriodState;
   period: DashboardPeriod;
+  searchQuery?: string;
   timezone: string;
 }) {
   const params = new URLSearchParams();
@@ -64,6 +66,10 @@ function buildPeriodHref({
 
   if (channel) {
     params.set("canal", channel);
+  }
+
+  if (searchQuery) {
+    params.set("busca", searchQuery);
   }
 
   params.set("fuso", timezone);
@@ -83,6 +89,7 @@ export function ConversationPeriodFilter({
   clientSlug,
   period,
   rangeLabel,
+  searchQuery = "",
   timezone,
 }: {
   basePath: string;
@@ -90,6 +97,7 @@ export function ConversationPeriodFilter({
   clientSlug?: string;
   period: ConversationPeriodState;
   rangeLabel: string;
+  searchQuery?: string;
   timezone: string;
 }) {
   return (
@@ -119,6 +127,7 @@ export function ConversationPeriodFilter({
                 clientSlug,
                 currentPeriod: period,
                 period: option.key,
+                searchQuery,
                 timezone,
               })}
               key={option.key}
@@ -143,6 +152,9 @@ export function ConversationPeriodFilter({
           ) : null}
           {channel ? (
             <input name="canal" type="hidden" value={channel} />
+          ) : null}
+          {searchQuery ? (
+            <input name="busca" type="hidden" value={searchQuery} />
           ) : null}
 
           <label className="min-w-0">
