@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { requireClientPanelAccess } from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,13 +20,12 @@ const allowedStatuses: HandoffStatus[] = [
 ];
 
 async function getClientSlug() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  if (!user || !profile || !isClientRole(profile.role) || !profile.cliente_slug) {
+  try {
+    const context = await requireClientPanelAccess();
+    return context.clienteSlug;
+  } catch {
     return null;
   }
-
-  return profile.cliente_slug;
 }
 
 export async function updateHandoffStatus(

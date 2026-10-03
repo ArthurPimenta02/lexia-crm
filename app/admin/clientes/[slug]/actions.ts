@@ -2,9 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  getAccessErrorMessage,
+  requireAdministrativeClientAccess,
+  requireLexiaAdmin,
+} from "@/lib/auth/access-context";
+import {
+  recordPendingUserLink,
+  retryPendingUserLinkAsAdmin,
+} from "@/lib/auth/user-link-pending";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import {
+  createWorkflowAsAdmin,
+  updateWorkflowAsAdmin,
+} from "@/lib/workflows/private-config";
 
 export type ClientSettingsState = {
   message: string | null;
@@ -21,12 +32,6 @@ const workflowStatuses = ["ativo", "inativo", "teste"];
 const clientUserRoles = ["cliente_admin", "cliente_operador"];
 const clientUserStatuses = ["ativo", "inativo"];
 
-async function isLexiaAdmin() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  return Boolean(user && profile?.role === "lexia_admin");
-}
-
 function getValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -37,9 +42,11 @@ export async function updateClientSettings(
   _state: ClientSettingsState,
   formData: FormData,
 ): Promise<ClientSettingsState> {
-  if (!(await isLexiaAdmin())) {
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
     return {
-      message: "Acesso não autorizado.",
+      message: getAccessErrorMessage(error),
       type: "error",
     };
   }
@@ -67,15 +74,15 @@ export async function updateClientSettings(
     };
   }
 
-  if (!workflowNome || !workflowTipo || !webhookUrl) {
+  if (!workflowNome || !workflowTipo || (!workflowId && !webhookUrl)) {
     return {
       message:
-        "Preencha nome, tipo e Webhook URL para salvar o workflow deste cliente.",
+        "Preencha nome e tipo. A URL é obrigatória apenas ao criar um workflow.",
       type: "error",
     };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: client, error: clientLookupError } = await supabase
     .from("lexia_clientes")
     .select("slug")
@@ -108,34 +115,26 @@ export async function updateClientSettings(
     };
   }
 
-  const workflowPayload = {
-    cliente_slug: clienteSlug,
-    nome: workflowNome || null,
-    tipo: workflowTipo || null,
-    webhook_url: webhookUrl || null,
-    status: workflowStatus,
-  };
-
-  const workflowQuery = workflowId
-    ? supabase
-        .from("lexia_workflows")
-        .update(workflowPayload)
-        .eq("id", workflowId)
-        .eq("cliente_slug", clienteSlug)
-    : supabase.from("lexia_workflows").insert(workflowPayload);
-
-  const { error: workflowError } = await workflowQuery;
-
-  if (workflowError) {
-    console.error("Erro ao salvar workflow do cliente", {
-      error: workflowError,
+  try {
+    const workflowInput = {
       clienteSlug,
-      workflowId,
-      workflowPayload,
-    });
+      nome: workflowNome,
+      status: workflowStatus,
+      tipo: workflowTipo,
+      webhookUrl,
+    };
 
+    if (workflowId) {
+      await updateWorkflowAsAdmin(workflowId, workflowInput);
+    } else {
+      await createWorkflowAsAdmin(workflowInput);
+    }
+  } catch (error) {
     return {
-      message: "Cliente salvo, mas não foi possível salvar o workflow.",
+      message:
+        error instanceof Error
+          ? `Cliente salvo, mas o workflow não foi salvo: ${error.message}`
+          : "Cliente salvo, mas não foi possível salvar o workflow.",
       type: "error",
     };
   }
@@ -154,9 +153,11 @@ export async function createClientUser(
   _state: ClientUserState,
   formData: FormData,
 ): Promise<ClientUserState> {
-  if (!(await isLexiaAdmin())) {
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
     return {
-      message: "Acesso não autorizado.",
+      message: getAccessErrorMessage(error),
       type: "error",
     };
   }
@@ -246,9 +247,26 @@ export async function createClientUser(
     });
 
   if (linkError) {
+    try {
+      await recordPendingUserLink({
+        clienteSlug,
+        errorCode: linkError.code,
+        errorSummary: "Falha ao vincular o usuário recém-criado ao cliente.",
+        role,
+        status,
+        userId: createdUser.user.id,
+      });
+    } catch {
+      return {
+        message:
+          "Usuário criado no Auth, mas o vínculo e o registro da pendência falharam. Não houve exclusão ou reassociação automática.",
+        type: "error",
+      };
+    }
+
     return {
       message:
-        "Usuário criado no Auth, mas não foi possível vincular ao cliente.",
+        "Usuário criado no Auth, mas o vínculo ficou pendente para recuperação. Nenhum usuário foi excluído ou reassociado.",
       type: "error",
     };
   }
@@ -266,7 +284,9 @@ export async function updateClientUserStatus(
   userId: string,
   status: string,
 ) {
-  if (!(await isLexiaAdmin())) {
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch {
     return;
   }
 
@@ -274,7 +294,7 @@ export async function updateClientUserStatus(
     return;
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("lexia_usuarios_clientes")
@@ -290,8 +310,10 @@ export async function updateClientUserStatus(
 }
 
 export async function clearClientTestData(clienteSlug: string) {
-  if (!(await isLexiaAdmin()) || !clienteSlug) {
-    return { ok: false, error: "Acesso não autorizado." };
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
+    return { ok: false, error: getAccessErrorMessage(error) };
   }
 
   let supabaseAdmin: ReturnType<typeof createAdminClient>;
@@ -404,4 +426,13 @@ export async function clearClientTestData(clienteSlug: string) {
   revalidatePath("/admin/handoffs");
 
   return { ok: true };
+}
+
+export async function retryPendingClientUserLink(
+  clienteSlug: string,
+  pendingId: string,
+) {
+  await requireLexiaAdmin();
+  await retryPendingUserLinkAsAdmin(clienteSlug, pendingId);
+  revalidatePath(`/admin/clientes/${clienteSlug}`);
 }

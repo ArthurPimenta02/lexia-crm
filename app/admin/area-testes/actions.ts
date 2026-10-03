@@ -2,9 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  getAccessErrorMessage,
+  requireAdministrativeClientAccess,
+  requireOperationalClientAccess,
+} from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { WorkflowPublic } from "@/lib/workflows/contracts";
+import { dispatchTestWorkflow } from "@/lib/workflows/private-config";
 
 export type AdminTestSession = {
   id: string;
@@ -28,12 +34,7 @@ export type AdminTestExecution = {
   criado_em: string | null;
 };
 
-export type AdminTestWorkflow = {
-  id: string;
-  nome: string | null;
-  tipo: string | null;
-  webhook_url: string | null;
-};
+export type AdminTestWorkflow = WorkflowPublic;
 
 type ActionResult<T> = {
   data: T | null;
@@ -45,32 +46,15 @@ type DeleteResult = {
   error?: string;
 };
 
-async function isLexiaAdmin() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  return Boolean(user && profile?.role === "lexia_admin");
-}
-
-async function ensureClientExists(clienteSlug: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("lexia_clientes")
-    .select("slug")
-    .eq("slug", clienteSlug)
-    .maybeSingle();
-
-  if (error || !data) {
-    return false;
-  }
-
-  return true;
-}
-
 export async function createAdminTestSession(
   clienteSlug: string,
 ): Promise<ActionResult<AdminTestSession>> {
-  if (!(await isLexiaAdmin()) || !(await ensureClientExists(clienteSlug))) {
-    return { data: null, error: "Acesso não autorizado." };
+  try {
+    await requireAdministrativeClientAccess(clienteSlug, {
+      requireActiveClient: true,
+    });
+  } catch (error) {
+    return { data: null, error: getAccessErrorMessage(error) };
   }
 
   const supabase = await createClient();
@@ -104,8 +88,10 @@ export async function deleteAdminTestSession(
   clienteSlug: string,
   sessionId: string,
 ): Promise<DeleteResult> {
-  if (!(await isLexiaAdmin())) {
-    return { ok: false, error: "Acesso não autorizado." };
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
+    return { ok: false, error: getAccessErrorMessage(error) };
   }
 
   if (!clienteSlug || !sessionId) {
@@ -226,8 +212,10 @@ export async function getAdminSessionExecutions(
   clienteSlug: string,
   sessionId: string,
 ): Promise<ActionResult<AdminTestExecution[]>> {
-  if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
+    return { data: null, error: getAccessErrorMessage(error) };
   }
 
   const supabase = await createClient();
@@ -256,8 +244,10 @@ export async function getAdminExecutionByRunId(
   sessionId: string,
   runId: string,
 ): Promise<ActionResult<AdminTestExecution | null>> {
-  if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch (error) {
+    return { data: null, error: getAccessErrorMessage(error) };
   }
 
   const supabase = await createClient();
@@ -285,8 +275,10 @@ export async function sendAdminTestMessage(
   messageText: string,
   workflowId: string,
 ): Promise<ActionResult<{ runId: string }>> {
-  if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+  try {
+    await requireOperationalClientAccess(clienteSlug);
+  } catch (error) {
+    return { data: null, error: getAccessErrorMessage(error) };
   }
 
   const message = messageText.trim();
@@ -299,70 +291,23 @@ export async function sendAdminTestMessage(
     return { data: null, error: "Selecione um workflow para testar." };
   }
 
-  const supabase = await createClient();
-  const { data: session, error: sessionError } = await supabase
-    .from("lexia_testes_sessoes")
-    .select("session_id")
-    .eq("cliente_slug", clienteSlug)
-    .eq("session_id", sessionId)
-    .eq("origem", "painel_admin")
-    .maybeSingle();
+  try {
+    const result = await dispatchTestWorkflow({
+      clienteSlug,
+      message,
+      origin: "painel_admin",
+      sessionId,
+      workflowId,
+    });
 
-  if (sessionError || !session) {
-    return { data: null, error: "Sessão de teste não encontrada." };
-  }
-
-  const { data: workflow, error: workflowError } = await supabase
-    .from("lexia_workflows")
-    .select("id, nome, tipo, webhook_url")
-    .eq("id", workflowId)
-    .eq("cliente_slug", clienteSlug)
-    .eq("status", "ativo")
-    .maybeSingle();
-
-  if (workflowError) {
+    return { data: result, error: null };
+  } catch (error) {
     return {
       data: null,
-      error: "Não foi possível buscar o workflow ativo.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar a mensagem ao workflow.",
     };
   }
-
-  const activeWorkflow = workflow as AdminTestWorkflow | null;
-
-  if (!activeWorkflow?.webhook_url) {
-    return {
-      data: null,
-      error: "Nenhum workflow ativo configurado para este cliente.",
-    };
-  }
-
-  const runId = crypto.randomUUID();
-  const response = await fetch(activeWorkflow.webhook_url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      lexia_modo_teste: true,
-      lexia_origem: "painel_admin",
-      lexia_session_id: sessionId,
-      lexia_run_id: runId,
-      lexia_teste_id: "",
-      lexia_workflow_id: activeWorkflow.id,
-      lexia_workflow_tipo: activeWorkflow.tipo ?? "",
-      message: {
-        type: "text",
-        text: message,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    return {
-      data: null,
-      error: "Não foi possível enviar a mensagem ao workflow.",
-    };
-  }
-
-  return { data: { runId }, error: null };
 }

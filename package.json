@@ -10,7 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:lote1:isolated": "node scripts/test-lote1-isolated.mjs",
+    "db:lote1:index": "node scripts/apply-profile-unique-index.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -29,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

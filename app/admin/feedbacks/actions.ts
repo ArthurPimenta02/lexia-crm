@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
 
 export type AdminFeedbackStatus = "pendente" | "analisado" | "resolvido";
@@ -13,17 +13,17 @@ const allowedStatuses: AdminFeedbackStatus[] = [
   "resolvido",
 ];
 
-async function isLexiaAdmin() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  return Boolean(user && profile?.role === "lexia_admin");
-}
-
 export async function updateAdminFeedbackStatus(
   feedbackId: string,
   status: AdminFeedbackStatus,
 ) {
-  if (!(await isLexiaAdmin()) || !allowedStatuses.includes(status)) {
+  try {
+    await requireLexiaAdmin();
+  } catch {
+    throw new Error("Não foi possível atualizar o feedback.");
+  }
+
+  if (!allowedStatuses.includes(status)) {
     throw new Error("Não foi possível atualizar o feedback.");
   }
 

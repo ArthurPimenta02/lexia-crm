@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import {
   clearClientTestData,
+  retryPendingClientUserLink,
   updateClientUserStatus,
 } from "@/app/admin/clientes/[slug]/actions";
 import { ClientUserForm } from "@/app/admin/clientes/[slug]/client-user-form";
@@ -14,8 +15,12 @@ import {
   parseFeedbackComentario,
 } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
+import { listPendingUserLinksAsAdmin } from "@/lib/auth/user-link-pending";
 import { createClient } from "@/lib/supabase/server";
+import {
+  listAdminWorkflowConfigurations,
+} from "@/lib/workflows/private-config";
 
 type ClientDetailPageProps = {
   params: Promise<{
@@ -30,14 +35,6 @@ type LexiaClient = {
   status: string | null;
   modo_teste: boolean | null;
   cor_principal: string | null;
-};
-
-type LexiaWorkflow = {
-  id: string;
-  nome: string | null;
-  tipo: string | null;
-  webhook_url: string | null;
-  status: string | null;
 };
 
 type LatestExecution = {
@@ -254,15 +251,7 @@ function InfoItem({
 export default async function ClientDetailPage({
   params,
 }: ClientDetailPageProps) {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  if (!user || !profile) {
-    redirect("/login");
-  }
-
-  if (profile.role !== "lexia_admin") {
-    redirect("/app");
-  }
+  await requireLexiaAdmin().catch(() => redirect("/login"));
 
   const { slug } = await params;
   const supabase = await createClient();
@@ -287,7 +276,7 @@ export default async function ClientDetailPage({
   const clientData = client as LexiaClient;
 
   const [
-    { data: workflowsData, error: workflowsError },
+    workflows,
     sessoesCount,
     execucoesCount,
     feedbacksPendentes,
@@ -303,12 +292,9 @@ export default async function ClientDetailPage({
     { data: latestHandoffsData, error: latestHandoffsError },
     { data: latestContactsData, error: latestContactsError },
     { data: clientUsersData, error: clientUsersError },
+    pendingUserLinks,
   ] = await Promise.all([
-    supabase
-      .from("lexia_workflows")
-      .select("id, nome, tipo, webhook_url, status")
-      .eq("cliente_slug", clientData.slug)
-      .order("nome"),
+    listAdminWorkflowConfigurations(clientData.slug),
     getCount("lexia_testes_sessoes", clientData.slug),
     getCount("lexia_testes_execucoes", clientData.slug),
     getCount("lexia_feedbacks", clientData.slug, "pendente"),
@@ -353,11 +339,8 @@ export default async function ClientDetailPage({
       .select("user_id, role, status, criado_em")
       .eq("cliente_slug", clientData.slug)
       .order("criado_em", { ascending: false }),
+    listPendingUserLinksAsAdmin(clientData.slug),
   ]);
-
-  if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows.");
-  }
 
   if (latestExecutionsError) {
     throw new Error("Não foi possível buscar as últimas execuções.");
@@ -379,7 +362,6 @@ export default async function ClientDetailPage({
     throw new Error("Não foi possível buscar os usuários do cliente.");
   }
 
-  const workflows = (workflowsData ?? []) as LexiaWorkflow[];
   const activeWorkflows = workflows.filter(
     (workflow) => workflow.status === "ativo",
   );
@@ -608,7 +590,8 @@ export default async function ClientDetailPage({
             cor_principal: clientData.cor_principal ?? "",
             workflow_nome: editableWorkflow?.nome ?? "",
             workflow_tipo: editableWorkflow?.tipo ?? "",
-            webhook_url: editableWorkflow?.webhook_url ?? "",
+            webhook_url: "",
+            webhook_configured: Boolean(editableWorkflow?.webhookConfigured),
             workflow_status: editableWorkflow?.status ?? "inativo",
           }}
         />
@@ -714,6 +697,52 @@ export default async function ClientDetailPage({
             Nenhum usuário vinculado a este cliente ainda.
           </div>
         )}
+
+        {pendingUserLinks.length > 0 ? (
+          <div className="border-t border-amber-200 bg-amber-50/60 p-5">
+            <h3 className="font-semibold text-zinc-950">
+              Vínculos pendentes de recuperação
+            </h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              O usuário do Auth foi preservado. A recuperação nunca exclui nem
+              reassocia automaticamente um vínculo conflitante.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {pendingUserLinks.map((pending) => (
+                <div
+                  className="flex flex-col gap-3 rounded-md border border-amber-200 bg-white p-4 md:flex-row md:items-center md:justify-between"
+                  key={pending.id}
+                >
+                  <div className="min-w-0 text-sm text-zinc-600">
+                    <p className="break-all font-mono text-xs text-zinc-800">
+                      {pending.user_id}
+                    </p>
+                    <p className="mt-1">
+                      {formatLabel(pending.role)} · {formatLabel(pending.status_perfil)}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {pending.erro_resumo} · {formatDate(pending.criado_em)}
+                    </p>
+                  </div>
+                  <form
+                    action={retryPendingClientUserLink.bind(
+                      null,
+                      clientData.slug,
+                      pending.id,
+                    )}
+                  >
+                    <FormSubmitButton
+                      className="h-9 rounded-md border border-amber-300 bg-white px-3 text-xs font-medium text-amber-900 transition hover:bg-amber-50"
+                      pendingLabel="Tentando..."
+                    >
+                      Tentar vínculo novamente
+                    </FormSubmitButton>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-md border border-zinc-200 bg-white p-5">
@@ -738,11 +767,9 @@ export default async function ClientDetailPage({
                     {workflow.status ?? "Sem status"}
                   </InfoItem>
                   <InfoItem label="Webhook">
-                    <ExpandableText
-                      emptyText="Sem webhook"
-                      text={workflow.webhook_url}
-                      maxLength={90}
-                    />
+                    {workflow.webhookConfigured
+                      ? "Destino privado configurado"
+                      : "Sem destino configurado"}
                   </InfoItem>
                 </div>
               </div>

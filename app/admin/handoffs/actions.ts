@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  requireAdministrativeClientAccess,
+  requireLexiaAdmin,
+} from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,17 +22,17 @@ const allowedStatuses: AdminHandoffStatus[] = [
   "perdido",
 ];
 
-async function isLexiaAdmin() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  return Boolean(user && profile?.role === "lexia_admin");
-}
-
 export async function updateAdminHandoffStatus(
   handoffId: string,
   status: AdminHandoffStatus,
 ) {
-  if (!(await isLexiaAdmin()) || !allowedStatuses.includes(status)) {
+  try {
+    await requireLexiaAdmin();
+  } catch {
+    throw new Error("Não foi possível atualizar o handoff.");
+  }
+
+  if (!allowedStatuses.includes(status)) {
     throw new Error("Não foi possível atualizar o handoff.");
   }
 
@@ -50,7 +53,16 @@ export async function deleteAdminSimulatedHandoff(
   executionId: string,
   clienteSlug: string,
 ) {
-  if (!(await isLexiaAdmin()) || !executionId || !clienteSlug) {
+  try {
+    await requireAdministrativeClientAccess(clienteSlug);
+  } catch {
+    return {
+      ok: false,
+      error: "Não foi possível excluir o handoff simulado.",
+    };
+  }
+
+  if (!executionId || !clienteSlug) {
     return {
       ok: false,
       error: "Não foi possível excluir o handoff simulado.",

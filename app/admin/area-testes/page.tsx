@@ -7,7 +7,9 @@ import {
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
+import { listAdminTestWorkflows } from "@/lib/workflows/private-config";
 
 type AdminClient = {
   id: string;
@@ -25,6 +27,7 @@ type AdminTestAreaPageProps = {
 export default async function AdminTestAreaPage({
   searchParams,
 }: AdminTestAreaPageProps) {
+  await requireLexiaAdmin();
   const { cliente, session } = await searchParams;
   const supabase = await createClient();
   const { data: clientsData, error: clientsError } = await supabase
@@ -41,7 +44,7 @@ export default async function AdminTestAreaPage({
 
   const [
     { data: sessionsData, error: sessionsError },
-    { data: workflowsData, error: workflowsError },
+    workflows,
   ] = selectedClient
     ? await Promise.all([
         supabase
@@ -52,28 +55,18 @@ export default async function AdminTestAreaPage({
           .eq("cliente_slug", selectedClient.slug)
           .eq("origem", "painel_admin")
           .order("criado_em", { ascending: false }),
-        supabase
-          .from("lexia_workflows")
-          .select("id, nome, tipo, webhook_url")
-          .eq("cliente_slug", selectedClient.slug)
-          .eq("status", "ativo")
-          .order("nome"),
+        listAdminTestWorkflows(selectedClient.slug),
       ])
     : [
         { data: [], error: null },
-        { data: [], error: null },
+        [],
       ];
 
   if (sessionsError) {
     throw new Error("Não foi possível buscar as sessões de teste.");
   }
 
-  if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows ativos.");
-  }
-
   const sessions = (sessionsData ?? []) as AdminTestSession[];
-  const workflows = (workflowsData ?? []) as AdminTestWorkflow[];
   const selectedSessionId =
     sessions.find((testSession) => testSession.session_id === session)
       ?.session_id ??
@@ -149,7 +142,7 @@ export default async function AdminTestAreaPage({
           key={`${selectedClient.slug}:${selectedSessionId ?? "sem-sessao"}`}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
-          workflows={workflows}
+          workflows={workflows as AdminTestWorkflow[]}
         />
       )}
     </section>

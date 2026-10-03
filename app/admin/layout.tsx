@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { requireActiveProfile } from "@/lib/auth/access-context";
 
 const adminNavigation = [
   { label: "Dashboard", href: "/admin" },
@@ -17,11 +17,9 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { profile } = await getLoggedInUserProfile();
-
-  if (!profile) {
-    redirect("/login");
-  }
+  const { profile } = await requireActiveProfile().catch(() =>
+    redirect("/login"),
+  );
 
   if (profile.role !== "lexia_admin") {
     redirect("/app");

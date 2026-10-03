@@ -3,7 +3,7 @@ import {
   assertAnalystN8nRequest,
   expireAnalystExecutionIfNeeded,
   isAnalystN8nToolName,
-  resolveAnalystExecution,
+  resolveAnalystExecutionForTool,
 } from "@/lib/analyst/n8n";
 import { AnalystRequestError } from "@/lib/analyst/scope";
 import type {
@@ -52,12 +52,33 @@ export async function POST(request: Request) {
       );
     }
 
-    const { execution, scope } = await resolveAnalystExecution(executionId);
+    const { execution, scope } =
+      await resolveAnalystExecutionForTool(executionId);
     const status = await expireAnalystExecutionIfNeeded(execution);
 
     if (status !== "iniciada") {
       throw new AnalystRequestError(
         "Esta execução não aceita novas consultas.",
+        409,
+      );
+    }
+
+    const admin = createAdminClient();
+    const { data: claimed, error: claimError } = await admin.rpc(
+      "lexia_reivindicar_ferramenta_analista",
+      {
+        p_execucao_id: executionId,
+        p_ferramenta: tool,
+      },
+    );
+
+    if (claimError) {
+      throw new Error("Não foi possível validar a execução da ferramenta.");
+    }
+
+    if (!claimed) {
+      throw new AnalystRequestError(
+        "Esta execução já foi encerrada e não aceita ferramentas.",
         409,
       );
     }
@@ -85,17 +106,6 @@ export async function POST(request: Request) {
       data = executionResult.result;
       sources = context.toWorkflowSources(executionResult.sources);
     }
-
-    const previousTools = Array.isArray(execution.ferramentas)
-      ? execution.ferramentas.map((value) => String(value))
-      : [];
-    const usedTools = Array.from(new Set([...previousTools, tool])).slice(0, 30);
-    const admin = createAdminClient();
-    await admin
-      .from("lexia_ai_execucoes")
-      .update({ ferramentas: usedTools })
-      .eq("id", executionId)
-      .eq("status", "iniciada");
 
     return Response.json({
       data,

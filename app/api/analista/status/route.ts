@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       clienteSlug: url.searchParams.get("clienteSlug") ?? undefined,
       periodo: "hoje",
     };
-    const scope = await resolveAnalystScope(input);
+    const scope = await resolveAnalystScope(input, { mode: "read" });
     const admin = createAdminClient();
     const { data: execution, error } = await admin
       .from("lexia_ai_execucoes")

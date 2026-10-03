@@ -1,6 +1,6 @@
 # Plano de Estabilização e Evolução da Lexia CRM
 
-> Atualizado em 22/09/2026.
+> Atualizado em 03/10/2026.
 > Este plano parte do estado auditado em `Agent.MD`.
 > A ordem das fases é importante. Não avançar para melhorias visuais ou novas métricas antes de preservar código, segredos e banco.
 
@@ -64,10 +64,12 @@ Transformar o estado atual, que já funciona em produção, em um produto:
 
 ### Não concluído
 
-- [ ] Git confiável e remote.
+- [x] Repositório Git remoto configurado e `main` sincronizada no snapshot de
+  03/10/2026.
 - [ ] Rotação confirmada dos segredos expostos.
 - [ ] Baseline completo de migrations e RLS versionado. A migration isolada da IA já existe, mas não substitui o export do banco atual.
-- [ ] Testes automatizados e CI.
+- [-] Testes automatizados e CI. O Lote 1 adiciona testes de contrato e suite
+  Supabase isolada; CI e ambiente isolado ainda faltam.
 - [ ] Observabilidade e alertas.
 - [ ] Contrato de mensagem com ID/timestamp do provedor.
 - [ ] Integração de clientes externos orientada por configuração, sem alterar código.
@@ -156,11 +158,17 @@ Critério de aceite:
 
 ### 5.2 Scripts obrigatórios
 
-- [ ] Adicionar `typecheck` com `tsc --noEmit`.
-- [ ] Adicionar `test`.
+- [x] Adicionar `typecheck` com `tsc --noEmit`.
+- [x] Adicionar `test`.
 - [ ] Adicionar `test:e2e`.
 - [ ] Adicionar `check` para lint + typecheck + testes.
-- [ ] Investigar por que `npm run lint` não terminou na auditoria local.
+- [x] Investigar por que `npm run lint` não terminou na auditoria local. O
+  bloqueio era causado por placeholders `dataless` do iCloud em
+  `node_modules`; com dependências materializadas, o lint concluiu normalmente.
+
+Snapshot do Lote 1 em 03/10/2026: `test` (13/13), `lint`, `typecheck` e build
+de produção passaram. A suite Supabase integrada recusou corretamente executar
+sem ambiente descartável; ela continua pendente.
 
 ### 5.3 Smoke tests mínimos
 
@@ -218,6 +226,49 @@ Critério de aceite:
 
 - Testes automatizados provam isolamento entre dois clientes.
 - Perfil inativo não acessa nenhuma rota ou ação protegida.
+
+### 6.5 Lote 1 revisado - estado em 03/10/2026
+
+Implementado somente na branch `codex/lote-1-autorizacao-workflows`:
+
+- [x] Criar DAL central de autorização por perfil, papel, tenant, status da
+  empresa e tipo de operação.
+- [x] Exigir `requireLexiaAdmin()` para criar ou editar workflows.
+- [x] Manter cliente limitado ao dispatch server-side autorizado.
+- [x] Retirar `webhook_url` das props e DTOs de cliente e admin.
+- [x] Validar HTTPS e allowlist privada de hosts antes de salvar ou disparar.
+- [x] Preparar corte de grants por coluna sem manter SELECT amplo da tabela.
+- [x] Preservar leitura histórica do admin e bloquear empresa inativa para o
+  cliente e para novas operações.
+- [x] Manter pausa administrativa como contenção disponível em empresa
+  inativa e bloquear retomada.
+- [x] Recriar policies do Analista e ajustes preservando dono, sessão e tenant.
+- [x] Tornar callback final transacional, imutável e idempotente.
+- [x] Bloquear claim de ferramenta depois da finalização.
+- [x] Registrar falha de vínculo Auth como pendência recuperável, sem apagar ou
+  reassociar usuário.
+- [x] Preparar índice único concorrente com preflight e recuperação explícita.
+- [x] Criar testes unitários/de contrato e suite integrada isolada.
+- [x] Documentar implantação e recuperação em
+  `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
+
+Validação e aplicação ainda pendentes:
+
+- [ ] Criar/fornecer projeto Supabase descartável e executar a suite integrada.
+- [ ] Criar backup do banco central e comprovar restauração em outro ambiente.
+- [ ] Identificar consumidor externo de `lexia_buscar_ajustes_agente` antes de
+  alterar seus privilégios ou `search_path`.
+- [ ] Identificar consumidor de `site_feedback` antes de restringir a
+  submissão pública.
+- [ ] Configurar `LEXIA_WORKFLOW_ALLOWED_HOSTS` em staging.
+- [ ] Executar preflight e índice concorrente em staging.
+- [ ] Aplicar a migration de expansão, publicar preview compatível e somente
+  depois aplicar a migration de corte de grants.
+- [ ] Obter nova aprovação antes de qualquer mudança em produção.
+
+Regra de recuperação: depois do corte de grants, corrigir para frente ou voltar
+para uma versão compatível com o DAL privado. Nunca restaurar SELECT amplo,
+escrita de `authenticated` ou acesso direto a `webhook_url` como rollback.
 
 ## 7. P1 - Mensagens Fiéis aos Canais
 

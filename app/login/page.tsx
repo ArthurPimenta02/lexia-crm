@@ -2,17 +2,39 @@ import { redirect } from "next/navigation";
 
 import { LexiaBrand } from "@/app/components/lexia-brand";
 import { LoginForm } from "@/app/login/login-form";
+import {
+  requireClientPanelAccess,
+  requireLexiaAdmin,
+} from "@/lib/auth/access-context";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 export default async function LoginPage() {
   const { profile } = await getLoggedInUserProfile();
 
   if (profile?.role === "lexia_admin") {
-    redirect("/admin/area-testes");
+    let canAccessAdmin = false;
+
+    try {
+      await requireLexiaAdmin();
+      canAccessAdmin = true;
+    } catch {
+      // Mantém a tela de login disponível para acessos inativos.
+    }
+
+    if (canAccessAdmin) redirect("/admin/area-testes");
   }
 
   if (profile && isClientRole(profile.role)) {
-    redirect("/app");
+    let canAccessClient = false;
+
+    try {
+      await requireClientPanelAccess();
+      canAccessClient = true;
+    } catch {
+      // Mantém a tela de login disponível para perfil ou empresa inativos.
+    }
+
+    if (canAccessClient) redirect("/app");
   }
 
   return (

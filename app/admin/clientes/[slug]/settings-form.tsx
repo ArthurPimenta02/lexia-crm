@@ -18,6 +18,7 @@ type ClientSettingsFormProps = {
     workflow_nome: string;
     workflow_tipo: string;
     webhook_url: string;
+    webhook_configured: boolean;
     workflow_status: string;
   };
 };
@@ -139,8 +140,18 @@ export function ClientSettingsForm({
               defaultValue={initialValues.webhook_url}
               id="webhook_url"
               name="webhook_url"
-              placeholder="https://..."
+              placeholder={
+                initialValues.webhook_configured
+                  ? "Deixe vazio para preservar o destino atual"
+                  : "https://..."
+              }
             />
+            {initialValues.webhook_configured ? (
+              <p className="text-xs text-zinc-500">
+                O destino atual é privado. Informe uma nova URL somente para
+                substituí-lo.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">

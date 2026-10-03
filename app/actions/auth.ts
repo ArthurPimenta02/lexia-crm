@@ -3,6 +3,11 @@
 import { redirect } from "next/navigation";
 
 import {
+  getAccessErrorMessage,
+  requireClientPanelAccess,
+  requireLexiaAdmin,
+} from "@/lib/auth/access-context";
+import {
   getLoggedInUserProfile,
   isClientRole,
   type LexiaUserRole,
@@ -58,6 +63,17 @@ export async function loginAction(
   if (!redirectPath) {
     await supabase.auth.signOut();
     return { error: "Perfil sem permissão de acesso." };
+  }
+
+  try {
+    if (profile.role === "lexia_admin") {
+      await requireLexiaAdmin();
+    } else {
+      await requireClientPanelAccess();
+    }
+  } catch (accessError) {
+    await supabase.auth.signOut();
+    return { error: getAccessErrorMessage(accessError) };
   }
 
   redirect(redirectPath);

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
 
 export type AgentAdjustmentActionResult = {
@@ -14,13 +14,12 @@ export type AgentAdjustmentActionResult = {
 const allowedModules = ["geral", "detailing", "venda_veiculo", "indefinido"];
 
 async function getAdminContext() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  if (!user || !profile || profile.role !== "lexia_admin" || profile.status !== "ativo") {
+  try {
+    const { user } = await requireLexiaAdmin();
+    return { userId: user.id };
+  } catch {
     return { error: "Acesso não autorizado." };
   }
-
-  return { userId: user.id };
 }
 
 function getRequiredString(formData: FormData, key: string) {

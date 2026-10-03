@@ -2,9 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  getAccessErrorMessage,
+  requireClientPanelAccess,
+} from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { WorkflowPublic } from "@/lib/workflows/contracts";
+import { dispatchTestWorkflow } from "@/lib/workflows/private-config";
 
 export type TestSession = {
   id: string;
@@ -36,12 +41,7 @@ export type TestFeedback = {
   avaliacao: FeedbackRating;
 };
 
-export type TestWorkflow = {
-  id: string;
-  nome: string | null;
-  tipo: string | null;
-  webhook_url: string | null;
-};
+export type TestWorkflow = WorkflowPublic;
 
 type ActionResult<T> =
   {
@@ -67,13 +67,13 @@ type ClientContext =
     };
 
 async function getClientContext(): Promise<ClientContext> {
-  const { profile, user } = await getLoggedInUserProfile();
+  try {
+    const context = await requireClientPanelAccess();
 
-  if (!user || !profile || !isClientRole(profile.role) || !profile.cliente_slug) {
-    return { error: "Acesso não autorizado." };
+    return { clienteSlug: context.clienteSlug, userId: context.user.id };
+  } catch (error) {
+    return { error: getAccessErrorMessage(error) };
   }
-
-  return { clienteSlug: profile.cliente_slug, userId: user.id };
 }
 
 function stringifyMessage(value: unknown) {
@@ -370,72 +370,24 @@ export async function sendTestMessage(
     return { data: null, error: "Selecione um workflow para testar." };
   }
 
-  const supabase = await createClient();
-  const { data: session, error: sessionError } = await supabase
-    .from("lexia_testes_sessoes")
-    .select("session_id")
-    .eq("cliente_slug", context.clienteSlug)
-    .eq("session_id", sessionId)
-    .eq("origem", "painel_cliente")
-    .maybeSingle();
+  try {
+    const result = await dispatchTestWorkflow({
+      message,
+      origin: "painel_cliente",
+      sessionId,
+      workflowId,
+    });
 
-  if (sessionError || !session) {
-    return { data: null, error: "Sessão de teste não encontrada." };
-  }
-
-  const { data: workflow, error: workflowError } = await supabase
-    .from("lexia_workflows")
-    .select("id, nome, tipo, webhook_url")
-    .eq("id", workflowId)
-    .eq("cliente_slug", context.clienteSlug)
-    .eq("status", "ativo")
-    .maybeSingle();
-
-  if (workflowError) {
+    return { data: result, error: null };
+  } catch (error) {
     return {
       data: null,
-      error: "Não foi possível buscar o workflow ativo.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar a mensagem ao workflow.",
     };
   }
-
-  const activeWorkflow = workflow as TestWorkflow | null;
-
-  if (!activeWorkflow?.webhook_url) {
-    return {
-      data: null,
-      error: "Nenhum workflow ativo configurado para este cliente.",
-    };
-  }
-
-  const runId = crypto.randomUUID();
-  const response = await fetch(activeWorkflow.webhook_url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      lexia_modo_teste: true,
-      lexia_origem: "painel_cliente",
-      lexia_session_id: sessionId,
-      lexia_run_id: runId,
-      lexia_teste_id: "",
-      lexia_workflow_id: activeWorkflow.id,
-      lexia_workflow_tipo: activeWorkflow.tipo ?? "",
-      message: {
-        type: "text",
-        text: message,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    return {
-      data: null,
-      error: "Não foi possível enviar a mensagem ao workflow.",
-    };
-  }
-
-  return { data: { runId }, error: null };
 }
 
 export async function saveExecutionFeedback(

@@ -119,10 +119,12 @@ function constantTimeEqual(actual: string, expected: string) {
 
 export function assertAnalystN8nRequest(request: Request) {
   const authorization = request.headers.get("authorization") ?? "";
-  const [scheme, token] = authorization.split(/\s+/, 2);
+  const authorizationParts = authorization.trim().split(/\s+/);
+  const [scheme, token] = authorizationParts;
   const expected = getAnalystN8nSecret();
 
   if (
+    authorizationParts.length !== 2 ||
     scheme?.toLowerCase() !== "bearer" ||
     !token ||
     !constantTimeEqual(token, expected)
@@ -437,7 +439,65 @@ function normalizeExecutionChannel(value: string | null): AnalystChannel {
     : "todos";
 }
 
-export async function resolveAnalystExecution(executionId: string) {
+type AnalystExecutionClient = {
+  nome: string;
+  slug: string;
+  status: string;
+};
+
+type AnalystExecutionProfile = {
+  cliente_slug: string | null;
+  role: string;
+  status: string;
+};
+
+function isValidExecutionRole(value: string): value is LexiaUserRole {
+  return (
+    value === "lexia_admin" ||
+    value === "cliente_admin" ||
+    value === "cliente_operador"
+  );
+}
+
+function buildExecutionScope(
+  row: AnalystExecutionRow,
+  client: AnalystExecutionClient,
+  role: LexiaUserRole,
+) {
+  const start = new Date(row.periodo_inicio ?? "");
+  const end = new Date(row.periodo_fim ?? "");
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end <= start ||
+    end.getTime() - start.getTime() > 366 * 24 * 60 * 60 * 1000
+  ) {
+    throw new AnalystRequestError("Período inválido nesta execução.", 400);
+  }
+
+  const timezone = getClientTimezone(row.cliente_slug);
+
+  return {
+    channel: normalizeExecutionChannel(row.canal),
+    clienteName: client.nome || client.slug,
+    clienteSlug: row.cliente_slug,
+    range: {
+      end,
+      key: "personalizado" as const,
+      label: `${formatRangeDate(start, timezone)} - ${formatRangeDate(
+        getInclusiveRangeEnd(end),
+        timezone,
+      )}`,
+      start,
+    },
+    role,
+    timezone,
+    userId: row.criado_por as string,
+  } satisfies AnalystScope;
+}
+
+async function loadRegisteredAnalystExecution(executionId: string) {
   const admin = createAdminClient();
   const { data: execution, error: executionError } = await admin
     .from("lexia_ai_execucoes")
@@ -456,70 +516,103 @@ export async function resolveAnalystExecution(executionId: string) {
     throw new AnalystRequestError("Execução de análise inválida.", 400);
   }
 
-  const [{ data: profile }, { data: client }] = await Promise.all([
+  const [
+    { data: profiles, error: profileError },
+    { data: client, error: clientError },
+    { data: session, error: sessionError },
+  ] = await Promise.all([
     admin
       .from("lexia_usuarios_clientes")
       .select("role, cliente_slug, status")
       .eq("user_id", row.criado_por)
-      .maybeSingle(),
+      .limit(2),
     admin
       .from("lexia_clientes")
       .select("nome, slug, status")
       .eq("slug", row.cliente_slug)
       .maybeSingle(),
+    admin
+      .from("lexia_ai_sessoes")
+      .select("id")
+      .eq("id", row.sessao_id)
+      .eq("cliente_slug", row.cliente_slug)
+      .eq("criado_por", row.criado_por)
+      .maybeSingle(),
   ]);
 
-  const role = profile?.role as LexiaUserRole | undefined;
-  const validRole =
-    role === "lexia_admin" ||
-    role === "cliente_admin" ||
-    role === "cliente_operador";
+  if (profileError || clientError || sessionError) {
+    throw new Error("Não foi possível validar a execução do Analista Lexia.");
+  }
+
+  if (!client || !session) {
+    throw new AnalystRequestError(
+      "A execução não possui sessão e cliente válidos.",
+      400,
+    );
+  }
+
+  if ((profiles ?? []).length > 1) {
+    throw new AnalystRequestError(
+      "A execução possui um vínculo de usuário ambíguo.",
+      409,
+    );
+  }
+
+  const profile = ((profiles ?? [])[0] as AnalystExecutionProfile | undefined) ?? null;
+  const clientRow = client as AnalystExecutionClient;
+
+  // Valida o período mesmo quando o retorno tardio só servirá para encerrar a
+  // execução; o callback nunca pode ampliar o escopo persistido.
+  buildExecutionScope(row, clientRow, "cliente_admin");
+
+  return { client: clientRow, execution: row, profile };
+}
+
+export async function resolveAnalystExecutionForTool(executionId: string) {
+  const { client, execution, profile } =
+    await loadRegisteredAnalystExecution(executionId);
+  const role = profile?.role ?? "";
 
   if (
     !profile ||
     profile.status !== "ativo" ||
-    !validRole ||
-    (role !== "lexia_admin" && profile.cliente_slug !== row.cliente_slug)
+    !isValidExecutionRole(role) ||
+    (role !== "lexia_admin" && profile.cliente_slug !== execution.cliente_slug)
   ) {
     throw new AnalystRequestError("O acesso desta execução não está ativo.", 403);
   }
 
-  if (!client || client.status !== "ativo") {
+  if (client.status !== "ativo") {
     throw new AnalystRequestError("O cliente desta execução não está ativo.", 403);
   }
 
-  const start = new Date(row.periodo_inicio ?? "");
-  const end = new Date(row.periodo_fim ?? "");
-
-  if (
-    Number.isNaN(start.getTime()) ||
-    Number.isNaN(end.getTime()) ||
-    end <= start ||
-    end.getTime() - start.getTime() > 366 * 24 * 60 * 60 * 1000
-  ) {
-    throw new AnalystRequestError("Período inválido nesta execução.", 400);
-  }
-
-  const timezone = getClientTimezone(row.cliente_slug);
-  const scope: AnalystScope = {
-    channel: normalizeExecutionChannel(row.canal),
-    clienteName: client.nome || client.slug,
-    clienteSlug: row.cliente_slug,
-    range: {
-      end,
-      key: "personalizado",
-      label: `${formatRangeDate(start, timezone)} - ${formatRangeDate(
-        getInclusiveRangeEnd(end),
-        timezone,
-      )}`,
-      start,
-    },
-    role,
-    timezone,
-    userId: row.criado_por,
+  return {
+    execution,
+    scope: buildExecutionScope(execution, client, role),
   };
+}
 
-  return { execution: row, scope };
+export async function resolveAnalystExecutionForCompletion(
+  executionId: string,
+) {
+  const { client, execution, profile } =
+    await loadRegisteredAnalystExecution(executionId);
+  const role = profile?.role ?? "";
+  const profileMatchesExecution =
+    profile &&
+    isValidExecutionRole(role) &&
+    (role === "lexia_admin" || profile.cliente_slug === execution.cliente_slug);
+  const canResolveSources =
+    Boolean(profileMatchesExecution) &&
+    profile?.status === "ativo" &&
+    client.status === "ativo";
+
+  return {
+    execution,
+    scope: canResolveSources
+      ? buildExecutionScope(execution, client, role as LexiaUserRole)
+      : null,
+  };
 }
 
 export async function expireAnalystExecutionIfNeeded(
