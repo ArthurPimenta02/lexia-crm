@@ -1,7 +1,7 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 03/10/2026.
+> Última auditoria: 04/10/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
@@ -54,8 +54,9 @@ do baseline externo de schema/RLS, n8n, Redis e segredos por ambiente.
   aplicado neste lote de autorização.
 - O pacote `next` está em `16.2.9`; o audit indicou correção disponível em `16.3.6`.
 - Existem migrations incrementais do Analista e do Lote 1, mas ainda não há
-  baseline completo do schema/RLS ou CI. O Lote 1 adiciona testes de contrato e
-  uma suite integrada que exige um Supabase descartável.
+  baseline completo do schema/RLS. A branch do Lote 1 adiciona CI localmente
+  versionado, testes comportamentais/de contrato e uma suite integrada que
+  exige um Supabase descartável.
 - Não há `proxy.ts`. O cliente SSR menciona um middleware para renovação de cookies, mas Next.js 16 usa a convenção `proxy.ts`. O fluxo de renovação de sessão precisa ser auditado antes de ser considerado robusto.
 
 ## 3. O Que a Plataforma Faz
@@ -166,10 +167,11 @@ npm run test:lote1:isolated
 npm run db:lote1:index
 ```
 
-Ainda não existem `test:e2e`, CI, seed completo ou geração automática de tipos.
-`test:lote1:isolated` só pode usar um projeto Supabase descartável, e
-`db:lote1:index` exige conexão Postgres direta e confirmação explícita do
-ambiente.
+Ainda não existem `test:e2e`, seed completo ou geração automática de tipos. A
+branch do Lote 1 inclui CI com `npm test`, lint, typecheck e build, mas ainda
+não foi mesclada. `test:lote1:isolated` só pode usar um projeto Supabase
+descartável identificado por marcador remoto, e `db:lote1:index` exige conexão
+Postgres identificada pelo `project_ref` e confirmação explícita do destino.
 
 ## 6. Mapa de Diretórios
 
@@ -365,6 +367,9 @@ tenant, empresa e natureza da operação:
 - admin Lexia ativo mantém leitura administrativa global, inclusive de
   histórico de empresa inativa;
 - novas operações, dispatch, retomada e nova análise exigem empresa ativa;
+- dispatch com origem `painel_admin` exige admin Lexia e empresa ativa tanto
+  na Server Action quanto no DAL; um cliente não ganha esse acesso por conhecer
+  IDs de sessão ou workflow do próprio tenant;
 - admin pode pausar/conter uma integração ainda ativa mesmo depois de a
   empresa ser inativada;
 - callback assinado pode apenas finalizar uma execução registrada antes da
@@ -384,7 +389,8 @@ e aplicação descrita em `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 
 O repositório ainda não possui um baseline completo das políticas. O Lote 1
 versiona apenas as policies que precisa endurecer: quatro tabelas do Analista e
-`lexia_ajustes_agente`. Portanto:
+`lexia_ajustes_agente`. `supabase/isolated/` contém somente um baseline mínimo
+e descartável para os testes do lote, nunca um baseline de produção. Portanto:
 
 - Não é possível reconstruir nem auditar completamente a segurança apenas pelo Git.
 - Consultas cliente adicionam `cliente_slug`, mas isso não substitui RLS.
@@ -444,6 +450,26 @@ Lista de hosts exatos, separados por vírgula, autorizados para cadastro e
 dispatch dos workflows de teste. É server-only. Não aceita wildcard, esquema,
 caminho ou credenciais embutidas. Na branch do Lote 1, sem essa variável o
 cadastro, a edição de destino e o dispatch falham de forma fechada.
+
+### Operações isoladas do Lote 1
+
+Os scripts destrutivos ou com potencial de escrita não inferem produção pela
+URL do preview. Eles exigem refs explícitos e confirmações vinculadas ao alvo:
+
+```text
+LEXIA_PRODUCTION_SUPABASE_PROJECT_REF
+LEXIA_PROTECTED_SUPABASE_PROJECT_REFS       # opcional, CSV
+LEXIA_TEST_SUPABASE_PROJECT_REF
+LEXIA_TEST_CONFIRM_ISOLATED
+LEXIA_DB_OPERATION_EXPECTED_PROJECT_REF
+LEXIA_DB_OPERATION_ENVIRONMENT
+LEXIA_DB_OPERATION_CONFIRM
+LEXIA_DB_OPERATION_PRODUCTION_APPROVAL      # só para produção
+```
+
+A suite integrada também exige uma linha coerente em
+`lexia_environment_identity` antes da primeira escrita. A reconstrução está em
+`supabase/isolated/README.md`; destinos de webhook do teste usam `*.invalid`.
 
 ### Analista Lexia (n8n ativo)
 
@@ -698,7 +724,9 @@ O Lote 1 também cria RPCs somente para `service_role`:
   execução segue `iniciada`;
 - `lexia_finalizar_execucao_analista`: trava a execução e finaliza mensagem,
   auditoria e sessão de forma transacional e idempotente. Retry igual não
-  altera o resultado; retry divergente retorna conflito.
+  altera o resultado; retry divergente retorna conflito. Dentro do mesmo lock,
+  une os claims de ferramenta já persistidos às ferramentas válidas do
+  callback e grava a mesma lista na execução e na metadata da resposta.
 
 Rollback destrutivo: `supabase/rollbacks/202609220001_lexia_ai_analyst_down.sql`. Fazer export das quatro tabelas antes de executar em ambiente com histórico real.
 
@@ -853,6 +881,10 @@ O endpoint precisa responder HTTP 2xx. Depois, o workflow deve gravar em `lexia_
 O POST usa timeout de 12 segundos e recusa redirects. Cliente operacional pode
 somente disparar o workflow autorizado do próprio tenant; cadastro, edição e
 leitura do destino são exclusivos do admin Lexia no servidor.
+
+`painel_admin` não é apenas um valor de origem: ele exige admin Lexia e empresa
+ativa antes de qualquer leitura privilegiada. `painel_cliente` continua preso
+ao único tenant do perfil cliente.
 
 A UI consulta a execução a cada 2 segundos, por até 45 tentativas, aproximadamente 90 segundos. Não existe callback HTTP para a aplicação.
 
@@ -1395,8 +1427,9 @@ Verificar:
 
 ### P1
 
-- CI e testes end-to-end ainda ausentes. O Lote 1 possui testes locais e suite
-  integrada, mas esta ainda precisa de um Supabase isolado.
+- O CI do Lote 1 existe na branch e executa testes, lint, typecheck e build,
+  mas ainda não foi mesclado. Testes end-to-end continuam ausentes e a suite
+  integrada ainda precisa de um Supabase isolado.
 - O Lote 1 de status/autorização ainda não foi aplicado ou validado em staging.
 - Ausência de `proxy.ts`/fluxo documentado de renovação Supabase SSR.
 - Métricas ainda são agregadas no servidor Next.js; índices do banco, view/RPC e comportamento com volume dez vezes maior ainda precisam de auditoria.
@@ -1617,7 +1650,8 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 
 Snapshot em 03/10/2026: a migration original do Analista foi aplicada e o
 fluxo direto anterior foi publicado. A branch do Lote 1 acrescenta
-finalização transacional, claim de ferramenta e policies por empresa ativa,
+finalização transacional com união de claims concorrentes, claim de ferramenta
+e policies por empresa ativa,
 mas essas mudanças não foram aplicadas ao banco, não foram publicadas e ainda
 precisam de validação em Supabase isolado.
 

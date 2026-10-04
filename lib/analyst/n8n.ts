@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 
 import type { LexiaUserRole } from "@/lib/auth/profile";
 import {
@@ -12,6 +12,7 @@ import { getClientTimezone } from "@/lib/metrics/external-client-metrics";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { AnalystRequestError } from "./scope";
+import { isValidBearerAuthorization } from "./webhook-auth";
 import {
   analystChannels,
   type AnalystChannel,
@@ -107,27 +108,14 @@ function getAnalystWebhookConfig(): AnalystWebhookConfig {
   };
 }
 
-function constantTimeEqual(actual: string, expected: string) {
-  const actualBuffer = Buffer.from(actual);
-  const expectedBuffer = Buffer.from(expected);
-
-  return (
-    actualBuffer.length === expectedBuffer.length &&
-    timingSafeEqual(actualBuffer, expectedBuffer)
-  );
-}
-
 export function assertAnalystN8nRequest(request: Request) {
-  const authorization = request.headers.get("authorization") ?? "";
-  const authorizationParts = authorization.trim().split(/\s+/);
-  const [scheme, token] = authorizationParts;
   const expected = getAnalystN8nSecret();
 
   if (
-    authorizationParts.length !== 2 ||
-    scheme?.toLowerCase() !== "bearer" ||
-    !token ||
-    !constantTimeEqual(token, expected)
+    !isValidBearerAuthorization(
+      request.headers.get("authorization"),
+      expected,
+    )
   ) {
     throw new AnalystRequestError("Integração não autorizada.", 401);
   }

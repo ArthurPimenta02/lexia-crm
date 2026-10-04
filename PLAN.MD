@@ -1,6 +1,6 @@
 # Plano de Estabilização e Evolução da Lexia CRM
 
-> Atualizado em 03/10/2026.
+> Atualizado em 04/10/2026.
 > Este plano parte do estado auditado em `Agent.MD`.
 > A ordem das fases é importante. Não avançar para melhorias visuais ou novas métricas antes de preservar código, segredos e banco.
 
@@ -68,8 +68,9 @@ Transformar o estado atual, que já funciona em produção, em um produto:
   03/10/2026.
 - [ ] Rotação confirmada dos segredos expostos.
 - [ ] Baseline completo de migrations e RLS versionado. A migration isolada da IA já existe, mas não substitui o export do banco atual.
-- [-] Testes automatizados e CI. O Lote 1 adiciona testes de contrato e suite
-  Supabase isolada; CI e ambiente isolado ainda faltam.
+- [-] Testes automatizados e CI. A branch do Lote 1 adiciona testes
+  comportamentais/de contrato, CI com `npm test`, lint, typecheck e build e uma
+  suite Supabase isolada; falta fornecer e executar o ambiente descartável.
 - [ ] Observabilidade e alertas.
 - [ ] Contrato de mensagem com ID/timestamp do provedor.
 - [ ] Integração de clientes externos orientada por configuração, sem alterar código.
@@ -151,10 +152,10 @@ Critério de aceite:
 
 ### 5.1 Fixar runtime
 
-- [ ] Definir versão Node suportada.
+- [x] Definir Node 22 ou superior como versão suportada.
 - [ ] Criar `.nvmrc` ou `.node-version`.
-- [ ] Adicionar `engines` em `package.json` se compatível com Vercel.
-- [ ] Registrar versão npm usada.
+- [x] Adicionar `engines` em `package.json`.
+- [x] Registrar versões Node/npm da auditoria em `Agent.MD`.
 
 ### 5.2 Scripts obrigatórios
 
@@ -166,7 +167,7 @@ Critério de aceite:
   bloqueio era causado por placeholders `dataless` do iCloud em
   `node_modules`; com dependências materializadas, o lint concluiu normalmente.
 
-Snapshot do Lote 1 em 03/10/2026: `test` (13/13), `lint`, `typecheck` e build
+Snapshot do Lote 1 em 04/10/2026: `test` (28/28), `lint`, `typecheck` e build
 de produção passaram. A suite Supabase integrada recusou corretamente executar
 sem ambiente descartável; ela continua pendente.
 
@@ -227,7 +228,7 @@ Critério de aceite:
 - Testes automatizados provam isolamento entre dois clientes.
 - Perfil inativo não acessa nenhuma rota ou ação protegida.
 
-### 6.5 Lote 1 revisado - estado em 03/10/2026
+### 6.5 Lote 1 revisado - estado em 04/10/2026
 
 Implementado somente na branch `codex/lote-1-autorizacao-workflows`:
 
@@ -235,6 +236,8 @@ Implementado somente na branch `codex/lote-1-autorizacao-workflows`:
   empresa e tipo de operação.
 - [x] Exigir `requireLexiaAdmin()` para criar ou editar workflows.
 - [x] Manter cliente limitado ao dispatch server-side autorizado.
+- [x] Exigir admin Lexia e empresa ativa em ambos os limites do dispatch
+  `painel_admin`, antes de consultar sessão/workflow ou chamar webhook.
 - [x] Retirar `webhook_url` das props e DTOs de cliente e admin.
 - [x] Validar HTTPS e allowlist privada de hosts antes de salvar ou disparar.
 - [x] Preparar corte de grants por coluna sem manter SELECT amplo da tabela.
@@ -244,17 +247,25 @@ Implementado somente na branch `codex/lote-1-autorizacao-workflows`:
   inativa e bloquear retomada.
 - [x] Recriar policies do Analista e ajustes preservando dono, sessão e tenant.
 - [x] Tornar callback final transacional, imutável e idempotente.
+- [x] Unir dentro do lock os claims de ferramenta persistidos com o callback e
+  manter execução e metadata da resposta coerentes sob concorrência.
 - [x] Bloquear claim de ferramenta depois da finalização.
 - [x] Registrar falha de vínculo Auth como pendência recuperável, sem apagar ou
   reassociar usuário.
 - [x] Preparar índice único concorrente com preflight e recuperação explícita.
-- [x] Criar testes unitários/de contrato e suite integrada isolada.
+- [x] Vincular scripts de teste e índice ao `project_ref` real, proteger o ref
+  de produção e validar marcador remoto antes de qualquer escrita isolada.
+- [x] Criar testes comportamentais/de contrato e suite integrada isolada.
+- [x] Incluir `npm test` no CI.
+- [x] Versionar baseline mínimo exclusivo para reconstrução do ambiente
+  descartável e documentar falhas de limpeza separadamente.
 - [x] Documentar implantação e recuperação em
   `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 
 Validação e aplicação ainda pendentes:
 
-- [ ] Criar/fornecer projeto Supabase descartável e executar a suite integrada.
+- [ ] Criar/fornecer projeto Supabase descartável, aplicar o baseline mínimo,
+  registrar sua identidade remota e executar a suite integrada após a `003`.
 - [ ] Criar backup do banco central e comprovar restauração em outro ambiente.
 - [ ] Identificar consumidor externo de `lexia_buscar_ajustes_agente` antes de
   alterar seus privilégios ou `search_path`.
@@ -263,7 +274,8 @@ Validação e aplicação ainda pendentes:
 - [ ] Configurar `LEXIA_WORKFLOW_ALLOWED_HOSTS` em staging.
 - [ ] Executar preflight e índice concorrente em staging.
 - [ ] Aplicar a migration de expansão, publicar preview compatível e somente
-  depois aplicar a migration de corte de grants.
+  depois aplicar a migration de corte de grants; antes do corte executar apenas
+  compatibilidade da aplicação, e depois dele executar a suite completa.
 - [ ] Obter nova aprovação antes de qualquer mudança em produção.
 
 Regra de recuperação: depois do corte de grants, corrigir para frente ou voltar
@@ -524,13 +536,14 @@ Critério de aceite:
 
 ## 14. P1 - CI/CD
 
-- [ ] Workflow de CI em pull request.
-- [ ] `npm ci`.
-- [ ] Lint.
-- [ ] Typecheck.
-- [ ] Unit tests.
-- [ ] Build.
-- [ ] Audit com política definida.
+- [x] Workflow de CI em pull request preparado na branch do Lote 1.
+- [x] `npm ci`.
+- [x] Lint.
+- [x] Typecheck.
+- [x] Unit tests com `npm test`.
+- [x] Build.
+- [x] Audit informativo, sem bloquear merge, enquanto as vulnerabilidades
+  conhecidas não são tratadas em lote próprio.
 - [ ] E2E em Preview com banco de teste.
 - [ ] Proteção de branch.
 - [ ] Deploy Production somente após aprovação.

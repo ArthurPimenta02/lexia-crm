@@ -134,6 +134,14 @@ export async function requireAdministrativeClientAccess(
   };
 }
 
+export async function requireActiveAdministrativeClientAccess(
+  clienteSlug: string,
+): Promise<AuthorizedClientContext> {
+  return requireAdministrativeClientAccess(clienteSlug, {
+    requireActiveClient: true,
+  });
+}
+
 export async function requireOperationalClientAccess(
   requestedSlug?: string,
 ): Promise<AuthorizedClientContext> {

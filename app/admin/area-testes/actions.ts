@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import {
   getAccessErrorMessage,
+  requireActiveAdministrativeClientAccess,
   requireAdministrativeClientAccess,
-  requireOperationalClientAccess,
 } from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkflowPublic } from "@/lib/workflows/contracts";
+import { executeAdminTestMessage } from "@/lib/workflows/admin-test-message";
 import { dispatchTestWorkflow } from "@/lib/workflows/private-config";
 
 export type AdminTestSession = {
@@ -275,39 +276,12 @@ export async function sendAdminTestMessage(
   messageText: string,
   workflowId: string,
 ): Promise<ActionResult<{ runId: string }>> {
-  try {
-    await requireOperationalClientAccess(clienteSlug);
-  } catch (error) {
-    return { data: null, error: getAccessErrorMessage(error) };
-  }
-
-  const message = messageText.trim();
-
-  if (!clienteSlug || !sessionId || !message) {
-    return { data: null, error: "Digite uma mensagem para enviar." };
-  }
-
-  if (!workflowId) {
-    return { data: null, error: "Selecione um workflow para testar." };
-  }
-
-  try {
-    const result = await dispatchTestWorkflow({
-      clienteSlug,
-      message,
-      origin: "painel_admin",
-      sessionId,
-      workflowId,
-    });
-
-    return { data: result, error: null };
-  } catch (error) {
-    return {
-      data: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Não foi possível enviar a mensagem ao workflow.",
-    };
-  }
+  return executeAdminTestMessage(
+    { clienteSlug, messageText, sessionId, workflowId },
+    {
+      dispatch: dispatchTestWorkflow,
+      getAccessErrorMessage,
+      requireActiveAdminClient: requireActiveAdministrativeClientAccess,
+    },
+  );
 }

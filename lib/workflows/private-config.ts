@@ -1,15 +1,14 @@
 import "server-only";
 
 import {
+  requireActiveAdministrativeClientAccess,
   requireAdministrativeClientAccess,
   requireClientPanelAccess,
   requireLexiaAdmin,
-  requireOperationalClientAccess,
 } from "@/lib/auth/access-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
-  buildTestWorkflowPayload,
   parseWorkflowAllowedHosts,
   toWorkflowAdminSummary,
   toWorkflowPublic,
@@ -18,6 +17,10 @@ import {
   type WorkflowPublic,
   type WorkflowRowWithDestination,
 } from "./contracts";
+import {
+  dispatchTestWorkflowWithDependencies,
+  type TestDispatchInput,
+} from "./dispatch-service";
 
 type WorkflowWriteInput = {
   clienteSlug: string;
@@ -25,14 +28,6 @@ type WorkflowWriteInput = {
   status: string;
   tipo: string;
   webhookUrl: string;
-};
-
-type TestDispatchInput = {
-  clienteSlug?: string;
-  message: string;
-  origin: "painel_admin" | "painel_cliente";
-  sessionId: string;
-  workflowId: string;
 };
 
 const workflowStatuses = new Set(["ativo", "inativo", "teste"]);
@@ -147,67 +142,42 @@ export async function updateWorkflowAsAdmin(
 }
 
 export async function dispatchTestWorkflow(input: TestDispatchInput) {
-  const message = input.message.trim();
+  return dispatchTestWorkflowWithDependencies(input, {
+    createRunId: () => crypto.randomUUID(),
+    findSession: async ({ clienteSlug, origin, sessionId }) => {
+      const admin = createAdminClient();
+      const { data, error } = await admin
+        .from("lexia_testes_sessoes")
+        .select("session_id")
+        .eq("cliente_slug", clienteSlug)
+        .eq("session_id", sessionId)
+        .eq("origem", origin)
+        .maybeSingle();
 
-  if (!message || !input.sessionId || !input.workflowId) {
-    throw new Error("Mensagem, sessão e workflow são obrigatórios.");
-  }
+      return !error && Boolean(data);
+    },
+    findWorkflow: async ({ clienteSlug, workflowId }) => {
+      const admin = createAdminClient();
+      const { data, error } = await admin
+        .from("lexia_workflows")
+        .select("id, cliente_slug, nome, tipo, status, webhook_url")
+        .eq("id", workflowId)
+        .eq("cliente_slug", clienteSlug)
+        .eq("status", "ativo")
+        .maybeSingle();
 
-  const context =
-    input.origin === "painel_admin"
-      ? await requireOperationalClientAccess(input.clienteSlug)
-      : await requireClientPanelAccess();
-  const admin = createAdminClient();
-  const { data: session, error: sessionError } = await admin
-    .from("lexia_testes_sessoes")
-    .select("session_id")
-    .eq("cliente_slug", context.clienteSlug)
-    .eq("session_id", input.sessionId)
-    .eq("origem", input.origin)
-    .maybeSingle();
-
-  if (sessionError || !session) {
-    throw new Error("Sessão de teste não encontrada.");
-  }
-
-  const { data, error } = await admin
-    .from("lexia_workflows")
-    .select("id, cliente_slug, nome, tipo, status, webhook_url")
-    .eq("id", input.workflowId)
-    .eq("cliente_slug", context.clienteSlug)
-    .eq("status", "ativo")
-    .maybeSingle();
-
-  if (error || !data) {
-    throw new Error("Workflow ativo não encontrado para este cliente.");
-  }
-
-  const workflow = data as WorkflowRowWithDestination;
-  if (!workflow.webhook_url) {
-    throw new Error("O workflow selecionado não possui destino configurado.");
-  }
-
-  const destination = getAllowedDestination(workflow.webhook_url);
-  const runId = crypto.randomUUID();
-  const response = await fetch(destination, {
-    body: JSON.stringify(
-      buildTestWorkflowPayload({
-        message,
-        origin: input.origin,
-        runId,
-        sessionId: input.sessionId,
-        workflow,
-      }),
-    ),
-    headers: { "content-type": "application/json" },
-    method: "POST",
-    redirect: "error",
-    signal: AbortSignal.timeout(12_000),
+      return error ? null : (data as WorkflowRowWithDestination | null);
+    },
+    postWebhook: (destination, init) => fetch(destination, init),
+    requireActiveAdminClient: async (clienteSlug) => {
+      const context =
+        await requireActiveAdministrativeClientAccess(clienteSlug);
+      return { clienteSlug: context.clienteSlug };
+    },
+    requireClientPanel: async () => {
+      const context = await requireClientPanelAccess();
+      return { clienteSlug: context.clienteSlug };
+    },
+    validateDestination: getAllowedDestination,
   });
-
-  if (!response.ok) {
-    throw new Error("O workflow não confirmou o recebimento da mensagem.");
-  }
-
-  return { runId };
 }

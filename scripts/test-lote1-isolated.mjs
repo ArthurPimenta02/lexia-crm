@@ -5,6 +5,11 @@ import { loadEnvFile } from "node:process";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  assertIsolatedRemoteIdentity,
+  validateIsolatedTestTarget,
+} from "./lib/target-identity.mjs";
+
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL && existsSync(".env.local")) {
   loadEnvFile(".env.local");
 }
@@ -15,25 +20,38 @@ const serviceRoleKey =
   process.env.LEXIA_TEST_SUPABASE_SERVICE_ROLE_KEY?.trim();
 const confirmation = process.env.LEXIA_TEST_CONFIRM_ISOLATED?.trim();
 const applicationUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const testProjectRef =
+  process.env.LEXIA_TEST_SUPABASE_PROJECT_REF?.trim();
+const productionProjectRef =
+  process.env.LEXIA_PRODUCTION_SUPABASE_PROJECT_REF?.trim();
+const protectedProjectRefs =
+  process.env.LEXIA_PROTECTED_SUPABASE_PROJECT_REFS?.trim();
 
-if (
-  !url ||
-  !anonKey ||
-  !serviceRoleKey ||
-  !applicationUrl ||
-  confirmation !== "I_UNDERSTAND_THIS_IS_DISPOSABLE"
-) {
+if (!url || !anonKey || !serviceRoleKey) {
   console.error(
-    "Isolated tests skipped: configure only LEXIA_TEST_SUPABASE_URL, " +
+    "Isolated tests skipped: configure LEXIA_TEST_SUPABASE_URL, " +
       "LEXIA_TEST_SUPABASE_ANON_KEY, LEXIA_TEST_SUPABASE_SERVICE_ROLE_KEY " +
-      "and LEXIA_TEST_CONFIRM_ISOLATED=I_UNDERSTAND_THIS_IS_DISPOSABLE. " +
-      "NEXT_PUBLIC_SUPABASE_URL must also identify the application project.",
+      "and the explicit project identity variables documented in the runbook.",
   );
   process.exit(2);
 }
 
-if (new URL(url).host === new URL(applicationUrl).host) {
-  console.error("Refused: the isolated test URL matches the application URL.");
+let verifiedProjectRef;
+try {
+  ({ testProjectRef: verifiedProjectRef } = validateIsolatedTestTarget({
+    anonKey,
+    applicationUrl,
+    confirmation,
+    productionProjectRef,
+    protectedProjectRefs,
+    serviceRoleKey,
+    testProjectRef,
+    testUrl: url,
+  }));
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "Invalid isolated test target.",
+  );
   process.exit(2);
 }
 
@@ -47,6 +65,7 @@ const slugs = {
   inactive: `lote1_inactive_${suffix}`,
 };
 const createdUsers = [];
+const cleanupFailures = [];
 
 function userClient() {
   return createClient(url, anonKey, {
@@ -79,32 +98,41 @@ async function cleanup() {
   const allSlugs = Object.values(slugs);
 
   const cleanupOperations = [
-    admin
-      .from("lexia_user_link_pendencias")
-      .delete()
-      .in("cliente_slug", allSlugs),
-    admin
-      .from("lexia_ai_mensagens")
-      .delete()
-      .in("cliente_slug", allSlugs),
-    admin
-      .from("lexia_ai_execucoes")
-      .delete()
-      .in("cliente_slug", allSlugs),
-    admin
-      .from("lexia_ai_sessoes")
-      .delete()
-      .in("cliente_slug", allSlugs),
-    admin
-      .from("lexia_conversation_insights")
-      .delete()
-      .in("cliente_slug", allSlugs),
-    admin.from("lexia_workflows").delete().in("cliente_slug", allSlugs),
+    [
+      "lexia_user_link_pendencias",
+      admin
+        .from("lexia_user_link_pendencias")
+        .delete()
+        .in("cliente_slug", allSlugs),
+    ],
+    [
+      "lexia_ai_mensagens",
+      admin.from("lexia_ai_mensagens").delete().in("cliente_slug", allSlugs),
+    ],
+    [
+      "lexia_ai_execucoes",
+      admin.from("lexia_ai_execucoes").delete().in("cliente_slug", allSlugs),
+    ],
+    [
+      "lexia_ai_sessoes",
+      admin.from("lexia_ai_sessoes").delete().in("cliente_slug", allSlugs),
+    ],
+    [
+      "lexia_conversation_insights",
+      admin
+        .from("lexia_conversation_insights")
+        .delete()
+        .in("cliente_slug", allSlugs),
+    ],
+    [
+      "lexia_workflows",
+      admin.from("lexia_workflows").delete().in("cliente_slug", allSlugs),
+    ],
   ];
 
-  for (const operation of cleanupOperations) {
+  for (const [resource, operation] of cleanupOperations) {
     const { error } = await operation;
-    if (error) console.warn(`Isolated cleanup warning: ${error.code}`);
+    if (error) cleanupFailures.push({ code: error.code, resource });
   }
 
   if (createdUsers.length > 0) {
@@ -113,7 +141,10 @@ async function cleanup() {
       .delete()
       .in("user_id", createdUsers);
     if (profilesError) {
-      console.warn(`Isolated profile cleanup warning: ${profilesError.code}`);
+      cleanupFailures.push({
+        code: profilesError.code,
+        resource: "lexia_usuarios_clientes",
+      });
     }
   }
 
@@ -122,14 +153,67 @@ async function cleanup() {
     .delete()
     .in("slug", allSlugs);
   if (clientsError) {
-    console.warn(`Isolated client cleanup warning: ${clientsError.code}`);
+    cleanupFailures.push({
+      code: clientsError.code,
+      resource: "lexia_clientes",
+    });
   }
 
   for (const userId of createdUsers) {
     const { error } = await admin.auth.admin.deleteUser(userId);
-    if (error) console.warn("Isolated Auth cleanup warning.");
+    if (error) {
+      cleanupFailures.push({
+        code: error.code ?? "auth_cleanup_failed",
+        resource: "auth.users",
+      });
+    }
   }
 }
+
+async function verifyRemoteIdentityBeforeWrites() {
+  const { data: identity, error: identityError } = await admin
+    .from("lexia_environment_identity")
+    .select("project_ref, environment, disposable")
+    .eq("id", true)
+    .maybeSingle();
+
+  if (identityError) {
+    throw new Error(
+      "Refused before writes: the remote disposable identity marker is missing or mismatched.",
+    );
+  }
+
+  try {
+    assertIsolatedRemoteIdentity(identity, verifiedProjectRef);
+  } catch {
+    throw new Error(
+      "Refused before writes: the remote disposable identity marker is missing or mismatched.",
+    );
+  }
+
+  for (const table of [
+    "lexia_clientes",
+    "lexia_usuarios_clientes",
+    "lexia_workflows",
+    "lexia_ai_sessoes",
+    "lexia_ai_mensagens",
+    "lexia_ai_execucoes",
+    "lexia_user_link_pendencias",
+  ]) {
+    const { error } = await admin
+      .from(table)
+      .select("id", { count: "exact", head: true });
+    if (error) {
+      throw new Error(
+        `Refused before writes: required isolated schema is missing (${table}).`,
+      );
+    }
+  }
+}
+
+await verifyRemoteIdentityBeforeWrites();
+
+let suiteCompleted = false;
 
 try {
   // Sequential creation keeps cleanup deterministic if one Auth request fails.
@@ -369,12 +453,24 @@ try {
     .single();
   assert.equal(executionError, null);
 
+  // Reproduce the stale callback window: the callback observed no tools, a
+  // tool claim committed, and only then did finalization reach the row lock.
+  const toolClaimBeforeFinalization = await admin.rpc(
+    "lexia_reivindicar_ferramenta_analista",
+    {
+      p_execucao_id: execution.id,
+      p_ferramenta: "obter_cobertura",
+    },
+  );
+  assert.equal(toolClaimBeforeFinalization.error, null);
+  assert.equal(toolClaimBeforeFinalization.data, true);
+
   const responseId = randomUUID();
   const finalizePayload = {
     p_duracao_ms: 250,
     p_erro: null,
     p_execucao_id: execution.id,
-    p_ferramentas: ["obter_cobertura"],
+    p_ferramentas: ["listar_conversas"],
     p_fontes: [],
     p_modelo: "isolated-test",
     p_resposta: "Resposta final sintética",
@@ -411,6 +507,86 @@ try {
     .eq("id", responseId);
   assert.equal(answerCountError, null);
   assert.equal(answerCount, 1);
+
+  const { data: finalizedExecution, error: finalizedExecutionError } =
+    await admin
+      .from("lexia_ai_execucoes")
+      .select("ferramentas")
+      .eq("id", execution.id)
+      .single();
+  assert.equal(finalizedExecutionError, null);
+  assert.deepEqual(finalizedExecution.ferramentas, [
+    "obter_cobertura",
+    "listar_conversas",
+  ]);
+
+  const { data: answerMessage, error: answerMessageError } = await admin
+    .from("lexia_ai_mensagens")
+    .select("metadata")
+    .eq("id", responseId)
+    .single();
+  assert.equal(answerMessageError, null);
+  assert.deepEqual(
+    answerMessage.metadata.ferramentas,
+    finalizedExecution.ferramentas,
+  );
+
+  const { data: racingExecution, error: racingExecutionError } = await admin
+    .from("lexia_ai_execucoes")
+    .insert({
+      cliente_slug: slugs.a,
+      criado_por: userA.id,
+      periodo_fim: new Date(now).toISOString(),
+      periodo_inicio: new Date(now - 3_600_000).toISOString(),
+      sessao_id: session.id,
+      status: "iniciada",
+      tipo: "chat",
+    })
+    .select("id")
+    .single();
+  assert.equal(racingExecutionError, null);
+
+  const racingResponseId = randomUUID();
+  const [racingClaim, racingFinalization] = await Promise.all([
+    admin.rpc("lexia_reivindicar_ferramenta_analista", {
+      p_execucao_id: racingExecution.id,
+      p_ferramenta: "analisar_qualidade",
+    }),
+    admin.rpc("lexia_finalizar_execucao_analista", {
+      ...finalizePayload,
+      p_execucao_id: racingExecution.id,
+      p_resposta: "Resposta da corrida sintética",
+      p_resposta_id: racingResponseId,
+    }),
+  ]);
+  assert.equal(racingClaim.error, null);
+  assert.equal(racingFinalization.error, null);
+  assert.equal(racingFinalization.data, "finalizada");
+
+  const { data: racingStoredExecution, error: racingStoredExecutionError } =
+    await admin
+      .from("lexia_ai_execucoes")
+      .select("ferramentas")
+      .eq("id", racingExecution.id)
+      .single();
+  assert.equal(racingStoredExecutionError, null);
+  assert.ok(racingStoredExecution.ferramentas.includes("listar_conversas"));
+  assert.equal(
+    racingStoredExecution.ferramentas.includes("analisar_qualidade"),
+    racingClaim.data,
+  );
+
+  const { data: racingStoredMessage, error: racingStoredMessageError } =
+    await admin
+      .from("lexia_ai_mensagens")
+      .select("metadata")
+      .eq("id", racingResponseId)
+      .single();
+  assert.equal(racingStoredMessageError, null);
+  assert.deepEqual(
+    racingStoredMessage.metadata.ferramentas,
+    racingStoredExecution.ferramentas,
+  );
 
   const { error: duplicateProfileError } = await admin
     .from("lexia_usuarios_clientes")
@@ -497,10 +673,31 @@ try {
   assert.equal(visibleClientsBError, null);
   assert.deepEqual(visibleClientsB, [{ slug: slugs.b }]);
 
+  suiteCompleted = true;
+} finally {
+  try {
+    await cleanup();
+  } catch {
+    cleanupFailures.push({
+      code: "cleanup_exception",
+      resource: "cleanup_runner",
+    });
+  }
+
+  if (cleanupFailures.length > 0) {
+    console.error("Lot 1 test-data cleanup failed independently:");
+    for (const failure of cleanupFailures) {
+      console.error(`- ${failure.resource}: ${failure.code}`);
+    }
+    process.exitCode = 1;
+  } else {
+    console.log("Lot 1 isolated cleanup passed.");
+  }
+}
+
+if (suiteCompleted) {
   console.log("Lot 1 isolated regression suite passed.");
   console.log(
     "site_feedback was intentionally not mutated: its external consumer remains unidentified.",
   );
-} finally {
-  await cleanup();
 }

@@ -1,19 +1,48 @@
 import { spawnSync } from "node:child_process";
+import { lookup } from "node:dns/promises";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+import {
+  assertConnectedDatabaseTarget,
+  validateIndexOperationTarget,
+} from "./lib/target-identity.mjs";
 
 const environment = process.env.LEXIA_DB_OPERATION_ENVIRONMENT?.trim();
 const confirmation = process.env.LEXIA_DB_OPERATION_CONFIRM?.trim();
 const databaseUrl = process.env.LEXIA_DB_OPERATION_URL?.trim();
-const expectedConfirmation = environment
-  ? `CREATE_PROFILE_UNIQUE_INDEX:${environment}`
-  : "CREATE_PROFILE_UNIQUE_INDEX:<environment>";
+const expectedProjectRef =
+  process.env.LEXIA_DB_OPERATION_EXPECTED_PROJECT_REF?.trim();
+const productionProjectRef =
+  process.env.LEXIA_PRODUCTION_SUPABASE_PROJECT_REF?.trim();
+const productionApproval =
+  process.env.LEXIA_DB_OPERATION_PRODUCTION_APPROVAL?.trim();
+const protectedProjectRefs =
+  process.env.LEXIA_PROTECTED_SUPABASE_PROJECT_REFS?.trim();
 
-if (!databaseUrl || !environment || confirmation !== expectedConfirmation) {
-  console.error(
-    "Refused. Set LEXIA_DB_OPERATION_URL, LEXIA_DB_OPERATION_ENVIRONMENT and " +
-      `LEXIA_DB_OPERATION_CONFIRM=${expectedConfirmation}.`,
+let target;
+try {
+  target = validateIndexOperationTarget({
+    confirmation,
+    databaseUrl,
+    environment,
+    expectedProjectRef,
+    productionApproval,
+    productionProjectRef,
+    protectedProjectRefs,
+  });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : "Invalid DB target.");
+  process.exit(2);
+}
+
+let resolvedAddresses;
+try {
+  resolvedAddresses = (await lookup(target.hostname, { all: true })).map(
+    ({ address }) => address,
   );
+} catch {
+  console.error("Could not resolve the database operation host.");
   process.exit(2);
 }
 
@@ -52,6 +81,24 @@ function psql(args, options = {}) {
 
 function scalarQuery(sql) {
   return psql(["--tuples-only", "--no-align", "--command", sql]);
+}
+
+const [actualDatabaseName, actualServerAddress] = scalarQuery(`
+  select current_database() || '|' || coalesce(host(inet_server_addr()), '');
+`).split("|");
+
+try {
+  assertConnectedDatabaseTarget({
+    actualDatabaseName,
+    actualServerAddress,
+    expectedDatabaseName: target.databaseName,
+    resolvedAddresses,
+  });
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "Connected DB target mismatch.",
+  );
+  process.exit(2);
 }
 
 const duplicateCount = Number(
@@ -142,6 +189,6 @@ if (verified !== "t") {
 }
 
 console.log(
-  `Profile unique index created successfully in ${environment}. ` +
+  `Profile unique index created successfully in ${target.environment}. ` +
     "Apply the transactional Lot 1 migration next.",
 );

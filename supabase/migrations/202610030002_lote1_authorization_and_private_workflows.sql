@@ -312,6 +312,7 @@ set search_path = ''
 as $$
 declare
   execution_row public.lexia_ai_execucoes%rowtype;
+  merged_tools jsonb := '[]'::jsonb;
   message_row public.lexia_ai_mensagens%rowtype;
   finished_at timestamptz := clock_timestamp();
 begin
@@ -369,7 +370,9 @@ begin
       or message_row.criado_por is distinct from execution_row.criado_por
       or message_row.papel <> 'assistente'
       or message_row.conteudo <> p_resposta
-      or message_row.metadata ->> 'execucao_id' <> p_execucao_id::text then
+      or message_row.metadata ->> 'execucao_id' <> p_execucao_id::text
+      or coalesce(message_row.metadata -> 'ferramentas', '[]'::jsonb)
+        is distinct from coalesce(execution_row.ferramentas, '[]'::jsonb) then
       return 'conflito';
     end if;
 
@@ -392,6 +395,38 @@ begin
       return 'invalida';
     end if;
 
+    -- A ferramenta pode ser reivindicada depois da leitura inicial feita pelo
+    -- callback e antes deste FOR UPDATE. A linha bloqueada e a fonte de
+    -- verdade: una os claims persistidos com o relato final do workflow.
+    select coalesce(
+      jsonb_agg(to_jsonb(tool) order by first_seen),
+      '[]'::jsonb
+    )
+      into merged_tools
+    from (
+      select tool, min(position) as first_seen
+      from (
+        select registered.value as tool, registered.ordinality::bigint as position
+        from jsonb_array_elements_text(
+          case
+            when jsonb_typeof(coalesce(execution_row.ferramentas, '[]'::jsonb)) = 'array'
+              then coalesce(execution_row.ferramentas, '[]'::jsonb)
+            else '[]'::jsonb
+          end
+        ) with ordinality as registered(value, ordinality)
+
+        union all
+
+        select callback.value as tool, 1000000 + callback.ordinality::bigint as position
+        from jsonb_array_elements_text(coalesce(p_ferramentas, '[]'::jsonb))
+          with ordinality as callback(value, ordinality)
+      ) tool_candidates
+      where nullif(trim(tool), '') is not null
+      group by tool
+      order by min(position)
+      limit 30
+    ) unique_tools;
+
     select *
       into message_row
     from public.lexia_ai_mensagens
@@ -403,7 +438,9 @@ begin
         or message_row.criado_por is distinct from execution_row.criado_por
         or message_row.papel <> 'assistente'
         or message_row.conteudo <> p_resposta
-        or message_row.metadata ->> 'execucao_id' <> p_execucao_id::text then
+        or message_row.metadata ->> 'execucao_id' <> p_execucao_id::text
+        or coalesce(message_row.metadata -> 'ferramentas', '[]'::jsonb)
+          is distinct from merged_tools then
         return 'conflito';
       end if;
     else
@@ -426,7 +463,7 @@ begin
         coalesce(p_fontes, '[]'::jsonb),
         jsonb_build_object(
           'execucao_id', p_execucao_id,
-          'ferramentas', coalesce(p_ferramentas, '[]'::jsonb),
+          'ferramentas', merged_tools,
           'modelo', coalesce(p_modelo, 'n8n'),
           'orquestrador', 'n8n',
           'versao_prompt', coalesce(p_versao_prompt, 'lexia_n8n_analyst_v1')
@@ -439,7 +476,7 @@ begin
       concluido_em = finished_at,
       duracao_ms = greatest(0, p_duracao_ms),
       erro = null,
-      ferramentas = coalesce(p_ferramentas, '[]'::jsonb),
+      ferramentas = merged_tools,
       fontes = coalesce(p_fontes, '[]'::jsonb),
       modelo = left(coalesce(p_modelo, 'n8n'), 120),
       status = 'concluida',

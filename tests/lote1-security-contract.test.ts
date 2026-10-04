@@ -153,11 +153,31 @@ test("workflow writes are admin-only and direct destinations stay server-side", 
   );
   assert.match(
     workflowDal,
-    /dispatchTestWorkflow[\s\S]*?requireOperationalClientAccess/,
+    /dispatchTestWorkflow[\s\S]*?requireActiveAdministrativeClientAccess/,
   );
+  assert.doesNotMatch(workflowDal, /requireOperationalClientAccess/);
   assert.match(
     accessContext,
     /profile\.role !== "lexia_admin"[\s\S]*?profile\.cliente_slug !== null/,
+  );
+});
+
+test("finalization merges locked tool claims into execution and message", () => {
+  assert.match(
+    migration,
+    /execution_row\.ferramentas[\s\S]*?p_ferramentas[\s\S]*?into merged_tools/i,
+  );
+  assert.match(
+    migration,
+    /'ferramentas', merged_tools/i,
+  );
+  assert.match(
+    migration,
+    /ferramentas = merged_tools/i,
+  );
+  assert.doesNotMatch(
+    migration,
+    /ferramentas = coalesce\(p_ferramentas, '\[\]'::jsonb\)/i,
   );
 });
 

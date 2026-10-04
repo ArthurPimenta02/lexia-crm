@@ -1,6 +1,6 @@
 # Lote 1 - Autorizacao, Workflows Privados e Callbacks
 
-> Estado em 03/10/2026: implementado apenas na branch
+> Estado em 04/10/2026: implementado apenas na branch
 > `codex/lote-1-autorizacao-workflows`. Nao aplicado ao banco, nao publicado e
 > nao mesclado na `main`.
 
@@ -19,6 +19,8 @@ O lote cobre somente:
 - destino privado dos workflows de teste;
 - cadastro e edicao de workflows exclusivos do administrador Lexia;
 - dispatch server-side validando usuario, tenant, sessao, workflow e destino;
+- envio com origem `painel_admin` reservado ao admin Lexia, inclusive quando
+  um cliente conhece uma sessao administrativa do proprio tenant;
 - bloqueio de acesso direto de `authenticated` a `webhook_url`;
 - registro recuperavel quando um usuario Auth e criado e seu vinculo falha;
 - endurecimento das policies do Analista e de `lexia_ajustes_agente` para
@@ -67,6 +69,8 @@ Regras adicionais:
 - `requireClientPanelAccess()`: papel cliente, tenant proprio e empresa ativa;
 - `requireAdministrativeClientAccess()`: admin e cliente existente; permite
   leitura historica de empresa inativa por padrao;
+- `requireActiveAdministrativeClientAccess()`: admin Lexia e empresa ativa;
+  obrigatorio para dispatch com origem `painel_admin`;
 - `requireOperationalClientAccess()`: operacao nova exige empresa ativa;
 - `requireReadableClientAccess()`: leitura cliente ativa ou leitura global do
   admin;
@@ -98,7 +102,12 @@ destino, criar, editar e disparar workflows.
 
 ### Dispatch operacional
 
-- Cliente usa somente seu tenant; admin precisa informar e validar o tenant.
+- Cliente usa somente seu tenant e apenas a origem `painel_cliente`.
+- A origem `painel_admin` exige admin Lexia e empresa ativa na Server Action e
+  novamente no DAL privado. Conhecer `session_id` e `workflow_id` nao concede
+  acesso.
+- A autorizacao ocorre antes de consultar sessao, workflow ou chamar webhook.
+- Admin precisa informar o tenant e o servidor o valida novamente.
 - A empresa precisa estar ativa.
 - A sessao precisa existir com o mesmo `cliente_slug`, `session_id` e `origem`.
 - O workflow precisa existir, pertencer ao mesmo tenant e estar ativo.
@@ -156,6 +165,11 @@ faz mensagem, execucao e timestamp da sessao numa unica transacao:
 - nesse caso nao ha nova resolucao de fontes, consulta analitica ou ferramenta;
 - callbacks recebidos depois do estado final tambem nao resolvem fontes de
   novo e nao alteram o resultado.
+- as ferramentas ja reivindicadas na linha bloqueada sao unidas, sem
+  duplicatas, as ferramentas validas do callback; a execucao e a metadata da
+  mensagem recebem exatamente a mesma lista;
+- se um claim concorrer com a finalizacao, ou ele vence antes do lock e fica na
+  auditoria, ou perde depois da mudanca de status e retorna `false`.
 
 `lexia_reivindicar_ferramenta_analista(...)` faz o claim atomico somente se a
 execucao ainda estiver `iniciada`. Uma chamada que chega depois da finalizacao
@@ -190,9 +204,13 @@ sinteticos criados pelo proprio teste em um projeto descartavel.
 - `lib/auth/user-link-pending.ts`
 - `lib/supabase/admin.ts`
 - `lib/workflows/contracts.ts`
+- `lib/workflows/admin-test-message.ts`
+- `lib/workflows/dispatch-service.ts`
 - `lib/workflows/private-config.ts`
+- `lib/analyst/callback-handler.ts`
 - `lib/analyst/scope.ts`
 - `lib/analyst/n8n.ts`
+- `lib/analyst/webhook-auth.ts`
 - layouts, login, Server Actions e rotas do Analista sob `app/`
 - paginas/formularios de testes e configuracao de cliente
 
@@ -205,12 +223,19 @@ sinteticos criados pelo proprio teste em um projeto descartavel.
 - `supabase/migrations/202610030003_lote1_restrict_workflow_destinations.sql`
 - `supabase/checks/202610030002_lote1_verify.sql`
 - `scripts/apply-profile-unique-index.mjs`
+- `scripts/lib/target-identity.mjs`
 - `scripts/test-lote1-isolated.mjs`
+- `supabase/isolated/000000000000_lote1_test_baseline.sql`
+- `supabase/isolated/README.md`
 
 ### Testes e documentacao
 
 - `tests/workflow-contracts.test.ts`
 - `tests/lote1-security-contract.test.ts`
+- `tests/admin-workflow-dispatch.test.ts`
+- `tests/analyst-callback-behavior.test.ts`
+- `tests/target-identity.test.ts`
+- `.github/workflows/ci.yml`
 - `package.json` e `package-lock.json`
 - `Agent.MD`, `PLAN.MD` e este documento
 
@@ -252,13 +277,22 @@ Usar uma conexao direta adequada ao Postgres e `psql`:
 ```bash
 LEXIA_DB_OPERATION_URL='postgresql://...' \
 LEXIA_DB_OPERATION_ENVIRONMENT='staging' \
-LEXIA_DB_OPERATION_CONFIRM='CREATE_PROFILE_UNIQUE_INDEX:staging' \
+LEXIA_DB_OPERATION_EXPECTED_PROJECT_REF='refstaging1234567890' \
+LEXIA_PRODUCTION_SUPABASE_PROJECT_REF='refproducao123456789' \
+LEXIA_DB_OPERATION_CONFIRM='CREATE_PROFILE_UNIQUE_INDEX:staging:refstaging1234567890' \
 npm run db:lote1:index
 ```
 
 O script:
 
-- recusa executar sem confirmacao correspondente ao nome do ambiente;
+- recusa executar sem `project_ref` esperado e sem confirmacao vinculada ao
+  ambiente e a esse ref;
+- protege o ref de producao independentemente do ambiente apontado pela
+  aplicacao; refs extras podem ser protegidos em
+  `LEXIA_PROTECTED_SUPABASE_PROJECT_REFS`;
+- confere se o ref codificado na URL Postgres e o banco/servidor realmente
+  conectado correspondem ao destino declarado, antes de qualquer escrita;
+- exige uma segunda aprovacao vinculada ao ref para um destino de producao;
 - passa a URL ao `psql` por `PGDATABASE`, sem expo-la na linha de comando;
 - para se houver mais de um vinculo por `user_id`;
 - detecta constraint ja anexada;
@@ -268,6 +302,12 @@ O script:
   `psql`, portanto fora de transacao;
 - verifica o indice ao final;
 - nunca remove automaticamente um indice invalido.
+
+Para um alvo de producao, alem de trocar ambiente/ref/confirmacao, e obrigatorio
+definir exatamente
+`LEXIA_DB_OPERATION_PRODUCTION_APPROVAL=I_APPROVE_PRODUCTION_PROFILE_INDEX:<ref-de-producao>`.
+Essa possibilidade nao autoriza a execucao deste lote: backup restaurado e nova
+aprovacao humana continuam bloqueios separados.
 
 Se uma execucao parcial deixar o indice invalido:
 
@@ -294,8 +334,13 @@ o indice valido nao existir.
 ### Fase 4 - versao compativel da aplicacao
 
 Configurar `LEXIA_WORKFLOW_ALLOWED_HOSTS`, publicar esta branch apenas em
-preview/staging e executar a suite isolada. Confirmar cadastro/edicao admin e
-dispatch admin/cliente antes do corte de grants.
+preview/staging e executar somente os testes de compatibilidade da aplicacao:
+`npm test`, lint, typecheck, build e smoke tests de cadastro/edicao admin e
+dispatch admin/cliente. Confirmar tambem que URL vazia preserva o destino.
+
+Nao executar nem usar o resultado da suite integrada completa como condicao
+pre-corte: ela verifica a ausencia de acesso direto a `webhook_url`, garantia
+que so passa a existir depois da migration `003`.
 
 ### Fase 5 - corte de privilegios
 
@@ -311,8 +356,10 @@ isolamento por tenant pelo helper endurecido.
 
 ### Fase 6 - verificacao
 
-Executar `supabase/checks/202610030002_lote1_verify.sql`, a suite isolada e os
-smoke tests manuais. So entao considerar uma aprovacao separada para producao.
+Depois do corte, executar `supabase/checks/202610030002_lote1_verify.sql`, a
+suite integrada completa no Supabase descartavel ja cortado e os smoke tests
+manuais. So entao considerar uma aprovacao separada para producao. Nao
+antecipar a migration `003` apenas para fazer a suite passar.
 
 ## 10. Testes de regressao
 
@@ -328,52 +375,79 @@ npm run build
 Suite de banco, exclusivamente em projeto descartavel ja migrado:
 
 ```bash
-LEXIA_TEST_SUPABASE_URL='https://projeto-isolado.supabase.co' \
+LEXIA_TEST_SUPABASE_URL='https://refdescartavel123456.supabase.co' \
 LEXIA_TEST_SUPABASE_ANON_KEY='...' \
 LEXIA_TEST_SUPABASE_SERVICE_ROLE_KEY='...' \
-LEXIA_TEST_CONFIRM_ISOLATED='I_UNDERSTAND_THIS_IS_DISPOSABLE' \
+LEXIA_TEST_SUPABASE_PROJECT_REF='refdescartavel123456' \
+LEXIA_PRODUCTION_SUPABASE_PROJECT_REF='refproducao123456789' \
+LEXIA_PROTECTED_SUPABASE_PROJECT_REFS='refstaging1234567890' \
+LEXIA_TEST_CONFIRM_ISOLATED='I_UNDERSTAND_THIS_IS_DISPOSABLE:refdescartavel123456' \
 npm run test:lote1:isolated
 ```
 
-O script carrega `NEXT_PUBLIC_SUPABASE_URL` de `.env.local` quando necessario,
-recusa rodar se nao conseguir identificar o projeto da aplicacao, recusa a URL
-de teste se ela tiver o mesmo host e exige a confirmacao exata. Ele cria
-tenants e usuarios sinteticos, testa e remove somente esses dados
-descartaveis.
+O script protege explicitamente o ref de producao, independentemente de
+`NEXT_PUBLIC_SUPABASE_URL`. Antes de qualquer escrita, ele exige que URL, refs,
+eventuais refs protegidos e chaves JWT identificaveis sejam coerentes e le a
+linha de identidade remota `lexia_environment_identity`, que precisa declarar
+o mesmo ref, `environment = 'isolated_test'` e `disposable = true`. A URL da
+aplicacao, quando presente, e apenas uma trava adicional.
+
+### Reconstrucao do schema isolado
+
+O banco atual ainda nao possui baseline completo de producao. Para esta suite,
+reconstruir somente o harness descartavel documentado em
+`supabase/isolated/README.md`, nesta ordem:
+
+1. Criar um projeto Supabase novo e exclusivamente descartavel.
+2. Aplicar `supabase/isolated/000000000000_lote1_test_baseline.sql`.
+3. Inserir manualmente a unica linha de `lexia_environment_identity` com o ref
+   real do projeto, `isolated_test` e `disposable = true`.
+4. Aplicar `202609220001_lexia_ai_analyst.sql`.
+5. Criar o indice concorrente com o script e confirmacao vinculados ao ref
+   descartavel.
+6. Aplicar a migration `002` e rodar os testes de compatibilidade.
+7. Aplicar a migration `003`, o SQL de verificacao e somente entao a suite
+   integrada completa.
+
+Esse baseline e propositalmente minimo e nao pode ser usado para staging ou
+producao. Os workflows sinteticos usam apenas destinos `*.invalid`; nenhum
+webhook externo real e chamado. A suite remove somente os slugs e usuarios que
+ela mesma cria. Falha funcional e falha de limpeza sao relatadas separadamente;
+qualquer falha de limpeza deixa exit code diferente de zero e exige revisao do
+projeto descartavel.
 
 Cobertura prevista:
 
 - cliente A nao enxerga cliente B;
 - cliente inativo nao enxerga a propria empresa;
+- cliente com IDs validos de sessao e workflow administrativo e negado antes
+  de qualquer consulta privilegiada ou chamada de webhook;
 - cliente e admin autenticados nao leem `webhook_url` diretamente;
 - mensagem de assistente nao pode ser forjada por `authenticated`;
+- callback HTTP sem Bearer valido nao resolve execucao, fonte ou finalizacao;
 - callback finaliza uma vez, repete idempotentemente e rejeita conflito;
+- claim persistido entre a leitura do callback e o lock final permanece na
+  execucao e na metadata; a corrida real tambem valida os dois ordenamentos;
 - resultado tardio finaliza execucao registrada apos inativacao;
 - execucao final nao aceita claim de ferramenta;
 - segundo perfil para o mesmo `user_id` falha com unicidade;
 - conflito de vinculo pode ser registrado como pendencia;
 - `site_feedback` nao e alterada pelo teste.
 
-O ambiente isolado nao esta configurado neste computador em 03/10/2026. A
+O ambiente isolado nao esta configurado neste computador em 04/10/2026. A
 suite esta pronta, mas sua execucao integrada permanece bloqueada. Producao nao
 deve ser usada como substituta.
 
-Resultados locais em 03/10/2026:
+Resultados locais em 04/10/2026:
 
-- `npm test`: 13/13 testes aprovados;
+- `npm test`: 28/28 testes aprovados;
 - `npm run lint`: aprovado sem erros;
 - `npm run typecheck`: aprovado sem erros;
-- `npm run build`: aprovado numa copia temporaria com dependencias fisicas
-  dentro da raiz do projeto;
+- `npm run build`: aprovado; compilou e gerou as 29 rotas com Next.js 16.2.9;
 - `npm run test:lote1:isolated`: recusou com exit code 2 por ausencia das
-  variaveis exclusivas do ambiente descartavel, como esperado;
+  identidades e credenciais exclusivas do ambiente descartavel, como esperado;
 - migrations/checks: nao executados, pois nao existe conexao isolada nem
   `psql` instalado; producao nao foi usada como alternativa.
-
-O build precisou da copia temporaria porque o iCloud deixou arquivos de
-`node_modules` como placeholders e o Turbopack recusa dependencias em symlink
-fora da raiz. O build isolado compilou as 29 rotas e tambem executou a checagem
-TypeScript do Next.js.
 
 ## 11. Recuperacao sem reabrir acesso inseguro
 
@@ -397,6 +471,7 @@ Impedem producao deste lote:
 
 - backup do Supabase central com restauracao verificada;
 - ambiente Supabase isolado para executar a suite integrada;
+- identidade remota descartavel preenchida e conferida nesse ambiente;
 - configurar e validar `LEXIA_WORKFLOW_ALLOWED_HOSTS` por ambiente;
 - executar preflight e indice concorrente em staging;
 - nova aprovacao do responsavel depois dos resultados de staging.
