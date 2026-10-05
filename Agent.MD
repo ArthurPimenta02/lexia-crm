@@ -1,12 +1,17 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 04/10/2026.
+> Última auditoria: 05/10/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
 
-Este repositório contém o painel web da Lexia AI. Ele não contém os workflows do n8n, a configuração dos Redis dos clientes nem um baseline completo e versionado do schema/RLS remoto. A migration do Analista Lexia está versionada em `supabase/migrations/`, mas o restante do banco ainda precisa ser exportado. A aplicação depende desses elementos externos para funcionar corretamente.
+Este repositório contém o painel web da Lexia AI e o export versionado do
+workflow do Analista em `n8n/`. Ele não contém os workflows omnichannel de
+produção, a configuração dos Redis dos clientes nem um baseline completo e
+versionado do schema/RLS remoto. A migration do Analista Lexia está versionada
+em `supabase/migrations/`, mas o restante do banco ainda precisa ser exportado.
+A aplicação depende desses elementos externos para funcionar corretamente.
 
 Regras inegociáveis:
 
@@ -55,8 +60,8 @@ do baseline externo de schema/RLS, n8n, Redis e segredos por ambiente.
 - O pacote `next` está em `16.2.9`; o audit indicou correção disponível em `16.3.6`.
 - Existem migrations incrementais do Analista e do Lote 1, mas ainda não há
   baseline completo do schema/RLS. A branch do Lote 1 adiciona CI localmente
-  versionado, testes comportamentais/de contrato e uma suite integrada que
-  exige um Supabase descartável.
+  versionado, testes comportamentais/de contrato e uma suite mínima de banco
+  que exige um Supabase descartável. Ela não substitui os E2E da aplicação.
 - Não há `proxy.ts`. O cliente SSR menciona um middleware para renovação de cookies, mas Next.js 16 usa a convenção `proxy.ts`. O fluxo de renovação de sessão precisa ser auditado antes de ser considerado robusto.
 
 ## 3. O Que a Plataforma Faz
@@ -163,15 +168,28 @@ npm run start
 npm run lint
 npm run typecheck
 npm test
+npm run test:lote1:db:isolated
 npm run test:lote1:isolated
+npm run test:lote1:runtime:isolated
+npm run db:lote1:runtime:verify
 npm run db:lote1:index
 ```
 
-Ainda não existem `test:e2e`, seed completo ou geração automática de tipos. A
+Ainda não existem `test:e2e` geral, seed completo ou geração automática de tipos. A
 branch do Lote 1 inclui CI com `npm test`, lint, typecheck e build, mas ainda
-não foi mesclada. `test:lote1:isolated` só pode usar um projeto Supabase
-descartável identificado por marcador remoto, e `db:lote1:index` exige conexão
-Postgres identificada pelo `project_ref` e confirmação explícita do destino.
+não foi mesclada. `test:lote1:db:isolated` valida somente o harness mínimo de
+banco; `test:lote1:isolated` é um alias compatível. Ambos só podem usar um
+projeto Supabase descartável identificado por marcador remoto.
+`db:lote1:index` exige conexão Postgres identificada pelo `project_ref` e
+confirmação explícita do destino. Existe um harness Next descartável e
+manifestado para cadastro, edição, dispatch e callbacks selecionados. Em
+05/10/2026, o trilho passou os 13 cenários no projeto descartável. A edição de
+configurações não usa mais `revalidatePath`: cada sucesso devolve um token
+novo, e o formulário consome esse token uma única vez com `router.refresh()`.
+Erros preservam o token anterior e não atualizam a rota. O runner confirmou
+duas edições consecutivas, voltar/avançar entre cliente e Dashboard, URL vazia
+preservada, dispatch admin/cliente, callbacks e ausência de segredos no
+navegador, com limpeza final independente.
 
 ## 6. Mapa de Diretórios
 
@@ -390,7 +408,8 @@ e aplicação descrita em `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 O repositório ainda não possui um baseline completo das políticas. O Lote 1
 versiona apenas as policies que precisa endurecer: quatro tabelas do Analista e
 `lexia_ajustes_agente`. `supabase/isolated/` contém somente um baseline mínimo
-e descartável para os testes do lote, nunca um baseline de produção. Portanto:
+e descartável para os contratos de banco do lote, nunca um baseline de
+produção nem um ambiente de smoke da aplicação completa. Portanto:
 
 - Não é possível reconstruir nem auditar completamente a segurança apenas pelo Git.
 - Consultas cliente adicionam `cliente_slug`, mas isso não substitui RLS.
@@ -461,15 +480,51 @@ LEXIA_PRODUCTION_SUPABASE_PROJECT_REF
 LEXIA_PROTECTED_SUPABASE_PROJECT_REFS       # opcional, CSV
 LEXIA_TEST_SUPABASE_PROJECT_REF
 LEXIA_TEST_CONFIRM_ISOLATED
+LEXIA_DB_OPERATION_URL
+LEXIA_DB_OPERATION_EXPECTED_HOST          # obrigatório para Session pooler
+LEXIA_DB_OPERATION_SSL_ROOT_CERT          # CA pública oficial, caminho local
 LEXIA_DB_OPERATION_EXPECTED_PROJECT_REF
 LEXIA_DB_OPERATION_ENVIRONMENT
 LEXIA_DB_OPERATION_CONFIRM
 LEXIA_DB_OPERATION_PRODUCTION_APPROVAL      # só para produção
 ```
 
-A suite integrada também exige uma linha coerente em
-`lexia_environment_identity` antes da primeira escrita. A reconstrução está em
-`supabase/isolated/README.md`; destinos de webhook do teste usam `*.invalid`.
+Em desenvolvimento, os valores ficam exclusivamente no arquivo ignorado
+`.env.lote1.test.local`; os scripts o carregam por padrão. A suite mínima de
+banco também exige uma linha coerente em `lexia_environment_identity` antes da
+primeira escrita. A reconstrução está em `supabase/isolated/README.md` e exige
+confirmação humana do `project_ref` antes de qualquer SQL. Destinos de workflow
+usam `*.invalid` e não são chamados.
+
+Em redes sem rota IPv6, somente o projeto descartável pode usar o Session
+pooler oficial do Supabase: usuário `postgres.<project_ref>`, host exato
+repetido em `LEXIA_DB_OPERATION_EXPECTED_HOST` e porta `5432`. A porta `6543`
+do Transaction pooler é recusada, assim como pooler em staging ou produção.
+`npm run db:lote1:connectivity` valida alvo, refs protegidos e TLS
+`verify-full`, incluindo subject e fingerprint da `Supabase Root 2021 CA`,
+autentica com o cliente `psql` e encerra com `\q`, sem executar SQL. O script
+de índice ainda exige o marcador remoto descartável antes da primeira escrita.
+
+Esse ambiente mínimo cobre migrations, helper de acesso, policies, grants,
+RPCs e constraints. Ele não contém `lexia_testes_sessoes`,
+`lexia_testes_execucoes`, `lexia_mensagens`, `lexia_contactos`,
+`lexia_feedbacks` nem todos os campos de `lexia_clientes`; por isso não serve
+para smoke tests ponta a ponta de cadastro ou dispatch. Esses testes exigem um
+segundo harness com schema completo, preview isolado e receptor HTTPS falso.
+
+Em 04/10/2026, o projeto descartável `ghwinxmpwqkvqpfkmyve` recebeu o
+baseline mínimo, o marcador de identidade, a migration do Analista, o índice
+concorrente e as migrations `002` e `003`. A verificação pós-corte e
+`npm run test:lote1:db:isolated` passaram. A conferência final encontrou zero
+usuários, identidades e registros sintéticos; somente o schema do harness e o
+marcador permanente foram preservados. Isso não autoriza nem substitui staging
+ou produção.
+
+Em 05/10/2026, o schema adicional do runtime Next no mesmo projeto também foi
+verificado. O ensaio completo usou somente usuários e registros sintéticos e
+um receptor HTTPS no loopback. Os 13 cenários passaram; a conferência posterior
+encontrou novamente zero usuários Auth e zero linhas de produto. O schema e os
+marcadores descartáveis foram preservados para novos ensaios.
 
 ### Analista Lexia (n8n ativo)
 
@@ -1428,8 +1483,9 @@ Verificar:
 ### P1
 
 - O CI do Lote 1 existe na branch e executa testes, lint, typecheck e build,
-  mas ainda não foi mesclado. Testes end-to-end continuam ausentes e a suite
-  integrada ainda precisa de um Supabase isolado.
+  mas ainda não foi mesclado. As suites isoladas de banco e runtime Next
+  passaram no projeto descartável; ainda não existe E2E geral nem baseline
+  completo do produto, e staging continua sem validação.
 - O Lote 1 de status/autorização ainda não foi aplicado ou validado em staging.
 - Ausência de `proxy.ts`/fluxo documentado de renovação Supabase SSR.
 - Métricas ainda são agregadas no servidor Next.js; índices do banco, view/RPC e comportamento com volume dez vezes maior ainda precisam de auditoria.
@@ -1648,12 +1704,16 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 
 ### Ativação e smoke test
 
-Snapshot em 03/10/2026: a migration original do Analista foi aplicada e o
+Snapshot de produção em 03/10/2026: a migration original do Analista foi aplicada e o
 fluxo direto anterior foi publicado. A branch do Lote 1 acrescenta
 finalização transacional com união de claims concorrentes, claim de ferramenta
 e policies por empresa ativa,
-mas essas mudanças não foram aplicadas ao banco, não foram publicadas e ainda
-precisam de validação em Supabase isolado.
+mas essas mudanças não foram aplicadas ao banco de produção nem publicadas. Em
+04/10/2026 elas passaram no Supabase descartável do Lote 1; staging, backup com
+restauração verificada e nova aprovação continuam obrigatórios antes de
+produção. Em 05/10/2026, o runtime Next descartável também passou cadastro,
+duas edições, dispatch admin/cliente, callbacks e auditoria de exposição; isso
+continua sem equivaler a staging ou autorizar produção.
 
 1. Fazer backup do Supabase central.
 2. Executar `supabase/migrations/202609220001_lexia_ai_analyst.sql` no SQL Editor do projeto central.

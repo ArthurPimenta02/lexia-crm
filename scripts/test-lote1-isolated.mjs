@@ -10,8 +10,13 @@ import {
   validateIsolatedTestTarget,
 } from "./lib/target-identity.mjs";
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL && existsSync(".env.local")) {
-  loadEnvFile(".env.local");
+// This suite validates only the minimal database harness. It does not exercise
+// the Next.js Server Actions or a successful HTTP workflow dispatch.
+const localEnvironmentFile =
+  process.env.LEXIA_LOTE1_ENV_FILE?.trim() || ".env.lote1.test.local";
+
+if (existsSync(localEnvironmentFile)) {
+  loadEnvFile(localEnvironmentFile);
 }
 
 const url = process.env.LEXIA_TEST_SUPABASE_URL?.trim();
@@ -29,7 +34,8 @@ const protectedProjectRefs =
 
 if (!url || !anonKey || !serviceRoleKey) {
   console.error(
-    "Isolated tests skipped: configure LEXIA_TEST_SUPABASE_URL, " +
+    `Minimal database tests skipped: configure ${localEnvironmentFile} with ` +
+      "LEXIA_TEST_SUPABASE_URL, " +
       "LEXIA_TEST_SUPABASE_ANON_KEY, LEXIA_TEST_SUPABASE_SERVICE_ROLE_KEY " +
       "and the explicit project identity variables documented in the runbook.",
   );
@@ -209,6 +215,15 @@ async function verifyRemoteIdentityBeforeWrites() {
       );
     }
   }
+
+  const { data: policyUsesHelper, error: policyContractError } =
+    await admin.rpc("lexia_test_client_policy_uses_access_helper");
+
+  if (policyContractError || policyUsesHelper !== true) {
+    throw new Error(
+      "Refused before writes: lexia_clientes is not delegated to the shared access helper.",
+    );
+  }
 }
 
 await verifyRemoteIdentityBeforeWrites();
@@ -288,6 +303,34 @@ try {
     signIn(inactiveUser),
     signIn(adminUser),
   ]);
+
+  const { data: helperOwnAccess, error: helperOwnAccessError } =
+    await clientA.rpc("lexia_user_can_access_cliente", {
+      p_cliente_slug: slugs.a,
+    });
+  assert.equal(helperOwnAccessError, null);
+  assert.equal(helperOwnAccess, true);
+
+  const { data: helperCrossAccess, error: helperCrossAccessError } =
+    await clientA.rpc("lexia_user_can_access_cliente", {
+      p_cliente_slug: slugs.b,
+    });
+  assert.equal(helperCrossAccessError, null);
+  assert.equal(helperCrossAccess, false);
+
+  const { data: helperInactiveAccess, error: helperInactiveAccessError } =
+    await inactiveClient.rpc("lexia_user_can_access_cliente", {
+      p_cliente_slug: slugs.inactive,
+    });
+  assert.equal(helperInactiveAccessError, null);
+  assert.equal(helperInactiveAccess, false);
+
+  const { data: helperAdminAccess, error: helperAdminAccessError } =
+    await adminUserClient.rpc("lexia_user_can_access_cliente", {
+      p_cliente_slug: slugs.inactive,
+    });
+  assert.equal(helperAdminAccessError, null);
+  assert.equal(helperAdminAccess, true);
 
   const { data: visibleClientsA, error: visibleClientsAError } = await clientA
     .from("lexia_clientes")
@@ -643,6 +686,26 @@ try {
     .eq("slug", slugs.a);
   assert.equal(deactivateError, null);
 
+  const { data: helperAccessAfterDeactivation, error: helperAfterError } =
+    await clientA.rpc("lexia_user_can_access_cliente", {
+      p_cliente_slug: slugs.a,
+    });
+  assert.equal(helperAfterError, null);
+  assert.equal(helperAccessAfterDeactivation, false);
+
+  const { data: clientRowAfterDeactivation, error: clientRowAfterError } =
+    await clientA.from("lexia_clientes").select("slug").eq("slug", slugs.a);
+  assert.equal(clientRowAfterError, null);
+  assert.deepEqual(clientRowAfterDeactivation, []);
+
+  const { data: adminHistoryAfterDeactivation, error: adminHistoryError } =
+    await adminUserClient
+      .from("lexia_clientes")
+      .select("slug")
+      .eq("slug", slugs.a);
+  assert.equal(adminHistoryError, null);
+  assert.deepEqual(adminHistoryAfterDeactivation, [{ slug: slugs.a }]);
+
   const lateFinalization = await admin.rpc(
     "lexia_finalizar_execucao_analista",
     {
@@ -685,18 +748,21 @@ try {
   }
 
   if (cleanupFailures.length > 0) {
-    console.error("Lot 1 test-data cleanup failed independently:");
+    console.error("Lot 1 minimal database cleanup failed independently:");
     for (const failure of cleanupFailures) {
       console.error(`- ${failure.resource}: ${failure.code}`);
     }
     process.exitCode = 1;
   } else {
-    console.log("Lot 1 isolated cleanup passed.");
+    console.log("Lot 1 minimal database cleanup passed.");
   }
 }
 
 if (suiteCompleted) {
-  console.log("Lot 1 isolated regression suite passed.");
+  console.log("Lot 1 minimal database contract suite passed.");
+  console.log(
+    "Full application registration and dispatch smoke tests were not run by this suite.",
+  );
   console.log(
     "site_feedback was intentionally not mutated: its external consumer remains unidentified.",
   );

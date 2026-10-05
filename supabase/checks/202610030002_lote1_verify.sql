@@ -47,6 +47,7 @@ select tablename, policyname, cmd, roles, qual, with_check
 from pg_policies
 where schemaname = 'public'
   and tablename in (
+    'lexia_clientes',
     'lexia_ai_sessoes',
     'lexia_ai_mensagens',
     'lexia_conversation_insights',
@@ -54,6 +55,18 @@ where schemaname = 'public'
     'lexia_ajustes_agente'
   )
 order by tablename, policyname;
+
+select
+  policyname,
+  qual,
+  position(
+    'lexia_user_can_access_cliente' in coalesce(qual, '')
+  ) > 0 as uses_shared_client_access_helper
+from pg_policies
+where schemaname = 'public'
+  and tablename = 'lexia_clientes'
+  and cmd = 'SELECT'
+order by policyname;
 
 select
   c.relrowsecurity as rls_enabled,

@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 
 import {
@@ -19,6 +21,7 @@ import {
 
 export type ClientSettingsState = {
   message: string | null;
+  refreshToken: string | null;
   type: "success" | "error" | null;
 };
 
@@ -39,14 +42,17 @@ function getValue(formData: FormData, key: string) {
 export async function updateClientSettings(
   clienteSlug: string,
   workflowId: string | null,
-  _state: ClientSettingsState,
+  state: ClientSettingsState,
   formData: FormData,
 ): Promise<ClientSettingsState> {
+  const refreshToken = state.refreshToken ?? null;
+
   try {
     await requireAdministrativeClientAccess(clienteSlug);
   } catch (error) {
     return {
       message: getAccessErrorMessage(error),
+      refreshToken,
       type: "error",
     };
   }
@@ -63,6 +69,7 @@ export async function updateClientSettings(
   if (!nome || !clientStatuses.includes(status)) {
     return {
       message: "Preencha os dados obrigatórios do cliente.",
+      refreshToken,
       type: "error",
     };
   }
@@ -70,6 +77,7 @@ export async function updateClientSettings(
   if (!workflowStatuses.includes(workflowStatus)) {
     return {
       message: "Status do workflow inválido.",
+      refreshToken,
       type: "error",
     };
   }
@@ -78,6 +86,7 @@ export async function updateClientSettings(
     return {
       message:
         "Preencha nome e tipo. A URL é obrigatória apenas ao criar um workflow.",
+      refreshToken,
       type: "error",
     };
   }
@@ -92,6 +101,7 @@ export async function updateClientSettings(
   if (clientLookupError || !client) {
     return {
       message: "Cliente não encontrado.",
+      refreshToken,
       type: "error",
     };
   }
@@ -111,6 +121,7 @@ export async function updateClientSettings(
 
     return {
       message: "Não foi possível atualizar o cliente.",
+      refreshToken,
       type: "error",
     };
   }
@@ -135,15 +146,14 @@ export async function updateClientSettings(
         error instanceof Error
           ? `Cliente salvo, mas o workflow não foi salvo: ${error.message}`
           : "Cliente salvo, mas não foi possível salvar o workflow.",
+      refreshToken,
       type: "error",
     };
   }
 
-  revalidatePath(`/admin/clientes/${clienteSlug}`);
-  revalidatePath("/admin");
-
   return {
     message: "Configurações salvas com sucesso.",
+    refreshToken: randomUUID(),
     type: "success",
   };
 }

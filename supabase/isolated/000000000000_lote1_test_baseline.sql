@@ -89,24 +89,10 @@ create policy "profiles_select_own"
 on public.lexia_usuarios_clientes for select to authenticated
 using (user_id = auth.uid());
 
-create policy "clientes_select_authorized"
-on public.lexia_clientes for select to authenticated
-using (
-  exists (
-    select 1
-    from public.lexia_usuarios_clientes perfil
-    where perfil.user_id = auth.uid()
-      and perfil.status = 'ativo'
-      and (
-        (perfil.role = 'lexia_admin' and perfil.cliente_slug is null)
-        or (
-          perfil.role in ('cliente_admin', 'cliente_operador')
-          and perfil.cliente_slug = lexia_clientes.slug
-          and lexia_clientes.status = 'ativo'
-        )
-      )
-  )
-);
+-- The lexia_clientes SELECT policy is intentionally installed only after the
+-- Lot 1 helper exists. See after_202610030002_lote1_test_client_policy.sql.
+-- Keeping it out of this baseline prevents the test harness from duplicating
+-- the helper's authorization logic.
 
 create policy "workflows_admin_all"
 on public.lexia_workflows for all to authenticated

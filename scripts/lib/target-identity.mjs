@@ -1,4 +1,6 @@
 const projectRefPattern = /^[a-z0-9]{10,40}$/;
+const sessionPoolerHostPattern =
+  /^aws-[0-9]+-[a-z0-9-]+\.pooler\.supabase\.com$/;
 
 function requiredProjectRef(value, label) {
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -46,12 +48,48 @@ export function getPostgresTarget(value) {
   ]);
   const hostname = url.hostname.toLowerCase();
   const directMatch = hostname.match(/^db\.([a-z0-9]+)\.supabase\.co$/);
-  const projectRef = directMatch?.[1] ?? null;
+  const username = decodeURIComponent(url.username);
+  const sslMode = url.searchParams.get("sslmode")?.trim().toLowerCase();
+  let connectionMode;
+  let projectRef;
 
-  if (!projectRef) {
+  if (sslMode && sslMode !== "verify-full") {
     throw new Error(
-      "LEXIA_DB_OPERATION_URL must use the direct " +
-        "db.<project-ref>.supabase.co host.",
+      "LEXIA_DB_OPERATION_URL cannot weaken TLS; omit sslmode or use verify-full.",
+    );
+  }
+
+  if (directMatch) {
+    connectionMode = "direct";
+    projectRef = directMatch[1];
+  } else if (sessionPoolerHostPattern.test(hostname)) {
+    if (url.port !== "5432") {
+      throw new Error(
+        "Session pooler must use explicit port 5432; Transaction pooler port 6543 is not allowed.",
+      );
+    }
+
+    const poolerUserMatch = username.match(/^postgres\.([a-z0-9]+)$/);
+    if (!poolerUserMatch) {
+      throw new Error(
+        "Session pooler user must be postgres.<project-ref> as shown by Supabase.",
+      );
+    }
+
+    if (
+      !url.password ||
+      decodeURIComponent(url.password) === "[YOUR-PASSWORD]"
+    ) {
+      throw new Error(
+        "Session pooler URL must contain the local database password.",
+      );
+    }
+
+    connectionMode = "session_pooler";
+    projectRef = poolerUserMatch[1];
+  } else {
+    throw new Error(
+      "LEXIA_DB_OPERATION_URL must use the direct Supabase host or the official Session pooler host.",
     );
   }
 
@@ -60,10 +98,19 @@ export function getPostgresTarget(value) {
     throw new Error("LEXIA_DB_OPERATION_URL must include the database name.");
   }
 
+  if (connectionMode === "session_pooler" && databaseName !== "postgres") {
+    throw new Error(
+      "Session pooler URL must use the postgres database shown by Supabase.",
+    );
+  }
+
   return {
+    connectionMode,
     databaseName,
     hostname,
+    port: url.port || "5432",
     projectRef: requiredProjectRef(projectRef, "Database project ref"),
+    username,
   };
 }
 
@@ -85,12 +132,16 @@ export function getJwtProjectRef(value) {
 }
 
 export function parseProtectedProjectRefs(value) {
-  return new Set(
-    String(value ?? "")
-      .split(",")
-      .map((item) => item.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  const refs = String(value ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const ref of refs) {
+    requiredProjectRef(ref, "Protected Supabase project ref");
+  }
+
+  return new Set(refs);
 }
 
 export function validateIsolatedTestTarget(input) {
@@ -126,6 +177,15 @@ export function validateIsolatedTestTarget(input) {
 
   if (protectedRefs.has(testProjectRef)) {
     throw new Error("Refused: the isolated test project is protected.");
+  }
+
+  for (const [label, key] of [
+    ["LEXIA_TEST_SUPABASE_ANON_KEY", input.anonKey],
+    ["LEXIA_TEST_SUPABASE_SERVICE_ROLE_KEY", input.serviceRoleKey],
+  ]) {
+    if (!String(key ?? "").trim()) {
+      throw new Error(`${label} is required for the isolated test target.`);
+    }
   }
 
   if (input.applicationUrl) {
@@ -201,6 +261,26 @@ export function validateIndexOperationTarget(input) {
     );
   }
 
+  if (
+    target.connectionMode === "session_pooler" &&
+    environment !== "isolated_test"
+  ) {
+    throw new Error(
+      "Session pooler is allowed only for the isolated_test operation target.",
+    );
+  }
+
+  if (target.connectionMode === "session_pooler") {
+    const expectedHostname = String(input.expectedHostname ?? "")
+      .trim()
+      .toLowerCase();
+    if (!expectedHostname || target.hostname !== expectedHostname) {
+      throw new Error(
+        "Session pooler host does not match LEXIA_DB_OPERATION_EXPECTED_HOST.",
+      );
+    }
+  }
+
   const protectedRefs = parseProtectedProjectRefs(input.protectedProjectRefs);
   protectedRefs.add(productionProjectRef);
   const isProduction = target.projectRef === productionProjectRef;
@@ -239,6 +319,14 @@ export function assertConnectedDatabaseTarget(input) {
   const actualDatabaseName = String(input.actualDatabaseName ?? "");
   if (!expectedDatabaseName || actualDatabaseName !== expectedDatabaseName) {
     throw new Error("Connected database name does not match the operation URL.");
+  }
+
+  if (input.connectionMode === "session_pooler") {
+    return;
+  }
+
+  if (input.connectionMode !== "direct") {
+    throw new Error("Connected database mode is not recognized.");
   }
 
   const actualAddress = normalizedAddress(input.actualServerAddress);

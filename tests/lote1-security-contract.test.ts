@@ -36,6 +36,20 @@ const workflowRestriction = readFileSync(
   ),
   "utf8",
 );
+const isolatedBaseline = readFileSync(
+  new URL(
+    "../supabase/isolated/000000000000_lote1_test_baseline.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const isolatedClientPolicy = readFileSync(
+  new URL(
+    "../supabase/isolated/after_202610030002_lote1_test_client_policy.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 test("migration closes workflow destinations and keeps only safe columns", () => {
   assert.match(
@@ -124,6 +138,29 @@ test("inactive client access is checked by the shared database helper", () => {
   );
 
   assert.match(migration, /set search_path = ''/i);
+});
+
+test("isolated client reads exercise the shared access helper", () => {
+  assert.doesNotMatch(
+    isolatedBaseline,
+    /create policy "clientes_select_authorized"/i,
+  );
+  assert.match(
+    isolatedClientPolicy,
+    /create policy "clientes_select_authorized"[\s\S]*?using \(public\.lexia_user_can_access_cliente\(slug\)\)/i,
+  );
+  assert.match(
+    isolatedClientPolicy,
+    /to_regprocedure\('public\.lexia_user_can_access_cliente\(text\)'\)/i,
+  );
+  assert.match(
+    isolatedClientPolicy,
+    /create or replace function public\.lexia_test_client_policy_uses_access_helper\(\)/i,
+  );
+  assert.match(
+    isolatedClientPolicy,
+    /revoke all on function[\s\S]*?lexia_test_client_policy_uses_access_helper\(\)[\s\S]*?from public, anon, authenticated/i,
+  );
 });
 
 test("repository code does not automatically delete Auth users", () => {
