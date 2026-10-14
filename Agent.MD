@@ -422,7 +422,9 @@ Next.js na Vercel (este repositório)
 
 Cada cliente tem o seu próprio Redis no Upstash, usado pelo n8n para buffer, contexto e travas do agente. Desde 19/09/2026 o painel acede diretamente a esse Redis, apenas no servidor e pela API REST do Upstash, para uma única finalidade: ler as travas do agente e gravar ou remover a pausa manual e a pausa pós-agendamento. O painel não lê buffer, contexto nem eco. O contrato das chaves está na secção 12 e o código em `lib/redis/agent-locks.ts`. Não há dependência npm de Redis; o acesso é feito com `fetch`.
 
-Clientes com a integração ativa: `miranda_skin_experts`. Para os demais, as telas simplesmente não mostram a secção de pausas.
+Clientes com a integração ativa: `miranda_skin_experts` e `detail_by_cordeiro`. Para os demais, as telas simplesmente não mostram a secção de pausas.
+
+O `detail_by_cordeiro` usa o namespace por cliente (`lexia:detail_by_cordeiro:<canal>:v1`), ao contrário da Miranda que ainda está em `lexia:novo_cliente:<canal>:v1`. Os workflows do Detail não escrevem `pausa_eterna`, por isso `eternalPauseChannels` está vazio.
 
 ### Lote 2: alvo e implementação local
 
@@ -935,11 +937,13 @@ DETAIL_BY_CORDEIRO_SUPABASE_URL
 DETAIL_BY_CORDEIRO_SUPABASE_SERVICE_ROLE_KEY
 ```
 
-### Redis (Upstash) da Miranda
+### Redis (Upstash) por cliente
 
 ```text
 MIRANDA_UPSTASH_REDIS_REST_URL
 MIRANDA_UPSTASH_REDIS_REST_TOKEN
+DETAIL_UPSTASH_REDIS_REST_URL
+DETAIL_UPSTASH_REDIS_REST_TOKEN
 ```
 
 O prefixo segue o `envPrefix` de `lib/redis/agent-locks.ts`. O token dá leitura e escrita no Redis de produção do cliente: é segredo de servidor e nunca pode ser `NEXT_PUBLIC_*`. Sem estas variáveis a secção de pausas não aparece.
