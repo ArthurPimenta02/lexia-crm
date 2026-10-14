@@ -33,6 +33,13 @@ type AgentLocksClientConfig = {
 };
 
 const clientConfigs: Record<string, AgentLocksClientConfig> = {
+  detail_by_cordeiro: {
+    envPrefix: "DETAIL",
+    // Os workflows do Detail não escrevem pausa_eterna.
+    eternalPauseChannels: [],
+    namespacePrefix: "lexia:detail_by_cordeiro:",
+    namespaceSuffix: ":v1",
+  },
   miranda_skin_experts: {
     envPrefix: "MIRANDA",
     eternalPauseChannels: ["whatsapp"],
