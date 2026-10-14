@@ -6,20 +6,22 @@ activos (Miranda Skin Experts e Detail by Cordeiro) sem interromper os agentes.
 **Porque e urgente:** o bloco de anuncio chega apenas na **primeira mensagem**
 do lead. Nao e recuperavel depois. Sem ele nao ha CAC.
 
-**A boa noticia:** os dois workflows **ja extraem** esse bloco. Nao e preciso
-escrever logica de parsing nova — apenas persistir o que ja esta em memoria.
+**Na Miranda nao e preciso parsing novo**: o workflow ja extrai o bloco nos dois
+canais, so nunca o grava. **No Detail e preciso** — e isso nao estava no
+diagnostico inicial deste documento. Ver "O caso do Detail".
 
 | | Miranda | Detail |
 |---|---|---|
-| No que extrai | `Adaptar Entrada Z-API` | `Normalizar Entrada Meta Omnichannel` |
-| Canal | WhatsApp (Z-API) | Instagram / Messenger (Meta) |
-| Campo | `body._anuncio` | `body._anuncio` |
-| Formato | `{source_id, titulo, corpo, source_url, source_app}` | `{id, titulo, ref}` |
-| Hoje serve para | escolher o audio do follow-up de 1h | contexto do Cerebro |
-| Persistido | **nao** | **nao** |
+| Quem preenche `body._anuncio` | `Adaptar Entrada Z-API` (de `externalAdReply`) e `Normalizar Entrada Meta Omnichannel` (de `referral`) | **ninguem** |
+| Provedor WhatsApp | Z-API: `sourceId` / `sourceUrl` | uazapi: **`sourceID`** / **`sourceURL`** |
+| De onde a expressao le, no WhatsApp | `body._anuncio` (ja normalizado) | `body.message.content.contextInfo.externalAdReply` (cru — o webhook chega intacto ao `Entrada Unificada`) |
+| Caminho Meta | `referral` ja lido → nada a fazer | normalizador **reconstroi o body** e perde o `referral` → exige o **Passo 2A** |
+| Persistido antes da Fase 1 | **nao** | **nao** |
 
-Os formatos diferem, por isso a expressao abaixo aceita os dois e normaliza.
-E **a mesma expressao nos dois clientes** — nao personalizar por cliente.
+Os formatos diferem entre canais, por isso a expressao abaixo aceita os dois e
+normaliza. E **a mesma expressao nos dois clientes** — nao personalizar por
+cliente. O que difere entre clientes nao e a expressao: e o Passo 2A, que so o
+Detail precisa.
 
 ---
 
@@ -58,18 +60,22 @@ assignment no fim. Nao alterar nenhuma das existentes.
 ={{ (() => {
   const vazio = { tipo: 'organico', source_id: '', titulo: '', url: '', dados: null };
   const ler = (fn) => { try { return fn(); } catch (e) { return null; } };
-
   try {
     const body = $("Entrada Unificada").first().json.body || {};
-    const a = body._anuncio;
-    if (!a || typeof a !== 'object') return vazio;
 
-    // Aceita as duas formas: {source_id,titulo,...} da Z-API e {id,titulo,ref} da Meta.
-    const sid = String(a.source_id || a.id || a.ref || '');
-    const tit = String(a.titulo || a.title || '');
+    // Duas fontes possiveis, por esta ordem:
+    // 1. body._anuncio -- ja normalizado por codigo do proprio workflow (Miranda).
+    // 2. externalAdReply cru do uazapi (Detail no WhatsApp: ninguem normaliza antes).
+    const cru = body._anuncio
+      || ler(() => body.message.content.contextInfo.externalAdReply)
+      || null;
+    if (!cru || typeof cru !== 'object') return vazio;
+
+    // Z-API diz sourceId/sourceUrl; uazapi diz sourceID/sourceURL; Meta diz id/ref.
+    const sid = String(cru.source_id || cru.sourceID || cru.sourceId || cru.id || cru.ref || '');
+    const tit = String(cru.titulo || cru.title || '');
     if (!sid && !tit) return vazio;
 
-    // Mesma cadeia de resolucao de canal ja usada pela assignment "canal".
     const canal = String(
       body._canal || body.lexia_workflow_tipo || body.lexia_canal || body.source ||
       ler(() => $("Config Cliente Lexia").first().json.canal_padrao) || 'whatsapp'
@@ -80,12 +86,23 @@ assignment no fim. Nao alterar nenhuma das existentes.
                : canal === 'whatsapp'  ? 'ctwa'
                : 'meta_ad';
 
+    // O bloco em bruto traz ~4KB de thumbnails em base64. Guardar isso por
+    // contacto enche a base sem acrescentar nada que se possa consultar.
+    const lixo = ['thumbnail', 'jpegThumbnail', 'JPEGThumbnail', 'thumbnailURL', 'originalImageURL'];
+    const dados = {};
+    for (const k of Object.keys(cru)) {
+      if (lixo.indexOf(k) !== -1) continue;
+      const v = cru[k];
+      if (typeof v === 'string' && v.length > 300) continue;
+      dados[k] = v;
+    }
+
     return {
       tipo,
       source_id: sid,
       titulo: tit,
-      url: String(a.source_url || a.sourceUrl || ''),
-      dados: a
+      url: String(cru.source_url || cru.sourceURL || cru.sourceUrl || ''),
+      dados
     };
   } catch (e) { return vazio; }
 })() }}
@@ -218,6 +235,134 @@ Se algo partir depois de mexer nos dois, nao ha como saber qual foi.
 Nenhum destes cenarios afecta o lead: o `onError: continueRegularOutput` dos
 nos de contacto isola a escrita no CRM do atendimento. O pior caso e perder
 atribuicao, nunca deixar um lead sem resposta.
+
+---
+
+## O caso do Detail, e o que um payload real corrigiu
+
+O diagnostico inicial deste documento afirmava que os dois clientes ja extraiam
+o bloco de anuncio. **Era falso para o Detail.** Nada no workflow do Detail
+produz `body._anuncio`: o normalizador Meta nao le `referral` (zero ocorrencias
+no codigo) e o caminho WhatsApp nao tinha adaptador nenhum — a uazapi entrega o
+webhook cru directamente ao `Entrada Unificada`.
+
+**Como o erro passou:** o diagnostico leu `Preparar Payload Cerebro Detail`, que
+referencia `$('Normalizar Entrada Meta Omnichannel').first().json.body._anuncio`,
+e concluiu que havia extraccao a montante. Mas **ler um campo nao prova que
+alguem o escreve** — sobretudo dentro de um `try/catch` que devolve `null` sem
+se queixar. Esses dois nos do Detail sao, na pratica, codigo morto. Confirmar
+sempre o *produtor* de um campo, nunca o consumidor.
+
+O que resolveu foi ler um webhook real. Dele saiu o que nenhuma inferencia
+daria:
+
+- O `externalAdReply` da uazapi vive em
+  `body.message.content.contextInfo.externalAdReply`.
+- Os campos chamam-se **`sourceID`** e **`sourceURL`** — maiusculas diferentes
+  das da Z-API (`sourceId` / `sourceUrl`), que e o que a Miranda usa. Copiar o
+  mapeamento da Miranda daria `source_id` vazio, sem erro nenhum.
+- O bloco em bruto pesa **~4,4 KB**, quase tudo base64 de thumbnail. Por isso a
+  expressao filtra `thumbnail`, `JPEGThumbnail`, `thumbnailURL`,
+  `originalImageURL` e qualquer string acima de 300 caracteres: 4438 B passam a
+  525 B, sem perder nada consultavel.
+- `entryPointConversionSource: 'ctwa_ad'` e `clickToWhatsappCall: true`
+  confirmam a decisao de derivar o tipo do canal: o anuncio estava no Facebook
+  (`sourceApp: 'facebook'`) mas a conversa e WhatsApp, logo `ctwa`.
+
+Por isso a expressao do Passo 2 aceita **duas** fontes: `body._anuncio` quando
+alguem ja normalizou (Miranda), e o `externalAdReply` cru quando ninguem
+normalizou (Detail no WhatsApp). Continua a ser a mesma expressao nos dois
+clientes.
+
+### Caminho Meta: resolvido na Miranda, exige codigo no Detail
+
+Um webhook real de DM do Instagram da Miranda fechou este caminho. O `referral`
+chega em `entry[0].messaging[0].message.referral` (nao em `messaging.referral`),
+o ID do anuncio e `ad_id` e o titulo esta aninhado em
+`ads_context_data.ad_title`:
+
+```json
+"referral": {
+  "source": "ADS", "type": "OPEN_THREAD", "ad_id": "120243233376030780",
+  "ads_context_data": { "ad_title": "AD 3 - DEPILACAO A LASER FOTO_Group_1", "post_id": "..." }
+}
+```
+
+**A Miranda nao precisa de alteracao nenhuma.** O `Normalizar Entrada Meta
+Omnichannel` dela ja traduz isto para `body._anuncio = { id, titulo, ref,
+origem, foto, video }`, e a expressao do Passo 2 ja le `id` e `titulo`.
+Verificado a correr o bloco real do no contra o payload real: sai
+`instagram_ad` / `120243233376030780` / `AD 3 - DEPILACAO A LASER FOTO_Group_1`,
+391 B em `origem_dados`.
+
+**O Detail precisa de uma alteracao de codigo, e nao e opcional.** O
+normalizador Meta do Detail **reconstroi o `body` de raiz** — nao propaga `entry`
+nem `messaging`. Quando o item chega ao `Entrada Unificada`, o `referral` ja nao
+existe. Nenhum fallback na expressao o pode recuperar: o dado foi destruido a
+montante. Por isso o Passo 2A abaixo e necessario no Detail e dispensavel na
+Miranda.
+
+#### Passo 2A (so Detail) — produzir `_anuncio` no normalizador Meta
+
+No no `Normalizar Entrada Meta Omnichannel`, inserir logo depois de
+`const message = messaging.message;`:
+
+```javascript
+    // === ANUNCIO / REFERRAL (Fase 1 - atribuicao de origem) ===
+    // A Meta manda "referral" APENAS na primeira mensagem do lead que veio
+    // de anuncio. Este normalizador reconstroi o body de raiz, portanto se
+    // o bloco nao for copiado aqui desaparece antes do Entrada Unificada.
+    const referral =
+      message.referral ||
+      messaging.referral ||
+      (messaging.postback || {}).referral ||
+      {};
+    const adsCtx = referral.ads_context_data || {};
+    const anuncio = (referral.ad_id || adsCtx.ad_title || referral.ref)
+      ? {
+          id: referral.ad_id || '',
+          titulo: adsCtx.ad_title || '',
+          ref: referral.ref || '',
+          origem: referral.source || '',
+          foto: adsCtx.photo_url || '',
+          video: adsCtx.video_url || ''
+        }
+      : null;
+```
+
+E no objecto de saida, depois de `_identificador: identificador,`:
+
+```javascript
+
+          _anuncio:
+            anuncio,
+```
+
+A ancora e `_identificador` e nao `_canal` de proposito: `_canal: canal,`
+aparece duas vezes no ficheiro (o ramo de modo de teste tambem o tem) e
+`_identificador: identificador,` so existe no ramo de producao.
+
+Verificado contra o codigo real do no: `referral`, `adsCtx` e `anuncio` nao
+colidem com nomes existentes, estao no mesmo nivel de chaves que o
+`resultados.push`, e com o patch aplicado o resto do `body` sai **byte a byte
+identico** ao original em tres payloads (IG com `referral`, IG sem, Messenger
+sem).
+
+#### O que a Meta nao garante
+
+A Meta **nao inclui sempre** o `referral`, mesmo em conversas que vieram de
+anuncio — confirmado pelo Arthur num caso Messenger real. Consequencias:
+
+- Ausencia de `referral` **nao** prova origem organica. O `organico` desta fase
+  significa "sem anuncio identificado", nao "sem anuncio".
+- O CAC calculado pelo `origem_source_id` e um **limite inferior** de leads por
+  campanha. Nao tratar a diferenca como leads organicos.
+
+Relacionado, e **fora do ambito**: o normalizador do Detail descarta eventos sem
+`messaging.message`, o que inclui os `postback` de anuncio (lead toca na pergunta
+pre-configurada). A Miranda ja converte esses postbacks em mensagem; o Detail
+nao. Isso custa-lhe a resposta ao lead **e** a atribuicao, mas e uma correccao
+de comportamento do agente, nao da Fase 1.
 
 ---
 
