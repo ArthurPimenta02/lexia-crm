@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Context Agent Fixture - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "29000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Context Input",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { schema_version: 'lexia.context.result.v1', scope: item.json.scope, context_call_id: item.json.context_call_id, config_version: item.json.config_version, source_message_ids: (item.json.messages ?? []).map(message => message.message_id), operational_context: { summary: 'Synthetic only', language: item.json.locale ?? 'pt-BR', intent: 'fixture', topic: { current: 'fixture', changed: false, resumed_previous: false }, confidence: 1, missing_information: [], contact_updates: {}, scheduling_intent: {} }, company_fields: item.json.synthetic_company_fields ?? {} } }));"
+      },
+      "id": "29000000-0000-4000-8000-000000000002",
+      "name": "Return Fake Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Context Input": {
+      "main": [[{ "node": "Return Fake Context", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

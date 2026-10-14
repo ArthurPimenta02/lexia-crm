@@ -1,0 +1,174 @@
+{
+  "schema_version": "lexia.crm.workflow-map.v1",
+  "status": "provisional_read_only_mapping",
+  "delivery_mode": "observe_only",
+  "rules": {
+    "record_messages_while_blocked": true,
+    "human_block_before_expensive_processing": true,
+    "revalidate_before_each_send": true,
+    "delivery_unknown_requires_reconciliation": true,
+    "availability_is_not_appointment_confirmation": true,
+    "brain_cannot_prove_tool_or_provider_results": true
+  },
+  "workflows": [
+    {
+      "name": "MIRANDA SKIN EXPERT - OMNICHANNEL",
+      "role": "provider ingress, conversation, context and current delivery owner",
+      "insertion_points": [
+        {
+          "after": ["Normalizar Dados Operacionais", "Entrada Unificada"],
+          "events": ["contact.upserted", "conversation.opened"],
+          "authority": "provider_event",
+          "order": 10
+        },
+        {
+          "after": ["É Cartão de Anúncio?", "Preparar Perfil Meta", "Juntar Nome Meta"],
+          "events": ["attribution.captured"],
+          "authority": "provider_event",
+          "order": 20
+        },
+        {
+          "after": ["Set Intervenção Humana"],
+          "events": ["block.upserted"],
+          "authority": "workflow_execution",
+          "order": 30,
+          "note": "Must happen before audio download or transcription."
+        },
+        {
+          "before": ["Baixar Áudio da Intervenção", "Transcrever Áudio da Intervenção"],
+          "events": ["message.recorded"],
+          "authority": "provider_event",
+          "order": 40,
+          "note": "Audio is first stored with enrichment pending."
+        },
+        {
+          "after": ["Transcrever Áudio da Intervenção", "Transcribe a recording", "Analyze image", "Extract from File", "Analyze video"],
+          "events": ["message.enrichment.updated"],
+          "authority": "workflow_execution",
+          "order": 50,
+          "note": "Success and failure are separate from the original message."
+        },
+        {
+          "after": ["Guardar Mensagem Recebida", "Guardar Mensagem Recebida na Pausa", "Guardar Mensagem da Intervenção"],
+          "events": ["message.recorded"],
+          "authority": "provider_event",
+          "order": 60
+        },
+        {
+          "after": ["Guardar Contexto Activo Genérico", "Guardar Contexto Pós-Cérebro"],
+          "events": ["conversation.context.updated"],
+          "authority": "workflow_execution",
+          "order": 70
+        },
+        {
+          "before": ["Enviar Mensagem Cliente - Texto Genérico", "Enviar Follow-up Rápido"],
+          "events": ["message.recorded"],
+          "authority": "workflow_execution",
+          "order": 80,
+          "note": "Record preparing action only after the shared permission gate."
+        },
+        {
+          "after": ["Enviar Mensagem Cliente - Texto Genérico", "Enviar Follow-up Rápido"],
+          "events": ["message.delivery.updated"],
+          "authority": "provider_result",
+          "order": 90,
+          "note": "Timeout or ambiguous result is delivery_unknown, never safe retry."
+        },
+        {
+          "after": ["Preparar Follow-up", "Armar Follow-up", "Cancelar Follow-up"],
+          "events": ["automation.updated"],
+          "authority": "workflow_execution",
+          "order": 100
+        }
+      ]
+    },
+    {
+      "name": "Cérebro — MIRANDA SKIN EXPERT",
+      "role": "private intelligence and tools boundary",
+      "insertion_points": [
+        {
+          "after": ["Validar Saída Cérebro", "Preparar Handoff"],
+          "events": ["handoff.requested"],
+          "authority": "brain_result",
+          "order": 10,
+          "note": "Only the validated structured result may request handoff."
+        }
+      ],
+      "forbidden_events": ["message.delivery.updated", "appointment.confirmed"]
+    },
+    {
+      "name": "criar_agendamento",
+      "role": "appointment creation tool",
+      "insertion_points": [
+        {
+          "after": ["Create an event", "Create a row", "Evento confirmado?"],
+          "events": ["appointment.confirmed"],
+          "authority": "tool_result",
+          "order": 10,
+          "note": "Emit only after both external calendar creation and durable confirmation."
+        },
+        {
+          "after": ["Encerrar Follow-up do Lead"],
+          "events": ["automation.updated"],
+          "authority": "workflow_execution",
+          "order": 20
+        }
+      ]
+    },
+    {
+      "name": "verificar_disponibilidade",
+      "role": "read-only availability tool",
+      "insertion_points": [],
+      "forbidden_events": ["appointment.confirmed"],
+      "note": "Successful availability lookup does not prove appointment creation."
+    },
+    {
+      "name": "AGENTE DE FOLLOW-UP — MIRANDA",
+      "role": "separate follow-up lifecycle",
+      "insertion_points": [
+        {
+          "after": ["Buscar Follow-ups Vencidos", "Reagendar Follow-up", "Pular Etapa", "Encerrar Follow-up", "Atualizar Após Envio"],
+          "events": ["automation.updated"],
+          "authority": "workflow_execution",
+          "order": 10
+        },
+        {
+          "before": ["Enviar Follow-up"],
+          "events": ["message.recorded"],
+          "authority": "workflow_execution",
+          "order": 20
+        },
+        {
+          "after": ["Enviar Follow-up"],
+          "events": ["message.delivery.updated"],
+          "authority": "provider_result",
+          "order": 30
+        }
+      ]
+    },
+    {
+      "name": "AGENTE DE LEMBRETES — MIRANDA",
+      "role": "separate appointment reminder lifecycle",
+      "insertion_points": [
+        {
+          "after": ["Buscar Consultas Próximas", "Marcar Lembrete Enviado"],
+          "events": ["automation.updated"],
+          "authority": "workflow_execution",
+          "order": 10
+        },
+        {
+          "before": ["Enviar Lembrete"],
+          "events": ["message.recorded"],
+          "authority": "workflow_execution",
+          "order": 20
+        },
+        {
+          "after": ["Enviar Lembrete"],
+          "events": ["message.delivery.updated"],
+          "authority": "provider_result",
+          "order": 30
+        }
+      ]
+    }
+  ]
+}

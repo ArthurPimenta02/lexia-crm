@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/crm-command.schema.json",
+  "title": "Lexia CRM Command v1",
+  "$comment": "PROVISIONAL: authentication transport and Frappe UI payloads require isolated runtime validation.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "command_id", "correlation_id", "command_type", "occurred_at", "scope", "payload"],
+  "properties": {
+    "schema_version": { "const": "lexia.crm.command.v1" },
+    "command_id": { "type": "string", "format": "uuid" },
+    "correlation_id": { "type": "string", "format": "uuid" },
+    "command_type": {
+      "enum": [
+        "manual_pause.start",
+        "manual_pause.end",
+        "handoff.resolve",
+        "handoff.resume",
+        "appointment.cancel",
+        "appointment.attendance.update"
+      ]
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "payload": { "type": "object" }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "command_type": { "const": "manual_pause.start" },
+        "payload": { "$ref": "#/$defs/manual_pause_start" }
+      }
+    },
+    {
+      "properties": {
+        "command_type": { "const": "manual_pause.end" },
+        "payload": { "$ref": "#/$defs/manual_pause_end" }
+      }
+    },
+    {
+      "properties": {
+        "command_type": { "const": "handoff.resolve" },
+        "payload": { "$ref": "#/$defs/handoff_resolve" }
+      }
+    },
+    {
+      "properties": {
+        "command_type": { "const": "handoff.resume" },
+        "payload": { "$ref": "#/$defs/handoff_resume" }
+      }
+    },
+    {
+      "properties": {
+        "command_type": { "const": "appointment.cancel" },
+        "payload": { "$ref": "#/$defs/appointment_cancel" }
+      }
+    },
+    {
+      "properties": {
+        "command_type": { "const": "appointment.attendance.update" },
+        "payload": { "$ref": "#/$defs/appointment_attendance" }
+      }
+    }
+  ],
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "manual_pause_start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pause_ref"],
+      "properties": {
+        "pause_ref": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "reason": { "type": "string", "maxLength": 256 },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "manual_pause_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pause_ref"],
+      "properties": {
+        "pause_ref": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "reason": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "handoff_resolve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_id", "resolution"],
+      "properties": {
+        "handoff_id": { "type": "string", "format": "uuid" },
+        "resolution": { "enum": ["resolved", "lost"] },
+        "notes": { "type": "string", "maxLength": 4000 }
+      }
+    },
+    "handoff_resume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_id"],
+      "properties": {
+        "handoff_id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "appointment_cancel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appointment_ref"],
+      "properties": {
+        "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 240 }
+      }
+    },
+    "appointment_attendance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appointment_ref", "attendance_status"],
+      "properties": {
+        "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "attendance_status": { "enum": ["attended", "no_show"] }
+      }
+    }
+  }
+}

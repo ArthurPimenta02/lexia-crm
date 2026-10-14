@@ -1,0 +1,138 @@
+{
+  "status": "review_candidate_not_integrated",
+  "production_modified": false,
+  "resources": "persistent_shared_central_operational_memory_private_catalog",
+  "runtime_evidence_report": "docs/MIRANDA_MEMORIA_CENTRAL_CRM_20261012.md",
+  "notification_providers": {
+    "handoff": "zapi",
+    "appointment": "uazapi"
+  },
+  "implemented_locally": [
+    "Original intelligence/media/buffer retained; scoped context/history and central operational memory; private catalog GET only",
+    "Independent blocks, authenticated CRM commands and bound Google cancellation receipts",
+    "Native Redis immutable-version snapshots before processing/delivery; periodic repair lane",
+    "Claimed CRM outbox, typed appointments/handoffs/automations/media and stable action-message identity",
+    "Original follow-up scheduling and central scoped queue; stop cycles on reply/booking",
+    "One terminal confirmation bound to the actual create receipt; per-action final gates",
+    "Durable Z-API/UAZAPI team dispatch, disabled and excluded from virtual tests",
+    "Prepared native Frappe command dispatcher and factual pipeline recomputation"
+  ],
+  "source_hashes": [
+    {
+      "name": "AGENTE DE FOLLOW-UP — MIRANDA",
+      "nodes": 28,
+      "hash": "4d69660d878250553d0d9fa57873f0a2883978a5938e028b69b0148fe2e16155"
+    },
+    {
+      "name": "AGENTE DE LEMBRETES — MIRANDA",
+      "nodes": 7,
+      "hash": "4eceba2654145bed7dee8bb0f02a6a4095e8e6afeea65668fb640072e8bc488f"
+    },
+    {
+      "name": "Cérebro — MIRANDA SKIN EXPERT",
+      "nodes": 30,
+      "hash": "a7f307d627fd7c6967f670c89c7d4a6889191566fc6b8beb0921c380fe181fd1"
+    },
+    {
+      "name": "MIRANDA SKIN EXPERT -  OMNICHANNEL",
+      "nodes": 148,
+      "hash": "1891a4ab33507899c8e5cf3eee40dfabca65ecc7e8697808ccbf1cf191ebdfe0"
+    },
+    {
+      "name": "criar_agendamento",
+      "nodes": 24,
+      "hash": "9da3c828cb508b724345183783b32478c826cfbc611b49a1056ab986c38e051e"
+    },
+    {
+      "name": "verificar_disponibilidade",
+      "nodes": 7,
+      "hash": "3c9c406efa03d7f78f399593a5964860d6d3a16819c99584bbbd025f6d48be15"
+    }
+  ],
+  "workflows": [
+    {
+      "file": "01-omnichannel.inactive.json",
+      "sha256": "5f9b86ab47488c89fb83016e79ed4c206fd5db4bb2c3722d63f473f7ee4c2e26",
+      "nodes": 259,
+      "active": false,
+      "native_database_nodes": 45,
+      "layout": {
+        "preserved_original_positions": 54,
+        "executable_fingerprint": "a29ed816f031e345f7b3ea534411fef3454b00deb21904485d113daff2d00826"
+      }
+    },
+    {
+      "file": "02-cerebro.inactive.json",
+      "sha256": "64219df2cc78defebbd598bed27b8fe0fd12cf429718ebad6e169a8d6931449c",
+      "nodes": 56,
+      "active": false,
+      "native_database_nodes": 10,
+      "layout": {
+        "preserved_original_positions": 26,
+        "executable_fingerprint": "2a3437da1101deaf2a25b8912b135d396dfe3295733b44b8d7947c6fd02bd2da"
+      },
+      "memory_backend": "central-operational-v1"
+    },
+    {
+      "file": "03-followup.inactive.json",
+      "sha256": "a1f8e0c923faee7f26e571c0e20c44b5501822958f63e5fceda1a1f62e4f7f94",
+      "nodes": 72,
+      "active": false,
+      "native_database_nodes": 11,
+      "layout": {
+        "preserved_original_positions": 28,
+        "executable_fingerprint": "a7d9f42b6fc7582473b1bcc2ea316a9a9bc148f8f7d21245452d5f278427aa58"
+      }
+    },
+    {
+      "file": "04-lembretes.inactive.json",
+      "sha256": "1fdf1828608cccdd26fcc6cc1a5848ae2522effe974b6ae281994689f4314ac1",
+      "nodes": 36,
+      "active": false,
+      "native_database_nodes": 6,
+      "layout": {
+        "preserved_original_positions": 7,
+        "executable_fingerprint": "24ba9fac367133fdbcd1b38e799be967c42d0cea0eeafac82bd2f243c15b10b1"
+      }
+    },
+    {
+      "file": "05-disponibilidade.inactive.json",
+      "sha256": "650916c639557a74782b9b9fa46be5c9011dd480c0e8ef2f7872977e70234ff2",
+      "nodes": 27,
+      "active": false,
+      "native_database_nodes": 5,
+      "layout": {
+        "preserved_original_positions": 7,
+        "executable_fingerprint": "28c0a5a1fd5556e9a41c961593182f35252ac61b6a2c45a33038629992d28d7b"
+      }
+    },
+    {
+      "file": "06-agendamentos.inactive.json",
+      "sha256": "740045a69b334d5c81d368ca60ae826b287feb4ade6aef309d7a34fa7110a2d9",
+      "nodes": 69,
+      "active": false,
+      "native_database_nodes": 10,
+      "layout": {
+        "preserved_original_positions": 16,
+        "executable_fingerprint": "434393614d473440dc7b19b6b05f1a8c930aade241da69e03d664288d6f04454"
+      }
+    }
+  ],
+  "pending": [
+    "Install/review additive SQL dependencies without clearing existing data",
+    "Install/review Frappe modules/DocTypes/configuration and connect its test target to this exact webhook",
+    "Homologate native-node acknowledgments and provider notification receipts without production destinations",
+    "Automatic answer_pending execution, stale claimed-batch reconciliation and durable structured campaign attribution are not complete",
+    "Graduate current isolated_test contracts to staging/production with explicit cutover; no relabelling here",
+    "Complete Meta signed ingress/window-aware delivery; current shared delivery supports Z-API only",
+    "Configure existing native Lead/Deal Status mapping before enabling the pipeline",
+    "Configure native credentials, exact accounts, operational central memory schema, read-only private catalog, prompts and imported workflow IDs",
+    "Execute real n8n/Google/Frappe/Supabase/Redis interoperability tests before activation"
+  ],
+  "layout": {
+    "status": "original_anchors_horizontal_extensions",
+    "reference": "tests/fixtures/miranda-layout/production-geometry.json",
+    "changes": "positions and sanitized section notes only",
+    "real_n8n_canvas_verified": false
+  }
+}

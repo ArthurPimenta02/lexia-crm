@@ -1,0 +1,39 @@
+{
+  "schema_version": "lexia.lote2.isolated.manifest.v1",
+  "environment": "isolated_test",
+  "run_id": "25000000-0000-4000-8000-000000000001",
+  "tenants": [
+    {
+      "slug": "empresa_sintetica_a",
+      "client_id": "20000000-0000-4000-8000-000000000001",
+      "account_id": "24000000-0000-4000-8000-000000000001",
+      "provider": "fake",
+      "delivery_mode": "observe_only"
+    },
+    {
+      "slug": "empresa_sintetica_b",
+      "client_id": "20000000-0000-4000-8000-000000000002",
+      "account_id": "24000000-0000-4000-8000-000000000002",
+      "provider": "fake",
+      "delivery_mode": "observe_only"
+    }
+  ],
+  "conversation_refs": [
+    "synthetic-conversation-shared",
+    "synthetic-conversation-a-secondary"
+  ],
+  "runtime": {
+    "run_id": "26000000-0000-4000-8000-000000000001",
+    "conversation_ref": "synthetic-runtime-conversation-shared",
+    "identificador_conversa": "synthetic-runtime-conversation-shared"
+  },
+  "redis": {
+    "namespace": "lexia:omni:v2:isolated_test",
+    "allowed_tenant_prefixes": [
+      "lexia:omni:v2:isolated_test:empresa_sintetica_a:",
+      "lexia:omni:v2:isolated_test:empresa_sintetica_b:"
+    ]
+  },
+  "external_destinations": [],
+  "real_client_data_allowed": false
+}

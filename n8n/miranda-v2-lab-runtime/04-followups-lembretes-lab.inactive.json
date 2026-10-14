@@ -1,0 +1,105 @@
+{
+  "id": "fQHHfZvyDa3cNrbm",
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 04 FOLLOW-UPS E LEMBRETES",
+  "description": "Runtime sintético executável de follow-ups e lembretes, sem agendador ou envio próprio.",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "b79faaba-f711-44b4-882b-3757c64e837a",
+      "name": "LEIA-ME | Automações do laboratório",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "content": "## 04 Follow-ups e lembretes\nMonta uma proposta sintética e entrega ao mesmo gate de saída. Não possui Schedule Trigger e não envia por rota própria.",
+        "width": 1280,
+        "height": 180,
+        "color": 5
+      }
+    },
+    {
+      "id": "90ad135e-0b3f-4896-8078-47914fa212e4",
+      "name": "Receber teste de automação",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "25c6c480-46f3-4d76-87d3-1525a530f261",
+      "name": "Validar follow-up ou lembrete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming && typeof incoming === 'object' && incoming.body\n  ? incoming.body\n  : incoming && typeof incoming === 'object' && incoming.request\n    ? incoming.request\n    : incoming;\nconst fail = (code) => { throw new Error('lexia_lab_request_rejected:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\nconst copyJson = (value) => JSON.parse(JSON.stringify(value));\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst chatConversation = /^test:SYNTH-LEXIA-TEST-CHAT-([0-9a-f-]{36})$/i;\n\nexactKeys(body, ['schema_version','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations'], 'top_level');\nif (body.schema_version !== 'lexia.workflow.test.request.v1') fail('schema_version');\nif (!uuid.test(String(body.run_id || ''))) fail('run_id');\nif (body.delivery_mode !== 'simulate') fail('delivery_mode');\nif (body.execution_mode !== 'safe_simulation') fail('execution_mode');\nexactKeys(body.tool_policy, ['calendar'], 'tool_policy');\nif (body.tool_policy.calendar !== 'disabled') fail('calendar_policy');\nexactKeys(body.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'scope');\nif (body.scope.environment !== 'isolated_test') fail('environment');\nif (body.scope.cliente_slug !== 'empresa_sintetica_a') fail('cliente_slug');\nif (!['whatsapp','instagram','messenger'].includes(body.scope.channel)) fail('channel');\nif (!uuid.test(String(body.scope.account_ref || ''))) fail('account_ref');\nconst chatMatch = chatConversation.exec(String(body.scope.conversation_ref || ''));\nconst isSingleRunConversation = body.scope.conversation_ref === 'test:' + body.run_id;\nconst isPersistentChatConversation = Boolean(chatMatch && uuid.test(chatMatch[1]));\nif (!isSingleRunConversation && !isPersistentChatConversation) fail('conversation_ref');\nexactKeys(body.input, ['message_id','type','text'], 'input');\nif (body.input.message_id !== 'test-message:' + body.run_id) fail('message_id');\nif (body.input.type !== 'text') fail('message_type');\nif (typeof body.input.text !== 'string' || body.input.text.trim().length === 0 || body.input.text.length > 4000) fail('message_text');\nexactKeys(body.expectations, ['provider_send','persist_synthetic_events','return_trace'], 'expectations');\nif (body.expectations.provider_send !== false) fail('provider_send');\nif (body.expectations.persist_synthetic_events !== true) fail('persist_synthetic_events');\nif (body.expectations.return_trace !== true) fail('return_trace');\nif (!['followup','reminder'].includes(body.target)) fail('target');\nconst stage = {\n  schema_version: 'lexia.workflow.test.stage.v2',\n  stage: 'request_validated',\n  run_id: body.run_id,\n  target: body.target,\n  delivery_mode: 'simulate',\n  execution_mode: body.execution_mode,\n  tool_policy: copyJson(body.tool_policy),\n  scope: copyJson(body.scope),\n  input: copyJson(body.input),\n  expectations: copyJson(body.expectations),\n  guard: {\n    environment: 'isolated_test',\n    external_effects_allowed: false,\n    provider_send_allowed: false,\n    state_version: 1,\n    delivery_epoch: 1,\n  },\n  provider_send_attempted: false,\n  executed_workflows: [],\n  trace: [],\n};\nstage.stage = 'automation_prepared';\nstage.executed_workflows.push('04_followups_lembretes');\nconst kind = body.target === 'followup' ? 'followup' : 'appointment_reminder';\nstage.automation = {\n  request_id: 'test-automation:' + body.run_id,\n  kind,\n  status: 'accepted_for_gate',\n  source_ref: body.target === 'reminder' ? 'test-appointment:' + body.run_id : 'test-followup:' + body.run_id,\n};\nstage.actions = [{\n  action_id: 'test-action:' + body.run_id,\n  sequence: 1,\n  kind,\n  captured_state: { state_version: stage.guard.state_version, delivery_epoch: stage.guard.delivery_epoch },\n  content: { type: 'text', text: body.target === 'followup' ? 'Follow-up sintético.' : 'Lembrete sintético.' },\n}];\nstage.trace.push(\n  { step: 'automation_contract', status: 'passed' },\n  { step: 'automation_source_state', status: 'simulated', reason: 'isolated_fixture' },\n);\nreturn [{ json: stage }];"
+      }
+    },
+    {
+      "id": "72aa81b4-1b29-4cd0-8081-38b2772a2a1f",
+      "name": "Executar saída segura compartilhada",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        360
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "mPwHqXNS2ACuzSb7",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 06 SAÍDA SEGURA"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receber teste de automação": {
+      "main": [
+        [
+          {
+            "node": "Validar follow-up ou lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar follow-up ou lembrete": {
+      "main": [
+        [
+          {
+            "node": "Executar saída segura compartilhada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": []
+}

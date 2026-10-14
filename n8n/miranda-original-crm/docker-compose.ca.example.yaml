@@ -1,0 +1,10 @@
+# Merge into the EXISTING n8n deployment only after a maintenance approval.
+# Never replace its base compose, environment, networks or application volumes.
+# Both the main service and queue worker need the same additional trust store.
+services:
+  n8n:
+    volumes:
+      - ./lexia-hml-ca:/opt/custom-certificates
+  n8n-worker:
+    volumes:
+      - ./lexia-hml-ca:/opt/custom-certificates

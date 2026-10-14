@@ -1,0 +1,6 @@
+[
+  {"id":"74000000-0000-4000-8000-000000000001","nome":"Consulta de Avaliação","nome_en":"Evaluation Consultation","nome_es":"Consulta de Evaluación","aliases":["avaliacao"],"ativo":true,"requer_avaliacao":false,"profissional":"Samuel","duracao_agenda_min":30,"duracao_max":30},
+  {"id":"74000000-0000-4000-8000-000000000002","nome":"Massagem Relaxante","nome_en":"Relaxing Massage","nome_es":"Masaje Relajante","aliases":["massagem"],"ativo":true,"requer_avaliacao":false,"profissional":"Bruna","duracao_variantes":{"padrao":60,"estendida":90},"duracao_max":90},
+  {"id":"74000000-0000-4000-8000-000000000003","nome":"Depilação a Laser","nome_en":"Laser Hair Removal","nome_es":"Depilación Láser","aliases":["laser"],"ativo":true,"requer_avaliacao":false,"profissional":"Bruna","duracao_variantes":{"area_pequena":30,"area_media":45,"area_grande":60,"corpo_inteiro":150},"duracao_max":150},
+  {"id":"74000000-0000-4000-8000-000000000004","nome":"Tratamento Ficticio","nome_en":"Fictional Treatment","nome_es":"Tratamiento Ficticio","aliases":[],"ativo":true,"requer_avaliacao":true,"profissional":"Samuel","duracao_max":60}
+]

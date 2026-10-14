@@ -1,0 +1,1049 @@
+{
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 06 SAÍDA SEGURA",
+  "nodes": [
+    {
+      "id": "b4b3f043-7234-4309-8d8c-46eed92019a7",
+      "name": "NOTA | GATE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -200
+      ],
+      "parameters": {
+        "content": "## GATE\nRevalida estado e bloqueios imediatamente antes de cada ação.",
+        "width": 5420,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "9392c76c-d85a-438b-8e58-b8e924dbf0da",
+      "name": "NOTA | PROVEDOR",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5940,
+        -310
+      ],
+      "parameters": {
+        "content": "## PROVEDOR\nÚnico trecho autorizado a chamar Z-API ou Meta; não repete resultado incerto.",
+        "width": 1820,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "465798c1-ab39-448a-8b77-5524d675b296",
+      "name": "NOTA | LEDGER",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        8280,
+        -420
+      ],
+      "parameters": {
+        "content": "## LEDGER\nRegistra envio, falha ou incerteza e preserva o progresso parcial do plano.",
+        "width": 2180,
+        "height": 840,
+        "color": 7
+      }
+    },
+    {
+      "id": "a3874ebc-75c4-4bff-81a4-6220fb70505c",
+      "name": "GATE | Receber contrato",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        120,
+        -20
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "505ba323-e442-499b-839e-eeff098eeca2",
+      "name": "GATE | Validar plano ordenado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!input.conversation_id || !input.invocation_id || !input.correlation_id || !Array.isArray(input.actions) || input.actions.length === 0) throw new Error('delivery_plan_invalid');\nconst actions = [...input.actions].sort((a, b) => Number(a.sequence) - Number(b.sequence));\nconst scope = JSON.stringify(actions[0].scope);\nfor (let index = 0; index < actions.length; index++) {\n  const action = actions[index];\n  if (action.schema_version !== 'lexia.outbound.action.v1' || action.invocation_id !== input.invocation_id) throw new Error('delivery_action_contract_invalid');\n  if (action.sequence !== index + 1 || JSON.stringify(action.scope) !== scope) throw new Error('delivery_action_order_or_scope_invalid');\n  if (!['text','image','audio'].includes(action.content?.type)) throw new Error('delivery_content_invalid');\n}\nreturn [{ json: { ...input, actions, claimant: input.claimant || ('n8n:' + $execution.id), rpc_body: {\n  p_conversation_id: input.conversation_id, p_invocation_id: input.invocation_id,\n  p_lead_cutoff_seq: input.lead_cutoff_seq ?? null, p_automation_request_id: input.automation_request_id ?? null,\n  p_actions: actions,\n} } }];"
+      }
+    },
+    {
+      "id": "022fd808-3347-4fa1-81cf-bc89e0bc53e8",
+      "name": "GATE | Persistir plano antes do envio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_prepare_outbound_actions' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "b0935540-b5f7-443c-82de-220226600432",
+      "name": "GATE | Separar ações sem perder o plano",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const plan = $('GATE | Validar plano ordenado').first().json;\nconst prepared = Number((() => { const items = $('GATE | Persistir plano antes do envio').all(); if (items.length !== 1) throw new Error('Persistir plano antes do envio output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })());\nif (prepared !== plan.actions.length) throw new Error('delivery_prepare_count_mismatch');\nreturn plan.actions.map((action) => ({ json: { action, plan } }));"
+      }
+    },
+    {
+      "id": "db950fc6-f18e-45b0-8636-f647cceb9051",
+      "name": "GATE | Enviar uma ação por vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1560,
+        -20
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "5a80066c-870d-4e8b-8e19-0a0e5b77a6f3",
+      "name": "GATE | Preparar claim individual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, rpc_body: { p_action_id: input.action.action_id, p_claimant: input.plan.claimant } } }];"
+      }
+    },
+    {
+      "id": "124cafe3-dbe8-4712-8ab2-1c2835921344",
+      "name": "GATE | Revalidar permissão imediatamente antes do envio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_claim_outbound_action' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "367cfb4a-f23a-4349-820b-671b35a7a214",
+      "name": "GATE | Avaliar gate atual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('GATE | Preparar claim individual').item.json;\nconst rows = (() => { const items = $('GATE | Revalidar permissão imediatamente antes do envio').all(); if (items.length !== 1) throw new Error('Revalidar permissão imediatamente antes do envio output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result) throw new Error('delivery_claim_missing');\nreturn [{ json: { ...input, claim: result, authorized: result.out_acquired === true } }];"
+      }
+    },
+    {
+      "id": "384795a2-33ab-4809-8ed2-66ab6119eff2",
+      "name": "GATE | Ação ainda autorizada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5998e5f6-4ed6-4faa-8b74-70dc60834b1e",
+              "leftValue": "={{ $json.authorized === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3574c0d1-8b47-42d5-8c02-bd86b8c616c2",
+      "name": "GATE | Registrar mensagem em preparação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst action = input.action;\nreturn [{ json: { ...input, rpc_body: {\n  p_conversation_id: input.plan.conversation_id, p_author: 'ai', p_provider_message_id: 'prepared:' + action.action_id,\n  p_provider_timestamp: new Date().toISOString(), p_tipo: action.content.type,\n  p_conteudo: action.content.type === 'text' ? action.content.text : (action.content.caption || null),\n  p_media_kind: action.content.type, p_media_processing_status: 'completed', p_action_id: action.action_id,\n} } }];"
+      }
+    },
+    {
+      "id": "860bcbb1-8789-47f1-8ed9-d1a27376fffb",
+      "name": "GATE | Persistir mensagem de saída preparada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3720,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_record_message' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "dac0f6ed-7140-401d-8d9c-69aba58e34ef",
+      "name": "GATE | Espelhar ação preparada no CRM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('GATE | Registrar mensagem em preparação').item.json;\nconst rows = (() => { const items = $('GATE | Persistir mensagem de saída preparada').all(); if (items.length !== 1) throw new Error('Persistir mensagem de saída preparada output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result?.out_mensagem_id) throw new Error('outbound_message_not_recorded');\nconst action = input.action;\nconst event = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(action.action_id + ':crm:preparing');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: action.action_id + ':preparing', correlation_id: input.plan.correlation_id,\n  event_type: 'message.recorded', occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: action.sequence * 10,\n  scope: action.scope, source: { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-delivery', execution_ref: $execution.id },\n  payload: { message_id: action.action_id, direction: 'outbound', author: 'ai', message_type: action.content.type,\n    delivery_status: 'preparing', action_id: action.action_id,\n    ...(action.content.type === 'text' ? { text: action.content.text } : { media_ref: action.content.media_ref, ...(action.content.caption ? { caption: action.content.caption } : {}) }) },\n};\nreturn [{ json: { events: [event], passthrough: { ...input, mensagem_id: result.out_mensagem_id } } }];"
+      }
+    },
+    {
+      "id": "0741b44e-d29f-4de4-88c1-20eab0fe22ae",
+      "name": "GATE | Espelhar preparação antes do provedor",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        4440,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "49cc3fc1-107c-4514-83ff-f650b46932d5",
+      "name": "GATE | Preparar único caminho de envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5160,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.crm_mirrored !== true) throw new Error('crm_preparing_not_mirrored');\nconst current = input.passthrough;\nreturn [{ json: { action: current.action, claimant: current.plan.claimant,\n  fencing_token: Number(current.claim.out_fencing_token), delivery_mode: current.plan.delivery_mode,\n  mensagem_id: current.mensagem_id } }];"
+      }
+    },
+    {
+      "id": "08eaf69f-552e-4b2c-8b10-8c84be2bca7b",
+      "name": "PROVEDOR | Validar autorização de envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6060,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!input.action?.action_id || !input.claimant || !Number.isInteger(Number(input.fencing_token))) throw new Error('provider_claim_required');\nif (input.delivery_mode !== 'deliver') throw new Error('provider_delivery_mode_denied');\nif (!['whatsapp','instagram','messenger'].includes(input.action.scope?.channel)) throw new Error('provider_channel_invalid');\nif (!['text','image','audio'].includes(input.action.content?.type)) throw new Error('provider_content_invalid');\nreturn [{ json: input }];"
+      }
+    },
+    {
+      "id": "d83e142e-4d4b-442e-8043-a0189aba0db8",
+      "name": "PROVEDOR | Rotear provedor",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        6420,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "7b0f4dba-9fbd-4025-8e73-07eac762bfb9",
+                    "leftValue": "={{ $json.action.scope.channel }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "07cd0995-cbdd-4909-83f2-c08fdb7da40c",
+                    "leftValue": "={{ $json.action.scope.channel }}",
+                    "rightValue": "instagram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "instagram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "5bdc2f5b-a53a-4929-8a53-fc14b80d201e",
+                    "leftValue": "={{ $json.action.scope.channel }}",
+                    "rightValue": "messenger",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "messenger"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "e88b3eb5-8c45-4a34-811b-5667852719d6",
+      "name": "PROVEDOR | Enviar Z-API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6780,
+        -130
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_ZAPI_SEND_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action_id: $json.action.action_id, conversation_ref: $json.action.scope.conversation_ref, content: $json.action.content } }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "7358b064-04c1-43e4-8c56-b64f34b12c88",
+      "name": "PROVEDOR | Enviar Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6780,
+        90
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_META_SEND_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action_id: $json.action.action_id, conversation_ref: $json.action.scope.conversation_ref, content: $json.action.content } }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "1c5e624f-e110-48b3-8dbc-8848203ff531",
+      "name": "PROVEDOR | Classificar resultado sem retry cego",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7500,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst statusCode = Number(response.statusCode || 0);\nconst body = response.body || response;\nconst providerId = String(body.message_id || body.messageId || body.id || '').trim();\nif (statusCode >= 200 && statusCode < 300 && providerId) return [{ json: { status: 'sent', provider_message_id: providerId } }];\nif ([400,401,403,404,409,422].includes(statusCode)) return [{ json: { status: 'failed', reason: 'provider_rejected_' + statusCode } }];\nreturn [{ json: { status: 'delivery_unknown', reason: 'provider_result_ambiguous', automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "e099992a-f8be-487c-8a19-e671afe73796",
+      "name": "PROVEDOR | Tratar exceção como resultado incerto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7500,
+        90
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'delivery_unknown', reason: 'provider_transport_exception', automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "ed7e4565-5837-435a-87b7-83ead6f262f6",
+      "name": "LEDGER | Preparar resultado da tentativa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8400,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const delivery = $input.first().json;\nconst original = $('GATE | Preparar único caminho de envio').item.json;\nif (!['sent','failed','delivery_unknown'].includes(delivery.status)) throw new Error('delivery_result_invalid');\nreturn [{ json: { ...original, delivery, rpc_body: {\n  p_action_id: original.action.action_id, p_claimant: original.claimant, p_fencing_token: original.fencing_token,\n  p_status: delivery.status, p_provider_message_id: delivery.provider_message_id || null,\n  p_reason: delivery.reason || null, p_mensagem_id: original.mensagem_id,\n} } }];"
+      }
+    },
+    {
+      "id": "b5e57bf5-bec0-4e31-809e-c8dba4248036",
+      "name": "LEDGER | Concluir ação no ledger",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8760,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_finish_outbound_action' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "aa3a10ca-f505-45eb-8412-b0aa1fa2283d",
+      "name": "LEDGER | Espelhar resultado confirmado ou incerto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9120,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('LEDGER | Preparar resultado da tentativa').item.json;\nconst result = String((() => { const items = $('LEDGER | Concluir ação no ledger').all(); if (items.length !== 1) throw new Error('Concluir ação no ledger output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })()).replace(/^\"|\"$/g, '');\nif (!['sent','failed','delivery_unknown','duplicate'].includes(result)) throw new Error('delivery_finish_failed');\nconst action = input.action;\nconst event = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(action.action_id + ':crm:' + input.delivery.status);\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: action.action_id + ':' + input.delivery.status, correlation_id: $('GATE | Validar plano ordenado').first().json.correlation_id,\n  event_type: 'message.delivery.updated', occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: action.sequence * 10 + 1,\n  scope: action.scope, source: { system: 'provider', authority: 'provider_result', workflow_ref: 'miranda-v2-provider-send', execution_ref: $execution.id },\n  payload: { message_id: action.action_id, delivery_status: input.delivery.status, attempted_at: new Date().toISOString(),\n    ...(input.delivery.provider_message_id ? { provider_message_ref: input.delivery.provider_message_id } : {}),\n    ...(input.delivery.reason ? { reason: input.delivery.reason } : {}) },\n};\nreturn [{ json: { events: [event], passthrough: { ...input, continue_plan: input.delivery.status === 'sent' } } }];"
+      }
+    },
+    {
+      "id": "69663ad4-cb6f-4dff-80e9-f41e2503d022",
+      "name": "LEDGER | Espelhar resultado antes de continuar",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        9480,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "cd04c43a-3a5b-4939-8aa8-c8d206f5d5f5",
+      "name": "LEDGER | Entrega foi confirmada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9840,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "6ee1e0c4-98d5-47ee-88d8-7d77505cfb32",
+              "leftValue": "={{ $json.passthrough.continue_plan === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "99fa27bb-f438-46c1-8f10-b1c2a966cf2e",
+      "name": "LEDGER | Parar plano suprimido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8400,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('GATE | Avaliar gate atual').item.json;\nreturn [{ json: { status: input.claim.out_status || 'suppressed', reason: input.claim.out_reason || 'not_acquired', action_id: input.action.action_id, provider_send_attempted: false, partial_progress_preserved: true, automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "aaa717f8-dde3-431e-8914-6a571616a78e",
+      "name": "LEDGER | Parar plano após falha ou incerteza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10200,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json.passthrough;\nreturn [{ json: { status: input.delivery.status, reason: input.delivery.reason || null, action_id: input.action.action_id, provider_send_attempted: true, partial_progress_preserved: true, automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "2a7b4ddf-f17a-4076-815c-daf44145323b",
+      "name": "LEDGER | Plano concluído sem duplicar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8400,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const plan = $('GATE | Validar plano ordenado').first().json;\nreturn [{ json: { status: 'sent', invocation_id: plan.invocation_id, action_count: plan.actions.length, provider_send_attempted: plan.actions.length > 0, partial_progress_preserved: true } }];"
+      }
+    }
+  ],
+  "connections": {
+    "GATE | Preparar único caminho de envio": {
+      "main": [
+        [
+          {
+            "node": "PROVEDOR | Validar autorização de envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Classificar resultado sem retry cego": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Preparar resultado da tentativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Tratar exceção como resultado incerto": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Preparar resultado da tentativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Receber contrato": {
+      "main": [
+        [
+          {
+            "node": "GATE | Validar plano ordenado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Validar plano ordenado": {
+      "main": [
+        [
+          {
+            "node": "GATE | Persistir plano antes do envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Persistir plano antes do envio": {
+      "main": [
+        [
+          {
+            "node": "GATE | Separar ações sem perder o plano",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Separar ações sem perder o plano": {
+      "main": [
+        [
+          {
+            "node": "GATE | Enviar uma ação por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Enviar uma ação por vez": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Plano concluído sem duplicar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GATE | Preparar claim individual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Preparar claim individual": {
+      "main": [
+        [
+          {
+            "node": "GATE | Revalidar permissão imediatamente antes do envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Revalidar permissão imediatamente antes do envio": {
+      "main": [
+        [
+          {
+            "node": "GATE | Avaliar gate atual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Avaliar gate atual": {
+      "main": [
+        [
+          {
+            "node": "GATE | Ação ainda autorizada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Ação ainda autorizada?": {
+      "main": [
+        [
+          {
+            "node": "GATE | Registrar mensagem em preparação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LEDGER | Parar plano suprimido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Registrar mensagem em preparação": {
+      "main": [
+        [
+          {
+            "node": "GATE | Persistir mensagem de saída preparada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Persistir mensagem de saída preparada": {
+      "main": [
+        [
+          {
+            "node": "GATE | Espelhar ação preparada no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Espelhar ação preparada no CRM": {
+      "main": [
+        [
+          {
+            "node": "GATE | Espelhar preparação antes do provedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GATE | Espelhar preparação antes do provedor": {
+      "main": [
+        [
+          {
+            "node": "GATE | Preparar único caminho de envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEDGER | Preparar resultado da tentativa": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Concluir ação no ledger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEDGER | Concluir ação no ledger": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Espelhar resultado confirmado ou incerto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEDGER | Espelhar resultado confirmado ou incerto": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Espelhar resultado antes de continuar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEDGER | Espelhar resultado antes de continuar": {
+      "main": [
+        [
+          {
+            "node": "LEDGER | Entrega foi confirmada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEDGER | Entrega foi confirmada?": {
+      "main": [
+        [
+          {
+            "node": "GATE | Enviar uma ação por vez",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LEDGER | Parar plano após falha ou incerteza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Validar autorização de envio": {
+      "main": [
+        [
+          {
+            "node": "PROVEDOR | Rotear provedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Rotear provedor": {
+      "main": [
+        [
+          {
+            "node": "PROVEDOR | Enviar Z-API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROVEDOR | Enviar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROVEDOR | Enviar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Enviar Z-API": {
+      "main": [
+        [
+          {
+            "node": "PROVEDOR | Classificar resultado sem retry cego",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROVEDOR | Tratar exceção como resultado incerto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVEDOR | Enviar Meta": {
+      "main": [
+        [
+          {
+            "node": "PROVEDOR | Classificar resultado sem retry cego",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROVEDOR | Tratar exceção como resultado incerto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": []
+}

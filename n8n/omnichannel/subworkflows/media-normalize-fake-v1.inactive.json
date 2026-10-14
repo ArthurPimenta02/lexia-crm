@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Media Normalize Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "26000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Media",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { media_kinds: ['audio', 'image', 'pdf', 'video'], processing_status: 'not_supported', original_event_preserved: true, simulated: true } }];"
+      },
+      "id": "26000000-0000-4000-8000-000000000002",
+      "name": "Simulate Media Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Media": {
+      "main": [[{ "node": "Simulate Media Result", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

@@ -1,0 +1,11 @@
+{
+  "scope": {"environment":"isolated_test","cliente_slug":"empresa_sintetica_b","channel":"instagram","account_ref":"24000000-0000-4000-8000-000000000002","conversation_ref":"test:synthetic-brain-a"},
+  "invocation_id":"71000000-0000-4000-8000-000000000002",
+  "captured_state":{"state_version":12,"delivery_epoch":7},
+  "cliente":{"slug":"empresa_sintetica_b","canal":"instagram","timezone":"America/New_York"},
+  "contacto":{"nome":"Lead Ficticio B","telefone":"","identificador_conversa":"synthetic-b"},
+  "mensagem":{"actual":"Hello, I would like to book a skin assessment","tipo":"texto"},
+  "historico":[],
+  "contexto":{"tipo_assunto":"agendamento","confianca":0.9,"resumo":"Fictional interest in an assessment.","dados":{"idioma":"en"}},
+  "operacao":{"modo_teste":true,"permitir_envio_real":false,"permitir_notificacao_handoff":false,"tools_permitidas":false,"calendar_access":"disabled"}
+}

@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Ingest Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "23000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Ingress",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { persisted: false, simulated: true, duplicate: false, capabilities: ['authorship', 'contact_without_phone', 'ad_origin'] } }];"
+      },
+      "id": "23000000-0000-4000-8000-000000000002",
+      "name": "Simulate Idempotent Ingest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Ingress": {
+      "main": [[{ "node": "Simulate Idempotent Ingest", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

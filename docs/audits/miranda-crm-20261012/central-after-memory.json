@@ -1,0 +1,2740 @@
+{
+  "project_ref": "gaofupndxgitonfmvpzi",
+  "scope": "central read-only schema and synthetic configuration metadata; no message/contact data",
+  "schema": {
+    "read_only": "on",
+    "tables": [
+      {
+        "name": "lexia_agent_operational_memories",
+        "rls": true
+      },
+      {
+        "name": "lexia_appointment_events",
+        "rls": true
+      },
+      {
+        "name": "lexia_automation_requests",
+        "rls": true
+      },
+      {
+        "name": "lexia_brain_bindings",
+        "rls": true
+      },
+      {
+        "name": "lexia_calendar_tool_calls",
+        "rls": true
+      },
+      {
+        "name": "lexia_channel_accounts",
+        "rls": true
+      },
+      {
+        "name": "lexia_clientes",
+        "rls": true
+      },
+      {
+        "name": "lexia_contactos",
+        "rls": true
+      },
+      {
+        "name": "lexia_context_agent_configs",
+        "rls": true
+      },
+      {
+        "name": "lexia_conversation_blocks",
+        "rls": true
+      },
+      {
+        "name": "lexia_conversation_contexts",
+        "rls": true
+      },
+      {
+        "name": "lexia_conversation_state_events",
+        "rls": true
+      },
+      {
+        "name": "lexia_conversation_states",
+        "rls": true
+      },
+      {
+        "name": "lexia_crm_delivery_outbox",
+        "rls": true
+      },
+      {
+        "name": "lexia_environment_identity",
+        "rls": true
+      },
+      {
+        "name": "lexia_followups",
+        "rls": true
+      },
+      {
+        "name": "lexia_google_appointment_bindings",
+        "rls": true
+      },
+      {
+        "name": "lexia_google_cancellations",
+        "rls": true
+      },
+      {
+        "name": "lexia_handoffs",
+        "rls": true
+      },
+      {
+        "name": "lexia_inbound_batches",
+        "rls": true
+      },
+      {
+        "name": "lexia_inbound_buffer_entries",
+        "rls": true
+      },
+      {
+        "name": "lexia_ingress_events",
+        "rls": true
+      },
+      {
+        "name": "lexia_lote2_test_resources",
+        "rls": true
+      },
+      {
+        "name": "lexia_mensagens",
+        "rls": true
+      },
+      {
+        "name": "lexia_migration_crm_commands",
+        "rls": true
+      },
+      {
+        "name": "lexia_omnichannel_policies",
+        "rls": true
+      },
+      {
+        "name": "lexia_omnichannel_projection_outbox",
+        "rls": true
+      },
+      {
+        "name": "lexia_outbound_actions",
+        "rls": true
+      },
+      {
+        "name": "lexia_team_notifications",
+        "rls": true
+      },
+      {
+        "name": "lexia_usuarios_clientes",
+        "rls": true
+      }
+    ],
+    "columns": [
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "memory_key",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "scope_json",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "context_json",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "version",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "last_invocation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "last_request_identity",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "cached_result",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_agent_operational_memories",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "appointment_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "starts_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "ends_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "timezone",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "tool_invocation_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "confirmed_idempotency_key",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "cancelled_idempotency_key",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "attendance_status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "attendance_recorded_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "attendance_recorded_by",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "paused_until_end",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "policy_version",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "confirmation_action_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "cancellation_status",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "cancellation_request_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "kind",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "source_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "due_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "reason",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_automation_requests",
+        "name": "recebido_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "brain_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "contract_version",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "capabilities",
+        "type": "ARRAY",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_brain_bindings",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "calendar_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "operation",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "request_key",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "request",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "provider_event_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "plan",
+        "type": "jsonb",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "claim_token",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "receipt",
+        "type": "jsonb",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "expires_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_calendar_tool_calls",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "channel",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "provider",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "provider_account_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "adapter_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "delivery_owner",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "delivery_mode",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_channel_accounts",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "nome",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "modo_teste",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_clientes",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "identificador_conversa",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "nome",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "telefone",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "omni_account_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "provider_contact_ref",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "config_version",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "prompt_template",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "common_schema_version",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "company_fields_schema",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "locale",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "timezone",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "model_policy_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "criado_por",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_context_agent_configs",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "block_key",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "block_type",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "source_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "expires_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "encerrado_por",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "context_version",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "config_version",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "context_call_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "source_message_ids",
+        "type": "ARRAY",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "operational_context",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "company_fields",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_contexts",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "command_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "command_type",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "actor_user_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "payload",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "state_version_after",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "occurred_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_state_events",
+        "name": "registrado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "channel",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "account_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "conversation_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "identificador_conversa",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "contacto_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "state_version",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "delivery_epoch",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "lead_message_seq",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "fencing_counter",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "projection_status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "event_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "event",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "claim_token",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "delivered_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_crm_delivery_outbox",
+        "name": "claimed_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_environment_identity",
+        "name": "id",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_environment_identity",
+        "name": "project_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_environment_identity",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_environment_identity",
+        "name": "disposable",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_environment_identity",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "account_ref",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "canal",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "identificador",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "sender_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "nome_contacto",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "etapa",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "ultima_msg_cliente_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "ultima_msg_agente_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "proxima_tentativa_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "tentativas_enviadas",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "motivo_juiz",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "motivo_encerramento",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "dia_combinado",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "tema_audio",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_followups",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_appointment_bindings",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_appointment_bindings",
+        "name": "appointment_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_appointment_bindings",
+        "name": "calendar_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_appointment_bindings",
+        "name": "provider_event_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_appointment_bindings",
+        "name": "tool_call_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "request_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "appointment_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "claim_token",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "receipt",
+        "type": "jsonb",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "requested_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_google_cancellations",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "nome_contacto",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "telefone",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "motivo",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "prioridade",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "resumo",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "origem",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "omni_conversation_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "block_key",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "idempotency_key",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "omni_resolution",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "omni_resolved_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "omni_resolved_by",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "retomado_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "retomado_por",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "blocking",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "request_summary",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "fencing_token",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "cutoff_seq",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "invocation_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "superseded_invocation_ids",
+        "type": "ARRAY",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "carried_into",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "reivindicado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_batches",
+        "name": "encerrado_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "mensagem_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "lead_seq",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "disposition",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "batch_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_inbound_buffer_entries",
+        "name": "enfileirado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "channel",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "account_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "provider_event_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "event_type",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "occurred_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_ingress_events",
+        "name": "recebido_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_lote2_test_resources",
+        "name": "run_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_lote2_test_resources",
+        "name": "resource_type",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_lote2_test_resources",
+        "name": "resource_id",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_lote2_test_resources",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_lote2_test_resources",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "contacto_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "identificador_conversa",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "direccao",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "tipo",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "conteudo",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "origem",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "omni_conversation_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "omni_author",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "provider_message_id",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "provider_timestamp",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "omni_action_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "lead_seq",
+        "type": "bigint",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "media_kind",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "media_processing_status",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "media_error_code",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "omni_original_content",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "omni_enriched_at",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "actor_user_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "command",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "result",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_migration_crm_commands",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "policy_version",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "resume_mode",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "human_intervention_ms",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "buffer_window_ms",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "pause_after_appointment",
+        "type": "boolean",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "criado_por",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "substituido_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "state_version",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "attempts",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_omnichannel_projection_outbox",
+        "name": "processado_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "environment",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "invocation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "automation_request_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "sequence",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "kind",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "source_ref",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "captured_state_version",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "captured_delivery_epoch",
+        "type": "bigint",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "lead_cutoff_seq",
+        "type": "bigint",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "content",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "reason",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "attempts",
+        "type": "integer",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "claim_fencing",
+        "type": "bigint",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "claimed_by",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "provider_message_id",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "mensagem_id",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "preparado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "reivindicado_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_outbound_actions",
+        "name": "concluido_em",
+        "type": "timestamp with time zone",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "conversation_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "kind",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "source_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "recipient_ref",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "payload",
+        "type": "jsonb",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "claim_token",
+        "type": "uuid",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "provider_message_id",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_team_notifications",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "user_id",
+        "type": "uuid",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "cliente_slug",
+        "type": "text",
+        "nullable": "YES"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "role",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "status",
+        "type": "text",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "criado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "atualizado_em",
+        "type": "timestamp with time zone",
+        "nullable": "NO"
+      }
+    ],
+    "functions": [
+      {
+        "name": "lexia_agent_memory_read",
+        "arguments": "p_scope jsonb, p_invocation uuid",
+        "definition_md5": "910e1312cbcb9a621d06de38663d4dfa"
+      },
+      {
+        "name": "lexia_agent_memory_scope",
+        "arguments": "p_scope jsonb, p_invocation uuid",
+        "definition_md5": "f16130df811371409b1823408ee9ca3d"
+      },
+      {
+        "name": "lexia_agent_memory_write",
+        "arguments": "p_memory jsonb, p_expected integer",
+        "definition_md5": "628f048ff50361f27e7a10725f6c50c0"
+      },
+      {
+        "name": "lexia_calendar_test_begin",
+        "arguments": "p_request jsonb, p_calendar text, p_protected_hashes jsonb",
+        "definition_md5": "ffbfbcb36bcf86d7aa61184717ed81e6"
+      },
+      {
+        "name": "lexia_calendar_test_claim",
+        "arguments": "p_call uuid, p_plan jsonb",
+        "definition_md5": "99d35209b36d610c5a04f68101fe66d2"
+      },
+      {
+        "name": "lexia_calendar_test_finish",
+        "arguments": "p_call uuid, p_receipt jsonb, p_unknown boolean, p_claim_token uuid",
+        "definition_md5": "1549156f90f1d21db3e6190d296889d8"
+      },
+      {
+        "name": "lexia_calendar_test_gate",
+        "arguments": "p_call uuid",
+        "definition_md5": "4cfaf90bdfccaff4f2226e9b9d575f14"
+      },
+      {
+        "name": "lexia_is_admin",
+        "arguments": "",
+        "definition_md5": "ee4d508b8f94709ee0a4144f03489e84"
+      },
+      {
+        "name": "lexia_migration_apply_command",
+        "arguments": "p_command jsonb, p_actor uuid",
+        "definition_md5": "34bc512fe8ad9080bbb0cb82ed6e9bf4"
+      },
+      {
+        "name": "lexia_migration_claim_cancel",
+        "arguments": "p_request uuid, p_calendar text",
+        "definition_md5": "b663baf9119d2d05ef35f94ef79b7d49"
+      },
+      {
+        "name": "lexia_migration_claim_crm",
+        "arguments": "p_conversation uuid, p_environment text, p_tenant text, p_accounts jsonb",
+        "definition_md5": "3a7b5c2fc3d060bc8643f1528557fbcd"
+      },
+      {
+        "name": "lexia_migration_claim_crm_event",
+        "arguments": "p_id uuid",
+        "definition_md5": "26598693223a2b5da51356fe1c8eede7"
+      },
+      {
+        "name": "lexia_migration_claim_team",
+        "arguments": "p_id uuid, p_environment text, p_tenant text, p_accounts jsonb",
+        "definition_md5": "acf5c6a8e99745c4ef87660d8ede0ec4"
+      },
+      {
+        "name": "lexia_migration_close_followup",
+        "arguments": "",
+        "definition_md5": "cf366007ce1dedfd4b8a7bf06731be90"
+      },
+      {
+        "name": "lexia_migration_command_receipt",
+        "arguments": "p_command uuid",
+        "definition_md5": "30fb1b134f3437129d196ebb7e68fc95"
+      },
+      {
+        "name": "lexia_migration_enqueue_automation_crm",
+        "arguments": "p_events jsonb",
+        "definition_md5": "ca2742496f90af230317f585c94b57c4"
+      },
+      {
+        "name": "lexia_migration_enqueue_crm",
+        "arguments": "p_conversation uuid, p_event jsonb",
+        "definition_md5": "8c522dec4fe74256dcc6fe643d825d5d"
+      },
+      {
+        "name": "lexia_migration_enqueue_team",
+        "arguments": "",
+        "definition_md5": "abd217662a395683c3cc01f4f5c1ab67"
+      },
+      {
+        "name": "lexia_migration_finish_cancel",
+        "arguments": "p_request uuid, p_token uuid, p_verified boolean, p_receipt jsonb",
+        "definition_md5": "aecbc07c0486aea31a4ed978e73357ef"
+      },
+      {
+        "name": "lexia_migration_finish_crm",
+        "arguments": "p_id uuid, p_token uuid, p_confirmed boolean",
+        "definition_md5": "9a4bfac976bb13e8d11680adb3ab3273"
+      },
+      {
+        "name": "lexia_migration_finish_team",
+        "arguments": "p_id uuid, p_token uuid, p_status text, p_provider_id text",
+        "definition_md5": "682c263a7e8ee5a5138b14c5cdfb7804"
+      },
+      {
+        "name": "lexia_migration_handoff",
+        "arguments": "p_conversation uuid, p_key text, p_ref text, p_reason text, p_summary text, p_priority text, p_at timestamp with time zone",
+        "definition_md5": "dc202486ee304a55285db3af83a03b21"
+      },
+      {
+        "name": "lexia_migration_message_original",
+        "arguments": "",
+        "definition_md5": "3023a51b119a7c0ff0fb46349af40c8f"
+      },
+      {
+        "name": "lexia_migration_preserve_handoff_request",
+        "arguments": "",
+        "definition_md5": "d844dbea3a929a31debfc4fb74729383"
+      },
+      {
+        "name": "lexia_migration_project_booking",
+        "arguments": "",
+        "definition_md5": "a03fedfcaacb4924178ea35d3eaf98b0"
+      },
+      {
+        "name": "lexia_migration_projection_snapshot",
+        "arguments": "p_conversation uuid, p_environment text, p_tenant text, p_accounts jsonb",
+        "definition_md5": "90b1a956bd9fa2e70afc810e38128405"
+      },
+      {
+        "name": "lexia_migration_record_virtual",
+        "arguments": "p_action uuid",
+        "definition_md5": "831c27b0c7afb383d669db07cbf2215f"
+      },
+      {
+        "name": "lexia_migration_reply_plan",
+        "arguments": "p_conversation uuid, p_invocation uuid, p_actions jsonb, p_version bigint, p_epoch bigint",
+        "definition_md5": "d755f02dd2f8ad9da8565d4862a0d4fc"
+      },
+      {
+        "name": "lexia_migration_request_cancel",
+        "arguments": "p_conversation uuid, p_appointment text, p_request uuid",
+        "definition_md5": "e90890a48346224b56bc61399e031054"
+      },
+      {
+        "name": "lexia_migration_schedule_followup",
+        "arguments": "p_conversation uuid, p_plan jsonb",
+        "definition_md5": "5d6a02750611a48fa99ec810f23dbac5"
+      },
+      {
+        "name": "lexia_omni_active_policy",
+        "arguments": "p_environment text, p_cliente_slug text",
+        "definition_md5": "52e874234f65ec313a80d71d1ee9a15c"
+      },
+      {
+        "name": "lexia_omni_cancel_appointment",
+        "arguments": "p_conversation_id uuid, p_idempotency_key text, p_appointment_ref text, p_tool_invocation_id text, p_occurred_at timestamp with time zone",
+        "definition_md5": "6098f6061cfb722a151b1ece0ab15d9a"
+      },
+      {
+        "name": "lexia_omni_cancel_appointment_from_crm",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_appointment_ref text, p_occurred_at timestamp with time zone, p_actor uuid",
+        "definition_md5": "6222863211e0a6a5fc8d31b5c1f1a8d9"
+      },
+      {
+        "name": "lexia_omni_claim_inbound_batch",
+        "arguments": "p_conversation_id uuid, p_candidate_seq bigint",
+        "definition_md5": "2b1c86f73993e62576b17999415ed7f8"
+      },
+      {
+        "name": "lexia_omni_claim_outbound_action",
+        "arguments": "p_action uuid, p_claimant text",
+        "definition_md5": "57454105140e56118f96cf3d5a52ae11"
+      },
+      {
+        "name": "lexia_omni_claim_outbound_action_before_google_cancel",
+        "arguments": "p_action_id uuid, p_claimant text",
+        "definition_md5": "a026cdde4897c903fc42f1bf106a789b"
+      },
+      {
+        "name": "lexia_omni_command_seen",
+        "arguments": "p_conversation_id uuid, p_command_id text",
+        "definition_md5": "e7c906a081b0d03f9220ca46ed5a3fa3"
+      },
+      {
+        "name": "lexia_omni_commit_transition",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_command_type text, p_payload jsonb, p_occurred_at timestamp with time zone, p_actor uuid, p_bump boolean",
+        "definition_md5": "e1cb8eeb3b2abc0457db1081be2bf72e"
+      },
+      {
+        "name": "lexia_omni_complete_inbound_batch",
+        "arguments": "p_batch_id uuid, p_fencing_token bigint, p_invocation_id uuid",
+        "definition_md5": "e976ea9842d0dd49e5c9f1667c9eff15"
+      },
+      {
+        "name": "lexia_omni_complete_projection",
+        "arguments": "p_outbox_id uuid, p_status text",
+        "definition_md5": "4bf71b4a21edcef729a1993b8c7addcc"
+      },
+      {
+        "name": "lexia_omni_confirm_appointment",
+        "arguments": "p_conversation_id uuid, p_idempotency_key text, p_appointment_ref text, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_timezone text, p_tool_invocation_id text, p_occurred_at timestamp with time zone",
+        "definition_md5": "960dcfbf702b1a752aab03230ca7f7f7"
+      },
+      {
+        "name": "lexia_omni_create_policy",
+        "arguments": "p_environment text, p_cliente_slug text, p_resume_mode text, p_human_intervention_ms integer, p_buffer_window_ms integer, p_pause_after_appointment boolean",
+        "definition_md5": "6fbe6c956ee1b873149c66f1307fcc1b"
+      },
+      {
+        "name": "lexia_omni_end_block",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_block_key text, p_occurred_at timestamp with time zone, p_actor uuid, p_reason text",
+        "definition_md5": "bc58e1a0248b5b216f6ac085fd267cdc"
+      },
+      {
+        "name": "lexia_omni_expire_blocks",
+        "arguments": "p_conversation_id uuid, p_command_id text",
+        "definition_md5": "1da39e129199b1d6abe4b89f1ffeedac"
+      },
+      {
+        "name": "lexia_omni_finish_outbound_action",
+        "arguments": "p_action_id uuid, p_claimant text, p_fencing_token bigint, p_status text, p_provider_message_id text, p_reason text, p_mensagem_id uuid",
+        "definition_md5": "24adc044363a222bbd94cf3e35ca3486"
+      },
+      {
+        "name": "lexia_omni_guard_append_only",
+        "arguments": "",
+        "definition_md5": "a99a0475dca28cf3a91826c16ab48806"
+      },
+      {
+        "name": "lexia_omni_guard_legacy_columns",
+        "arguments": "",
+        "definition_md5": "5fa2e8d3e3936cf9f8e6fa261bd98e03"
+      },
+      {
+        "name": "lexia_omni_guard_outbound_status",
+        "arguments": "",
+        "definition_md5": "def7880f4fcb85fd045e62b2cb2a8802"
+      },
+      {
+        "name": "lexia_omni_guard_policy_update",
+        "arguments": "",
+        "definition_md5": "f04b39dad2086376ac3e5f2e394abbfe"
+      },
+      {
+        "name": "lexia_omni_has_active_block",
+        "arguments": "p_conversation_id uuid, p_at timestamp with time zone",
+        "definition_md5": "469b9627258f9c38286fa11996bb4c98"
+      },
+      {
+        "name": "lexia_omni_lock_conversation",
+        "arguments": "p_conversation_id uuid",
+        "definition_md5": "68903fcb1ccb85f968e5604480ce9bbd"
+      },
+      {
+        "name": "lexia_omni_prepare_outbound_actions",
+        "arguments": "p_conversation_id uuid, p_invocation_id uuid, p_lead_cutoff_seq bigint, p_automation_request_id uuid, p_actions jsonb",
+        "definition_md5": "a98f7ed785c08f300a393630db67bb3f"
+      },
+      {
+        "name": "lexia_omni_prepare_outbound_retry",
+        "arguments": "p_action_id uuid",
+        "definition_md5": "b8eebba6fec5744e93322501d266498e"
+      },
+      {
+        "name": "lexia_omni_reconcile_outbound_action",
+        "arguments": "p_action_id uuid, p_status text, p_provider_message_id text, p_reason text",
+        "definition_md5": "026603881d6f59db240dea3680f1ad44"
+      },
+      {
+        "name": "lexia_omni_record_human_intervention",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_mensagem_id uuid, p_occurred_at timestamp with time zone",
+        "definition_md5": "c99189b1c047e8e23f5291f0bdb44d4a"
+      },
+      {
+        "name": "lexia_omni_record_lead_message",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_mensagem_id uuid, p_occurred_at timestamp with time zone",
+        "definition_md5": "8e03551c45b3228da00594aaf82a9a34"
+      },
+      {
+        "name": "lexia_omni_record_message",
+        "arguments": "p_conversation_id uuid, p_author text, p_provider_message_id text, p_provider_timestamp timestamp with time zone, p_tipo text, p_conteudo text, p_media_kind text, p_media_processing_status text, p_action_id uuid",
+        "definition_md5": "00d4f3b65bd84034131018d8dd14dabd"
+      },
+      {
+        "name": "lexia_omni_register_automation_request",
+        "arguments": "p_request_id uuid, p_conversation_id uuid, p_kind text, p_source_ref text, p_due_at timestamp with time zone",
+        "definition_md5": "9c8d5af171211fb733e820230bb740e4"
+      },
+      {
+        "name": "lexia_omni_register_ingress",
+        "arguments": "p_account_id uuid, p_provider_event_id text, p_event_type text, p_occurred_at timestamp with time zone, p_conversation_id uuid",
+        "definition_md5": "8f0ed0b3e5dd3411b370fdada0a3163c"
+      },
+      {
+        "name": "lexia_omni_release_pending",
+        "arguments": "p_conversation_id uuid, p_command_id text",
+        "definition_md5": "11290153dba2d419ee99dc07f0893098"
+      },
+      {
+        "name": "lexia_omni_request_handoff",
+        "arguments": "p_conversation_id uuid, p_idempotency_key text, p_handoff_ref text, p_motivo text, p_resumo text, p_prioridade text, p_occurred_at timestamp with time zone",
+        "definition_md5": "1687561ae4a133e2ec97922b0f8351bf"
+      },
+      {
+        "name": "lexia_omni_require",
+        "arguments": "p_condition boolean, p_code text",
+        "definition_md5": "8281fa23db2cde956b78bd7f1d3544bb"
+      },
+      {
+        "name": "lexia_omni_resolve_conversation",
+        "arguments": "p_account_id uuid, p_conversation_ref text, p_identificador_conversa text",
+        "definition_md5": "96888249ff8527a4722b8dbbb3ed5a63"
+      },
+      {
+        "name": "lexia_omni_resolve_handoff",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_handoff_id uuid, p_resolution text, p_notes text, p_occurred_at timestamp with time zone, p_actor uuid",
+        "definition_md5": "76d904769307374dee7f37efe81a7fa4"
+      },
+      {
+        "name": "lexia_omni_resume_handoff",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_handoff_id uuid, p_occurred_at timestamp with time zone, p_actor uuid",
+        "definition_md5": "411a070c17b7b40712146307e2e45e0a"
+      },
+      {
+        "name": "lexia_omni_set_appointment_pause",
+        "arguments": "p_environment text, p_cliente_slug text, p_pause_after_appointment boolean, p_expected_policy_version integer",
+        "definition_md5": "b7533b876694ed26f25b9e874362d72c"
+      },
+      {
+        "name": "lexia_omni_start_manual_pause",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_pause_ref text, p_occurred_at timestamp with time zone, p_expires_at timestamp with time zone, p_actor uuid",
+        "definition_md5": "6d69077178f9b26c22cc7c30bf9b6fae"
+      },
+      {
+        "name": "lexia_omni_store_context",
+        "arguments": "p_conversation_id uuid, p_expected_context_version bigint, p_context_call_id uuid, p_config_version text, p_source_message_ids uuid[], p_operational_context jsonb, p_company_fields jsonb",
+        "definition_md5": "c03339c6a2cbb473bf6bc0f9187c3ace"
+      },
+      {
+        "name": "lexia_omni_supersede_inbound_batch",
+        "arguments": "p_batch_id uuid, p_fencing_token bigint, p_invocation_id uuid",
+        "definition_md5": "66abb473d9a55cf3e53d7ba979889cd4"
+      },
+      {
+        "name": "lexia_omni_suppress_plan",
+        "arguments": "p_action_id uuid, p_reason text",
+        "definition_md5": "6aed20d460a3f292ed40956018e6ec46"
+      },
+      {
+        "name": "lexia_omni_update_appointment_attendance",
+        "arguments": "p_conversation_id uuid, p_command_id text, p_appointment_ref text, p_attendance_status text, p_occurred_at timestamp with time zone, p_actor uuid",
+        "definition_md5": "b50378d3e7c52a7c9a68b7b4c7f436d3"
+      },
+      {
+        "name": "lexia_omni_update_media_status",
+        "arguments": "p_mensagem_id uuid, p_media_processing_status text, p_media_error_code text",
+        "definition_md5": "cf39c27b43a706614df4c590ab37ac1f"
+      },
+      {
+        "name": "lexia_user_can_access_cliente",
+        "arguments": "p_cliente_slug text",
+        "definition_md5": "805434696436fdbec954eadbeb396568"
+      }
+    ],
+    "policies": [
+      {
+        "table": "lexia_clientes",
+        "name": "clientes_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_usuarios_clientes",
+        "name": "profiles_select_own",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_contactos",
+        "name": "contactos_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_mensagens",
+        "name": "mensagens_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_handoffs",
+        "name": "handoffs_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_appointment_events",
+        "name": "appointment_events_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_omnichannel_policies",
+        "name": "omnichannel_policies_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_conversation_states",
+        "name": "conversation_states_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      },
+      {
+        "table": "lexia_conversation_blocks",
+        "name": "conversation_blocks_select",
+        "roles": [
+          "authenticated"
+        ],
+        "command": "SELECT"
+      }
+    ]
+  },
+  "configuration": {
+    "identity": [
+      {
+        "project_ref": "gaofupndxgitonfmvpzi",
+        "environment": "isolated_test"
+      }
+    ],
+    "virtual_accounts": [
+      {
+        "id": "24000000-0000-4000-8000-000000000001",
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_a",
+        "channel": "whatsapp",
+        "provider": "fake",
+        "status": "active",
+        "delivery_mode": "observe_only",
+        "delivery_owner": "v2"
+      },
+      {
+        "id": "24000000-0000-4000-8000-000000000002",
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_b",
+        "channel": "whatsapp",
+        "provider": "fake",
+        "status": "active",
+        "delivery_mode": "observe_only",
+        "delivery_owner": "v2"
+      },
+      {
+        "id": "24000000-0000-4000-8000-000000000003",
+        "environment": "isolated_test",
+        "cliente_slug": "miranda_skin_experts",
+        "channel": "whatsapp",
+        "provider": "fake",
+        "status": "active",
+        "delivery_mode": "observe_only",
+        "delivery_owner": "v2"
+      }
+    ],
+    "context_configs": [
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_a",
+        "config_version": "synthetic-a-v1",
+        "status": "active",
+        "prompt_characters": 50,
+        "schema_defined": true
+      },
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_b",
+        "config_version": "synthetic-b-v1",
+        "status": "active",
+        "prompt_characters": 50,
+        "schema_defined": true
+      },
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "miranda_skin_experts",
+        "config_version": "miranda-operational-v1",
+        "status": "active",
+        "prompt_characters": 1017,
+        "schema_defined": true
+      }
+    ],
+    "policies": [
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_b",
+        "policy_version": 1,
+        "status": "active",
+        "resume_mode": "answer_pending",
+        "human_intervention_ms": 600000,
+        "pause_after_appointment": false
+      },
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_a",
+        "policy_version": 1,
+        "status": "superseded",
+        "resume_mode": "await_new_message",
+        "human_intervention_ms": 900000,
+        "pause_after_appointment": true
+      },
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_a",
+        "policy_version": 2,
+        "status": "active",
+        "resume_mode": "await_new_message",
+        "human_intervention_ms": 900000,
+        "pause_after_appointment": true
+      },
+      {
+        "environment": "isolated_test",
+        "cliente_slug": "miranda_skin_experts",
+        "policy_version": 1,
+        "status": "active",
+        "resume_mode": "await_new_message",
+        "human_intervention_ms": 900000,
+        "pause_after_appointment": true
+      }
+    ]
+  }
+}

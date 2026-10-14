@@ -1,0 +1,2301 @@
+{
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 04 FOLLOW-UPS E LEMBRETES",
+  "nodes": [
+    {
+      "id": "2860b422-b45f-41ee-8d25-13cf73ff4d36",
+      "name": "NOTA | FOLLOW-UP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -910
+      ],
+      "parameters": {
+        "content": "## FOLLOW-UP\nSeleciona e redige follow-ups; não envia diretamente ao canal.",
+        "width": 6500,
+        "height": 1060,
+        "color": 7
+      }
+    },
+    {
+      "id": "2629681c-a2a6-4360-85d1-7e99dbef63aa",
+      "name": "NOTA | LEMBRETE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        510
+      ],
+      "parameters": {
+        "content": "## LEMBRETE\nSeleciona lembretes de agendamentos confirmados e não cancelados.",
+        "width": 2900,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "e28f11bc-928e-4cad-8200-7ef2d4b068c5",
+      "name": "NOTA | AUTOMAÇÃO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7020,
+        -310
+      ],
+      "parameters": {
+        "content": "## AUTOMAÇÃO\nDeduplica e submete follow-up ou lembrete ao mesmo gate de saída.",
+        "width": 4340,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "e6928803-8bf0-4c96-85e1-d4cbfaa6dad3",
+      "name": "NOTA | RESULTADO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        11880,
+        -420
+      ],
+      "parameters": {
+        "content": "## RESULTADO\nAtualiza o estado privado somente após resultado confirmado ou preservado.",
+        "width": 1820,
+        "height": 840,
+        "color": 7
+      }
+    },
+    {
+      "id": "c75b01fa-301e-458c-8fc8-6e86958a7a58",
+      "name": "FOLLOW-UP | Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        120,
+        -510
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f2f134b5-c342-4b69-8050-ddc4c6c0629c",
+      "name": "FOLLOW-UP | Buscar Follow-ups Vencidos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        840,
+        -510
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "lexia_followups",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cliente_slug",
+              "condition": "eq",
+              "keyValue": "miranda_skin_experts"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "agendado"
+            },
+            {
+              "keyName": "proxima_tentativa_em",
+              "condition": "lte",
+              "keyValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e78fa4e2-3593-4356-8b77-4e3bae80fecc",
+      "name": "FOLLOW-UP | Travas de Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "// ============================================================\n// TRAVAS DE FOLLOW-UP — v3 (dia combinado)\n// Decisão determinística por linha. Para cada follow-up vencido,\n// decide UMA de três ações:\n//   enviar_lead      → segue para o Juiz e depois para o envio.\n//   notificar_samuel → lead de INSTAGRAM com DIA COMBINADO cuja\n//                      janela da Meta já fechou: a Carol não pode\n//                      mais enviar pela API, então o Samuel recebe\n//                      um WhatsApp para retomar manualmente.\n//   reagendar        → ainda não é hora certa (regrava horário) OU\n//                      encerra o ciclo (status 'encerrado').\n//\n// DECISÃO DO SAMUEL: máximo de 2 tentativas por lead (etapa 1\n// ~1h e etapa 2 ~24h) em QUALQUER canal. Etapa 3+ encerra.\n//\n// NOVO na v3 — DIA COMBINADO:\n//   Quando o cliente combinou um dia para ser contactado (coluna\n//   dia_combinado, gravada pelo Omnichannel), a linha vence nesse\n//   dia. WhatsApp: segue o fluxo normal (enviar_lead). Instagram:\n//   se a janela de 24h da Meta ainda estiver aberta, segue normal;\n//   se já fechou, acao = notificar_samuel (aviso manual).\n//\n// REGRAS POR CANAL:\n//   INSTAGRAM: janela da Meta — só pode enviar se passaram\n//   MENOS de 23h30 da última msg do lead (30 min de margem\n//   sobre as 24h). Se a janela fechou: encerra (ou avisa o\n//   Samuel, se houver dia combinado).\n//   WHATSAPP: não existe janela da Meta (número normal, Z-API).\n//\n// AMBOS: janela comercial 7h–20h, seg–sáb, Boston.\n// ============================================================\nconst TZ = 'America/New_York';\nconst agora = $now.setZone(TZ);\n\nfunction proximaJanelaValida(dt) {\n  let t = dt;\n  for (let i = 0; i < 14; i++) {\n    if (t.weekday === 7) { t = t.plus({ days: 1 }).set({ hour: 7, minute: 0, second: 0, millisecond: 0 }); continue; }\n    if (t.hour < 7)      { t = t.set({ hour: 7, minute: 0, second: 0, millisecond: 0 }); continue; }\n    if (t.hour >= 20)    { t = t.plus({ days: 1 }).set({ hour: 7, minute: 0, second: 0, millisecond: 0 }); continue; }\n    return t;\n  }\n  return t;\n}\n\nfunction dentroJanelaComercial(dt) {\n  return dt.weekday !== 7 && dt.hour >= 7 && dt.hour < 20;\n}\n\nconst saida = [];\n\nfor (const item of $input.all()) {\n  const row = item.json || {};\n  if (!row.id || !row.identificador) continue; // item vazio do Always Output Data\n\n  const etapa = Number(row.etapa || 1);\n  const canal = String(row.canal || 'instagram');\n  const ultimaCliente = DateTime.fromISO(String(row.ultima_msg_cliente_em || ''), { zone: TZ });\n  if (!ultimaCliente.isValid) continue;\n\n  // Limite absoluto da janela da Meta (23h30 após a última msg do lead).\n  // Só vale para Instagram/Messenger — WhatsApp não tem essa janela.\n  const limiteMeta = ultimaCliente.plus({ hours: 23, minutes: 30 });\n\n  const base = {\n    ...row,\n    etapa,\n    canal,\n    _agora: agora.toISO(),\n    _limite_meta: limiteMeta.toISO()\n  };\n\n  // ---------- DIA COMBINADO + INSTAGRAM + janela da Meta fechada ----------\n  // O cliente pediu contato neste dia, mas a Carol não pode mais\n  // enviar pela API da Meta → o Samuel recebe um WhatsApp para\n  // retomar manualmente. (O aviso vai para o Samuel, não para o\n  // lead, por isso não depende da janela comercial.)\n  const diaCombinado = String(row.dia_combinado || '').trim();\n  if (diaCombinado && canal !== 'whatsapp' && agora > limiteMeta) {\n    saida.push({ json: { ...base, acao: 'notificar_samuel' } });\n    continue;\n  }\n\n  // ---------- ETAPA 3+ → encerra ----------\n  // Também apanha linhas antigas que ficaram paradas em etapa 3/4.\n  if (etapa >= 3 || etapa < 1 || Number.isNaN(etapa)) {\n    saida.push({ json: { ...base, acao: 'reagendar', status: 'encerrado',\n      proxima_tentativa_em: row.proxima_tentativa_em,\n      motivo_trava: 'ciclo completo (max 2 tentativas)' } });\n    continue;\n  }\n\n  // ============================================================\n  // WHATSAPP — etapas 1 e 2; sem janela da Meta.\n  // ============================================================\n  if (canal === 'whatsapp') {\n\n    // Fora do horário comercial? Adia para a próxima janela.\n    if (!dentroJanelaComercial(agora)) {\n      saida.push({ json: { ...base, acao: 'reagendar',\n        proxima_tentativa_em: proximaJanelaValida(agora).toISO(),\n        motivo_trava: 'fora do horario comercial' } });\n      continue;\n    }\n\n    // Pode enviar ao lead.\n    saida.push({ json: { ...base, acao: 'enviar_lead' } });\n    continue;\n  }\n\n  // ============================================================\n  // INSTAGRAM / MESSENGER — etapas 1 e 2; com janela da Meta.\n  // ============================================================\n\n  // Janela da Meta já fechou? O lead não pode mais receber pela\n  // API — sem dia combinado, o ciclo encerra (o caso COM dia\n  // combinado já foi tratado acima, com aviso ao Samuel).\n  if (agora > limiteMeta) {\n    saida.push({ json: { ...base, acao: 'reagendar', status: 'encerrado',\n      proxima_tentativa_em: row.proxima_tentativa_em,\n      motivo_trava: 'janela da Meta fechou antes da etapa ' + etapa } });\n    continue;\n  }\n\n  // Fora do horário comercial agora? Tenta adiar para a próxima\n  // janela — mas só se ela ainda couber dentro da janela da Meta.\n  if (!dentroJanelaComercial(agora)) {\n    const proxima = proximaJanelaValida(agora);\n    if (proxima <= limiteMeta) {\n      saida.push({ json: { ...base, acao: 'reagendar',\n        proxima_tentativa_em: proxima.toISO(),\n        motivo_trava: 'fora do horario comercial' } });\n    } else {\n      saida.push({ json: { ...base, acao: 'reagendar', status: 'encerrado',\n        proxima_tentativa_em: row.proxima_tentativa_em,\n        motivo_trava: 'sem horario comercial dentro da janela da Meta' } });\n    }\n    continue;\n  }\n\n  // Tudo certo: pode enviar ao lead.\n  saida.push({ json: { ...base, acao: 'enviar_lead' } });\n}\n\nreturn saida;"
+      }
+    },
+    {
+      "id": "22c3ec11-64a6-4ba0-8fc7-0f9bbafd2928",
+      "name": "FOLLOW-UP | Rotear por Ação",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        -510
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.acao }}",
+                    "rightValue": "enviar_lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e2a3af22-425b-462c-9e39-5ea12264de08"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "enviar_lead"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9a29e[REDACTED_PHONE]f-a881-9b4c86077d84",
+                    "leftValue": "={{ $json.acao }}",
+                    "rightValue": "notificar_samuel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "notificar_samuel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e2a69bdb-b5c0-494e-9a7c-605400ef7038",
+                    "leftValue": "={{ $json.acao }}",
+                    "rightValue": "reagendar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reagendar"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "86fa1b3a-f05e-48ad-8bcd-2847ca189e3c",
+      "name": "FOLLOW-UP | Loop Follow-ups - Leads",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1920,
+        -620
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "67ce8a37-13cd-492c-8475-9d7819a0dedd",
+      "name": "FOLLOW-UP | Buscar Histórico Follow-up",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2280,
+        -620
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "lexia_mensagens",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "cliente_slug",
+              "condition": "eq",
+              "keyValue": "miranda_skin_experts"
+            },
+            {
+              "keyName": "identificador_conversa",
+              "condition": "eq",
+              "keyValue": "={{ $('FOLLOW-UP | Loop Follow-ups - Leads').item.json.identificador }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccaab62a-7f5a-402a-8239-b8e1f9e0664a",
+      "name": "FOLLOW-UP | Montar Análise do Juiz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        -620
+      ],
+      "parameters": {
+        "jsCode": "// ============================================================\n// MONTAR ANÁLISE DO JUIZ — v6 (intervenção humana na transcrição)\n// Junta o lead da vez (do Loop) com o histórico da conversa e\n// produz uma transcrição limpa para o Juiz avaliar. Nada de IA\n// aqui — só preparação.\n//\n// LIGAÇÃO (igual à v3): este node recebe a ENTRADA do node\n// \"Buscar Playbook de Vendas\" (linhas da tabela\n// playbook_vendas_miranda). O histórico é lido por referência:\n// $('FOLLOW-UP | Buscar Histórico Follow-up').all().\n//\n// NOVO na v6:\n//   - Mensagens enviadas manualmente pela equipe (origem =\n//     'humano') aparecem na transcrição como \"EQUIPE (humano -\n//     Samuel)\" em vez de \"AGENTE\". Assim o Juiz enxerga que um\n//     humano interveio (ex.: já agendou com o lead) e pode\n//     encerrar/adiar o follow-up em vez de atropelar.\n//\n// Mantido da v5 (correção do caso Thon):\n//   - 'avaliacao' ficou MUITO mais restrito: a Carol fala\n//     \"Consulta de Avaliação\" em quase toda conversa, então a\n//     palavra \"avaliação\" sozinha NÃO define mais o tema. Agora\n//     só conta expressão específica de PELE (avaliação de pele,\n//     limpeza de pele, manchas, acne, melasma...).\n//   - BLOQUEIO de injetáveis: se a conversa é de harmonização,\n//     preenchimento, botox, mandíbula, queixo, lábios etc.\n//     (tratamentos da Bruna), NENHUM áudio sai — não existe áudio\n//     gravado para esse tema e o de \"avaliação de pele\" fica fora\n//     de contexto. Vai follow-up de texto normal.\n//\n// Mantido da v4: tema_detectado varre a transcrição INTEIRA\n// (cliente E agente), 'laser' tem prioridade, e o Preparar Envio\n// v5 usa o campo como fallback para lead orgânico.\n// Mantido da v3: playbook_rows/bloco_playbook_juiz,\n// followups_anteriores/bloco_followups_anteriores,\n// dia_combinado_info, idioma determinístico.\n// ============================================================\nconst TZ = 'America/New_York';\nconst lead = $('FOLLOW-UP | Loop Follow-ups - Leads').item.json;\n\n// ---------- PLAYBOOK (entrada deste node) ----------\nconst playbookRows = $input.all()\n  .map(i => i.json || {})\n  .filter(r => r.situacao && r.ativo !== false)\n  .sort((a, b) => Number(a.prioridade || 5) - Number(b.prioridade || 5));\n\nlet blocoPlaybookJuiz = '';\nif (playbookRows.length) {\n  blocoPlaybookJuiz =\n    'PLAYBOOK DE VENDAS — situações conhecidas (escolha a que MELHOR descreve este lead, ou nenhuma):\\n' +\n    playbookRows.map(r => '- ' + r.situacao + ' | ' + r.nome + ' | gatilhos: ' + r.gatilhos).join('\\n');\n}\n\n// ---------- HISTÓRICO (por referência) ----------\nconst mensagens = $('FOLLOW-UP | Buscar Histórico Follow-up').all()\n  .map(i => i.json || {})\n  .filter(m => m.id && m.criado_em)\n  .sort((a, b) => String(a.criado_em).localeCompare(String(b.criado_em)));\n\n// Mantém só as últimas 30 mensagens (conversa longa não ajuda o Juiz).\nconst recentes = mensagens.slice(-30);\n\nconst linhas = [];\nfor (const m of recentes) {\n  // NOVO v6: mensagem enviada manualmente pela equipe (Samuel) é\n  // rotulada como EQUIPE — o Juiz e o Redator precisam saber que\n  // um humano interveio (ex.: já agendou) para não atropelar.\n  const quem = m.direccao === 'recebida'\n    ? 'CLIENTE'\n    : (String(m.origem || '') === 'humano' ? 'EQUIPE (humano - Samuel)' : 'AGENTE');\n  let conteudo = String(m.conteudo || '').trim();\n\n  // Conteúdo de imagem salvo como JSON → vira marcador simples.\n  if (conteudo.startsWith('{')) {\n    try {\n      const obj = JSON.parse(conteudo);\n      if (obj && obj.tipo === 'imagem') conteudo = '[imagem enviada]' + (obj.legenda ? ' ' + obj.legenda : '');\n    } catch (e) { /* deixa como está */ }\n  }\n\n  if (conteudo === '') conteudo = '[mensagem sem texto registrado]';\n  linhas.push(quem + ': ' + conteudo);\n}\n\nconst transcricao = linhas.join('\\n') || '[sem historico registrado]';\n\n// ---------- FOLLOW-UPS JÁ ENVIADOS A ESTE LEAD ----------\nconst followupsAnteriores = mensagens\n  .filter(m => m.origem === 'followup_agente' && (m.direccao === 'enviada' || m.direcao === 'enviada'))\n  .map(m => String(m.conteudo || '').trim())\n  .filter(Boolean);\n\nlet blocoFollowups = '';\nif (followupsAnteriores.length) {\n  blocoFollowups =\n    'FOLLOW-UPS JA ENVIADOS A ESTE LEAD (PROIBIDO repetir ou parafrasear qualquer um deles):\\n' +\n    followupsAnteriores.map((f, i) => (i + 1) + '. ' + f).join('\\n');\n}\n\n// Quanto tempo faz que o cliente falou pela última vez.\nconst ultimaCliente = DateTime.fromISO(String(lead.ultima_msg_cliente_em || ''));\nconst horasSilencio = ultimaCliente.isValid\n  ? Math.round($now.diff(ultimaCliente, 'hours').hours * 10) / 10\n  : null;\n\n// ---------- DIA COMBINADO ----------\nconst diaCombinadoISO = String(lead.dia_combinado || '').trim();\nlet diaCombinadoInfo = 'NAO';\nif (diaCombinadoISO) {\n  const dc = DateTime.fromISO(diaCombinadoISO, { zone: TZ });\n  if (dc.isValid) {\n    const chegou = dc.startOf('day') <= $now.setZone(TZ).endOf('day');\n    diaCombinadoInfo = 'SIM — o cliente pediu contato em ' + dc.toFormat('dd/LL/yyyy') +\n      (chegou ? ' (CHEGOU A HORA: é hoje, ou o dia já passou)' : ' (ainda não chegou)');\n  } else {\n    diaCombinadoInfo = 'SIM';\n  }\n}\n\n// ============================================================\n// TEMA DO ÁUDIO DO SAMUEL — determinístico, nada de IA. (v5)\n// Varre a transcrição inteira (cliente + agente): o lead muitas\n// vezes não escreve \"laser\" — é a Carol que nomeia o tratamento\n// na resposta. O que a conversa discute define o tema.\n// Normaliza acentos antes de testar, para pegar \"depilação\" e\n// \"depilacao\", \"avaliação\" e \"avaliacao\" etc.\n//\n// Regras (v5):\n//   1. LASER ganha sempre (tema mais específico).\n//   2. INJETÁVEIS (harmonização, botox, preenchimento, queixo,\n//      mandíbula...) BLOQUEIAM o tema: não há áudio para isso e o\n//      áudio de \"avaliação de pele\" fica fora de contexto → ''.\n//   3. 'avaliacao' só com expressão ESPECÍFICA de pele. A palavra\n//      \"avaliação\" sozinha NÃO conta — a Carol oferece \"Consulta\n//      de Avaliação\" em praticamente toda conversa.\n// ============================================================\nconst textoTema = transcricao\n  .toLowerCase()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n\nconst TEMA_LASER = /\\blaser\\b|depila|hair removal|laser hair|depilacion/;\nconst TEMA_INJETAVEIS = /harmonizacao|preenchimento|\\bbotox\\b|toxina botulinica|bioestimulador|\\bfiller(s)?\\b|rinomodelacao|mandibula|queixo|\\blabios\\b|\\bmenton\\b|\\bjawline\\b|\\bchin\\b|\\blips\\b/;\nconst TEMA_PELE = /avaliacao de pele|avaliacao da pele|limpeza de pele|limpeza facial|cuidado(s)? com a pele|tratamento de pele|skin assessment|skin evaluation|skin care|facial cleansing|limpieza facial|limpieza de piel|evaluacion de piel|cuidado de la piel|\\bmanchas\\b|\\bmelasma\\b|\\bacne\\b|rejuvenesc|rejuvenec/;\n\nlet temaDetectado = '';\nif (TEMA_LASER.test(textoTema)) {\n  temaDetectado = 'laser';\n} else if (!TEMA_INJETAVEIS.test(textoTema) && TEMA_PELE.test(textoTema)) {\n  temaDetectado = 'avaliacao';\n}\n\n// ============================================================\n// IDIOMA DO CLIENTE — determinístico, nada de IA.\n// Varre as mensagens do CLIENTE da mais recente para a mais\n// antiga até achar sinal claro de idioma. As mensagens do\n// AGENTE nunca contam (é justamente o que confundia o Redator).\n// ============================================================\nfunction normalizarTextoIdioma(t) {\n  return String(t || '')\n    .toLowerCase()\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction detectarIdioma(texto) {\n  const t = ' ' + normalizarTextoIdioma(texto) + ' ';\n  if (t.trim().length < 4) return '';\n  const marcas = {\n    en: ['the','you','your','are','is','what','where','when','how','much','do','does','can','could','would','like','want','need','have','and','for','with','please','thanks','thank','hi','hello','hey','guys','located','open','price','cost','appointment','book','schedule','it','my','me','about','time','today','tomorrow','week','available','yes','this','that','only','english','sorry','understand','nothing','now','help','information','will','plan','visit','soon','clinic'],\n    es: ['hola','donde','cuando','cuanto','como','que','quiero','quisiera','necesito','ustedes','usted','gracias','por','favor','precio','cuesta','cita','agendar','estan','esta','tienen','tiene','hacer','puedo','pueden','una','los','las','mi','para','con','hoy','manana','semana','abierto','buenos','buenas','dias','tardes','noches','si','ubicados','y'],\n    pt: ['ola','oi','onde','quando','quanto','como','que','quero','queria','gostaria','preciso','voces','vcs','obrigado','obrigada','por','favor','preco','custa','valor','agendar','marcar','avaliacao','ficam','fica','estao','esta','tem','fazer','posso','podem','uma','os','as','meu','minha','para','pra','com','hoje','amanha','semana','aberto','bom','boa','dia','dias','tarde','tardes','noite','noites','sim','nao','e','ou','vim','anuncio','pele','apos','depois','antes','sabado','sabados','domingo','segunda','terca','quarta','quinta','sexta','feira','tambem','ja','entao','pode','consigo','ate','horario','horarios','melhor','manha','so','mais','tudo','voce','combinado']\n  };\n  const palavras = t.trim().split(' ');\n  const pontos = { en: 0, es: 0, pt: 0 };\n  for (const p of palavras) {\n    for (const lang of ['en', 'es', 'pt']) {\n      if (marcas[lang].includes(p)) pontos[lang]++;\n    }\n  }\n  if (/[¿¡ñ]/.test(String(texto || '').toLowerCase())) pontos.es += 2;\n  if (/[çãõ]/.test(String(texto || '').toLowerCase())) pontos.pt += 2;\n  const ordem = ['en', 'es', 'pt'].sort((a, b) => pontos[b] - pontos[a]);\n  if (pontos[ordem[0]] >= 2 && pontos[ordem[0]] > pontos[ordem[1]]) return ordem[0];\n  return '';\n}\n// conteúdo gerado pela IA (descrição de imagem, transcrição de PDF, análise de\n// vídeo) vem em português e NUNCA pode decidir o idioma — só o texto do cliente\nfunction extrairTextoDoClienteIdioma(texto) {\n  let t = String(texto || '');\n  if (!/<Contexto|Contexto Extra:/i.test(t)) return t;\n  const capturas = [];\n  const reCap = /<MensagemUsuario>([\\s\\S]*?)<\\/MensagemUsuario>/gi;\n  let m;\n  while ((m = reCap.exec(t)) !== null) {\n    const cap = m[1].trim();\n    if (cap && !/^(undefined|null)$/i.test(cap)) capturas.push(cap);\n  }\n  t = t\n    .replace(/<Contexto(Imagem|PDF|Video|Audio|Documento|Arquivo)>[\\s\\S]*?<\\/Contexto\\1>/gi, ' ')\n    .replace(/<Contexto(Imagem|PDF|Video|Audio|Documento|Arquivo)>[\\s\\S]*$/gi, ' ')\n    .replace(/<(DetalheImagem|TranscricaoPDF|URLVideo|MensagemUsuario)>[\\s\\S]*?<\\/\\1>/gi, ' ')\n    .replace(/Contexto Extra:[^\\n]*/gi, ' ');\n  const restante = t.replace(/[ \\t]+/g, ' ').trim();\n  return (restante + (capturas.length ? '\\n' + capturas.join('\\n') : '')).trim();\n}\nconst doCliente = recentes.filter(m => m.direccao === 'recebida');\nlet idiomaCliente = '';\nfor (let i = doCliente.length - 1; i >= 0; i--) {\n  idiomaCliente = detectarIdioma(extrairTextoDoClienteIdioma(doCliente[i].conteudo));\n  if (idiomaCliente) break;\n}\nif (!idiomaCliente) idiomaCliente = 'pt';\nconst nomesIdioma = { pt: 'PORTUGUES', en: 'INGLES', es: 'ESPANHOL' };\n\nreturn [{ json: {\n  ...lead,\n  transcricao,\n  idioma_cliente: idiomaCliente,\n  idioma_cliente_nome: nomesIdioma[idiomaCliente],\n  total_mensagens: mensagens.length,\n  horas_silencio: horasSilencio,\n  followups_anteriores: followupsAnteriores,\n  bloco_followups_anteriores: blocoFollowups,\n  playbook_rows: playbookRows,\n  bloco_playbook_juiz: blocoPlaybookJuiz,\n  dia_combinado_info: diaCombinadoInfo,\n  tema_detectado: temaDetectado\n} }];"
+      }
+    },
+    {
+      "id": "c09c116e-682d-4c57-8dd1-3769c5ed46f1",
+      "name": "FOLLOW-UP | OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3360,
+        -140
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "fa2fd89f-e3bc-4726-8097-0ff206481989",
+      "name": "FOLLOW-UP | Juiz de Follow-up",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        3360,
+        -620
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "==Lead: {{ $json.nome_contacto || 'sem nome' }}\nCanal: {{ $json.canal }}\nEtapa do follow-up: {{ $json.etapa }} (1 = cerca de 1h depois da conversa, 2 = cerca de 23h depois)\nHoras desde a última mensagem do cliente: {{ $json.horas_silencio }}\nTentativas de follow-up já enviadas: {{ $json.tentativas_enviadas }}\nDia combinado com o cliente: {{ $json.dia_combinado_info }}\n\n{{ $json.bloco_playbook_juiz }}\n\n{{ $json.bloco_followups_anteriores }}\n\nTranscrição da conversa (CLIENTE = lead, AGENTE = Carol, a assistente da clínica):\n{{ $json.transcricao }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "==Você é o Juiz de Follow-up da Miranda Skin Experts, clínica de estética em Medford, MA (tratamentos faciais, depilação a laser, injetáveis). A assistente Carol atende leads no WhatsApp e no Instagram. Quando um lead para de responder, você decide se a Carol deve enviar um follow-up agora.\n\nVocê NÃO escreve a mensagem. Você só decide, aponta o ângulo e classifica a situação no playbook.\n\n## Suas três decisões possíveis\n\n\"enviar\" — vale a pena retomar contato agora.\n\"pular\" — não enviar NESTA etapa, mas manter o lead no ciclo (tentará de novo na próxima etapa).\n\"encerrar\" — sair do ciclo de follow-up de vez.\n\n## Perfil: ATIVO\n\nNa dúvida, ENVIE. Um follow-up leve (\"Ficou alguma dúvida sobre o tratamento?\") raramente incomoda e muitas vezes reengaja um lead que só se distraiu. A maioria dos casos deve ser \"enviar\".\n\n## Caso DIA COMBINADO (prioridade máxima absoluta)\n\nSe o campo \"Dia combinado com o cliente\" disser SIM e que CHEGOU A HORA: decisão \"enviar\", SEMPRE — foi o próprio cliente que pediu para ser contactado neste dia; pular ou encerrar aqui é jogar fora um lead quente e quebrar uma promessa. Ângulo: \"retomar lembrando com leveza que ele pediu contato hoje e avançar do ponto onde a conversa parou\". Única exceção: se depois de combinar o dia o cliente recusou claramente (\"não quero mais\"), aí \"encerrar\".\n\n## Caso OBRIGATÓRIO de \"enviar\" (prioridade máxima)\n\n- A última mensagem da Carol é um RECAPITULATIVO ou pergunta de confirmação final (\"está tudo certo assim?\", \"posso confirmar?\", \"correto?\") e o cliente não respondeu: este é o follow-up MAIS VALIOSO que existe — o lead está a UMA resposta de fechar o agendamento. É PROIBIDO pular ou \"aguardar\" nesse cenário. Decisão: \"enviar\", com ângulo de retomar a confirmação pendente de forma leve (ex.: \"retomar o recapitulativo perguntando se pode confirmar o horário\").\n- O mesmo vale quando a Carol fez QUALQUER pergunta objetiva (horário, nome, telefone, preferência) e o cliente sumiu sem responder: enviar, retomando a pergunta pendente. ATENÇÃO: responder \"te aviso\" / \"I'll let you know\" CONTA como resposta do cliente — nesse caso NÃO se aplica esta regra; aplica-se o caso \"EU TE AVISO\" abaixo.\n\n## Caso \"EU TE AVISO\" (cliente disse que ELE entra em contato, SEM prazo)\n\nAplica-se quando o cliente disse explicitamente que ELE volta a falar quando estiver pronto — \"I'll let you know\", \"I'll reach out\", \"te aviso\", \"eu falo com vocês\", \"yo te aviso\", \"les aviso\" — SEM dar um prazo concreto, mesmo que tenha encerrado educadamente com um agradecimento (\"okay thank you\", \"ok obrigado\", 🙏). Cobrar logo depois disso passa imagem de insistência.\n\n- Etapa 1 (cerca de 1h depois): decisão \"pular\". A regra \"pular é PROIBIDO com tentativas = 0\" NÃO vale para este caso — esta é a exceção.\n- Etapa 2 (cerca de 23h depois): decisão \"enviar\", com ângulo de perguntar COM LEVEZA se o lead já tem ideia de prazo, sem pressionar. Exemplo de ângulo: \"perguntar levemente se já tem ideia de quando podemos falar de novo para realizar o agendamento\".\n- Se o cliente deu um PRAZO concreto (\"te aviso em 30 min\", \"give me an hour\") ou combinou um DIA (ver campo \"Dia combinado\"), este caso NÃO se aplica — o sistema já respeita o prazo pedido; decida normalmente.\n\n## Quando \"pular\"\n\n- Tentativas de follow-up já enviadas for MAIOR que zero E o cliente não respondeu nenhuma — não empilhar follow-ups na mesma etapa.\n- Etapa 1 do caso \"EU TE AVISO\" acima.\n- Fora esses dois casos, se tentativas enviadas = 0, \"pular\" é PROIBIDO: nenhuma mensagem da Carol na conversa é follow-up (é atendimento normal), mesmo que apareça por último, e \"a conversa estava avançada\" ou \"vale aguardar\" NÃO são motivos válidos — conversa avançada parada é exatamente onde o follow-up mais converte.\n\n## Quando \"encerrar\"\n\n- O cliente recusou claramente ou demonstrou desinteresse definitivo (\"não tenho interesse\", \"pare de me mandar mensagem\").\n- A conversa já foi concluída: cliente agendou, teve a dúvida totalmente resolvida e agradeceu, ou era assunto que não gera venda (spam, mensagem engano, parceria comercial, divulgação). Cliente que disse \"te aviso\" NÃO entra aqui — esse é o caso \"EU TE AVISO\" (pular na etapa 1, enviar na etapa 2).\n- O contato parece ser de outro profissional/empresa vendendo algo.\n\n## O ângulo (quando decisao = enviar)\n\nUma frase curta em português dizendo o TEMA do follow-up, ancorado no que o lead demonstrou interesse. Exemplos: \"retomar o interesse em limpeza de pele perguntando se ficou dúvida\", \"lembrar que ele pediu vídeos de antes e depois\", \"oferecer ajuda para escolher o melhor horário\". Nunca invente promoções, descontos ou urgência falsa.\n\n## Playbook de vendas (campo situacao_playbook)\n\nO prompt pode trazer o bloco \"PLAYBOOK DE VENDAS\" com situações e seus gatilhos. Compare a conversa com os gatilhos e escolha a situação que MELHOR descreve este lead — ela define a estratégia que o redator vai seguir.\n\n- Escolha pela situação REAL da conversa, não pela mais \"vendedora\".\n- Se nenhuma encaixar com clareza, devolva \"\" (vazio). NUNCA invente um código fora da lista.\n- Se mais de uma encaixar, escolha a mais específica (ex.: lead que recebeu preço de botox e sumiu → \"interessado_injetaveis\" ganha de \"sumiu_apos_preco\").\n- A situação do playbook NÃO muda a sua decisão enviar/pular/encerrar — ela só orienta COMO escrever quando a decisão for \"enviar\".\n\n## Atenção\n\n- Linhas \"[mensagem sem texto registrado]\" são mensagens da Carol cujo texto não foi salvo — não tire conclusões sobre o conteúdo delas.\n- Linhas \"[audio follow-up: ...]\" são áudios do Samuel já enviados como follow-up — contam como tentativa já feita.\n- Links de reels/posts enviados pelo cliente geralmente vieram de anúncio — é interesse real no tratamento do vídeo.\n\n## Formato de resposta\n\nResponda APENAS com JSON válido, sem markdown, sem texto extra:\n{\"decisao\": \"enviar\", \"motivo\": \"explicação curta\", \"angulo\": \"tema do follow-up ou vazio se nao for enviar\", \"situacao_playbook\": \"codigo da lista do playbook ou vazio\"}"
+            }
+          ]
+        },
+        "batching": {}
+      }
+    },
+    {
+      "id": "13110883-6f24-4403-832a-a4b40a0be65c",
+      "name": "FOLLOW-UP | Validar Decisão do Juiz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3720,
+        -620
+      ],
+      "parameters": {
+        "jsCode": "// ============================================================\n// VALIDAR DECISÃO DO JUIZ — v3 (playbook + dia combinado)\n// Junta a resposta da IA com os dados do lead e garante que a\n// decisão é válida. Se a IA devolver algo quebrado, aplica o\n// perfil ATIVO: enviar um follow-up leve genérico.\n//\n// TRAVA DETERMINÍSTICA DA AGENDA (v2, mantida):\n// Se o lead é do canal WhatsApp, consulta a Z-API para saber se\n// o número está SALVO na agenda do celular do Samuel.\n//   - Salvo  -> decisão forçada = 'encerrar'.\n//   - Não salvo, ou falha na consulta -> segue o fluxo normal\n//     (fail-open).\n//\n// NOVO na v3:\n//   - PLAYBOOK: valida a situacao_playbook escolhida pelo Juiz\n//     contra a lista real da tabela e monta o bloco de estratégia\n//     que o Redator vai receber (bloco_playbook_redator).\n//   - DIA COMBINADO: se o cliente combinou um dia e o Juiz\n//     decidir \"pular\", vira \"enviar\" na marra — contato no dia\n//     combinado é promessa, não opção.\n// ============================================================\nconst lead = $('FOLLOW-UP | Montar Análise do Juiz').first().json;\nconst config = $('FOLLOW-UP | Config Follow-up').first().json;\n\n// ---------- TRAVA DA AGENDA (só WhatsApp) ----------\nasync function estaSalvoNaAgenda(telefone) {\n  if (!telefone) return false;\n  try {\n    const resposta = await this.helpers.httpRequest({\n      method: 'GET',\n      url: String(config.zapi_base_url || '') + '/contacts/' + telefone,\n      headers: { 'Client-Token': String(config.zapi_client_token || '') },\n      json: true,\n      timeout: 8000\n    });\n\n    const contato = Array.isArray(resposta) ? (resposta[0] || {}) : (resposta || {});\n    const nomeAgenda = String(contato.name || contato.short || '').trim();\n\n    if (!nomeAgenda) return false;\n    // Nome que é só o próprio número não conta como salvo.\n    if (nomeAgenda.replace(/[^0-9]/g, '') === telefone) return false;\n\n    return true;\n  } catch (e) {\n    // Falha na Z-API: não encerra (fail-open).\n    return false;\n  }\n}\n\nif (String(lead.canal || '') === 'whatsapp') {\n  const telefoneLead = String(lead.sender_id || '').replace(/[^0-9]/g, '');\n  const salvo = await estaSalvoNaAgenda.call(this, telefoneLead);\n  if (salvo) {\n    return [{\n      json: {\n        ...lead,\n        decisao: 'encerrar',\n        motivo_juiz: 'trava: contato salvo na agenda do Samuel — follow-up proibido',\n        angulo: '',\n        situacao_playbook: '',\n        bloco_playbook_redator: ''\n      }\n    }];\n  }\n}\n// ---------------------------------------------------\n\nconst bruto = String($json.text || $json.output || '').trim();\n\nlet decisao = '';\nlet motivo = '';\nlet angulo = '';\nlet situacaoPlaybook = '';\n\ntry {\n  // Tira cercas de markdown se vierem (```json ... ```).\n  const limpo = bruto.replace(/^```json?\\s*/i, '').replace(/```\\s*$/i, '').trim();\n  const obj = JSON.parse(limpo);\n  decisao = String(obj.decisao || '').toLowerCase().trim();\n  motivo  = String(obj.motivo || '').trim();\n  angulo  = String(obj.angulo || '').trim();\n  situacaoPlaybook = String(obj.situacao_playbook || '').toLowerCase().trim();\n} catch (e) {\n  decisao = '';\n}\n\n// Decisão inválida → perfil ativo: follow-up leve na dúvida.\nif (!['enviar', 'pular', 'encerrar'].includes(decisao)) {\n  decisao = 'enviar';\n  motivo = 'fallback: resposta do juiz invalida, aplicado perfil ativo';\n  angulo = 'perguntar de forma leve se ficou alguma duvida sobre o tratamento';\n}\n\n// TRAVA DETERMINÍSTICA (caso Nathan): com ZERO follow-ups enviados, \"pular\"\n// é PROIBIDO — a única razão válida de pular é não empilhar follow-up em cima\n// de outro follow-up, e sem tentativas não existe follow-up nenhum. O Juiz já\n// pulou um lead parado no recapitulativo final (\"vale aguardar\") e o lead\n// esfriou. Se ele pular com tentativas = 0, vira \"enviar\" na marra.\n// EXCEÇÃO: o caso \"EU TE AVISO\" na etapa 1 — o Juiz menciona isso no motivo,\n// e nesse caso o pular é legítimo mesmo com 0 tentativas.\nconst tentativasJaEnviadas = Number(lead.tentativas_enviadas || 0);\nconst pularLegitimoTeAviso = /te aviso|let you know|eu te aviso|avisa|reach out/i.test(motivo);\nif (decisao === 'pular' && tentativasJaEnviadas === 0 && !pularLegitimoTeAviso) {\n  decisao = 'enviar';\n  motivo = 'guardrail: juiz pulou com 0 tentativas enviadas (motivo original: ' + motivo + ')';\n  if (!angulo) angulo = 'retomar a conversa do ponto exato em que parou, de forma leve';\n}\n\n// TRAVA DO DIA COMBINADO: o cliente pediu contato neste dia.\n// \"pular\" aqui quebraria a promessa — vira \"enviar\" na marra.\nconst temDiaCombinado = String(lead.dia_combinado || '').trim() !== '';\nif (temDiaCombinado && decisao === 'pular') {\n  decisao = 'enviar';\n  motivo = 'guardrail: dia combinado pelo cliente — contato obrigatorio (motivo original: ' + motivo + ')';\n}\nif (temDiaCombinado && decisao === 'enviar' && !angulo) {\n  angulo = 'retomar lembrando com leveza que o cliente pediu contato hoje e avancar do ponto onde a conversa parou';\n}\n\n// Enviar sem ângulo → dá um ângulo genérico leve.\nif (decisao === 'enviar' && !angulo) {\n  angulo = 'perguntar de forma leve se ficou alguma duvida sobre o tratamento';\n}\n\n// ---------- PLAYBOOK: valida a situação e monta o bloco do Redator ----------\nconst playbookRows = Array.isArray(lead.playbook_rows) ? lead.playbook_rows : [];\nconst linhaPlaybook = situacaoPlaybook\n  ? (playbookRows.find(r => String(r.situacao || '').toLowerCase().trim() === situacaoPlaybook) || null)\n  : null;\n\nlet blocoPlaybookRedator = '';\nif (decisao === 'enviar' && linhaPlaybook) {\n  blocoPlaybookRedator =\n    'ESTRATEGIA DO PLAYBOOK — ' + String(linhaPlaybook.nome || linhaPlaybook.situacao) + ':\\n' +\n    'O que fazer (siga a risca, incluindo o que NAO fazer): ' + String(linhaPlaybook.abordagem || '') +\n    (linhaPlaybook.exemplo_mensagem\n      ? '\\nReferencia de TOM (PROIBIDO copiar literalmente — escreva com suas palavras, no idioma do lead): \"' + String(linhaPlaybook.exemplo_mensagem) + '\"'\n      : '');\n}\n\nreturn [{ json: {\n  ...lead,\n  decisao,\n  motivo_juiz: motivo,\n  angulo,\n  situacao_playbook: linhaPlaybook ? String(linhaPlaybook.situacao) : '',\n  bloco_playbook_redator: blocoPlaybookRedator\n} }];"
+      }
+    },
+    {
+      "id": "13597b5d-56a6-47b0-87c3-6e92f123b546",
+      "name": "FOLLOW-UP | Rotear Decisão do Juiz",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        4080,
+        -510
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decisao }}",
+                    "rightValue": "enviar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "499d2f43-0d92-4cfd-9209-6ef5cf5c404b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "enviar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "154bce93-2d02-409d-89b2-25d4636ed15b",
+                    "leftValue": "={{ $json.decisao }}",
+                    "rightValue": "pular",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pular"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6379d7e0-1552-4dca-80e3-fac5473b49f3",
+                    "leftValue": "={{ $json.decisao }}",
+                    "rightValue": "encerrar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "encerrar"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c7b4df8b-e309-4962-837c-46636a1f1fef",
+      "name": "FOLLOW-UP | Pular Etapa",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4440,
+        -510
+      ],
+      "parameters": {
+        "operation": "update",
+        "tableId": "lexia_followups",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "etapa",
+              "fieldValue": "={{ $json.etapa + 1 }}"
+            },
+            {
+              "fieldId": "proxima_tentativa_em",
+              "fieldValue": "={{ ($json.etapa === 1 ? DateTime.fromISO($json.ultima_msg_cliente_em).plus({ hours: 23 }) : DateTime.fromISO($json.ultima_msg_cliente_em).plus({ days: $json.etapa === 2 ? 3 : 7 })).toISO() }}"
+            },
+            {
+              "fieldId": "motivo_juiz",
+              "fieldValue": "={{ $json.motivo_juiz }}"
+            },
+            {
+              "fieldId": "atualizado_em",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "8ce245fb-05d8-40c7-82c2-b7305acd41d4",
+      "name": "FOLLOW-UP | Encerrar Follow-up",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4440,
+        -290
+      ],
+      "parameters": {
+        "operation": "update",
+        "tableId": "lexia_followups",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "encerrado"
+            },
+            {
+              "fieldId": "motivo_encerramento",
+              "fieldValue": "={{ $json.motivo_juiz }}"
+            },
+            {
+              "fieldId": "atualizado_em",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "830166b8-57a8-4450-883c-be2d4caeeb54",
+      "name": "FOLLOW-UP | Redator de Follow-up",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        4440,
+        -730
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "==Lead: {{ $json.nome_contacto || 'sem nome' }}\nCanal: {{ $json.canal }}\nIdioma do cliente (detectado por código, OBRIGATÓRIO na resposta): {{ $json.idioma_cliente_nome || 'PORTUGUES' }}\nHoras desde a última mensagem do cliente: {{ $json.horas_silencio }}\nDia combinado com o cliente: {{ $json.dia_combinado_info }}\nÂngulo definido pelo Juiz: {{ $json.angulo }}\nEtapa: {{ $json.etapa }} (1 = cerca de 1h de silêncio, 2 = quase um dia de silêncio)\n\n{{ $json.bloco_playbook_redator }}\n\n{{ $json.bloco_followups_anteriores }}\n\nTranscrição da conversa (CLIENTE = lead, AGENTE = você, Carol):\n{{ $json.transcricao }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "==Você é Carol Braga, assistente da Miranda Skin Experts, clínica de estética em Medford, MA (Samuel Miranda: tratamentos faciais e depilação a laser; Bruna Rezende: injetáveis). Público majoritariamente masculino.\n\nO lead parou de responder e você vai enviar UMA mensagem curta de follow-up, no canal indicado no campo \"Canal\" (WhatsApp ou Instagram), seguindo o ângulo definido.\n\n## Regras da mensagem\n\n- IDIOMA (regra inviolável, decide antes de escrever): a mensagem sai 100% no idioma indicado no campo \"Idioma do cliente\" — esse valor foi detectado POR CÓDIGO a partir das mensagens do CLIENTE e é a fonte da verdade. IGNORE o idioma das mensagens do AGENTE na transcrição: se o agente escreveu em português mas o campo diz INGLES, a sua mensagem sai em inglês. Uma mensagem no idioma errado é a falha mais grave possível.\n- NUNCA REPETIR (segunda regra mais importante): se o prompt trouxer a lista \"FOLLOW-UPS JA ENVIADOS A ESTE LEAD\", a sua nova mensagem é PROIBIDA de repetir ou parafrasear qualquer uma delas. Mude a abordagem por completo: se o anterior perguntou sobre horário, fale do serviço; se o anterior foi \"checking in\", vá direto a algo concreto da conversa. Frases de abertura, perguntas finais e estrutura devem ser DIFERENTES das já usadas.\n- PLAYBOOK: se o prompt trouxer o bloco \"ESTRATEGIA DO PLAYBOOK\", ele manda no CONTEÚDO da mensagem: siga a abordagem à risca, incluindo o que ela PROÍBE (ex.: não repetir preço, não dar desconto, não cobrar decisão). A \"referência de TOM\" é só inspiração — PROIBIDO copiá-la literalmente ou traduzi-la palavra por palavra: escreva com as suas palavras, ancorado em um detalhe REAL da conversa deste lead.\n- DIA COMBINADO: se o campo \"Dia combinado\" disser que chegou a hora, a mensagem abre lembrando com leveza que foi o cliente que pediu contato hoje (\"você me pediu pra te chamar hoje...\") e retoma do ponto onde a conversa parou. Nunca em tom de cobrança.\n- REAPRESENTAÇÃO: se o silêncio for de 48 horas ou mais, ou se for um contato de dia combinado, abra identificando-se em meia frase (\"Oi, é a Carol, da Miranda Skin Experts!\" — no idioma do lead). Com silêncio menor que 48h, NÃO se reapresente: o lead ainda lembra de você.\n- Máximo 2 frases curtas e cerca de 250 caracteres no total. Follow-up bom é leve, não é discurso — o lead lê no celular.\n- Tom: simpático, casual, zero pressão. Como quem retoma uma conversa, não como quem cobra.\n- Use o primeiro nome do lead se souber (só o primeiro nome).\n- Termine com uma pergunta simples que facilite a resposta.\n- Siga o ângulo do Juiz — é o tema, não o texto literal. Se o ângulo vier em português e a resposta for em inglês/espanhol, traduza a ideia com naturalidade nativa.\n\n## Proibido\n\n- Repetir ou parafrasear qualquer follow-up já enviado (lista no prompt).\n- Inventar promoções, descontos, preços ou urgência falsa (\"últimas vagas\", \"só hoje\").\n- Repetir um preço que já foi dito na conversa (reancorar no benefício, nunca no número).\n- Perguntar \"viu minha mensagem?\" ou qualquer variação.\n- Emojis.\n- Travessão (—).\n- Pedir desculpas pela \"demora\" ou mencionar que é um follow-up automático.\n- Repetir uma pergunta que a Carol já fez com as mesmas palavras na conversa.\n- Mencionar WhatsApp quando o canal for Instagram (nem o contrário).\n\n## Formato de resposta\n\nResponda APENAS com o texto da mensagem, sem aspas, sem markdown, sem explicações."
+            }
+          ]
+        },
+        "batching": {}
+      }
+    },
+    {
+      "id": "fd05524e-6745-4112-81f1-062fcab97d9b",
+      "name": "FOLLOW-UP | OpenAI Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        4440,
+        -70
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4-mini"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "1928c7d1-218f-41db-8d8d-44be25f87498",
+      "name": "FOLLOW-UP | Config Follow-up",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        -510
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cliente_slug",
+              "name": "cliente_slug",
+              "type": "string",
+              "value": "miranda_skin_experts"
+            },
+            {
+              "id": "timezone",
+              "name": "timezone",
+              "type": "string",
+              "value": "America/New_York"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e8771151-b62f-46bb-8964-9e734b5115a4",
+      "name": "FOLLOW-UP | Preparar Envio Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4800,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "// ============================================================\n// PREPARAR ENVIO FOLLOW-UP — v5 (tema do áudio pela conversa)\n// Junta o texto do Redator com o lead, sanitiza a mensagem e\n// calcula a próxima etapa do ciclo.\n//\n// NOVO na v5:\n//   - O tema do áudio do Samuel ganha FALLBACK: se o lead NÃO veio\n//     de anúncio (tema_audio vazio — lead orgânico), usa o\n//     tema_detectado que o Montar Análise do Juiz v4 encontrou na\n//     própria conversa. O tema do anúncio, quando existe, continua\n//     mandando. Todas as outras condições do áudio seguem iguais.\n//     Requer o Montar Análise do Juiz v4 aplicado.\n//\n// Mantido da v4:\n//   1. ÁUDIO DO SAMUEL nas DUAS etapas (1 e 2) do WhatsApp — e\n//      portanto também nos leads de \"promessa vaga\", que nascem\n//      direto na etapa 2. Máximo de UM áudio por lead: se o\n//      histórico já tem um '[audio follow-up: ...]', vai texto.\n//      Contato de DIA COMBINADO nunca leva áudio (precisa ser\n//      contextual: \"você pediu pra eu te chamar hoje\").\n//   2. TRAVA DE TAMANHO: texto acima de 300 caracteres é\n//      encurtado de forma determinística, preservando a pergunta\n//      final.\n//   3. Correção de agendamento da etapa 2: se \"última msg do\n//      cliente + 23h\" já passou (ex.: contato de dia combinado,\n//      dias depois), a etapa 2 vai para agora + 23h — antes o\n//      floor de 30 min fazia dois follow-ups caírem quase juntos.\n//   4. dia_combinado sai como null no retorno — depois do envio,\n//      o \"Atualizar Após Envio\" limpa a coluna (dia cumprido).\n// ============================================================\nconst lead = $('FOLLOW-UP | Validar Decisão do Juiz').first().json;\n\n// --- Texto do Redator, sanitizado ---\nlet texto = String($json.text || $json.output || '').trim()\n  .replace(/^```[a-z]*\\s*/i, '').replace(/```\\s*$/i, '')\n  .replace(/^[\"'\\u201C]+|[\"'\\u201D]+$/g, '')   // aspas envolvendo\n  .replace(/\\u2014/g, '-')                       // travessão\n  .replace(/\\s+\\n/g, '\\n')\n  .trim();\n\n// --- Idioma e follow-ups anteriores (do Montar Análise do Juiz) ---\nlet analise = {};\ntry { analise = $('FOLLOW-UP | Montar Análise do Juiz').first().json || {}; } catch (e) { analise = {}; }\nconst idiomaLead = ['pt', 'en', 'es'].includes(String(analise.idioma_cliente)) ? String(analise.idioma_cliente) : 'pt';\nconst followupsAnteriores = Array.isArray(analise.followups_anteriores) ? analise.followups_anteriores : [];\nconst primeiroNome = String(lead.nome_contacto || '').trim().split(/\\s+/)[0] || '';\n\nconst FALLBACKS = {\n  pt: 'Oi! Ficou alguma dúvida sobre o tratamento? Estou por aqui.',\n  en: 'Hi! Any questions I can help with? I am right here.',\n  es: 'Hola! Quedó alguna duda sobre el tratamiento? Estoy por aquí.'\n};\nif (!texto) {\n  texto = FALLBACKS[idiomaLead];\n}\n\n// ============================================================\n// TRAVA ANTI-REPETIÇÃO — determinística, nada de IA.\n// Compara o texto do Redator com os follow-ups já enviados a\n// este lead. Se for parecido demais (>= 60% das palavras em\n// comum), troca por uma variante segura no idioma do lead que\n// ainda não tenha sido usada.\n// ============================================================\nfunction normalizarComparacao(v) {\n  return String(v || '').toLowerCase().normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\nfunction similares(a, b) {\n  const na = normalizarComparacao(a);\n  const nb = normalizarComparacao(b);\n  if (!na || !nb) return false;\n  if (na === nb) return true;\n  const setA = new Set(na.split(' '));\n  const setB = new Set(nb.split(' '));\n  let comum = 0;\n  for (const p of setA) if (setB.has(p)) comum++;\n  const jaccard = comum / (setA.size + setB.size - comum);\n  return jaccard >= 0.6;\n}\nfunction variantesSeguras(idioma, nome) {\n  const n = nome ? ' ' + nome : '';\n  if (idioma === 'en') return [\n    'No rush at all' + (nome ? ', ' + nome : '') + '. Want me to check some other days and times for you?',\n    'Hey' + n + ', quick question. Is there anything holding you back that I can help with?',\n    'Whatever works best for you' + (nome ? ', ' + nome : '') + '. Would mornings or afternoons be easier?'\n  ];\n  if (idioma === 'es') return [\n    'Sin apuro' + (nome ? ', ' + nome : '') + '. Quieres que revise otros dias y horarios para ti?',\n    'Hola' + n + ', una pregunta rapida. Hay algo que te este frenando en lo que pueda ayudar?',\n    'Lo que mejor te quede' + (nome ? ', ' + nome : '') + '. Te resulta mas facil por la manana o por la tarde?'\n  ];\n  return [\n    'Sem pressa nenhuma' + (nome ? ', ' + nome : '') + '. Quer que eu veja outros dias e horários pra você?',\n    'Oi' + n + ', uma pergunta rápida. Tem algo te segurando em que eu possa ajudar?',\n    'Como ficar melhor pra você' + (nome ? ', ' + nome : '') + '. Prefere de manhã ou de tarde?'\n  ];\n}\n\nlet repetiu = false;\nif (followupsAnteriores.length && followupsAnteriores.some(f => similares(texto, f))) {\n  repetiu = true;\n  for (const variante of variantesSeguras(idiomaLead, primeiroNome)) {\n    if (!followupsAnteriores.some(f => similares(variante, f))) {\n      texto = variante;\n      break;\n    }\n  }\n}\n\n// ============================================================\n// TRAVA DE TAMANHO — determinística, nada de IA.\n// O Redator tem a regra dos 250 caracteres no prompt, mas prompt\n// não é garantia. Acima de 300, encurta preservando a pergunta\n// final (é ela que reengaja o lead).\n// ============================================================\nfunction encurtar(valor) {\n  const LIMITE = 300;\n  if (valor.length <= LIMITE) return valor;\n  const frases = valor.match(/[^.!?\\n]+[.!?]*\\s*/g) || [valor];\n  let pergunta = '';\n  for (let i = frases.length - 1; i >= 0; i--) {\n    if (frases[i].includes('?')) { pergunta = frases[i].trim(); break; }\n  }\n  let corpo = '';\n  for (const f of frases) {\n    const fTrim = f.trim();\n    if (!fTrim || fTrim === pergunta) continue;\n    const candidato = (corpo + ' ' + fTrim).trim();\n    if (candidato.length + (pergunta ? pergunta.length + 1 : 0) > LIMITE) break;\n    corpo = candidato;\n  }\n  let curto = (corpo + (pergunta ? ' ' + pergunta : '')).trim();\n  if (!curto || curto.length > LIMITE) curto = valor.slice(0, LIMITE).trim();\n  return curto;\n}\nconst tamanhoOriginal = texto.length;\ntexto = encurtar(texto);\nconst travaTamanhoAcionada = texto.length < tamanhoOriginal;\n\n// --- contacto_id (para gravar no histórico) ---\nlet contactoId = '';\ntry {\n  contactoId = $('FOLLOW-UP | Buscar Histórico Follow-up').first().json.contacto_id || '';\n} catch (e) { contactoId = ''; }\n\n// ============================================================\n// ÁUDIO DO SAMUEL — determinístico, nada de IA.\n// Entra quando TUDO bate: canal whatsapp, etapa 1 OU 2, tema\n// definido (pelo anúncio de origem OU, novo na v5, detectado na\n// própria conversa pelo Montar Análise v4 — leads orgânicos),\n// áudio disponível no idioma do lead, NENHUM áudio já enviado a\n// este lead e SEM dia combinado.\n// Qualquer coisa fora disso -> texto normal.\n// ============================================================\nconst AUDIOS_FOLLOWUP = {\n  laser: {\n    pt: 'asset://miranda/followup/default'\n    // en: '',  // preencher quando o Samuel gravar\n    // es: ''\n  },\n  avaliacao: {\n    pt: 'asset://miranda/followup/default'\n    // en: '',\n    // es: ''\n  }\n};\nconst NOMES_TEMA = { laser: 'depilacao a laser', avaliacao: 'avaliacao de pele' };\n\nlet tipoEnvio = 'texto';\nlet audioUrl = '';\n// Tema: anúncio de origem manda; se vazio (lead orgânico), vale o\n// detectado na conversa pelo Montar Análise do Juiz v4.\nconst temaDetectado = ['laser', 'avaliacao'].includes(String(analise.tema_detectado || '').trim())\n  ? String(analise.tema_detectado).trim()\n  : '';\nconst temaAudio = String(lead.tema_audio || '').trim() || temaDetectado;\nconst etapaAtual = Number(lead.etapa);\nconst temDiaCombinado = String(lead.dia_combinado || '').trim() !== '';\nconst jaRecebeuAudio = followupsAnteriores.some(f => String(f).includes('[audio follow-up:'));\n\nif (\n  String(lead.canal || '') === 'whatsapp' &&\n  (etapaAtual === 1 || etapaAtual === 2) &&\n  !temDiaCombinado &&\n  !jaRecebeuAudio &&\n  AUDIOS_FOLLOWUP[temaAudio] &&\n  AUDIOS_FOLLOWUP[temaAudio][idiomaLead]\n) {\n  tipoEnvio = 'audio';\n  audioUrl = AUDIOS_FOLLOWUP[temaAudio][idiomaLead];\n  // O que fica registado no histórico e usado na chave de eco:\n  texto = '[audio follow-up: ' + NOMES_TEMA[temaAudio] + ' (' + idiomaLead + ')]';\n}\n\n// --- chave de eco (mesmo formato do Omnichannel) ---\nfunction normalizarTexto(valor) {\n  return String(valor || '').toLowerCase().normalize('NFD')\n    .replace(/[\\u0300-\\u036f]/g, '').replace(/\\s+/g, ' ').trim();\n}\nfunction textoParaChave(valor) {\n  return normalizarTexto(valor).replace(/[^a-z0-9]+/g, '_')\n    .replace(/^_+|_+$/g, '').slice(0, 180);\n}\nconst ecoChave = textoParaChave(texto) || 'sem_conteudo';\n\n// --- próxima etapa do ciclo ---\n// Decisão do Samuel: máximo de 2 tentativas em QUALQUER canal.\n// Etapa 1 → agenda a etapa 2 (~23h). Depois da etapa 2 → o ciclo\n// ENCERRA.\nconst TZ = 'America/New_York';\nconst ultima = DateTime.fromISO(String(lead.ultima_msg_cliente_em || ''), { zone: TZ });\nlet etapaNova, proxima;\nlet statusNovo = 'agendado';\nlet motivoEncerramentoNovo = '';\nif (etapaAtual === 1) {\n  etapaNova = 2;\n  proxima = ultima.isValid ? ultima.plus({ hours: 23 }) : $now.plus({ hours: 23 });\n  // Se a referência já passou (ex.: contato de dia combinado, dias\n  // depois da última msg), a etapa 2 fica para ~23h a partir de agora.\n  if (proxima <= $now) proxima = $now.plus({ hours: 23 });\n} else {\n  etapaNova = 2;                          // etapa 2 foi a última tentativa\n  statusNovo = 'encerrado';\n  motivoEncerramentoNovo = 'ciclo completo (2 tentativas)';\n  proxima = $now;\n}\n// (janela comercial/Meta é revalidada pelas Travas quando o horário vencer)\n\nreturn [{ json: {\n  ...lead,\n  texto_followup: texto,\n  tipo_envio: tipoEnvio,\n  audio_url: audioUrl,\n  trava_anti_repeticao_acionada: repetiu,\n  trava_tamanho_acionada: travaTamanhoAcionada,\n  eco_chave: ecoChave,\n  contacto_id: contactoId,\n  etapa_nova: etapaNova,\n  proxima_tentativa_nova: proxima.toISO(),\n  status_novo: statusNovo,\n  motivo_encerramento_novo: motivoEncerramentoNovo,\n  dia_combinado: null\n} }];"
+      }
+    },
+    {
+      "id": "2f97b97f-2cff-4a73-8bf3-b27fbd3c2d31",
+      "name": "FOLLOW-UP | Buscar Playbook de Vendas",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        -620
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "playbook_vendas_miranda",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ativo",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1b04431e-51ca-442b-8c9e-97cae02421f1",
+      "name": "FOLLOW-UP | Preparar escopo do follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5160,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst accountId = row.canal === 'whatsapp' ? $env.LEXIA_MIRANDA_ZAPI_ACCOUNT_ID : $env.LEXIA_MIRANDA_INSTAGRAM_ACCOUNT_ID;\nif (!row.identificador || !accountId) throw new Error('followup_scope_unavailable');\nreturn [{ json: { row, account_id: accountId, conversation_ref: String(row.identificador) } }];"
+      }
+    },
+    {
+      "id": "8bf827c9-e152-4131-8ea8-644378bd95aa",
+      "name": "FOLLOW-UP | Resolver conversa do follow-up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5520,
+        -510
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_conversation_states?account_id=eq.' + encodeURIComponent($json.account_id) + '&conversation_ref=eq.' + encodeURIComponent($json.conversation_ref) + '&select=id,environment,cliente_slug,channel,account_id,conversation_ref,state_version,delivery_epoch&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "2ed6aa91-c782-4261-8963-8ea15c04e443",
+      "name": "FOLLOW-UP | Montar pedido idempotente de follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6240,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "const input = $('FOLLOW-UP | Preparar escopo do follow-up').first().json;\nconst rows = (() => { const items = $('FOLLOW-UP | Resolver conversa do follow-up').all(); if (items.length !== 1) throw new Error('Resolver conversa do follow-up output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1) throw new Error('followup_conversation_not_unique');\nconst state = rows[0], row = input.row;\nconst requestId = (() => {\n  const seedText = String(String(row.id) + ':' + String(row.etapa) + ':' + String(row.proxima_tentativa_em));\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst actionId = (() => {\n  const seedText = String(requestId + ':action:1');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nlet content;\nif (row.followup_media_ref && row.followup_media_type === 'image') content = { type: 'image', media_ref: String(row.followup_media_ref), ...(row.texto_followup ? { caption: String(row.texto_followup) } : {}) };\nelse if (row.tipo_envio === 'audio') content = { type: 'audio', media_ref: 'asset://miranda/followup/' + String(row.tema_audio || 'default') };\nelse content = { type: 'text', text: String(row.texto_followup || '').trim() };\nif (content.type === 'text' && !content.text) throw new Error('followup_text_required');\nconst scope = { environment: state.environment, cliente_slug: state.cliente_slug, channel: state.channel, account_ref: state.account_id, conversation_ref: state.conversation_ref };\nreturn [{ json: { request: { schema_version: 'lexia.automation.request.v1', request_id: requestId,\n  correlation_id: (() => {\n  const seedText = String(requestId + ':correlation');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(), kind: 'followup', conversation_id: state.id, scope,\n  source_ref: 'followup:' + row.id + ':' + row.etapa, due_at: row.proxima_tentativa_em,\n  proposed_actions: [{ schema_version: 'lexia.outbound.action.v1', action_id: actionId, invocation_id: requestId,\n    scope, sequence: 1, kind: 'followup', source_ref: 'followup:' + row.id,\n    captured_state: { state_version: Number(state.state_version), delivery_epoch: Number(state.delivery_epoch) }, content }] },\n  delivery_mode: $env.LEXIA_DELIVERY_MODE || 'observe_only', source_row: row } }];"
+      }
+    },
+    {
+      "id": "cf82953c-2cde-4f1a-8410-d2efcddc7139",
+      "name": "FOLLOW-UP | Converter aviso manual em handoff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst accountId = row.canal === 'whatsapp' ? $env.LEXIA_MIRANDA_ZAPI_ACCOUNT_ID : $env.LEXIA_MIRANDA_INSTAGRAM_ACCOUNT_ID;\nreturn [{ json: { row, account_id: accountId, conversation_ref: String(row.identificador) } }];"
+      }
+    },
+    {
+      "id": "0ae9469b-1c8f-4936-8429-b7518c95e94f",
+      "name": "FOLLOW-UP | Resolver conversa para handoff de follow-up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        -400
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_conversation_states?account_id=eq.' + encodeURIComponent($json.account_id) + '&conversation_ref=eq.' + encodeURIComponent($json.conversation_ref) + '&select=id,environment,cliente_slug,channel,account_id,conversation_ref&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "965be111-a2e2-4f9c-88fc-02dfc7871f83",
+      "name": "FOLLOW-UP | Preparar pendência durável de follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "const input = $('FOLLOW-UP | Converter aviso manual em handoff').first().json;\nconst rows = (() => { const items = $('FOLLOW-UP | Resolver conversa para handoff de follow-up').all(); if (items.length !== 1) throw new Error('Resolver conversa para handoff de follow-up output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1) throw new Error('followup_handoff_conversation_not_unique');\nconst state = rows[0], ref = (() => {\n  const seedText = String(String(input.row.id) + ':followup:handoff');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nreturn [{ json: { ...input, state, handoff_ref: ref, rpc_body: { p_conversation_id: state.id,\n  p_idempotency_key: 'followup-handoff:' + input.row.id, p_handoff_ref: ref,\n  p_motivo: 'followup_requires_manual_contact', p_resumo: String(input.row.motivo_trava || 'Contato manual necessário'),\n  p_prioridade: 'normal', p_occurred_at: new Date().toISOString() } } }];"
+      }
+    },
+    {
+      "id": "8f5d77b8-f0a0-4fea-8779-a87d4b5c7644",
+      "name": "FOLLOW-UP | Criar handoff sem enviar aviso paralelo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        -400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_request_handoff' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "098d15a1-3f72-4901-822a-3d22772fe85c",
+      "name": "FOLLOW-UP | Espelhar handoff de follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "const input = $('FOLLOW-UP | Preparar pendência durável de follow-up').first().json;\nconst rows = (() => { const items = $('FOLLOW-UP | Criar handoff sem enviar aviso paralelo').all(); if (items.length !== 1) throw new Error('Criar handoff sem enviar aviso paralelo output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result?.out_handoff_id) throw new Error('central_handoff_id_missing');\nconst event = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(input.handoff_ref + ':crm');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: 'followup-handoff:' + input.row.id + ':crm', correlation_id: (() => {\n  const seedText = String(input.handoff_ref + ':correlation');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  event_type: 'handoff.requested', occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: 1,\n  scope: { environment: input.state.environment, cliente_slug: input.state.cliente_slug, channel: input.state.channel, account_ref: input.state.account_id, conversation_ref: input.state.conversation_ref },\n  source: { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-followup', execution_ref: $execution.id },\n  payload: { handoff_ref: input.handoff_ref, central_handoff_id: result.out_handoff_id, reason: 'followup_requires_manual_contact', summary: String(input.row.motivo_trava || 'Contato manual necessário'), priority: 'normal', requested_at: new Date().toISOString() } };\nreturn [{ json: { events: [event], passthrough: input.row } }];"
+      }
+    },
+    {
+      "id": "411857b4-a315-4970-83b6-1daeff35b2f0",
+      "name": "FOLLOW-UP | Espelhar pendência no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3720,
+        -400
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "65688b19-4926-4392-830e-9a2be967627c",
+      "name": "LEMBRETE | Intervalo 1h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        120,
+        690
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "52382fb9-4e6b-43bf-8c29-d9384216dbf1",
+      "name": "LEMBRETE | Config Lembretes",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        480,
+        690
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cliente_slug",
+              "name": "cliente_slug",
+              "type": "string",
+              "value": "miranda_skin_experts"
+            },
+            {
+              "id": "timezone",
+              "name": "timezone",
+              "type": "string",
+              "value": "America/New_York"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2262e897-f6fb-4675-8234-4b16a3b007ee",
+      "name": "LEMBRETE | Buscar Consultas Próximas",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        840,
+        690
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agendamentos_miranda_skin",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "confirmado"
+            },
+            {
+              "keyName": "inicio",
+              "condition": "gte",
+              "keyValue": "={{ $now.toISO() }}"
+            },
+            {
+              "keyName": "inicio",
+              "condition": "lte",
+              "keyValue": "={{ $now.plus({ hours: 24 }).toISO() }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bb251b16-cc23-4be6-8257-dae9961d407f",
+      "name": "LEMBRETE | Travas de Lembrete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        690
+      ],
+      "parameters": {
+        "jsCode": "// ============================================================\n// TRAVAS DE LEMBRETE — determinístico, sem IA.\n// Recebe as consultas confirmadas das próximas 24h e decide\n// quais recebem lembrete AGORA. Monta o texto no idioma do\n// cliente (pt/en/es).\n//\n// Regras:\n//   1. Só consultas com status 'confirmado'.\n//   2. Lembrete único: se lembrete_enviado_em já existe, pula.\n//   3. Janela: faltando 24h ou menos para a consulta.\n//   4. Em cima da hora não: faltando menos de 2h, não envia\n//      (consulta marcada de última hora não precisa de lembrete).\n//   5. Telefone válido (10+ dígitos).\n//   6. Só envia entre 7h e 20h (Boston) — se cair fora, a\n//      próxima rodada do trigger pega.\n// ============================================================\nconst TZ = 'America/New_York';\nconst agora = $now.setZone(TZ);\n\n// Janela de envio: 7h–20h (qualquer dia — domingo conta, porque\n// o lembrete de uma consulta de segunda de manhã sai no domingo).\nif (agora.hour < 7 || agora.hour >= 20) return [];\n\nconst saida = [];\n\nfor (const item of $input.all()) {\n  const row = item.json || {};\n  if (!row.event_id) continue;                          // item vazio do Always Output Data\n  if (String(row.status || '') !== 'confirmado') continue;\n  if (row.lembrete_enviado_em) continue;                // lembrete único\n\n  const inicio = DateTime.fromISO(String(row.inicio || ''), { zone: TZ }).setZone(TZ);\n  if (!inicio.isValid) continue;\n\n  const faltamHoras = inicio.diff(agora, 'hours').hours;\n  if (faltamHoras > 24) continue;                       // ainda é cedo\n  if (faltamHoras < 2) continue;                        // em cima da hora\n\n  const telefone = String(row.telefone || '').replace(/[^0-9]/g, '');\n  if (telefone.length < 10) continue;\n\n  // --- idioma e pedaços da mensagem ---\n  const idioma = ['pt', 'en', 'es'].includes(String(row.idioma)) ? String(row.idioma) : 'en';\n  const primeiroNome = String(row.nome_cliente || '').trim().split(/\\s+/)[0] || '';\n  const servico = String(row.servico || '').trim() || (idioma === 'pt' ? 'sua consulta' : (idioma === 'es' ? 'tu cita' : 'your appointment'));\n\n  const mesmoDia = inicio.hasSame(agora, 'day');\n  const hora = idioma === 'en' ? inicio.toFormat('h:mm a') : inicio.toFormat('HH:mm');\n\n  let mensagem;\n  if (idioma === 'pt') {\n    const dia = mesmoDia ? 'hoje' : 'amanhã';\n    mensagem = 'Oi' + (primeiroNome ? ' ' + primeiroNome : '') + '! Aqui é a Carol, da Miranda Skin Experts. ' +\n      'Passando para lembrar da sua consulta de ' + servico + ' ' + dia + ' às ' + hora + '. ' +\n      'Você pode me responder por aqui confirmando sua presença, por favor? ' +\n      'Se tiver qualquer imprevisto, me avisa que a gente remarca.';\n  } else if (idioma === 'es') {\n    const dia = mesmoDia ? 'hoy' : 'mañana';\n    mensagem = 'Hola' + (primeiroNome ? ' ' + primeiroNome : '') + '! Soy Carol, de Miranda Skin Experts. ' +\n      'Te escribo para recordarte tu cita de ' + servico + ' ' + dia + ' a las ' + hora + '. ' +\n      'Me respondes por aqui confirmando tu asistencia, por favor? ' +\n      'Si surge cualquier imprevisto, avisame y lo reagendamos.';\n  } else {\n    const dia = mesmoDia ? 'today' : 'tomorrow';\n    mensagem = 'Hi' + (primeiroNome ? ' ' + primeiroNome : '') + '! It\\'s Carol from Miranda Skin Experts. ' +\n      'Just a friendly reminder of your ' + servico + ' appointment ' + dia + ' at ' + hora + '. ' +\n      'Could you reply here to confirm you\\'re coming, please? ' +\n      'If anything comes up, just let me know and we can reschedule.';\n  }\n\n  saida.push({ json: {\n    event_id: String(row.event_id),\n    telefone,\n    mensagem,\n    nome_cliente: String(row.nome_cliente || ''),\n    servico,\n    inicio: inicio.toISO(),\n    idioma\n  } });\n}\n\nreturn saida;"
+      }
+    },
+    {
+      "id": "d675368c-5c9f-4c99-8714-e0f130d99ddf",
+      "name": "LEMBRETE | Preparar escopo do lembrete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        690
+      ],
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nif (!row.event_id || !row.telefone) throw new Error('reminder_source_invalid');\nreturn [{ json: { row, account_id: $env.LEXIA_MIRANDA_ZAPI_ACCOUNT_ID, conversation_ref: String(row.telefone).replace(/[^0-9]/g, '') } }];"
+      }
+    },
+    {
+      "id": "63e4de72-1ed3-4b16-8c45-c289d55acf62",
+      "name": "LEMBRETE | Resolver conversa do lembrete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        690
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_conversation_states?account_id=eq.' + encodeURIComponent($json.account_id) + '&conversation_ref=eq.' + encodeURIComponent($json.conversation_ref) + '&select=id,environment,cliente_slug,channel,account_id,conversation_ref,state_version,delivery_epoch&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "433345b3-00e2-47e5-848f-829d2930d840",
+      "name": "LEMBRETE | Montar lembrete idempotente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        690
+      ],
+      "parameters": {
+        "jsCode": "const input = $('LEMBRETE | Preparar escopo do lembrete').first().json;\nconst rows = (() => { const items = $('LEMBRETE | Resolver conversa do lembrete').all(); if (items.length !== 1) throw new Error('Resolver conversa do lembrete output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1) throw new Error('reminder_conversation_not_unique');\nconst state = rows[0], row = input.row;\nconst requestId = (() => {\n  const seedText = String(String(row.event_id) + ':reminder:' + String(row.inicio));\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst actionId = (() => {\n  const seedText = String(requestId + ':action:1');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst scope = { environment: state.environment, cliente_slug: state.cliente_slug, channel: state.channel, account_ref: state.account_id, conversation_ref: state.conversation_ref };\nreturn [{ json: { request: { schema_version: 'lexia.automation.request.v1', request_id: requestId,\n  correlation_id: (() => {\n  const seedText = String(requestId + ':correlation');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(), kind: 'appointment_reminder', conversation_id: state.id, scope,\n  source_ref: String(row.event_id), due_at: new Date().toISOString(), proposed_actions: [{ schema_version: 'lexia.outbound.action.v1',\n    action_id: actionId, invocation_id: requestId, scope, sequence: 1, kind: 'appointment_reminder', source_ref: String(row.event_id),\n    captured_state: { state_version: Number(state.state_version), delivery_epoch: Number(state.delivery_epoch) },\n    content: { type: 'text', text: String(row.mensagem) } }] },\n  delivery_mode: $env.LEXIA_DELIVERY_MODE || 'observe_only', source_row: row } }];"
+      }
+    },
+    {
+      "id": "8a8b7d25-ebd0-4061-8fa6-6e7970781581",
+      "name": "AUTOMAÇÃO | Validar pedido de automação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7500,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst request = input.request || input;\nif (request?.schema_version !== 'lexia.automation.request.v1' || !['appointment_reminder','followup'].includes(request.kind)) throw new Error('automation_contract_invalid');\nif (!request.request_id || !request.conversation_id || !request.scope || !Array.isArray(request.proposed_actions) || request.proposed_actions.length === 0) throw new Error('automation_fields_invalid');\nreturn [{ json: { request, delivery_mode: input.delivery_mode || 'observe_only', rpc_body: {\n  p_request_id: request.request_id, p_conversation_id: request.conversation_id, p_kind: request.kind,\n  p_source_ref: request.source_ref, p_due_at: request.due_at,\n} } }];"
+      }
+    },
+    {
+      "id": "4dfde46f-bec7-404e-8831-2e4eec8c4632",
+      "name": "AUTOMAÇÃO | Registrar automação idempotente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7860,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_register_automation_request' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "7ad2f99e-7c2c-4058-8366-dc88b235bd6b",
+      "name": "AUTOMAÇÃO | Avaliar pedido e montar evento CRM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8220,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('AUTOMAÇÃO | Validar pedido de automação').first().json;\nconst rows = (() => { const items = $('AUTOMAÇÃO | Registrar automação idempotente').all(); if (items.length !== 1) throw new Error('Registrar automação idempotente output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result) throw new Error('automation_result_missing');\nconst event = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(input.request.request_id + ':crm:registered');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: input.request.request_id + ':registered', correlation_id: input.request.correlation_id,\n  event_type: 'automation.updated', occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: 10,\n  scope: input.request.scope, source: { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-automation', execution_ref: $execution.id },\n  payload: { automation_ref: input.request.request_id, automation_type: input.request.kind, status: result.out_status,\n    source_ref: input.request.source_ref, due_at: input.request.due_at, ...(result.out_reason ? { reason: result.out_reason } : {}) } };\nreturn [{ json: { events: [event], passthrough: { ...input, registration: result, accepted: result.out_status === 'accepted' } } }];"
+      }
+    },
+    {
+      "id": "adf878c6-d560-45bb-883a-a45610afd1e8",
+      "name": "AUTOMAÇÃO | Espelhar automação no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        8580,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "2202031f-9ab8-4e9a-8eb9-296c3400389b",
+      "name": "AUTOMAÇÃO | Automação aceita?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8940,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "6cd00c7b-071a-4b0a-811a-e3e1f5a5b9e9",
+              "leftValue": "={{ $json.passthrough.accepted === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e6756240-2ed1-4c88-8919-23a31d00a9f1",
+      "name": "AUTOMAÇÃO | Montar plano da automação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9300,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json.passthrough;\nconst request = input.request;\nconst actions = request.proposed_actions.map((action, index) => ({ ...action, sequence: index + 1,\n  invocation_id: request.request_id, scope: request.scope, kind: request.kind, source_ref: request.source_ref }));\nreturn [{ json: { conversation_id: request.conversation_id, invocation_id: request.request_id,\n  correlation_id: request.correlation_id, automation_request_id: request.request_id,\n  actions, delivery_mode: input.delivery_mode, claimant: 'automation:' + request.request_id } }];"
+      }
+    },
+    {
+      "id": "8fd2891d-9ccf-4dd4-8255-30a77e8dfda3",
+      "name": "AUTOMAÇÃO | Entregar automação pelo gate",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        9660,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 06 SAÍDA SEGURA"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "6ca42228-9b13-44f7-88c9-e6dfd40a23af",
+      "name": "AUTOMAÇÃO | Espelhar resultado da automação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10020,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('AUTOMAÇÃO | Validar pedido de automação').first().json;\nconst delivery = $input.first().json;\nconst statusMap = { sent: 'sent', failed: 'failed', delivery_unknown: 'delivery_unknown' };\nconst status = statusMap[delivery.status] || 'suppressed';\nconst event = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(input.request.request_id + ':crm:' + status);\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: input.request.request_id + ':' + status, correlation_id: input.request.correlation_id,\n  event_type: 'automation.updated', occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: 20,\n  scope: input.request.scope, source: { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-automation', execution_ref: $execution.id },\n  payload: { automation_ref: input.request.request_id, automation_type: input.request.kind, status,\n    source_ref: input.request.source_ref, due_at: input.request.due_at, attempted_at: new Date().toISOString(),\n    ...(delivery.reason ? { reason: delivery.reason } : {}) } };\nreturn [{ json: { events: [event], passthrough: { request_id: input.request.request_id, kind: input.request.kind, status, reason: delivery.reason || null, action_ids: input.request.proposed_actions.map((action) => action.action_id) } } }];"
+      }
+    },
+    {
+      "id": "433ae5d0-085a-46c9-839c-84d8493304ef",
+      "name": "AUTOMAÇÃO | Espelhar conclusão da automação",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        10380,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "b7db8569-1210-4afe-8414-1a9a43ac8292",
+      "name": "AUTOMAÇÃO | Retornar automação rejeitada ou duplicada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11100,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json.passthrough;\nreturn [{ json: { request_id: input.request.request_id, kind: input.request.kind, status: input.registration.out_status, reason: input.registration.out_reason || null, action_ids: [] } }];"
+      }
+    },
+    {
+      "id": "d6c70296-c938-4e3b-894b-74a3a151bf34",
+      "name": "AUTOMAÇÃO | Retornar resultado da automação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11100,
+        90
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.crm_mirrored !== true) throw new Error('crm_automation_not_mirrored');\nreturn [{ json: input.passthrough }];"
+      }
+    },
+    {
+      "id": "25d99891-7e54-4314-84cf-ea7d497fd5ec",
+      "name": "RESULTADO | Reagendar Follow-up",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        13440,
+        -240
+      ],
+      "parameters": {
+        "operation": "update",
+        "tableId": "lexia_followups",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "etapa",
+              "fieldValue": "={{ $json.etapa }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            },
+            {
+              "fieldId": "proxima_tentativa_em",
+              "fieldValue": "={{ $json.proxima_tentativa_em }}"
+            },
+            {
+              "fieldId": "motivo_encerramento",
+              "fieldValue": "={{ $json.motivo_trava || '' }}"
+            },
+            {
+              "fieldId": "atualizado_em",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "2cb445f5-4daf-40b1-8cc8-7cbbe9386d25",
+      "name": "RESULTADO | Atualizar Após Envio",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        13440,
+        -20
+      ],
+      "parameters": {
+        "operation": "update",
+        "tableId": "lexia_followups",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "etapa",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.etapa_nova }}"
+            },
+            {
+              "fieldId": "proxima_tentativa_em",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.proxima_tentativa_nova }}"
+            },
+            {
+              "fieldId": "tentativas_enviadas",
+              "fieldValue": "={{ Number($('FOLLOW-UP | Preparar Envio Follow-up').first().json.tentativas_enviadas || 0) + 1 }}"
+            },
+            {
+              "fieldId": "ultima_msg_agente_em",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldId": "motivo_juiz",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.motivo_juiz }}"
+            },
+            {
+              "fieldId": "atualizado_em",
+              "fieldValue": "={{ $now }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.status_novo || 'agendado' }}"
+            },
+            {
+              "fieldId": "motivo_encerramento",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.motivo_encerramento_novo || '' }}"
+            },
+            {
+              "fieldId": "dia_combinado",
+              "fieldValue": "={{ $('FOLLOW-UP | Preparar Envio Follow-up').first().json.dia_combinado }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5be68189-c044-41ca-8ec3-778c5d8ab9b3",
+      "name": "RESULTADO | Classificar resultado do follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12360,
+        90
+      ],
+      "parameters": {
+        "jsCode": "const request = $('FOLLOW-UP | Montar pedido idempotente de follow-up').first().json;\nconst result = $input.first().json;\nreturn [{ json: { ...request.source_row, automation_result: result, sent: result.status === 'sent',\n  status: result.status === 'suppressed' ? 'agendado' : request.source_row.status,\n  proxima_tentativa_em: result.status === 'suppressed' ? $now.plus({ minutes: 15 }).toISO() : request.source_row.proxima_tentativa_em,\n  motivo_trava: result.reason || '' } }];"
+      }
+    },
+    {
+      "id": "4b900563-5d92-4fba-8362-2b3dd0c9879b",
+      "name": "RESULTADO | Classificar entrega do follow-up",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        12720,
+        90
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "26ad47b5-1719-4a2e-815c-c40a282057bd",
+                    "leftValue": "={{ $json.automation_result.status }}",
+                    "rightValue": "sent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "450c21e2-76e7-4887-8174-01e15c83f088",
+                    "leftValue": "={{ $json.automation_result.status }}",
+                    "rightValue": "suppressed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "suppressed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "58db6a77-5aff-4ecb-8ce3-b71309f5e5e9",
+                    "leftValue": "={{ $json.automation_result.status }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "failed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "135e858f-00de-4677-8252-359b20a305f6",
+                    "leftValue": "={{ $json.automation_result.status }}",
+                    "rightValue": "delivery_unknown",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delivery_unknown"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "769a4d0e-6f0b-462f-827d-56f112d16c8a",
+      "name": "RESULTADO | Preservar tentativa não confirmada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13440,
+        200
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { status: $json.automation_result?.status || 'suppressed', reason: $json.automation_result?.reason || null, automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "f52e7a6a-d40c-4bee-82e1-0d586ded56c7",
+      "name": "RESULTADO | Marcar Lembrete Enviado",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        13080,
+        -130
+      ],
+      "parameters": {
+        "operation": "update",
+        "tableId": "agendamentos_miranda_skin",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "event_id",
+              "condition": "eq",
+              "keyValue": "={{ $('LEMBRETE | Travas de Lembrete').item.json.event_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "lembrete_enviado_em",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b9ab6524-1acf-4416-84d8-6d3d350ddfcf",
+      "name": "RESULTADO | Classificar resultado do lembrete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12360,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const source = $('LEMBRETE | Montar lembrete idempotente').first().json;\nconst result = $input.first().json;\nreturn [{ json: { ...source.source_row, automation_result: result, sent: result.status === 'sent' } }];"
+      }
+    },
+    {
+      "id": "952b9942-0658-452c-87ce-62d50eb5a64d",
+      "name": "RESULTADO | Lembrete confirmado pelo provedor?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        12720,
+        -130
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b25cb267-76c6-4e40-8f57-454a4e638564",
+              "leftValue": "={{ $json.sent === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "26b3e108-c0e6-4df8-8a98-0412d27947f9",
+      "name": "RESULTADO | Preservar lembrete não confirmado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13080,
+        90
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { status: $json.automation_result?.status || 'suppressed', reason: $json.automation_result?.reason || null, automatic_retry_allowed: false } }];"
+      }
+    },
+    {
+      "id": "208ecf6e-e454-4ece-80c3-63657e63c502",
+      "name": "AUTOMAÇÃO | Receber solicitação interna",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        7140,
+        -20
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "9902a26d-b247-47bd-8cfb-20b62bda0d4f",
+      "name": "RESULTADO | Retornar ao fluxo de origem",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        12000,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "20b97385-7515-4ef8-8a49-5c1c62646a7b",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "followup"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "70801fab-3ca9-45b6-8580-8fdf0e99fd65",
+                    "leftValue": "={{ $json.kind }}",
+                    "rightValue": "appointment_reminder",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "appointment_reminder"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "AUTOMAÇÃO | Receber solicitação interna": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Validar pedido de automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Montar pedido idempotente de follow-up": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Validar pedido de automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Montar lembrete idempotente": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Validar pedido de automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Retornar automação rejeitada ou duplicada": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Retornar ao fluxo de origem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Retornar resultado da automação": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Retornar ao fluxo de origem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Retornar ao fluxo de origem": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Classificar resultado do follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Classificar resultado do lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Config Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Buscar Follow-ups Vencidos": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Travas de Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Travas de Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Rotear por Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Rotear por Ação": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FOLLOW-UP | Converter aviso manual em handoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Reagendar Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Loop Follow-ups - Leads": {
+      "main": [
+        [],
+        [
+          {
+            "node": "FOLLOW-UP | Buscar Histórico Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Buscar Histórico Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Buscar Playbook de Vendas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Montar Análise do Juiz": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Juiz de Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "FOLLOW-UP | Juiz de Follow-up",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Juiz de Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Validar Decisão do Juiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Validar Decisão do Juiz": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Rotear Decisão do Juiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Rotear Decisão do Juiz": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Redator de Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FOLLOW-UP | Pular Etapa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FOLLOW-UP | Encerrar Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Pular Etapa": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Encerrar Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Redator de Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Preparar Envio Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "FOLLOW-UP | Redator de Follow-up",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Config Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Buscar Follow-ups Vencidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Atualizar Após Envio": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Buscar Playbook de Vendas": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Montar Análise do Juiz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Preparar Envio Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Preparar escopo do follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Preparar escopo do follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Resolver conversa do follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Resolver conversa do follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Montar pedido idempotente de follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Classificar resultado do follow-up": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Classificar entrega do follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Classificar entrega do follow-up": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Atualizar Após Envio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Reagendar Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Preservar tentativa não confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Preservar tentativa não confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Preservar tentativa não confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Reagendar Follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Preservar tentativa não confirmada": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Converter aviso manual em handoff": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Resolver conversa para handoff de follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Resolver conversa para handoff de follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Preparar pendência durável de follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Preparar pendência durável de follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Criar handoff sem enviar aviso paralelo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Criar handoff sem enviar aviso paralelo": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Espelhar handoff de follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Espelhar handoff de follow-up": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Espelhar pendência no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FOLLOW-UP | Espelhar pendência no CRM": {
+      "main": [
+        [
+          {
+            "node": "FOLLOW-UP | Loop Follow-ups - Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Intervalo 1h": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Config Lembretes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Config Lembretes": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Buscar Consultas Próximas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Buscar Consultas Próximas": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Travas de Lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Travas de Lembrete": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Preparar escopo do lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Preparar escopo do lembrete": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Resolver conversa do lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LEMBRETE | Resolver conversa do lembrete": {
+      "main": [
+        [
+          {
+            "node": "LEMBRETE | Montar lembrete idempotente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Classificar resultado do lembrete": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Lembrete confirmado pelo provedor?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO | Lembrete confirmado pelo provedor?": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO | Marcar Lembrete Enviado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESULTADO | Preservar lembrete não confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Validar pedido de automação": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Registrar automação idempotente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Registrar automação idempotente": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Avaliar pedido e montar evento CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Avaliar pedido e montar evento CRM": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Espelhar automação no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Espelhar automação no CRM": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Automação aceita?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Automação aceita?": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Montar plano da automação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AUTOMAÇÃO | Retornar automação rejeitada ou duplicada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Montar plano da automação": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Entregar automação pelo gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Entregar automação pelo gate": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Espelhar resultado da automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Espelhar resultado da automação": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Espelhar conclusão da automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AUTOMAÇÃO | Espelhar conclusão da automação": {
+      "main": [
+        [
+          {
+            "node": "AUTOMAÇÃO | Retornar resultado da automação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": []
+}

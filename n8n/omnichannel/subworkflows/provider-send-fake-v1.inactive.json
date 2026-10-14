@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Provider Send Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2f000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Delivery",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { schema_version: 'lexia.delivery.result.v1', status: 'suppressed', reason: 'suppressed_observe_only', external_call_performed: false } }];"
+      },
+      "id": "2f000000-0000-4000-8000-000000000002",
+      "name": "Never Call Provider",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Delivery": {
+      "main": [[{ "node": "Never Call Provider", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

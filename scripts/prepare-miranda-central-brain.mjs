@@ -1,0 +1,16 @@
+import { readFileSync,writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { centralMemoryBrain } from './lib/miranda-central-memory.mjs';
+import { executableFingerprint } from './lib/miranda-migration-layout.mjs';
+const directory='n8n/miranda-migration-review/';
+const file='02-cerebro.inactive.json';
+const workflow=centralMemoryBrain(JSON.parse(readFileSync(directory+file)),process.cwd());
+const bytes=JSON.stringify(workflow,null,2)+'\n';
+writeFileSync(directory+file,bytes);
+const manifest=JSON.parse(readFileSync(directory+'MANIFEST.json'));
+const entry=manifest.workflows.find(x=>x.file===file);
+entry.sha256=createHash('sha256').update(bytes).digest('hex');
+entry.layout.executable_fingerprint=executableFingerprint(workflow);
+entry.memory_backend='central-operational-v1';
+writeFileSync(directory+'MANIFEST.json',JSON.stringify(manifest,null,2)+'\n');
+console.log(JSON.stringify({file,nodes:workflow.nodes.length,fingerprint:entry.layout.executable_fingerprint,other_workflows_unchanged:true}));

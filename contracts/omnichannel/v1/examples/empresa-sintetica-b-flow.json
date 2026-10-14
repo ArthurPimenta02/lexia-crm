@@ -1,0 +1,199 @@
+{
+  "fixture_version": "lexia.omnichannel.fixture.v1",
+  "contract_status": "provisional",
+  "context_config": {
+    "schema_version": "lexia.context.agent.config.v1",
+    "environment": "isolated_test",
+    "cliente_slug": "empresa_sintetica_b",
+    "config_version": "context-b-v1",
+    "status": "active",
+    "prompt_template": "Extraia somente contexto operacional da empresa sintetica B.",
+    "common_schema_version": "lexia.context.result.v1",
+    "company_fields_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_line"],
+      "properties": {
+        "product_line": { "type": "string" },
+        "needs_specialist": { "type": "boolean" }
+      }
+    },
+    "locale": "pt-BR",
+    "timezone": "Europe/Lisbon",
+    "model_policy_ref": "context-policy-test-v1"
+  },
+  "ingress_event": {
+    "schema_version": "lexia.ingress.event.v1",
+    "event_id": "bbbbbbbb-0000-4000-8000-000000000001",
+    "provider_event_id": "provider-event-shared-001",
+    "correlation_id": "bbbbbbbb-0000-4000-8000-000000000002",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_b",
+      "channel": "instagram",
+      "account_ref": "22222222-2222-4222-8222-222222222222",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "provider": "meta",
+    "event_type": "message",
+    "occurred_at": "2026-10-08T12:00:00.000Z",
+    "message": {
+      "schema_version": "lexia.message.v1",
+      "event_id": "bbbbbbbb-0000-4000-8000-000000000001",
+      "provider_event_id": "provider-event-shared-001",
+      "message_id": "message-shared-001",
+      "scope": {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_b",
+        "channel": "instagram",
+        "account_ref": "22222222-2222-4222-8222-222222222222",
+        "conversation_ref": "conversation-shared-001"
+      },
+      "author": "lead",
+      "direction": "inbound",
+      "occurred_at": "2026-10-08T12:00:00.000Z",
+      "media": {
+        "kind": "image",
+        "provider_media_ref": "fake-media-b-001",
+        "mime_type": "image/jpeg",
+        "caption": "Imagem inteiramente ficticia.",
+        "processing_status": "pending"
+      },
+      "ad_origin": {
+        "provider_ref": "fake-ad-b-001",
+        "source_type": "instagram_ad"
+      }
+    },
+    "contact": {
+      "provider_contact_ref": "instagram-user-b-001",
+      "display_name": "Pessoa Ficticia B"
+    },
+    "capability_refs": ["meta_events", "authorship", "contact_without_phone", "ad_origin", "inbound_image"]
+  },
+  "context_result": {
+    "schema_version": "lexia.context.result.v1",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_b",
+      "channel": "instagram",
+      "account_ref": "22222222-2222-4222-8222-222222222222",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "context_call_id": "bbbbbbbb-0000-4000-8000-000000000007",
+    "config_version": "context-b-v1",
+    "source_message_ids": ["message-shared-001"],
+    "operational_context": {
+      "summary": "Contato ficticio enviou imagem sobre a linha beta.",
+      "language": "pt-BR",
+      "intent": "request_specialist",
+      "topic": {
+        "current": "linha beta",
+        "changed": false,
+        "resumed_previous": false
+      },
+      "confidence": 0.88,
+      "missing_information": [],
+      "contact_updates": {},
+      "scheduling_intent": {}
+    },
+    "company_fields": {
+      "product_line": "beta",
+      "needs_specialist": true
+    }
+  },
+  "brain_request": {
+    "schema_version": "lexia.brain.request.v1",
+    "invocation_id": "bbbbbbbb-0000-4000-8000-000000000003",
+    "correlation_id": "bbbbbbbb-0000-4000-8000-000000000002",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_b",
+      "channel": "instagram",
+      "account_ref": "22222222-2222-4222-8222-222222222222",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "state": { "state_version": 0, "delivery_epoch": 0 },
+    "messages": [],
+    "contact": { "provider_contact_ref": "instagram-user-b-001" },
+    "operational_context": {
+      "summary": "Contato ficticio enviou imagem sobre a linha beta.",
+      "language": "pt-BR",
+      "intent": "request_specialist",
+      "topic": { "current": "linha beta", "changed": false, "resumed_previous": false },
+      "confidence": 0.88,
+      "missing_information": [],
+      "contact_updates": {},
+      "scheduling_intent": {}
+    },
+    "company_fields": { "product_line": "beta", "needs_specialist": true },
+    "policy": { "resume_mode": "await_new_message" },
+    "capabilities": ["handoff.requested"]
+  },
+  "brain_result": {
+    "schema_version": "lexia.brain.result.v1",
+    "invocation_id": "bbbbbbbb-0000-4000-8000-000000000003",
+    "captured_state": { "state_version": 0, "delivery_epoch": 0 },
+    "decision": "handoff",
+    "actions": [],
+    "context_patch": { "last_topic": "linha beta" },
+    "domain_events": [
+      {
+        "schema_version": "lexia.domain.event.v1",
+        "event_id": "bbbbbbbb-0000-4000-8000-000000000004",
+        "invocation_id": "bbbbbbbb-0000-4000-8000-000000000003",
+        "idempotency_key": "handoff-b-001-requested",
+        "type": "handoff.requested",
+        "occurred_at": "2026-10-08T12:01:00.000Z",
+        "handoff": {
+          "handoff_ref": "handoff-b-001",
+          "reason": "specialist_requested",
+          "summary": "Solicitacao ficticia de especialista.",
+          "priority": "normal"
+        }
+      }
+    ],
+    "tool_audit": []
+  },
+  "automation_request": {
+    "schema_version": "lexia.automation.request.v1",
+    "request_id": "bbbbbbbb-0000-4000-8000-000000000005",
+    "kind": "followup",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_b",
+      "channel": "instagram",
+      "account_ref": "22222222-2222-4222-8222-222222222222",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "source_ref": "fake-followup-rule-b-001",
+    "due_at": "2026-10-09T12:00:00.000Z",
+    "proposed_actions": [
+      {
+        "schema_version": "lexia.outbound.action.v1",
+        "action_id": "bbbbbbbb-0000-4000-8000-000000000006",
+        "invocation_id": "bbbbbbbb-0000-4000-8000-000000000003",
+        "scope": {
+          "environment": "isolated_test",
+          "cliente_slug": "empresa_sintetica_b",
+          "channel": "instagram",
+          "account_ref": "22222222-2222-4222-8222-222222222222",
+          "conversation_ref": "conversation-shared-001"
+        },
+        "sequence": 1,
+        "kind": "followup",
+        "captured_state": { "state_version": 1, "delivery_epoch": 1 },
+        "content": { "type": "text", "text": "Follow-up inteiramente ficticio." },
+        "source_ref": "fake-followup-rule-b-001"
+      }
+    ]
+  },
+  "delivery_results": [
+    {
+      "schema_version": "lexia.delivery.result.v1",
+      "action_id": "bbbbbbbb-0000-4000-8000-000000000006",
+      "status": "suppressed",
+      "attempted_at": "2026-10-09T12:00:00.000Z",
+      "reason": "handoff_active"
+    }
+  ]
+}

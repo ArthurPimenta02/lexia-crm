@@ -1,7 +1,278 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
+## Memoria Central E Chat CRM Habilitados (12/10/2026)
+
+Decisao autorizada: memoria OPERACIONAL do atendimento no central compartilhado;
+catalogo/playbook Miranda consultados apenas por seis GETs nativos no 02.
+Nao copiar para essa memoria dados antigos de pacientes, prompts privados ou
+tools brutas; a inteligencia do workflow continua preservada no proprio 02.
+Schema novo lexia_agent_operational_memories: escopo completo, invocacao vinculada
+ao lote, CAS, cache de propostas (nao de efeitos), RLS e RPCs server-only.
+Dependencias 001-008 instaladas somente no central gaofupndxgitonfmvpzi, com
+backup e dry-run com rollback; ambiente continua isolated_test, recursos
+persistentes sem cleanup. Empresa Miranda virtual e conta fake terminada 0003.
+
+Copias 01/02 da pasta CRM MIRANDA SKIN adaptadas e publicadas; nenhum original
+de producao alterado. Quatro nodes de memoria agora Postgres central; seis
+nodes de catalogo GET apontam ao privado. Nomes/posicoes/grafo preservados.
+Frappe HML usa tenant Miranda, alvo novo, modo full_agent_virtual e Google
+disabled. Apenas workflow_tests.py atualizado nos backend/workers HML e fonte
+persistente; reiniciados somente tres containers Frappe HML, nunca o n8n.
+Role Workflow Tester adicionada somente ao operador ficticio existente.
+
+Texto PT e continuidade ES sem reapresentacao passaram pela API real do CRM;
+duas mensagens consecutivas formaram um unico lote. Memoria passou de v1 a v2
+na conversa continuada; no burst ficou v1 para as duas mensagens. Nenhum
+provedor/Google foi chamado. 295 testes Miranda, 193 Lote 2, 9 Python, lint e
+typecheck passaram; 41 consultas SQL preparadas e 8 regressoes SQL com rollback.
+Nao houve build Next/frontend: nao foram alterados nessa rodada.
+
+Google, canais, notificacoes, schedules, comandos e pipeline continuam fechados.
+03-06 nao foram alterados/publicados. Hooks/DocTypes completos do Frappe ainda
+pendem para o ensaio de comandos/agenda/pipeline. API text/brain nao comprova
+essas etapas nem qualidade clinica/comercial de todas as respostas.
+Relatorio atual: docs/MIRANDA_MEMORIA_CENTRAL_CRM_20261012.md.
+Os inventarios abaixo documentam a ETAPA ANTERIOR, nao o estado atual.
+
+## Auditoria Central e Frappe HML (12/10/2026)
+
+Conferencia real somente leitura: central gaofupndxgitonfmvpzi possui baseline,
+22 tabelas/43 funcoes, mas nao os novos consumidores/calendar/fila/outbox/equipe
+nem conta/politica/contexto da nova Miranda. Frappe 0.6.8 ainda usa alvo antigo,
+empresa sintética A e agenda readonly; hooks/modulos/DocTypes da migracao pendem.
+Plugin encontrou seis novas copias inativas. Apenas rascunho 01 alterado:
+credencial de Agent Test no webhook e ID da copia 02. Codigo/conexoes/posicoes
+e flags preservados; sem publicar/executar. 02 hoje aponta Supabase central
+para catalogo/memoria inexistentes e continua fechado por flags.
+Defeito de replacement `$'` do SQL 001 corrigido localmente com callback, sem
+regenerar JSONs ou aplicar SQL. Auditorias readonly e config Frappe preparada
+em arquivos. Usuario sugeriu memoria por empresa no central: recomendada para
+parte OPERACIONAL; alteracao do contrato/fronteira do 02 ainda nao aprovada.
+Nao criar memoria privada no central para apenas contornar guards.
+Evidencias/passo seguinte: docs/MIRANDA_CRM_AUDITORIA_PREPARACAO_20261012.md.
+Producao, n8n containers, SQL instalado, alvo Frappe e Git intocados.
+
+## Layout Dos Seis Workflows (12/10/2026)
+
+Rodada exclusivamente visual em n8n/miranda-migration-review e nos mesmos
+seis arquivos de entrega. Restauradas as coordenadas exatas dos 138 nodes
+originais mantidos; extensoes em faixas horizontais, sem serpentina, com notas
+de secao sanitizadas. Sem alterar conexoes/parametros/credenciais/flags.
+285 testes locais passaram, incluindo 31 regressoes de layout; lint/typecheck
+passaram. Diagramas locais inspecionados; editor n8n real nao importado/testado.
+Gerador e reaplicador usam scripts/lib/miranda-migration-layout.mjs; geometria
+segura em tests/fixtures/miranda-layout/production-geometry.json. Dependencias
+SQL/Frappe, servicos, producao, checkout Desktop e referencias Git intocados.
+Estas alteracoes visuais nao fecham as pendencias de integracao abaixo.
+
+## Fechamento Local Dos Seis Arquivos (12/10/2026)
+
+Mesmos nomes em n8n/miranda-migration-review; nao criar outra familia.
+Foram ligados localmente comandos CRM, cancelamento comprovado, projecao Redis
+por versao imutavel, manutencao periodica, outbox com claim, notificacoes Z-API /
+UAZAPI, fila central de follow-up com o agendamento original e confirmacao
+terminal vinculada ao recibo da criacao. Mensagem proposta possui action_id
+estavel no CRM; enriquecimento de midia nao altera o evento original.
+Fonte Frappe local recebeu dispatcher e hook de pipeline factual, ambos
+desligados por configuracao; confirmed_at guarda ocorrencia, nao data de importacao.
+Nada foi instalado, aplicado ou publicado. Os seis continuam candidatos locais,
+nao homologados no n8n. SQL novo em review/miranda-migration (001-004 e memoria
+privada); revisao de schema instalado obrigatoria antes da aplicacao.
+Leia o README atualizado para configuracao e limites, inclusive answer_pending,
+recovery de lote claimed, Meta e atribuicao duravel ainda pendentes. Nao ativar
+canais reais nem reaplicar cleanup do laboratorio nos recursos persistentes.
+Trabalho mantido em Developer/lexia-crm; checkout Desktop mais antigo intacto.
+Branch/HEAD e referencia invalida preservados, sem commit/push/servicos.
+
+## Nova Base de Migracao: Exports de Producao (12/10/2026)
+
+Usuario forneceu MIRANDA WORKFLOWS ATUALIZADOS.zip como nova referencia.
+Seis originais completos: 148/30/28/7/7/24 nodes. Somente cerebro mudou
+Preparar Handoff e notificacao em relacao aos exports anteriores.
+Novo central Supabase/Redis deve ser persistente e compartilhado; nao limpar
+ou recriar como descartavel. Bancos privados por cerebro permanecem.
+Intervencao 15 min, retomada por nova mensagem, pausa ate fim do agendamento;
+cancelamento Frappe deve cancelar Google com comprovacao, nao inferencia.
+Handoff normal apenas notifica; alta/urgente bloqueia ate resolucao e retomada
+manual. Esta decisao altera a regra anterior de todos os handoffs bloqueantes;
+codigo/schema das rodadas anteriores ainda nao foram adaptados a ela.
+Provedores confirmados: Z-API no handoff; UAZAPI nas notificacoes de agendamento
+para Samuel/socio. Usuario autorizou preparar dependencias locais de banco e
+Frappe, sem aplicar SQL ou publicar workflows. Primeira revisao gerada em
+n8n/miranda-migration-review, com seis JSONs inativos derivados dos originais,
+sem credenciais reais. NAO e pacote homologado pronto para ativacao. Consumidores
+e transporte foram ligados no fechamento local acima; Meta e demais lacunas
+ficam no MANIFEST. Instalacao/configuracao/ensaio real ainda sao necessarios.
+Leia README dessa pasta e MANIFEST.json.
+SQL aditivo somente em supabase/review/miranda-migration; helper de pipeline em
+integrations/frappe. Fonte Frappe local: handoff normal/baixo nao cria bloco,
+alta preserva bloqueio; Link block torna-se opcional e retomada sem block nao
+encerra outros motivos. Nenhuma instalacao/reload/servico/marcador foi alterado.
+Referencia e mapa: docs/MIRANDA_MIGRACAO_BASE_PRODUCAO_20261012.md.
+
+## Disponibilidade Pessoal: Somente Leitura (12/10/2026)
+
+Disponibilidade simplificada para 17 nodes na variante readonly, preservando
+regras originais e usando SELECT preflight sem ledger/claim de escrita. ID
+pessoal exato pode ser lido com consentimento; nenhuma tool de criacao e
+conectada ao cerebro dessa variante. Omnichannel preserva buffer/midia/historico
+e deriva permissao de test_read_only + controle confiavel; escrita false.
+CRM HML atualizado/configurado para test_read_only; criacao recusada no servidor,
+retorno vinculado a politica. Backup e fonte persistida; backend e filas HML
+reiniciados com zero workers ocupados. N8n/producao nao alterados. Copias locais
+para importacao manual em Downloads/LEXIA-AGENDA-SOMENTE-LEITURA.
+208 testes combinados, 193 Lote 2, lint/typecheck e 15 testes Frappe HML passaram.
+Google/OAuth, preflight SQL real e novo encadeamento n8n nao homologados; memoria
+privada HML/credenciais/IDs ainda exigem conferencia. Sem migration/aplicacao
+de SQL novo. Imagem Frappe nao reconstruida; incorporar fonte antes de recriar.
+Runbook: n8n/miranda-original-crm/AGENDA_SOMENTE_LEITURA.md.
+
+## Tools Originais: Copias Locais (12/10/2026)
+
+Disponibilidade/criacao originais preservadas em
+`n8n/miranda-original-crm/availability-original-crm.inactive.json` (26 nodes)
+e `create-appointment-original-crm.inactive.json` (55 nodes). Credenciais
+nativas, calendario pessoal secundario, protecao do destino original,
+claim/ownership duraveis, releitura depois da reserva, gate antes do Google e
+recibos `lexia.tool.result.v1`. Cerebro ajustado somente nas fronteiras das
+tools; inteligencia original permanece. Notificacao/pausa/follow-up direto
+removidos da execucao; campos secretos/configuracao inline nao foram copiados.
+Schema adicional em `supabase/isolated/lote2/202610120001_calendar_tools.sql`
+somente em arquivo, sem aplicar. Luxon 3.7.2 e dependencia apenas de testes.
+CRM/Omnichannel ainda forcam agenda desabilitada; flags, retorno/UI e consumo
+de eventos/confirmacao terminal/pausa precisam de integracao posterior.
+Nenhum servico ou workflow remoto foi acessado/alterado nesta rodada.
+38 regressoes novas, 70 direcionadas, 201/201 combinadas e 193/193 Lote 2
+passaram, assim como lint focado e typecheck. Banco/SQL/OAuth/Google/n8n/CRM
+reais nao foram executados; os testes usam doubles, nao prova de integracao.
+Configuracao e limites: `n8n/miranda-original-crm/TOOLS_AGENDA.md`.
+
+## Cerebro Original: Copia Local (12/10/2026)
+
+`n8n/miranda-original-crm/brain-original-crm.inactive.json` preserva os 30
+nomes originais do cerebro Miranda (51 nodes com guards/memoria), prompts,
+especialistas, playbook e regras comerciais/agendamento. Melhora continuidade,
+historico/autoria, idioma pt/en/es, baloes e validacao de tools; pausa/envio
+ficam com o Omnichannel. Inativo, sem credenciais/destinos reais, para importacao
+manual pelo usuario; nao foi importado/publicado/executado remotamente.
+32/32 regressoes novas, 163/163 combinadas, 193/193 Lote 2, lint sem avisos
+e typecheck passaram pelos comandos padrao apos recuperar execucao local.
+Modelos/bancos/calendario nao foram chamados. Tabelas privadas de memoria,
+credenciais HML, recibos provisorios das tools e consumo dos eventos no
+Omnichannel continuam pendentes. Nao e integracao ponta a ponta pronta.
+Configuracao, limites e evidencias: `n8n/miranda-original-crm/CEREBRO.md`.
+
+## Auditoria n8n HML (11/10/2026)
+
+Certificado publico Supabase Root 2021 CA aplicado ao servidor e worker apos
+aprovacao da interrupcao breve. Recriacao iniciada em 11/10 as 23:19 (Brasil),
+mantendo n8n 2.42.6 e mesma imagem. Backup restrito do compose salvo na VPS;
+mudanca limitada aos dois mounts da CA. Banco, Redis, proxy e Frappe nao
+foram reiniciados. Painel/readiness HTTP 200 e credencial Postgres HML
+autenticando via node nativo para ler metadados de schemas, com SSL validado.
+SQL operacional, buffer/Redis e IA continuam sem homologacao integrada.
+Procedimento, evidencias e rollback: `n8n/miranda-original-crm/TLS_HML.md`.
+
+As tres copias em CRM MIRANDA SKIN foram revisadas remotamente com autorizacao.
+As 45 referencias Postgres apontam agora para a nova credencial
+`Lexia HML Central Postgres`, criada com confirmacao explicita. O erro inicial
+de certificado foi resolvido pela manutencao descrita acima; SSL Require
+permanece ligado e Ignore SSL Issues desligado.
+Supabase/Redis foram vinculados as credenciais HML existentes, e o webhook
+de testes usa a autenticacao Agent Test, nao a API do Frappe.
+
+O task runner real rejeitou exports JavaScript baseados em getters e nao
+oferece `structuredClone`. Geradores e copias receberam exports por propriedades
+comuns e copia de envelopes JSON validados. 131 testes locais especificos,
+193 Lote 2, lint focado e typecheck passaram. Seis ensaios no n8n passaram
+com banco, modelos, subworkflows e provedores pinados: bloqueio no Omnichannel,
+follow-up bloqueado, lembrete fora do horario, entrega virtual, estado obsoleto
+e resultado incerto. Nao equivalem a SQL, IA, Redis ou canais homologados.
+
+Todos os tres workflows continuam inativos; schedules e canais reais desligados.
+Nao houve migration, restart da VPS inteira, chamada de modelo/provedor,
+publicacao ou edicao dos workflows Miranda em producao. Houve somente a
+recriacao autorizada dos dois componentes n8n para carregar a CA.
+Cérebro isolado, fila/playbook legado,
+mirror de tools e integracao completa com CRM seguem pendentes.
+Detalhes, IDs e limites: `n8n/miranda-original-crm/AUDITORIA_HML.md`.
+
+## Lembretes Originais: Entrega Comum Local (11/10/2026)
+
+`n8n/miranda-original-crm/reminder-original-crm.inactive.json` adapta os sete
+nodes originais mantendo nomes, intervalo de 1h, pt/en/es, janela de 2h-24h
+e 7h-20h Boston inclusive domingo. Importa inativo/preview, schedule desligado.
+Fonte agora e evento atestado no central; nao consulta banco privado nem
+Google. Enviar Lembrete chama a copia do Omnichannel; marcar exige ledger sent
+e mensagem confirmada. Pausa Eterna e pass-through, nao altera bloqueios.
+Somente pausa do proprio agendamento admite lembrete; outros motivos bloqueiam.
+Omnichannel tambem revalida janela/unicidade sob lock antes de enviar.
+30 novas regressoes, 128 especificos combinados, 193 Lote 2, lint e typecheck
+passaram; SQL/runtime n8n nao executados. Credenciais, mirror da tool,
+UI Agent Test para automacoes, Meta, outbox/recovery seguem pendentes.
+Runbook: `n8n/miranda-original-crm/LEMBRETES.md`. Sem acesso remoto/producao.
+
+## Omnichannel: Entrega Comum Local (11/10/2026)
+
+`n8n/miranda-original-crm/omnichannel-shared-delivery.inactive.json` preserva
+os 225 nodes do chat original adaptado e acrescenta a faixa ENTREGA (258
+nodes totais). Respostas agora chamam o mesmo receptor privado de pedidos
+de follow-up/lembrete. Contratos fechados, identidade/escopo, plano imutavel,
+source duravel, claim por acao e confirmacao/historico transacional foram
+preparados em nodes nativos. Antigos caminhos de envio ficam desligados.
+Padrao virtual, somente fake/test:, sem comprovacao falsa de envio real.
+33 novas regressoes, 98 testes especificos e 193 Lote 2 passaram; lint focado
+e typecheck passaram. SQL e runtime n8n nao foram executados. Adaptador
+provider preparado: Z-API de teste; Meta, homologacao do produtor de lembretes, schema
+legado, pipeline, outbox/recovery e ensaio real continuam pendentes.
+Runbook: `n8n/miranda-original-crm/ENTREGA_COMPARTILHADA.md`. A rodada nao
+acessou producao, servicos/modelos nem modificou workflows remotos.
+
+## Follow-up Original: Eventos CRM (11/10/2026)
+
+`n8n/miranda-original-crm/followup-original-crm.inactive.json` adapta o original
+de 28 nodes mantendo Juiz, Redator, playbook e regras comerciais. Acrescenta
+identidade descartavel, escopo, leitura de pausas antes dos modelos, gate
+de snapshot/fila e comprovacao duravel antes de contar envio. Prepara eventos
+`automation.updated` e `message.recorded`; nao altera Kanban automaticamente.
+Importa inativo e preview, sem tokens/destinos/IDs privados. Nenhum runtime,
+SQL ou producao foi acessado. 27 novas regressoes, 65 testes especificos
+combinados, 193 testes Lote 2 e lint passaram. Delivery comum de automacoes,
+schema legado sintetico, contato salvo, outbox CRM e pipeline seguem pendentes.
+O receptor local posterior esta descrito acima; integracao ainda precisa
+de homologacao. Runbook e
+contratos provisorios em `n8n/miranda-original-crm/FOLLOWUP.md`.
+
+## Omnichannel Original: Contrato Agent Test (11/10/2026)
+
+`n8n/miranda-original-crm/omnichannel-crm-agent-test.inactive.json` corrige a
+entrada/saida do chat Frappe sobre o reexport fornecido pelo usuario. Conserva
+os 220 nodes anteriores e acrescenta cinco validacoes/preflight. Conferencia
+de escopo e identidade descartavel precede escritas; Postgres exige credencial
+de teste, nunca a referencia Miranda do arquivo recebido. Webhook exclusivo,
+envio real desconectado e canais desabilitados. Contexto/historico/buffer
+preservados; filtro de idioma e retorno sanitizado de erro foram integrados.
+38 regressoes especificas passaram, incluindo validadores puros do Frappe;
+193 testes da suite local Lote 2 e ESLint do gerador/testes tambem passaram.
+Credenciais, cerebro isolado e configuracao server-side ainda sao manuais;
+nenhum runtime remoto foi acessado ou verificado nesta rodada. Runbook em
+`n8n/miranda-original-crm/README.md`. Follow-up/pipeline ficam para depois.
+
+## Alternativa Local: Omnichannel Original (11/10/2026)
+
+`n8n/miranda-original-crm/omnichannel-original-crm.inactive.json` parte do
+export Miranda de 148 nodes, preservando nomes e ramos de midia em vez do
+mestre compacto. Gerador e limites em `n8n/miranda-original-crm/README.md`.
+Registro individual, contexto central versionado, teste virtual e gate por
+acao foram adaptados aos contratos/RPCs existentes. Credenciais apenas por
+nome; envio real desligado. Os demais workflows privados nao foram alterados.
+Esta rodada e local: nao acessa n8n, aplica SQL ou modifica servicos.
+14 regressoes locais especificas e 193 testes locais Lote 2 passaram; ESLint
+do gerador e testes passou. Execucao real/importacao continuam
+pendentes. Nao apresentar este export como integracao pronta para producao.
+
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 05/10/2026.
+> Última auditoria: 10/10/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
@@ -47,6 +318,16 @@ Regras inegociáveis:
 - O Lote 1 ainda não foi mesclado, publicado ou aplicado ao banco de produção.
 - O runbook de revisão, implantação e recuperação está em
   `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
+- O fechamento local do Lote 1 está no commit
+  `4bba3d425992af2308c6edce0e1214c40902fe35`. A branch do
+  Lote 2, `codex/lote-2-workflow-mestre-omnichannel`, nasceu exatamente desse
+  commit; a `main` não foi alterada.
+- O Lote 2 possui especificação, implementação local e um harness integrado
+  aplicado somente ao Supabase descartável `gaofupndxgitonfmvpzi` e ao Redis
+  exclusivo de teste. Contratos, funções puras, fixtures e exports n8n seguem
+  inativos; nenhuma mudança de produção, canal, cérebro, push ou deploy foi
+  executada. O contrato está em
+  `docs/LOTE_2_WORKFLOW_MESTRE_OMNICHANNEL.md`.
 
 O Git já possui uma trilha remota, mas a reconstrução integral ainda depende
 do baseline externo de schema/RLS, n8n, Redis e segredos por ambiente.
@@ -127,7 +408,8 @@ Next.js na Vercel (este repositório)
 
 ### O que não está neste repositório
 
-- Workflows do n8n.
+- Workflows omnichannel publicados ou ativos do n8n. O repositório contém
+  apenas o Analista versionado e o harness inativo do Lote 2.
 - Credenciais e configuração dos canais Meta/WhatsApp.
 - Configuração dos Redis por cliente.
 - Prompts e ferramentas completas dos agentes, salvo o que eventualmente estiver refletido no banco.
@@ -141,6 +423,197 @@ Next.js na Vercel (este repositório)
 Cada cliente tem o seu próprio Redis no Upstash, usado pelo n8n para buffer, contexto e travas do agente. Desde 19/09/2026 o painel acede diretamente a esse Redis, apenas no servidor e pela API REST do Upstash, para uma única finalidade: ler as travas do agente e gravar ou remover a pausa manual e a pausa pós-agendamento. O painel não lê buffer, contexto nem eco. O contrato das chaves está na secção 12 e o código em `lib/redis/agent-locks.ts`. Não há dependência npm de Redis; o acesso é feito com `fetch`.
 
 Clientes com a integração ativa: `miranda_skin_experts`. Para os demais, as telas simplesmente não mostram a secção de pausas.
+
+### Lote 2: alvo e implementação local
+
+O Lote 2 substituirá a duplicação dos omnichannel por um workflow mestre e
+subworkflows reutilizáveis. O desenho aprovado mantém o Supabase central como
+fonte durável de configuração e dados operacionais e usa Redis compartilhado
+como projeção reconstruível, isolada por ambiente, empresa, canal, conta e
+conversa.
+
+Pausas deixam de ser um único estado sobrescrito: intervenção humana, pausa
+manual, handoff e agendamento serão bloqueios independentes. Encerrar um motivo
+nunca encerra outro. Toda ação de saída será revalidada contra uma versão da
+conversa imediatamente antes da entrega, para suprimir respostas preparadas
+antes de uma intervenção humana.
+
+Os cérebros continuam privados. Seus Supabases, prompts, Google Agenda e outras
+tools não são acessados diretamente pela plataforma. O mestre recebe apenas um
+resultado estruturado e eventos de domínio atestados. A especificação não
+escolhe piloto, não inclui Asteric e não autoriza conexão com serviços.
+
+A primeira implementação local está em `contracts/omnichannel/v1/`,
+`lib/omnichannel/`, `tests/omnichannel-*.test.ts` e `n8n/omnichannel/`. Ela
+simula a busca exata da configuração por tenant, máquina de bloqueios,
+normalização de mídia e entrega ordenada. Resultados de contexto são vinculados
+ao escopo/chamada/mensagens; respostas do cérebro são vinculadas ao snapshot;
+schemas, ações e eventos aninhados falham fechados. Exceções de envio preservam
+o progresso e qualquer resultado incerto exige reconciliação. Não usa Supabase,
+Redis, n8n, modelo, provider ou tool real e não altera o comportamento da
+aplicação. O validador local rejeita datas de calendário e horários impossíveis
+sem normalização e separa erro de definição do schema de erro no payload;
+referências recursivas não suportadas falham antes dos combinadores. Em
+09/10/2026, os checks locais foram repetidos depois da geração dos candidatos
+da Miranda; os totais atuais ficam registrados na especificação. A análise do
+fluxo atual da Miranda, com lacunas confirmadas e o plano do buffer, está em
+`docs/LOTE_2_REFERENCIA_FLUXO_ATUAL_MIRANDA.md`.
+
+Idioma é uma regra de entrega, não apenas uma orientação de prompt. A mensagem
+mais recente do lead estabelece português, inglês ou espanhol; uma troca clara
+passa a valer no mesmo turno. Pedido explícito como `em espanhol` prevalece
+mesmo dentro de uma frase no idioma anterior, enquanto conteúdo curto ou
+ambíguo preserva o idioma já
+estabelecido. O redator recebe esse idioma como obrigatório e o resultado passa
+por um gate determinístico antes do plano de entrega. Uma resposta claramente
+incompatível termina como `response_language_mismatch`, sem ação para o
+provedor. O gate, a resolução de mensagens ambíguas e as três línguas têm
+regressões em `tests/omnichannel-language-policy.test.ts` e
+`tests/miranda-v2-candidate-workflows.test.ts`.
+
+Os candidatos funcionais detalhados da Miranda estão em
+`n8n/miranda-v2-candidate/` e são regenerados por
+`scripts/build-miranda-v2-candidates.ts`. Eles consolidam 16 blocos em seis
+papéis e permanecem inativos no Git. O deployment HML hidrata cópias privadas
+desses seis candidatos com credenciais exclusivas do laboratório, referências
+internas e configuração `observe_only`; ele mantém webhooks de canal e
+schedules desligados. Em 10/10/2026, os seis workflows completos foram
+publicados em IDs próprios na pasta `CRM MIRANDA SKIN`. O pacote local atual
+tem 312 nodes; as cópias HML preservam esses 312 nodes e hidratam somente
+credenciais, referências internas e configuração exclusiva do laboratório. O
+gateway sintético é um sétimo workflow separado e não entra nessa contagem.
+Uma execução sintética direta percorreu buffer real, contexto, cérebro, CRM e
+gate até terminar suprimida, sem chamar os três nodes de provedor. Os seis
+workflows operacionais originais da Miranda continuam nos IDs e versões
+anteriores, sem edição.
+
+O caso de duas mensagens rápidas também foi reproduzido no HML em 10/10/2026.
+A Entrada agora aguarda o dono do lote atual, tenta novamente o claim da
+sequência mais recente e o Atendimento relê a sequência antes de expor cada
+resposta. O resultado preparado com corte antigo terminou como
+`superseded_by_new_message`; o lote seguinte reuniu as duas mensagens, manteve
+o histórico e o espanhol e não reapresentou Carol nem repetiu a pergunta
+anterior. Depois de alinhar esse resultado ao retorno do gateway, as duas
+execuções concorrentes da Entrada (`133402` e `133404`) terminaram com sucesso,
+sempre com o provider suprimido.
+
+Os runtimes compactos de `n8n/miranda-v2-lab-runtime/` continuam separados e
+preservados no Git como fixtures determinísticas. As seis cópias remotas que
+antes atendiam o gateway foram despublicadas e arquivadas em 10/10/2026. O
+gateway sintético de `/crm/agent-test` agora chama diretamente os seis
+workflows HML completos por ID; cada workflow possui uma rota de laboratório
+fechada que valida o contrato sintético. O modo `safe_simulation` impede banco,
+Redis, modelo, tool, Calendar e provedor; o modo `full_agent_virtual` usa apenas
+os recursos HML autorizados e o cérebro real, mantendo Calendar e provedor
+bloqueados. Não confundir runtime compacto versionado,
+workflows completos HML, candidatos locais e cópias sanitizadas de revisão:
+são artefatos com finalidades diferentes.
+
+O contrato reverso provisório do Frappe é
+`contracts/omnichannel/v1/crm-command.schema.json`. Ele separa pausa manual,
+resolução/retomada de handoff, cancelamento e presença/no-show. O workflow
+reconstrói tenant e conta pela integração confiável antes das RPCs. A emissão
+dos comandos, claim único por uma identidade técnica separada e confirmação do
+resultado foram exercitados por HTTP no laboratório em modo `outbox_only`.
+Ainda não existe ligação desses comandos aos workflows n8n nem a canais reais.
+
+Uma extensão local adicional prepara o espelho da Miranda no Frappe CRM. O
+contrato está em `contracts/omnichannel/v1/crm-sync-event.schema.json`, a lógica
+em `lib/omnichannel/crm-sync.ts` e o mapa inativo dos seis workflows em
+`n8n/miranda-crm/`. Essa extensão não está importada no n8n nem conectada ao
+Frappe de produção. Provedor, tool, workflow, cérebro e usuário do CRM têm
+autoridades separadas; disponibilidade não confirma agendamento e tentativa de
+envio não confirma entrega.
+
+No laboratório Frappe, o app `lexia_crm 0.6.4` adiciona as rotas autenticadas
+`/crm/conversations` e `/crm/agent-test` ao frontend nativo do CRM 1.86.0. A
+primeira é somente leitura: usa as permissões dos DocTypes, mostra mensagens,
+autoria, mídia, entrega, bloqueios, agendamento e contexto, mas não envia
+mensagens nem altera estado e exclui conversas sintéticas inclusive no acesso
+direto. A segunda é uma inbox separada por usuário, com busca e múltiplas
+conversas; cria um ensaio sintético, persiste a entrada antes da fila e acompanha
+automaticamente o worker. O modo atual é `remote`, restrito ao laboratório, e
+aponta todos os alvos para um gateway sintético autenticado no n8n. O gateway
+valida o contrato e despacha para um dos seis workflows HML completos. O alvo
+omnichannel em `full_agent_virtual` percorre Entrada -> buffer/contexto ->
+Atendimento real da Miranda -> CRM -> Saída. Ele usa somente o Supabase e o
+Redis descartáveis, além do modelo do cérebro HML; a resposta é correlacionada
+e sempre suprimida antes do provedor. Calendar continua desabilitado e nenhum
+canal, provider ou tool de agenda é chamado. O
+overlay de rotas/menu é compilado na imagem, fixado à versão upstream e falha
+se as âncoras mudarem. Foram aprovados 58/58 testes do app, 246/246 testes do
+frontend upstream, lint das páginas, build Vite, inspeção visual e smoke
+autenticado da separação entre as duas inboxes. Uma única conversa adicional
+foi exercitada em português, depois inglês e depois espanhol; cada turno teve
+o idioma esperado confirmado pelo gate e `provider_send_attempted = false`.
+Isso continua restrito a `crm-hml.localhost` e não comprova a integração real.
+Em 10/10/2026, a frase real `Gostaria de ser atendido em espanol` revelou que
+o redator já respondia em espanhol, mas o gate final ainda priorizava o idioma
+anterior. A versão HML do Atendimento foi corrigida para reconhecer pedidos
+explícitos com nomes de idioma misturados, persistir `idioma: es` e dar essa
+decisão à validação final. A execução `133270` passou com
+`expected_language = es`, dois balões detectados como espanhol e
+`provider_send_attempted = false`.
+Na versão 0.6.4, a limpeza protegida também reconhece o manifesto
+`test:SYNTH-LEXIA-TEST-CHAT-`, sem remover as verificações de ambiente, empresa,
+conta, canal e flag sintética.
+
+O app aditivo foi instalado inicialmente no laboratório Frappe
+`crm-hml.localhost`, marcado como `isolated_test` e
+`empresa_sintetica_a`, na versão `0.4.1`; o harness Frappe + Supabase passou em
+09/10/2026. O laboratório agora roda `0.6.4`. Há usuários técnicos distintos
+de operação e integração, com chaves fora do Git. Gateway e seis runtimes
+compactos foram substituídos no Agent Test pelo gateway e pelos seis workflows
+HML completos. Na pasta remota `CRM MIRANDA SKIN` permanecem visíveis somente
+esses sete workflows; as cópias compactas foram arquivadas. O ramo
+`safe_simulation` não usa Supabase, Redis, modelo, Calendar ou provedor. O ramo
+`full_agent_virtual` usa recursos HML autorizados e o cérebro real da Miranda,
+mas conserva canal virtual, Calendar desabilitado, schedules/canais desligados
+e entrega `observe_only`. Isso valida o caminho HML no laboratório, não
+produção.
+
+Regras fixadas: remover a
+pausa de um agendamento confirmado mantém seus lembretes até o início da
+consulta, sob os demais bloqueios; mensagem nova do lead antes do envio
+descarta a resposta não enviada e reprocessa o lote, sem repetir bolhas
+enviadas nem efeitos de tools (modelo local em
+`lib/omnichannel/inbound-buffer.ts` e `lib/omnichannel/delivery-plan.ts`).
+A pausa pós-agendamento é política por empresa no Supabase central
+(`lexia_omnichannel_policies`), sem condição fixa por cliente: ligada, cria
+bloqueio até o fim do evento e admite uma confirmação única vinculada à tool;
+desligada, não cria bloqueio. Vale para todos os canais, só na conversa do
+agendamento. Somente o admin Lexia altera, com a regra aplicada também no
+banco; o cliente apenas vê. Valores iniciais sintéticos: empresa A ligada e
+empresa B desligada. As migrations foram aplicadas somente ao projeto
+descartável confirmado, com resumo em `docs/LOTE_2_REVISAO_BANCO.md`; staging e
+produção permanecem sem autorização. O mestre executável de teste está em
+`n8n/omnichannel-test/` (workflows gerados a partir de
+`lib/omnichannel/master-runtime.ts`, inativos, com cérebro e provedor falsos)
+e ainda não foi importado. Um artefato separado, `remote-gateway.sdk.mjs`, foi
+publicado apenas no n8n de laboratório para validar o transporte HTTP
+autenticado. O deployment reproduzível é montado por
+`scripts/build-miranda-v2-lab-deployment.mjs`: ele publica primeiro os seis
+filhos sintéticos sanitizados e depois o gateway. O deployment dos seis fluxos
+completos é separado, gerado por
+`scripts/build-miranda-v2-staging-deployment.mjs`; ele não altera o gateway da
+plataforma nem os workflows originais.
+
+O harness mínimo de banco do Lote 2 está em `supabase/isolated/lote2/`. Ele
+exige projeto vazio, marcador `isolated_test`, duas empresas sintéticas,
+provider `fake` e entrega `observe_only`. Em 09/10/2026, conectividade,
+preflight, baseline, migration, fixtures e verificações passaram apenas no
+projeto descartável `gaofupndxgitonfmvpzi`. O ensaio Supabase + Redis passou
+nove cenários integrados e removeu todas as conversas e chaves runtime,
+preservando as configurações sintéticas. Durante o ensaio foi corrigida a
+constraint de eventos para aceitar `handoff.resolve` e
+`appointment.attendance.update`; a correção aditiva está na migration
+`202610090001_lote2_state_event_command_types.sql`. A RPC específica para
+cancelamento vindo do CRM está em
+`202610090002_lote2_crm_appointment_cancellation.sql`: ela preserva a
+proveniência da tool e nunca recria ou encerra uma pausa. O ensaio adicional
+Frappe + Supabase passou sete cenários e limpeza; o Redis permaneceu vazio.
+Nenhum modelo, canal, provider, cérebro ou destino externo foi chamado nesse
+ensaio; a conexão n8n posterior limita-se ao gateway sintético descrito acima.
 
 ## 5. Stack e Convenções
 
@@ -168,6 +641,11 @@ npm run start
 npm run lint
 npm run typecheck
 npm test
+npm run test:lote2:local
+npm run db:lote2:connectivity
+npm run db:lote2:redis:connectivity
+npm run db:lote2:preflight
+npm run db:lote2:apply:isolated
 npm run test:lote1:db:isolated
 npm run test:lote1:isolated
 npm run test:lote1:runtime:isolated
@@ -233,15 +711,20 @@ lib/
   dashboard/message-metrics-data.ts  consultas enxutas das métricas por período
   dashboard/operational-metrics.ts   definições das métricas centrais
   metrics/external-client-metrics.ts Supabase externo e agendamentos
+  omnichannel/                       contratos e lógica pura local do Lote 2
   redis/agent-locks.ts               travas do agente no Redis (server-only)
   redis/pause-durations.ts           opções de pausa manual (seguro p/ client)
   supabase/                          clientes browser, SSR, admin e paginação concorrente
   workflows/                         contratos públicos e DAL privado de workflows
 public/lexia/                        símbolos claro e escuro da Lexia
+contracts/omnichannel/v1/            JSON Schemas provisórios e exemplos sintéticos
+n8n/omnichannel/                     mestre e subworkflows locais, inativos e sem rede
+n8n/miranda-v2-candidate/            referência detalhada e inativa dos seis papéis
+n8n/miranda-v2-lab-runtime/          fixtures compactas preservadas do Agent Test
 supabase/migrations/                 migrations incrementais versionadas
 supabase/checks/                     preflight e verificação pós-migration
 supabase/operations/                 operações explícitas fora de transação
-tests/                               testes de contrato e segurança do Lote 1
+tests/                               testes do Lote 1 e contratos locais do Lote 2
 ```
 
 Arquivos de referência:
@@ -254,6 +737,8 @@ Arquivos de referência:
 - `lib/metrics/external-client-metrics.ts`: mapa atual de integrações de agendamento.
 - `lib/conversations/message-display.ts`: comportamento visual das mensagens.
 - `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`: runbook completo do Lote 1.
+- `docs/LOTE_2_WORKFLOW_MESTRE_OMNICHANNEL.md`: especificação, contratos,
+  ordem de construção e gates do Lote 2.
 
 ## 7. Rotas
 

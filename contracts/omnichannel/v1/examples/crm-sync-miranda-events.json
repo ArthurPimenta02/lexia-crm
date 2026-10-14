@@ -1,0 +1,129 @@
+[
+  {
+    "schema_version": "lexia.crm.event.v1",
+    "event_id": "aaaaaaaa-0000-4000-8000-000000000201",
+    "idempotency_key": "synthetic:miranda:conversation:opened:001",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000200",
+    "event_type": "conversation.opened",
+    "occurred_at": "2026-10-09T12:00:00-03:00",
+    "emitted_at": "2026-10-09T12:00:01-03:00",
+    "sequence": 1,
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "miranda_sintetica",
+      "channel": "instagram",
+      "account_ref": "aaaaaaaa-0000-4000-8000-000000000210",
+      "conversation_ref": "synthetic-conversation-001"
+    },
+    "source": {
+      "system": "provider",
+      "authority": "provider_event",
+      "workflow_ref": "miranda-omnichannel-shadow",
+      "execution_ref": "synthetic-execution-001",
+      "node_ref": "normalizar-entrada"
+    },
+    "payload": {
+      "contact_ref": "synthetic-contact-001",
+      "display_name": "Lead Sintetico Miranda",
+      "resume_mode": "await_new_message"
+    }
+  },
+  {
+    "schema_version": "lexia.crm.event.v1",
+    "event_id": "aaaaaaaa-0000-4000-8000-000000000202",
+    "idempotency_key": "synthetic:miranda:message:received:001",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000200",
+    "causation_id": "aaaaaaaa-0000-4000-8000-000000000201",
+    "event_type": "message.recorded",
+    "occurred_at": "2026-10-09T12:00:00-03:00",
+    "emitted_at": "2026-10-09T12:00:02-03:00",
+    "sequence": 2,
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "miranda_sintetica",
+      "channel": "instagram",
+      "account_ref": "aaaaaaaa-0000-4000-8000-000000000210",
+      "conversation_ref": "synthetic-conversation-001"
+    },
+    "source": {
+      "system": "provider",
+      "authority": "provider_event",
+      "workflow_ref": "miranda-omnichannel-shadow",
+      "execution_ref": "synthetic-execution-001",
+      "node_ref": "registrar-mensagem"
+    },
+    "payload": {
+      "message_id": "synthetic-message-001",
+      "provider_message_ref": "synthetic-provider-message-001",
+      "direction": "inbound",
+      "author": "lead",
+      "message_type": "text",
+      "text": "Mensagem exclusivamente sintetica.",
+      "transcription_status": "not_applicable",
+      "delivery_status": "received"
+    }
+  },
+  {
+    "schema_version": "lexia.crm.event.v1",
+    "event_id": "aaaaaaaa-0000-4000-8000-000000000203",
+    "idempotency_key": "synthetic:miranda:appointment:confirmed:001",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000200",
+    "event_type": "appointment.confirmed",
+    "occurred_at": "2026-10-09T12:05:00-03:00",
+    "emitted_at": "2026-10-09T12:05:01-03:00",
+    "sequence": 3,
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "miranda_sintetica",
+      "channel": "instagram",
+      "account_ref": "aaaaaaaa-0000-4000-8000-000000000210",
+      "conversation_ref": "synthetic-conversation-001"
+    },
+    "source": {
+      "system": "tool",
+      "authority": "tool_result",
+      "workflow_ref": "miranda-criar-agendamento-shadow",
+      "execution_ref": "synthetic-execution-appointment-001",
+      "node_ref": "evento-confirmado"
+    },
+    "payload": {
+      "appointment_ref": "synthetic-appointment-001",
+      "tool_invocation_id": "synthetic-tool-call-001",
+      "starts_at": "2026-10-16T14:00:00-03:00",
+      "ends_at": "2026-10-16T15:00:00-03:00",
+      "timezone": "America/Sao_Paulo",
+      "pause_until_end": true
+    }
+  },
+  {
+    "schema_version": "lexia.crm.event.v1",
+    "event_id": "aaaaaaaa-0000-4000-8000-000000000204",
+    "idempotency_key": "synthetic:miranda:followup:scheduled:001",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000200",
+    "event_type": "automation.updated",
+    "occurred_at": "2026-10-09T12:06:00-03:00",
+    "emitted_at": "2026-10-09T12:06:01-03:00",
+    "sequence": 4,
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "miranda_sintetica",
+      "channel": "instagram",
+      "account_ref": "aaaaaaaa-0000-4000-8000-000000000210",
+      "conversation_ref": "synthetic-conversation-001"
+    },
+    "source": {
+      "system": "workflow",
+      "authority": "workflow_execution",
+      "workflow_ref": "miranda-followup-shadow",
+      "execution_ref": "synthetic-execution-followup-001",
+      "node_ref": "agendar-followup"
+    },
+    "payload": {
+      "automation_ref": "synthetic-followup-001",
+      "automation_type": "followup",
+      "status": "scheduled",
+      "source_ref": "synthetic-rule-001",
+      "due_at": "2026-10-11T12:06:00-03:00"
+    }
+  }
+]

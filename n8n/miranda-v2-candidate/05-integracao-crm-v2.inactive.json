@@ -1,0 +1,650 @@
+{
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM",
+  "nodes": [
+    {
+      "id": "4a54459b-3d3b-4c28-8cc9-51802c6eaf46",
+      "name": "NOTA | COMANDOS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -310
+      ],
+      "parameters": {
+        "content": "## COMANDOS\nRecebe pausa, retomada, handoff, cancelamento e presença autenticados pelo CRM.",
+        "width": 3980,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "f2126823-ea7f-42c0-8e49-bd10ac8db6af",
+      "name": "NOTA | ESPELHO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4500,
+        -200
+      ],
+      "parameters": {
+        "content": "## ESPELHO\nCria ou atualiza Lead, Deal e timeline em ordem idempotente.",
+        "width": 2180,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "a6123edc-a45a-4671-8e2e-68e44a53c84c",
+      "name": "NOTA | RESPOSTA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7200,
+        -200
+      ],
+      "parameters": {
+        "content": "## RESPOSTA\nResponde comandos do CRM e retorna confirmações para os demais workflows.",
+        "width": 740,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "4956c9a8-061e-4c68-8fba-a13e1fd08420",
+      "name": "COMANDOS | Webhook autenticado do Frappe",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        -130
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lexia-v2-miranda-crm-command",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "5623f920-cef3-4d43-84c8-9cc401ddbacc",
+      "name": "COMANDOS | Validar comando sem confiar no tenant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json.body || $input.first().json;\nconst types = ['manual_pause.start','manual_pause.end','handoff.resolve','handoff.resume','appointment.cancel','appointment.attendance.update'];\nif (input?.schema_version !== 'lexia.crm.command.v1' || !types.includes(input.command_type)) throw new Error('crm_command_invalid');\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst dateTime = /^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.\\d+)?(?:Z|[+-](\\d{2}):(\\d{2}))$/;\nconst validDateTime = (value) => {\n  if (typeof value !== 'string') return false;\n  const match = dateTime.exec(value); if (!match) return false;\n  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);\n  const hour = Number(match[4]), minute = Number(match[5]), second = Number(match[6]);\n  const offsetHour = match[7] === undefined ? 0 : Number(match[7]);\n  const offsetMinute = match[8] === undefined ? 0 : Number(match[8]);\n  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);\n  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  return year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1]\n    && hour <= 23 && minute <= 59 && second <= 59 && offsetHour <= 23 && offsetMinute <= 59;\n};\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) throw new Error(code + '_object');\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) throw new Error(code + '_extra_' + key);\n};\nexactKeys(input, ['schema_version','command_id','correlation_id','command_type','occurred_at','scope','payload'], 'crm_command');\nif (!uuid.test(String(input.command_id || '')) || !uuid.test(String(input.correlation_id || '')) || !validDateTime(input.occurred_at)) throw new Error('crm_command_fields_invalid');\nexactKeys(input.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'crm_command_scope');\nif (!['local','isolated_test','staging','production'].includes(input.scope.environment)\n  || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(String(input.scope.cliente_slug || ''))\n  || !['whatsapp','instagram','messenger'].includes(input.scope.channel)\n  || !uuid.test(String(input.scope.account_ref || ''))\n  || typeof input.scope.conversation_ref !== 'string' || input.scope.conversation_ref.length < 1 || input.scope.conversation_ref.length > 256) throw new Error('crm_command_scope_invalid');\nconst rules = {\n  'manual_pause.start': { required: ['pause_ref'], optional: ['reason','expires_at'] },\n  'manual_pause.end': { required: ['pause_ref'], optional: ['reason'] },\n  'handoff.resolve': { required: ['handoff_id','resolution'], optional: ['notes'] },\n  'handoff.resume': { required: ['handoff_id'], optional: [] },\n  'appointment.cancel': { required: ['appointment_ref'], optional: [] },\n  'appointment.attendance.update': { required: ['appointment_ref','attendance_status'], optional: [] },\n};\nconst rule = rules[input.command_type];\nexactKeys(input.payload, [...rule.required, ...rule.optional], 'crm_command_payload');\nfor (const key of rule.required) if (!(key in input.payload)) throw new Error('crm_command_payload_required_' + key);\nconst bounded = (value, min, max) => typeof value === 'string' && value.length >= min && value.length <= max;\nif ('pause_ref' in input.payload && !bounded(input.payload.pause_ref, 1, 128)) throw new Error('crm_command_pause_ref_invalid');\nif ('reason' in input.payload && !bounded(input.payload.reason, 0, 256)) throw new Error('crm_command_reason_invalid');\nif ('expires_at' in input.payload && !validDateTime(input.payload.expires_at)) throw new Error('crm_command_expiry_invalid');\nif ('handoff_id' in input.payload && !uuid.test(String(input.payload.handoff_id || ''))) throw new Error('crm_command_handoff_id_invalid');\nif ('resolution' in input.payload && !['resolved','lost'].includes(input.payload.resolution)) throw new Error('crm_command_resolution_invalid');\nif ('notes' in input.payload && !bounded(input.payload.notes, 0, 4000)) throw new Error('crm_command_notes_invalid');\nif ('appointment_ref' in input.payload && !bounded(input.payload.appointment_ref, 1, 240)) throw new Error('crm_command_appointment_ref_invalid');\nif ('attendance_status' in input.payload && !['attended','no_show'].includes(input.payload.attendance_status)) throw new Error('crm_command_attendance_invalid');\nconst accountMap = { whatsapp: $env.LEXIA_MIRANDA_ZAPI_ACCOUNT_ID, instagram: $env.LEXIA_MIRANDA_INSTAGRAM_ACCOUNT_ID, messenger: $env.LEXIA_MIRANDA_MESSENGER_ACCOUNT_ID };\nconst accountId = accountMap[input.scope.channel];\nif (!accountId || (input.scope.account_ref && input.scope.account_ref !== accountId)) throw new Error('crm_command_account_denied');\nreturn [{ json: { command: input, trusted_account_id: accountId } }];"
+      }
+    },
+    {
+      "id": "a7de0e80-f5f0-466b-839d-e805d80947ef",
+      "name": "COMANDOS | Carregar vínculo confiável do comando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        -20
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_channel_accounts?id=eq.' + encodeURIComponent($json.trusted_account_id) + '&status=eq.active&select=id,environment,cliente_slug,channel,provider&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "c4184988-66f8-40c8-8270-e38c01e0afea",
+      "name": "COMANDOS | Resolver escopo real do comando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('COMANDOS | Validar comando sem confiar no tenant').first().json;\nconst rows = (() => { const items = $('COMANDOS | Carregar vínculo confiável do comando').all(); if (items.length !== 1) throw new Error('Carregar vínculo confiável do comando output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1) throw new Error('crm_command_account_unavailable');\nconst account = rows[0];\nif (input.command.scope.environment !== account.environment || input.command.scope.cliente_slug !== account.cliente_slug || input.command.scope.channel !== account.channel) throw new Error('crm_command_scope_mismatch');\nreturn [{ json: { ...input, account, rpc_body: { p_account_id: account.id, p_conversation_ref: input.command.scope.conversation_ref, p_identificador_conversa: input.command.scope.conversation_ref } } }];"
+      }
+    },
+    {
+      "id": "8aa09fb6-7588-471d-8bd1-4d2f7d904fae",
+      "name": "COMANDOS | Resolver conversa do comando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_resolve_conversation' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "20782b4f-9ea4-4375-8158-0ab24ad7dea3",
+      "name": "COMANDOS | Mapear comando para RPC restrita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('COMANDOS | Resolver escopo real do comando').first().json;\nconst value = (() => { const items = $('COMANDOS | Resolver conversa do comando').all(); if (items.length !== 1) throw new Error('Resolver conversa do comando output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst conversationId = typeof value === 'string' ? value.replace(/^\"|\"$/g, '') : value;\nconst command = input.command, payload = command.payload || {}, common = { p_conversation_id: conversationId, p_occurred_at: command.occurred_at, p_actor: null };\nlet rpcName, rpcBody;\nif (command.command_type === 'manual_pause.start') { rpcName = 'lexia_omni_start_manual_pause'; rpcBody = { ...common, p_command_id: command.command_id, p_pause_ref: payload.pause_ref, p_expires_at: payload.expires_at || null }; }\nelse if (command.command_type === 'manual_pause.end') { rpcName = 'lexia_omni_end_block'; rpcBody = { ...common, p_command_id: command.command_id, p_block_key: 'manual:' + payload.pause_ref, p_reason: payload.reason || 'crm_manual_resume' }; }\nelse if (command.command_type === 'handoff.resolve') { rpcName = 'lexia_omni_resolve_handoff'; rpcBody = { ...common, p_command_id: command.command_id, p_handoff_id: payload.handoff_id, p_resolution: payload.resolution, p_notes: payload.notes || null }; }\nelse if (command.command_type === 'handoff.resume') { rpcName = 'lexia_omni_resume_handoff'; rpcBody = { ...common, p_command_id: command.command_id, p_handoff_id: payload.handoff_id }; }\nelse if (command.command_type === 'appointment.cancel') { rpcName = 'lexia_omni_cancel_appointment_from_crm'; rpcBody = { ...common, p_command_id: command.command_id, p_appointment_ref: payload.appointment_ref }; }\nelse { rpcName = 'lexia_omni_update_appointment_attendance'; rpcBody = { ...common, p_command_id: command.command_id, p_appointment_ref: payload.appointment_ref, p_attendance_status: payload.attendance_status }; }\nreturn [{ json: { ...input, conversation_id: conversationId, rpc_name: rpcName, rpc_body: rpcBody } }];"
+      }
+    },
+    {
+      "id": "f9174958-ffb7-4b28-884b-64c654c0115f",
+      "name": "COMANDOS | Aplicar comando no central",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2280,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/' + encodeURIComponent($json.rpc_name) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "110264d1-4545-4f52-87bc-a78fdfc9d1f9",
+      "name": "COMANDOS | Preparar projeção Redis do comando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('COMANDOS | Mapear comando para RPC restrita').first().json;\nconst result = (() => { const items = $('COMANDOS | Aplicar comando no central').all(); if (items.length !== 1) throw new Error('Aplicar comando no central output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!input.conversation_id || !input.account?.id) throw new Error('command_projection_input_missing');\nconst scope = { environment: input.account.environment, cliente_slug: input.account.cliente_slug,\n  channel: input.account.channel, account_ref: input.account.id, conversation_ref: input.command.scope.conversation_ref };\nconst key = ['lexia','omni','v2',scope.environment,scope.cliente_slug,scope.channel,scope.account_ref,'{' + input.conversation_id + '}','state'].join(':');\nreturn [{ json: { ...input, command_result: result, redis_projection_key: key,\n  redis_projection_value: JSON.stringify({ schema_version: 'lexia.redis.command-result.v1', projected_at: new Date().toISOString(),\n    conversation_id: input.conversation_id, command_id: input.command.command_id, command_type: input.command.command_type,\n    result }) } }];"
+      }
+    },
+    {
+      "id": "9ec44d9b-edee-4d97-8d3d-2d7e1f120932",
+      "name": "COMANDOS | Projetar comando no Redis compartilhado",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3000,
+        -20
+      ],
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.redis_projection_key }}",
+        "value": "={{ $json.redis_projection_value }}",
+        "expire": true,
+        "ttl": 604800
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "59e61593-2d0e-43f1-81e7-6932d121cea1",
+      "name": "COMANDOS | Espelhar comando aceito no CRM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3720,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('COMANDOS | Mapear comando para RPC restrita').first().json;\nconst command = input.command, payload = command.payload || {};\nlet eventType, eventPayload;\nif (command.command_type === 'manual_pause.start') { eventType = 'block.upserted'; eventPayload = { block_id: payload.pause_ref, block_type: 'manual_pause', source_ref: payload.pause_ref, reason: payload.reason || 'manual_pause', starts_at: command.occurred_at, ...(payload.expires_at ? { expires_at: payload.expires_at } : {}), effects: { replies: true, followups: true, reminders: true } }; }\nelse if (command.command_type === 'manual_pause.end') { eventType = 'block.closed'; eventPayload = { block_id: payload.pause_ref, status: 'resolved', resolved_at: command.occurred_at }; }\nelse if (command.command_type === 'handoff.resolve') { eventType = 'handoff.resolved'; eventPayload = { handoff_ref: payload.handoff_id, resolution: payload.resolution, resolved_at: command.occurred_at, ...(payload.notes ? { notes: payload.notes } : {}) }; }\nelse if (command.command_type === 'handoff.resume') { eventType = 'handoff.resumed'; eventPayload = { handoff_ref: payload.handoff_id, resumed_at: command.occurred_at }; }\nelse if (command.command_type === 'appointment.cancel') { eventType = 'appointment.cancelled'; eventPayload = { appointment_ref: payload.appointment_ref, tool_invocation_id: 'crm:' + command.command_id, cancelled_at: command.occurred_at }; }\nelse { eventType = 'appointment.attendance.updated'; eventPayload = { appointment_ref: payload.appointment_ref, attendance_status: payload.attendance_status, recorded_at: command.occurred_at }; }\nconst crmEvent = { schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(command.command_id + ':crm:event');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: command.command_id + ':crm', correlation_id: command.correlation_id, event_type: eventType,\n  occurred_at: command.occurred_at, emitted_at: new Date().toISOString(), sequence: 1,\n  scope: { environment: input.account.environment, cliente_slug: input.account.cliente_slug, channel: input.account.channel, account_ref: input.account.id, conversation_ref: command.scope.conversation_ref },\n  source: { system: 'crm', authority: 'crm_user', workflow_ref: 'miranda-v2-crm-command', execution_ref: $execution.id }, payload: eventPayload };\nreturn [{ json: { events: [crmEvent], passthrough: { command_id: command.command_id, status: 'applied', command_type: command.command_type } } }];"
+      }
+    },
+    {
+      "id": "c4fa4437-282b-462b-8ec9-caa84a0374d8",
+      "name": "COMANDOS | Responder comando",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        120,
+        90
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.passthrough }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "be4575c0-834a-4c3c-80be-db99353f7736",
+      "name": "ESPELHO | Receber contrato",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        4620,
+        -20
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "d4c9785f-0711-44a6-8633-3d9cfa3968ad",
+      "name": "ESPELHO | Validar eventos CRM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4980,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!Array.isArray(input.events) || input.events.length === 0 || input.events.length > 50) throw new Error('crm_events_invalid');\nconst events = [...input.events].sort((a, b) => Number(a.sequence) - Number(b.sequence));\nfor (let index = 0; index < events.length; index++) {\n  const event = events[index];\n  if (event?.schema_version !== 'lexia.crm.event.v1') throw new Error('crm_event_contract_invalid');\n  if (index > 0 && Number(event.sequence) <= Number(events[index - 1].sequence)) throw new Error('crm_event_sequence_invalid');\n}\nreturn events.map((event) => ({ json: { event, passthrough: input.passthrough || {} } }));"
+      }
+    },
+    {
+      "id": "369fbdeb-0228-4430-8298-c44ec0a787de",
+      "name": "ESPELHO | Espelhar em ordem",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5340,
+        -20
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "a93dfb1a-7e10-461c-8403-4e3b8f3187f5",
+      "name": "ESPELHO | Enviar evento autenticado ao Frappe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5700,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_FRAPPE_CRM_URL + '/api/method/lexia_crm.api.ingest_event' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { event: $json.event } }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "76aab911-4bb1-47de-8f39-19fb58eb7c43",
+      "name": "ESPELHO | Exigir confirmação do espelho",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6060,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst status = Number(response.statusCode || 0);\nconst body = response.body?.message || response.body || {};\nif (status < 200 || status >= 300) throw new Error('crm_mirror_http_failed');\nif (!['applied','duplicate'].includes(body.status)) throw new Error('crm_mirror_not_applied');\nreturn [{ json: { mirrored: true } }];"
+      }
+    },
+    {
+      "id": "aef0c7aa-054f-49d3-8df1-849e6627499f",
+      "name": "ESPELHO | Espelho CRM concluído",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6420,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('ESPELHO | Validar eventos CRM').first().json;\nreturn [{ json: { crm_mirrored: true, passthrough: input.passthrough || {} } }];"
+      }
+    },
+    {
+      "id": "1b40bf25-4cda-4d0f-8bce-83d387389d4d",
+      "name": "RESPOSTA | Veio de comando do CRM?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7320,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "37adc589-0cfb-4df2-85bc-1e44c36ffd13",
+              "leftValue": "={{ Boolean($json.passthrough?.command_id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4c215084-7d0f-4615-82e6-c114b7f274c6",
+      "name": "RESPOSTA | Retornar confirmação interna",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7680,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      }
+    }
+  ],
+  "connections": {
+    "COMANDOS | Espelhar comando aceito no CRM": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Validar eventos CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Espelho CRM concluído": {
+      "main": [
+        [
+          {
+            "node": "RESPOSTA | Veio de comando do CRM?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESPOSTA | Veio de comando do CRM?": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Responder comando",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RESPOSTA | Retornar confirmação interna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Webhook autenticado do Frappe": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Validar comando sem confiar no tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Validar comando sem confiar no tenant": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Carregar vínculo confiável do comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Carregar vínculo confiável do comando": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Resolver escopo real do comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Resolver escopo real do comando": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Resolver conversa do comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Resolver conversa do comando": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Mapear comando para RPC restrita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Mapear comando para RPC restrita": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Aplicar comando no central",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Aplicar comando no central": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Preparar projeção Redis do comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Preparar projeção Redis do comando": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Projetar comando no Redis compartilhado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMANDOS | Projetar comando no Redis compartilhado": {
+      "main": [
+        [
+          {
+            "node": "COMANDOS | Espelhar comando aceito no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Receber contrato": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Validar eventos CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Validar eventos CRM": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Espelhar em ordem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Espelhar em ordem": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Espelho CRM concluído",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ESPELHO | Enviar evento autenticado ao Frappe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Enviar evento autenticado ao Frappe": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Exigir confirmação do espelho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESPELHO | Exigir confirmação do espelho": {
+      "main": [
+        [
+          {
+            "node": "ESPELHO | Espelhar em ordem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": []
+}

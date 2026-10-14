@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - State Command - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "24000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Command",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { schema_version: 'lexia.state.command.v1', applied: false, simulated: true, independent_blocks: true } }];"
+      },
+      "id": "24000000-0000-4000-8000-000000000002",
+      "name": "Simulate State Transition",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Command": {
+      "main": [[{ "node": "Simulate State Transition", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

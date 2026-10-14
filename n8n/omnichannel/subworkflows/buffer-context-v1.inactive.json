@@ -1,0 +1,42 @@
+{
+  "name": "OMNI v2 - Buffer Context - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "27000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic History",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simulates the v2 buffer. The sliding debounce of the current workflow is\n// kept; messages are persisted before entering it, the owner is elected by\n// lead sequence (not list length), exactly the elected entries are claimed\n// atomically, one batch runs per conversation and a superseded batch is\n// carried into the next one. No Redis or Supabase is touched.\nconst windowMs = 60000;\nconst entries = [\n  { message_id: 'synthetic-m1', lead_seq: 1, enqueued_at: '2026-10-08T12:00:00.000Z' },\n  { message_id: 'synthetic-m2', lead_seq: 2, enqueued_at: '2026-10-08T12:00:30.000Z' },\n];\nconst now = Date.parse('2026-10-08T12:01:31.000Z');\nconst candidateSeq = 2;\nconst activeBatch = null;\nconst latest = entries.reduce((a, b) => (b.lead_seq > a.lead_seq ? b : a));\nlet claim;\nif (activeBatch) claim = { claimed: false, reason: 'batch_in_progress' };\nelse if (latest.lead_seq !== candidateSeq) claim = { claimed: false, reason: 'newer_message_waiting' };\nelse if (now - Date.parse(latest.enqueued_at) < windowMs) claim = { claimed: false, reason: 'window_open' };\nelse claim = { claimed: true, cutoff_seq: latest.lead_seq, message_ids: entries.map(e => e.message_id), fencing_token: 1 };\nreturn [{ json: { persisted_before_buffer: true, buffer_owner_elected_by: 'lead_seq', atomic_claim: true, one_batch_per_conversation: true, superseded_batch_carried_over: true, history_scope_checked: true, mixed_tenants: false, claim, simulated: true } }];"
+      },
+      "id": "27000000-0000-4000-8000-000000000002",
+      "name": "Simulate Scoped Buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic History": {
+      "main": [
+        [
+          {
+            "node": "Simulate Scoped Buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

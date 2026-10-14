@@ -1,0 +1,316 @@
+{
+  "name": "OMNI v2 - Master - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Manual Trigger Only",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { schema_version: 'lexia.ingress.event.v1', fixture: true, environment: 'isolated_test', cliente_slug: 'empresa_sintetica_a', delivery_mode: 'observe_only' } }];"
+      },
+      "id": "20000000-0000-4000-8000-000000000002",
+      "name": "Synthetic Canonical Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, scope_resolved_from_trusted_binding: true } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000004",
+      "name": "Resolve Scope Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, ingress_persisted: false, ingress_simulated: true } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000005",
+      "name": "Ingest Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, independent_blocks_simulated: true, state_version: 0, delivery_epoch: 0 } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000006",
+      "name": "State Command Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, redis_projected: false, redis_simulated: true } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000007",
+      "name": "Project Redis Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, media_processing_status: 'not_supported', original_event_preserved: true } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000008",
+      "name": "Media Normalize Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, context_config_version: 'synthetic-v1', context_fallback_used: false } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000009",
+      "name": "Context Config Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, policy_source: 'central_company_policy', policy_fallback_used: false, pause_after_appointment: true, policy_applies_to_all_channels: true } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000015",
+      "name": "Omnichannel Policy Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, scoped_history: [], persisted_before_buffer: true, buffer_owner_elected_by: 'lead_seq', atomic_claim: true, lead_cutoff_seq: 1 } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000010",
+      "name": "Buffer Context Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, context_result_version: 'lexia.context.result.v1', context_model_called: false } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000011",
+      "name": "Context Agent Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, brain_result_version: 'lexia.brain.result.v1', brain_called: false, actions: [] } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000012",
+      "name": "Invoke Brain Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, domain_events_validated: true, tool_calls_performed: false, single_confirmation_only: item.json.pause_after_appointment === true, superseded_context_patch_applied: false } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000013",
+      "name": "Apply Brain Result Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, permission_rechecked: true, lead_cutoff_checked: true, reprocess_on_new_lead_message: true, delivery_allowed: false, delivery_reason: 'observe_only' } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000014",
+      "name": "Delivery Gate Fake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: { ...item.json, status: 'suppressed_observe_only', external_call_performed: false } }));"
+      },
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Fail Closed Before Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3120, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger Only": {
+      "main": [
+        [
+          {
+            "node": "Synthetic Canonical Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthetic Canonical Event": {
+      "main": [
+        [
+          {
+            "node": "Resolve Scope Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Scope Fake": {
+      "main": [
+        [
+          {
+            "node": "Ingest Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Fake": {
+      "main": [
+        [
+          {
+            "node": "State Command Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "State Command Fake": {
+      "main": [
+        [
+          {
+            "node": "Project Redis Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Redis Fake": {
+      "main": [
+        [
+          {
+            "node": "Media Normalize Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Media Normalize Fake": {
+      "main": [
+        [
+          {
+            "node": "Context Config Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Config Fake": {
+      "main": [
+        [
+          {
+            "node": "Omnichannel Policy Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer Context Fake": {
+      "main": [
+        [
+          {
+            "node": "Context Agent Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Agent Fake": {
+      "main": [
+        [
+          {
+            "node": "Invoke Brain Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoke Brain Fake": {
+      "main": [
+        [
+          {
+            "node": "Apply Brain Result Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Brain Result Fake": {
+      "main": [
+        [
+          {
+            "node": "Delivery Gate Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delivery Gate Fake": {
+      "main": [
+        [
+          {
+            "node": "Fail Closed Before Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Omnichannel Policy Fake": {
+      "main": [
+        [
+          {
+            "node": "Buffer Context Fake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "tags": []
+}

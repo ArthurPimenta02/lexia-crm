@@ -1,0 +1,19 @@
+{
+  "schema_version": "lexia.automation.delivery.request.v1",
+  "lead_cutoff_seq": 3,
+  "request": {
+    "schema_version": "lexia.automation.request.v1",
+    "request_id": "10000000-0000-4000-8000-000000000002",
+    "kind": "followup",
+    "scope": {"environment":"isolated_test","cliente_slug":"empresa_sintetica_a","channel":"whatsapp","account_ref":"10000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-conversation-a"},
+    "source_ref": "followup:synthetic-followup:2026-10-12T14:00:00Z",
+    "due_at": "2026-10-12T15:00:00Z",
+    "proposed_actions": [{
+      "schema_version":"lexia.outbound.action.v1","action_id":"10000000-0000-4000-8000-000000000021","invocation_id":"10000000-0000-4000-8000-000000000002",
+      "scope":{"environment":"isolated_test","cliente_slug":"empresa_sintetica_a","channel":"whatsapp","account_ref":"10000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-conversation-a"},
+      "sequence":1,"kind":"followup","captured_state":{"state_version":12,"delivery_epoch":7},
+      "content":{"type":"text","text":"Qual horário fica melhor para você?"},
+      "source_ref":"followup:synthetic-followup:2026-10-12T14:00:00Z"
+    }]
+  }
+}

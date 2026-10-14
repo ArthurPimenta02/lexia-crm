@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/outbound-action.schema.json",
+  "title": "Lexia Outbound Action v1",
+  "$comment": "PROVISIONAL: provider-specific limits and caption behavior still require validation.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "action_id", "invocation_id", "scope", "sequence", "kind", "captured_state", "content"],
+  "properties": {
+    "schema_version": { "const": "lexia.outbound.action.v1" },
+    "action_id": { "type": "string", "format": "uuid" },
+    "invocation_id": { "type": "string", "format": "uuid" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "kind": { "enum": ["reply", "followup", "appointment_reminder", "appointment_confirmation"] },
+    "captured_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_version", "delivery_epoch"],
+      "properties": {
+        "state_version": { "type": "integer", "minimum": 0 },
+        "delivery_epoch": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "content": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "text" },
+            "text": { "type": "string", "minLength": 1, "maxLength": 20000 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "media_ref"],
+          "properties": {
+            "type": { "const": "image" },
+            "media_ref": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "caption": { "type": "string", "maxLength": 4096 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "media_ref"],
+          "properties": {
+            "type": { "const": "audio" },
+            "media_ref": { "type": "string", "minLength": 1, "maxLength": 512 }
+          }
+        }
+      ]
+    },
+    "source_ref": { "type": "string", "maxLength": 256 }
+  }
+}

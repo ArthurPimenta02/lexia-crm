@@ -1,0 +1,57 @@
+{
+  "name": "LEXIA - CRM Event Sink v1 - SHADOW FAKE - INACTIVE",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Receive Structured CRM Event",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "event",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Validate Authority and Scope",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 0],
+      "parameters": {
+        "jsCode": "const event = $json.event ?? $json;\nconst systems = { provider_event: 'provider', provider_result: 'provider', workflow_execution: 'workflow', tool_result: 'tool', brain_result: 'brain', crm_user: 'crm', system_reconciliation: 'system' };\nconst required = ['schema_version','event_id','idempotency_key','correlation_id','event_type','occurred_at','emitted_at','sequence','scope','source','payload'];\nfor (const key of required) if (!(key in event)) throw new Error(`crm_event_missing_${key}`);\nif (event.schema_version !== 'lexia.crm.event.v1') throw new Error('crm_event_schema_unsupported');\nfor (const key of ['environment','cliente_slug','channel','account_ref','conversation_ref']) if (!event.scope?.[key]) throw new Error(`crm_scope_missing_${key}`);\nif (systems[event.source?.authority] !== event.source?.system) throw new Error('crm_event_authority_system_mismatch');\nif (event.event_type === 'appointment.confirmed' && event.source.authority !== 'tool_result' && event.source.authority !== 'system_reconciliation') throw new Error('crm_appointment_requires_tool_result');\nif (event.event_type === 'message.delivery.updated' && event.source.authority !== 'provider_result' && event.source.authority !== 'system_reconciliation') throw new Error('crm_delivery_requires_provider_result');\nreturn [{ json: { event } }];"
+      }
+    },
+    {
+      "name": "Shadow Sink - No External Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 0],
+      "parameters": {
+        "jsCode": "return [{ json: { event_id: $json.event.event_id, status: 'shadow_only', external_call_performed: false } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receive Structured CRM Event": {
+      "main": [[{"node": "Validate Authority and Scope", "type": "main", "index": 0}]]
+    },
+    "Validate Authority and Scope": {
+      "main": [[{"node": "Shadow Sink - No External Call", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "lexia_contract_status": "provisional",
+    "lexia_delivery_mode": "observe_only"
+  }
+}
+

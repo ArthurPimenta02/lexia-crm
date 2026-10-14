@@ -1,0 +1,22 @@
+{
+  "servico":"Consulta de Avaliação",
+  "inicio_iso":"2026-10-13T15:30:00-04:00",
+  "nome":"Joana Exemplo",
+  "telefone":"12025550123",
+  "idioma":"pt",
+  "canal":"whatsapp",
+  "lexia_call_context":{
+    "scope":{"environment":"isolated_test","cliente_slug":"empresa_sintetica_a","channel":"whatsapp","account_ref":"24000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-calendar-a"},
+    "invocation_id":"74000000-0000-4000-8000-000000000011",
+    "captured_state":{"state_version":12,"delivery_epoch":7},
+    "operation":"appointment.create",
+    "calendar_access":"isolated_test",
+    "tools_permitidas":true,
+    "calendar_write_allowed":true,
+    "confirmation":{
+      "latest_lead_message":"sim",
+      "last_delivered_assistant_message":"Confirma Consulta de Avaliação com Samuel em 13/10 às 3:30 PM? Nome: Joana Exemplo. Telefone: 12025550123.",
+      "keep_both_confirmed":false
+    }
+  }
+}

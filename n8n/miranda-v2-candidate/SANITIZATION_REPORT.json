@@ -1,0 +1,7 @@
+{
+  "schema_version": "lexia.sanitization.report.v1",
+  "scanned_at": "2026-10-10T23:33:02.771Z",
+  "secret_findings": [],
+  "disallowed_paths": [],
+  "passed": true
+}

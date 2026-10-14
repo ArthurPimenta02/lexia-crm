@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/shared-delivery-result.schema.json",
+  "title": "Shared delivery receipt v1",
+  "x-lexia-contract-status": "provisional",
+  "type": "object", "additionalProperties": false,
+  "required": ["request_id", "scope", "captured_state", "results"],
+  "properties": {
+    "request_id": {"type": "string", "format": "uuid"},
+    "scope": {"type":"object","additionalProperties":false,"required":["environment","cliente_slug","channel","account_ref","conversation_ref"],"properties":{"environment":{"enum":["local","isolated_test","staging","production"]},"cliente_slug":{"type":"string","minLength":1},"channel":{"enum":["whatsapp","instagram","messenger"]},"account_ref":{"type":"string","format":"uuid"},"conversation_ref":{"type":"string","minLength":1}}},
+    "captured_state": {"type":"object","additionalProperties":false,"required":["state_version","delivery_epoch"],"properties":{"state_version":{"type":"integer","minimum":0},"delivery_epoch":{"type":"integer","minimum":0}}},
+    "results": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"$ref": "https://contracts.uselexia.invalid/omnichannel/v1/delivery-result.schema.json"}}
+  }
+}

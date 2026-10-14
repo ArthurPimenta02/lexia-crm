@@ -1,0 +1,131 @@
+{
+  "id": "I3hvCPl1UrLYdSyx",
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 01 ENTRADA OMNICHANNEL",
+  "description": "Runtime sintético executável da entrada Miranda. O candidato completo permanece versionado separadamente.",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "3bae5421-a2cc-404c-8c45-4e5ab3863fc3",
+      "name": "LEIA-ME | Entrada do laboratório",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "content": "## 01 Entrada omnichannel\nValida o contrato sintético, fixa o escopo confiável e registra a entrada antes de chamar o atendimento. Sem HTTP, banco, Redis ou canal real.",
+        "width": 1280,
+        "height": 180,
+        "color": 5
+      }
+    },
+    {
+      "id": "b9dbe2b6-423a-4a3d-8090-748b5f5259ad",
+      "name": "Receber solicitação do gateway",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "498774ae-7086-43d8-8cb3-b190e46b7427",
+      "name": "Validar e registrar entrada sintética",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming && typeof incoming === 'object' && incoming.body\n  ? incoming.body\n  : incoming && typeof incoming === 'object' && incoming.request\n    ? incoming.request\n    : incoming;\nconst fail = (code) => { throw new Error('lexia_lab_request_rejected:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\nconst copyJson = (value) => JSON.parse(JSON.stringify(value));\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst chatConversation = /^test:SYNTH-LEXIA-TEST-CHAT-([0-9a-f-]{36})$/i;\n\nexactKeys(body, ['schema_version','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations'], 'top_level');\nif (body.schema_version !== 'lexia.workflow.test.request.v1') fail('schema_version');\nif (!uuid.test(String(body.run_id || ''))) fail('run_id');\nif (body.delivery_mode !== 'simulate') fail('delivery_mode');\nif (body.execution_mode !== 'safe_simulation') fail('execution_mode');\nexactKeys(body.tool_policy, ['calendar'], 'tool_policy');\nif (body.tool_policy.calendar !== 'disabled') fail('calendar_policy');\nexactKeys(body.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'scope');\nif (body.scope.environment !== 'isolated_test') fail('environment');\nif (body.scope.cliente_slug !== 'empresa_sintetica_a') fail('cliente_slug');\nif (!['whatsapp','instagram','messenger'].includes(body.scope.channel)) fail('channel');\nif (!uuid.test(String(body.scope.account_ref || ''))) fail('account_ref');\nconst chatMatch = chatConversation.exec(String(body.scope.conversation_ref || ''));\nconst isSingleRunConversation = body.scope.conversation_ref === 'test:' + body.run_id;\nconst isPersistentChatConversation = Boolean(chatMatch && uuid.test(chatMatch[1]));\nif (!isSingleRunConversation && !isPersistentChatConversation) fail('conversation_ref');\nexactKeys(body.input, ['message_id','type','text'], 'input');\nif (body.input.message_id !== 'test-message:' + body.run_id) fail('message_id');\nif (body.input.type !== 'text') fail('message_type');\nif (typeof body.input.text !== 'string' || body.input.text.trim().length === 0 || body.input.text.length > 4000) fail('message_text');\nexactKeys(body.expectations, ['provider_send','persist_synthetic_events','return_trace'], 'expectations');\nif (body.expectations.provider_send !== false) fail('provider_send');\nif (body.expectations.persist_synthetic_events !== true) fail('persist_synthetic_events');\nif (body.expectations.return_trace !== true) fail('return_trace');\nif (body.target !== 'omnichannel') fail('target');\nconst stage = {\n  schema_version: 'lexia.workflow.test.stage.v2',\n  stage: 'request_validated',\n  run_id: body.run_id,\n  target: body.target,\n  delivery_mode: 'simulate',\n  execution_mode: body.execution_mode,\n  tool_policy: copyJson(body.tool_policy),\n  scope: copyJson(body.scope),\n  input: copyJson(body.input),\n  expectations: copyJson(body.expectations),\n  guard: {\n    environment: 'isolated_test',\n    external_effects_allowed: false,\n    provider_send_allowed: false,\n    state_version: 1,\n    delivery_epoch: 1,\n  },\n  provider_send_attempted: false,\n  executed_workflows: [],\n  trace: [],\n};\nstage.stage = 'entry_validated';\nstage.entry = {\n  provider: 'fake',\n  event_ref: 'test-event:' + body.run_id,\n  message_id: body.input.message_id,\n  author: 'lead',\n  persistence: 'simulated',\n};\nstage.executed_workflows.push('01_entrada_omnichannel');\nstage.trace.push(\n  { step: 'entry_contract', status: 'passed' },\n  { step: 'trusted_scope', status: 'passed' },\n  { step: 'persist_message', status: 'simulated', reason: 'frappe_test_projection_owns_synthetic_persistence' },\n);\nreturn [{ json: stage }];"
+      }
+    },
+    {
+      "id": "98f4332c-e9f8-43bd-8451-88ecf94c7f29",
+      "name": "Executar Atendimento IA",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        360
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "dPUKWYXI8mvxFQhA",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 02 ATENDIMENTO IA"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "5f40c8df-7584-47cc-8db9-fad791332d14",
+      "name": "Validar resultado correlacionado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const stage = $('Validar e registrar entrada sintética').first().json;\nconst result = $input.first().json;\nconst fail = (code) => { throw new Error('lexia_lab_entry_result_rejected:' + code); };\nif (result?.schema_version !== 'lexia.workflow.test.result.v1') fail('schema_version');\nif (result.run_id !== stage.run_id || result.target !== stage.target) fail('correlation');\nif (result.status !== 'completed' || result.provider_send_attempted !== false) fail('status');\nif (result.output?.simulation_engine !== 'n8n_subworkflow_lab_v2') fail('engine');\nif (result.output?.assistant_message?.message_id !== 'n8n-test-out:' + stage.run_id) fail('assistant_message');\nreturn [{ json: result }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receber solicitação do gateway": {
+      "main": [
+        [
+          {
+            "node": "Validar e registrar entrada sintética",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar e registrar entrada sintética": {
+      "main": [
+        [
+          {
+            "node": "Executar Atendimento IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar Atendimento IA": {
+      "main": [
+        [
+          {
+            "node": "Validar resultado correlacionado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": []
+}

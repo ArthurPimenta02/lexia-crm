@@ -1,0 +1,42 @@
+{
+  "name": "OMNI v2 - Appointment Policy - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2d000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Appointment",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The post-appointment pause is a per-company policy from the central store,\n// changed only by a Lexia admin. It is the same for WhatsApp, Instagram and\n// Messenger and applies only to the conversation where the appointment was\n// confirmed; other conversations of the same lead are never paused.\nconst scenarios = [true, false].map(pause => ({\n  pause_after_appointment: pause,\n  appointment_block_created: pause,\n  single_confirmation_allowed: true,\n  replies_after_confirmation_blocked: pause,\n  other_blocks_still_apply: true,\n  other_conversations_of_lead_paused: false,\n}));\nconst cancelled = { appointment_status: 'cancelled', block_kept_until_original_end: true, reminder_allowed: false };\nconst removed = { block_removed_manually: true, reminder_allowed_before_start: true, reminder_allowed_after_start: false };\nreturn [{ json: { scenarios, cancelled, removed, simulated: true } }];"
+      },
+      "id": "2d000000-0000-4000-8000-000000000002",
+      "name": "Simulate Company Appointment Policy",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Appointment": {
+      "main": [
+        [
+          {
+            "node": "Simulate Company Appointment Policy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

@@ -1,0 +1,72 @@
+{
+  "id": "0m9dWrKrZSFBMUM0",
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM",
+  "description": "Runtime sintético executável do espelho CRM, sem chamada HTTP ou credencial.",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "99f1c8a2-d0bf-447c-884b-1639c22dc2dc",
+      "name": "LEIA-ME | CRM do laboratório",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "content": "## 05 Integração CRM\nValida a origem e representa Lead, Deal e timeline. No laboratório, o próprio Frappe é quem persiste a conversa sintética; este fluxo não chama HTTP.",
+        "width": 1280,
+        "height": 180,
+        "color": 5
+      }
+    },
+    {
+      "id": "5f18a85e-0608-4af6-8b8d-421760f40de8",
+      "name": "Receber evento interno",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        360
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "64679527-6f00-4fc9-87b8-33785fa09d73",
+      "name": "Validar e espelhar evento sintético",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const stage = $input.first().json;\nconst fail = (code) => { throw new Error('lexia_lab_crm_rejected:' + code); };\nif (stage?.schema_version !== 'lexia.workflow.test.stage.v2') fail('schema_version');\nif (stage.scope?.environment !== 'isolated_test' || stage.scope?.cliente_slug !== 'empresa_sintetica_a') fail('scope');\nif (stage.guard?.external_effects_allowed !== false || stage.provider_send_attempted !== false) fail('guard');\nif (!Array.isArray(stage.trace) || !Array.isArray(stage.executed_workflows)) fail('trace');\nreturn [{ json: {\n  ...stage,\n  executed_workflows: [...stage.executed_workflows, '05_integracao_crm'],\n  crm_projection: {\n    mode: 'simulated',\n    lead_deal: 'validated',\n    timeline: 'validated',\n    source_message_id: stage.input?.message_id,\n  },\n  trace: [...stage.trace, {\n    step: 'crm_projection',\n    status: 'simulated',\n    reason: 'frappe_test_projection_owns_synthetic_persistence',\n  }],\n} }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receber evento interno": {
+      "main": [
+        [
+          {
+            "node": "Validar e espelhar evento sintético",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": []
+}

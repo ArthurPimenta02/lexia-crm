@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/context-result.schema.json",
+  "title": "Lexia Context Result v1",
+  "$comment": "PROVISIONAL: common fields are implemented locally; company fields remain configuration-defined.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "context_call_id", "config_version", "source_message_ids", "operational_context", "company_fields"],
+  "properties": {
+    "schema_version": { "const": "lexia.context.result.v1" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "context_call_id": { "type": "string", "format": "uuid" },
+    "config_version": { "type": "string", "minLength": 1 },
+    "source_message_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "operational_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "language", "intent", "topic", "confidence", "missing_information", "contact_updates", "scheduling_intent"],
+      "properties": {
+        "summary": { "type": "string", "maxLength": 4000 },
+        "language": { "type": "string", "maxLength": 32 },
+        "intent": { "type": "string", "maxLength": 256 },
+        "topic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["current", "changed", "resumed_previous"],
+          "properties": {
+            "current": { "type": "string", "maxLength": 512 },
+            "changed": { "type": "boolean" },
+            "resumed_previous": { "type": "boolean" }
+          }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "missing_information": { "type": "array", "items": { "type": "string" } },
+        "contact_updates": { "type": "object" },
+        "scheduling_intent": { "type": "object" }
+      }
+    },
+    "company_fields": { "type": "object" }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    }
+  }
+}

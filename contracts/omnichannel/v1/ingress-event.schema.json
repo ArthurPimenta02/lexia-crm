@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/ingress-event.schema.json",
+  "title": "Lexia Omnichannel Ingress Event v1",
+  "$comment": "PROVISIONAL: provider payload mappings still require validation against published workflows.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "provider_event_id",
+    "correlation_id",
+    "scope",
+    "provider",
+    "event_type",
+    "occurred_at",
+    "capability_refs"
+  ],
+  "properties": {
+    "schema_version": { "const": "lexia.ingress.event.v1" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "provider_event_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "correlation_id": { "type": "string", "format": "uuid" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "provider": { "enum": ["meta", "zapi", "fake"] },
+    "event_type": {
+      "enum": ["message", "message_edit", "message_delete", "reaction", "postback", "unsupported"]
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "message": { "$ref": "#/$defs/message" },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_contact_ref"],
+      "properties": {
+        "provider_contact_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "display_name": { "type": "string", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "capability_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "event_id",
+        "provider_event_id",
+        "message_id",
+        "scope",
+        "author",
+        "direction",
+        "occurred_at"
+      ],
+      "properties": {
+        "schema_version": { "const": "lexia.message.v1" },
+        "event_id": { "type": "string", "format": "uuid" },
+        "provider_event_id": { "type": "string", "minLength": 1 },
+        "message_id": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "author": { "enum": ["lead", "human_agent", "ai", "system"] },
+        "direction": { "enum": ["inbound", "outbound"] },
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "text": { "type": "string", "maxLength": 20000 },
+        "action_id": { "type": "string", "format": "uuid" },
+        "media": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "processing_status"],
+          "properties": {
+            "kind": { "enum": ["text", "audio", "image", "pdf", "video"] },
+            "provider_media_ref": { "type": "string", "maxLength": 512 },
+            "mime_type": { "type": "string", "maxLength": 128 },
+            "caption": { "type": "string", "maxLength": 4096 },
+            "processing_status": { "enum": ["pending", "completed", "failed", "not_supported"] },
+            "extracted_text": { "type": "string", "maxLength": 20000 },
+            "error_code": { "type": "string", "maxLength": 128 }
+          }
+        },
+        "ad_origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider_ref", "source_type"],
+          "properties": {
+            "provider_ref": { "type": "string", "maxLength": 256 },
+            "source_type": { "type": "string", "maxLength": 128 }
+          }
+        }
+      }
+    }
+  }
+}

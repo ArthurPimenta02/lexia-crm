@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/tool-result.schema.json",
+  "$comment": "PROVISIONAL: implemented locally in isolated original-calendar copies; native n8n/Google/database behavior is not homologated.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "invocation_id", "operation", "tool_call_id", "status", "data", "domain_events"],
+  "properties": {
+    "schema_version": { "const": "lexia.tool.result.v1" },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "const": "isolated_test" },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "pattern": "^test:", "maxLength": 256 }
+      }
+    },
+    "invocation_id": { "type": "string", "format": "uuid" },
+    "operation": { "enum": ["availability.check", "appointment.create"] },
+    "tool_call_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "status": { "enum": ["succeeded", "failed", "unknown"] },
+    "data": { "type": "object", "required": ["status"], "properties": { "status": { "type": "string", "minLength": 1 } } },
+    "domain_events": {
+      "type": "array", "maxItems": 1,
+      "items": { "$ref": "https://contracts.uselexia.invalid/omnichannel/v1/domain-event.schema.json" }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": { "operation": { "const": "availability.check" }, "domain_events": { "maxItems": 0 }, "status": { "enum": ["succeeded", "failed"] }, "data": { "properties": { "status": { "enum": ["OK", "VARIANTE_NECESSARIA", "FORA_DO_LIMITE", "SEM_DISPONIBILIDADE", "ERRO", "BLOQUEADO"] } } } }
+    },
+    {
+      "properties": { "operation": { "const": "appointment.create" }, "status": { "enum": ["failed", "unknown"] }, "domain_events": { "maxItems": 0 } }
+    },
+    {
+        "properties": {
+          "operation": { "const": "appointment.create" }, "status": { "const": "succeeded" },
+          "data": {
+            "required": ["status", "appointment_ref", "confirmacao_texto", "agendamento"],
+            "properties": {
+              "status": { "const": "CRIADO" },
+              "appointment_ref": { "type": "string", "minLength": 1 },
+              "confirmacao_texto": { "type": "string", "minLength": 1 },
+              "agendamento": {
+                "type": "object", "required": ["inicio", "fim", "servico", "profissional", "idioma"],
+                "properties": {
+                  "inicio": { "type": "string", "format": "date-time" },
+                  "fim": { "type": "string", "format": "date-time" },
+                  "servico": { "type": "string", "minLength": 1 },
+                  "profissional": { "enum": ["Samuel", "Bruna"] },
+                  "idioma": { "enum": ["pt", "en", "es"] }
+                }
+              }
+            }
+          },
+          "domain_events": { "minItems": 1, "items": { "properties": { "type": { "const": "appointment.confirmed" } } } }
+      }
+    }
+  ]
+}

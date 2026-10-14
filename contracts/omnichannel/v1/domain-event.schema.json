@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/domain-event.schema.json",
+  "title": "Lexia Attested Domain Event v1",
+  "$comment": "PROVISIONAL: tool result mappings must be checked against each private brain workflow.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "invocation_id", "idempotency_key", "type", "occurred_at"],
+  "properties": {
+    "schema_version": { "const": "lexia.domain.event.v1" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "invocation_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "type": { "enum": ["appointment.confirmed", "appointment.cancelled", "handoff.requested"] },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "appointment": { "type": "object" },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_ref", "reason", "summary", "priority"],
+      "properties": {
+        "handoff_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "summary": { "type": "string", "maxLength": 4000 },
+        "priority": { "enum": ["low", "normal", "high"] }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["appointment"],
+      "not": { "required": ["handoff"] },
+      "properties": {
+        "type": { "const": "appointment.confirmed" },
+        "appointment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["appointment_ref", "starts_at", "ends_at", "timezone", "tool_invocation_id", "status"],
+          "properties": {
+            "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "starts_at": { "type": "string", "format": "date-time" },
+            "ends_at": { "type": "string", "format": "date-time" },
+            "timezone": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "tool_invocation_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "status": { "const": "confirmed" }
+          }
+        }
+      }
+    },
+    {
+      "required": ["appointment"],
+      "not": { "required": ["handoff"] },
+      "properties": {
+        "type": { "const": "appointment.cancelled" },
+        "appointment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["appointment_ref", "tool_invocation_id", "status"],
+          "properties": {
+            "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "tool_invocation_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "status": { "const": "cancelled" }
+          }
+        }
+      }
+    },
+    {
+      "required": ["handoff"],
+      "not": { "required": ["appointment"] },
+      "properties": { "type": { "const": "handoff.requested" } }
+    }
+  ]
+}

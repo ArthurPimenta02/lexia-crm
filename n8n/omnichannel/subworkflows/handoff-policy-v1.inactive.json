@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Handoff Policy - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2c000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Handoff",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { handoff_status: 'open', block_active: true, resume_requires_resolution: true, persisted: false, simulated: true } }];"
+      },
+      "id": "2c000000-0000-4000-8000-000000000002",
+      "name": "Simulate Handoff Block",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Handoff": {
+      "main": [[{ "node": "Simulate Handoff Block", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

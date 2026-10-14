@@ -1,0 +1,358 @@
+{
+  "generated_by": "n8n/omnichannel-test/build.ts",
+  "runtime_source": "lib/omnichannel/master-runtime.ts",
+  "runtime_sha256": "987bf3adf550b8da6911f08166f7a6281c45d8897bb38e82821922488e1f6c34",
+  "status": "inactive test workflows; import only into a separate authorized n8n test instance",
+  "workflows": [
+    {
+      "file": "master.json",
+      "name": "OMNI v2 TEST - Master",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Route Event",
+          "type": "n8n-nodes-base.code",
+          "step": "route envelope by event type"
+        },
+        {
+          "name": "Is Inbound?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Ingress",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "1-3 receive, persist, authorship, intervention"
+        },
+        {
+          "name": "Is Buffer Tick?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Conversation Turn",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "4-9 buffer, context, brain, apply, deliver"
+        },
+        {
+          "name": "Is Automation?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Automation",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "reminder/follow-up request"
+        },
+        {
+          "name": "Automation Accepted?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Delivery (Automation)",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "8-9 per-action gate and fake provider"
+        },
+        {
+          "name": "Automation Not Sent",
+          "type": "n8n-nodes-base.code",
+          "step": "automation rejected or duplicate"
+        },
+        {
+          "name": "Is Recovery?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Recovery",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "reconcile or retry"
+        },
+        {
+          "name": "Recovery Applied?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Run Delivery (Recovery)",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "8-9 per-action gate and fake provider"
+        },
+        {
+          "name": "Recovery Rejected",
+          "type": "n8n-nodes-base.code",
+          "step": "recovery refused"
+        },
+        {
+          "name": "Run State Command",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "platform command or policy"
+        }
+      ]
+    },
+    {
+      "file": "ingress.json",
+      "name": "OMNI v2 TEST - Ingress",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Adapter Ingress And Trusted Scope",
+          "type": "n8n-nodes-base.code",
+          "step": "1 identify company, channel, account, conversation, author"
+        },
+        {
+          "name": "Accepted By Adapter?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Persist, Authorship And Intervention",
+          "type": "n8n-nodes-base.code",
+          "step": "2-3 dedupe, persist before buffer, intervention first, pending during pauses"
+        },
+        {
+          "name": "Adapter Rejected",
+          "type": "n8n-nodes-base.code",
+          "step": "unknown account or tenant mismatch"
+        }
+      ]
+    },
+    {
+      "file": "conversation-turn.json",
+      "name": "OMNI v2 TEST - Conversation Turn",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Buffer Claim (Owner And Cutoff)",
+          "type": "n8n-nodes-base.code",
+          "step": "4 debounce, owner by sequence, block check, cutoff"
+        },
+        {
+          "name": "Batch Claimed?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "History And Company Context",
+          "type": "n8n-nodes-base.code",
+          "step": "5 scoped history and exact company context config"
+        },
+        {
+          "name": "Context Ready?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Build Brain Request",
+          "type": "n8n-nodes-base.code",
+          "step": "6 lexia.brain.request.v1 with captured state and reprocess"
+        },
+        {
+          "name": "Call Private Brain (Fake)",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "6 private brain and tools (fake)"
+        },
+        {
+          "name": "Validate And Apply Brain Result",
+          "type": "n8n-nodes-base.code",
+          "step": "7 validate, apply events with company policy, keep captured state"
+        },
+        {
+          "name": "Deliver Plan",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "8-9 per-action gate and fake provider"
+        },
+        {
+          "name": "Finish Batch Or Supersede",
+          "type": "n8n-nodes-base.code",
+          "step": "9 complete or supersede the batch for reprocessing"
+        },
+        {
+          "name": "Close Batch Without Brain",
+          "type": "n8n-nodes-base.code",
+          "step": "5 fail closed without context configuration"
+        },
+        {
+          "name": "Buffer Not Claimed",
+          "type": "n8n-nodes-base.code",
+          "step": "4 another owner, window open, blocked or empty"
+        }
+      ]
+    },
+    {
+      "file": "brain-fake.json",
+      "name": "OMNI v2 TEST - Brain Fake",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Private Brain And Tools (Fake)",
+          "type": "n8n-nodes-base.code",
+          "step": "6 fake brain: reply, handoff, simulated appointment tool"
+        }
+      ]
+    },
+    {
+      "file": "delivery.json",
+      "name": "OMNI v2 TEST - Delivery",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Claim Next Action (Gate)",
+          "type": "n8n-nodes-base.code",
+          "step": "8 blocks, new messages, owner, duplicates, single confirmation"
+        },
+        {
+          "name": "Authorized To Send?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Send Via Provider (Fake)",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "8 fake provider records what it would receive"
+        },
+        {
+          "name": "Record Delivery Result",
+          "type": "n8n-nodes-base.code",
+          "step": "9 record sent, failed or uncertain result"
+        },
+        {
+          "name": "Continue Plan?",
+          "type": "n8n-nodes-base.if",
+          "step": null
+        },
+        {
+          "name": "Delivery Summary",
+          "type": "n8n-nodes-base.code",
+          "step": "9 plan outcome"
+        }
+      ]
+    },
+    {
+      "file": "provider-send-fake.json",
+      "name": "OMNI v2 TEST - Provider Send Fake",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Fake Provider (No Network)",
+          "type": "n8n-nodes-base.code",
+          "step": "8 fake provider, no network"
+        }
+      ]
+    },
+    {
+      "file": "automation.json",
+      "name": "OMNI v2 TEST - Automation",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Register Automation Request",
+          "type": "n8n-nodes-base.code",
+          "step": "reminder/follow-up through the same gate"
+        }
+      ]
+    },
+    {
+      "file": "state-command.json",
+      "name": "OMNI v2 TEST - State Command",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Apply State Command",
+          "type": "n8n-nodes-base.code",
+          "step": "platform commands and admin-only policy"
+        }
+      ]
+    },
+    {
+      "file": "recovery.json",
+      "name": "OMNI v2 TEST - Recovery",
+      "nodes": [
+        {
+          "name": "Receive Envelope",
+          "type": "n8n-nodes-base.executeWorkflowTrigger",
+          "step": null
+        },
+        {
+          "name": "Reconcile Or Retry",
+          "type": "n8n-nodes-base.code",
+          "step": "reconcile uncertain delivery or retry deterministic failure"
+        }
+      ]
+    },
+    {
+      "file": "scenario-runner.json",
+      "name": "OMNI v2 TEST - Scenario Runner",
+      "nodes": [
+        {
+          "name": "Manual Trigger (Test Only)",
+          "type": "n8n-nodes-base.manualTrigger",
+          "step": null
+        },
+        {
+          "name": "Load Synthetic Scenarios",
+          "type": "n8n-nodes-base.code",
+          "step": "synthetic scenarios with two companies"
+        },
+        {
+          "name": "Each Step",
+          "type": "n8n-nodes-base.splitInBatches",
+          "step": null
+        },
+        {
+          "name": "Attach Store And Fixtures",
+          "type": "n8n-nodes-base.code",
+          "step": "load the scenario store and test fixtures"
+        },
+        {
+          "name": "Run Master",
+          "type": "n8n-nodes-base.executeWorkflow",
+          "step": "master envelope"
+        },
+        {
+          "name": "Keep Store And Result",
+          "type": "n8n-nodes-base.code",
+          "step": "keep the store between steps"
+        },
+        {
+          "name": "Scenario Report",
+          "type": "n8n-nodes-base.code",
+          "step": "report"
+        }
+      ]
+    }
+  ]
+}

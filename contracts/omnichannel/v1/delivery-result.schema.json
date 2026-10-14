@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/delivery-result.schema.json",
+  "title": "Lexia Delivery Result v1",
+  "$comment": "PROVISIONAL: provider acknowledgement and reconciliation semantics remain to be confirmed.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "action_id", "status", "attempted_at"],
+  "properties": {
+    "schema_version": { "const": "lexia.delivery.result.v1" },
+    "action_id": { "type": "string", "format": "uuid" },
+    "status": { "enum": ["sent", "failed", "delivery_unknown", "suppressed", "duplicate"] },
+    "attempted_at": { "type": "string", "format": "date-time" },
+    "provider_message_id": { "type": "string", "maxLength": 256 },
+    "reason": { "type": "string", "maxLength": 256 }
+  }
+}

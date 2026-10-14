@@ -1,0 +1,131 @@
+{
+  "id": "RktITiD0oMhIgsbY",
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 03 AGENDA",
+  "description": "Runtime sintético executável da agenda Miranda, sem Google Agenda ou tool real.",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "11db1069-c34d-4165-8fac-0eb6c996d23c",
+      "name": "LEIA-ME | Agenda do laboratório",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "content": "## 03 Agenda\nDistingue consulta de disponibilidade de criação de agendamento. Não chama Google Agenda e nunca fabrica confirmação a partir de disponibilidade.",
+        "width": 1280,
+        "height": 180,
+        "color": 5
+      }
+    },
+    {
+      "id": "7b6050e1-ffd4-486c-8736-27099229f1d1",
+      "name": "Receber teste de agenda",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "ecfed215-58c2-42aa-8a3a-fe50a5149bee",
+      "name": "Validar operação e simular tool",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming && typeof incoming === 'object' && incoming.body\n  ? incoming.body\n  : incoming && typeof incoming === 'object' && incoming.request\n    ? incoming.request\n    : incoming;\nconst fail = (code) => { throw new Error('lexia_lab_request_rejected:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\nconst copyJson = (value) => JSON.parse(JSON.stringify(value));\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst chatConversation = /^test:SYNTH-LEXIA-TEST-CHAT-([0-9a-f-]{36})$/i;\n\nexactKeys(body, ['schema_version','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations'], 'top_level');\nif (body.schema_version !== 'lexia.workflow.test.request.v1') fail('schema_version');\nif (!uuid.test(String(body.run_id || ''))) fail('run_id');\nif (body.delivery_mode !== 'simulate') fail('delivery_mode');\nif (body.execution_mode !== 'safe_simulation') fail('execution_mode');\nexactKeys(body.tool_policy, ['calendar'], 'tool_policy');\nif (body.tool_policy.calendar !== 'disabled') fail('calendar_policy');\nexactKeys(body.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'scope');\nif (body.scope.environment !== 'isolated_test') fail('environment');\nif (body.scope.cliente_slug !== 'empresa_sintetica_a') fail('cliente_slug');\nif (!['whatsapp','instagram','messenger'].includes(body.scope.channel)) fail('channel');\nif (!uuid.test(String(body.scope.account_ref || ''))) fail('account_ref');\nconst chatMatch = chatConversation.exec(String(body.scope.conversation_ref || ''));\nconst isSingleRunConversation = body.scope.conversation_ref === 'test:' + body.run_id;\nconst isPersistentChatConversation = Boolean(chatMatch && uuid.test(chatMatch[1]));\nif (!isSingleRunConversation && !isPersistentChatConversation) fail('conversation_ref');\nexactKeys(body.input, ['message_id','type','text'], 'input');\nif (body.input.message_id !== 'test-message:' + body.run_id) fail('message_id');\nif (body.input.type !== 'text') fail('message_type');\nif (typeof body.input.text !== 'string' || body.input.text.trim().length === 0 || body.input.text.length > 4000) fail('message_text');\nexactKeys(body.expectations, ['provider_send','persist_synthetic_events','return_trace'], 'expectations');\nif (body.expectations.provider_send !== false) fail('provider_send');\nif (body.expectations.persist_synthetic_events !== true) fail('persist_synthetic_events');\nif (body.expectations.return_trace !== true) fail('return_trace');\nif (!['create_appointment','check_availability'].includes(body.target)) fail('target');\nconst stage = {\n  schema_version: 'lexia.workflow.test.stage.v2',\n  stage: 'request_validated',\n  run_id: body.run_id,\n  target: body.target,\n  delivery_mode: 'simulate',\n  execution_mode: body.execution_mode,\n  tool_policy: copyJson(body.tool_policy),\n  scope: copyJson(body.scope),\n  input: copyJson(body.input),\n  expectations: copyJson(body.expectations),\n  guard: {\n    environment: 'isolated_test',\n    external_effects_allowed: false,\n    provider_send_allowed: false,\n    state_version: 1,\n    delivery_epoch: 1,\n  },\n  provider_send_attempted: false,\n  executed_workflows: [],\n  trace: [],\n};\nstage.stage = 'agenda_prepared';\nstage.executed_workflows.push('03_agenda');\nif (body.target === 'check_availability') {\n  stage.availability = {\n    operation: 'availability.check',\n    status: 'simulated',\n    slots: ['2026-10-15T15:00:00-03:00'],\n    proves_appointment_creation: false,\n  };\n  stage.trace.push(\n    { step: 'agenda_contract', status: 'passed' },\n    { step: 'availability_tool', status: 'simulated', reason: 'calendar_tool_disabled' },\n    { step: 'appointment_event', status: 'blocked', reason: 'availability_does_not_prove_creation' },\n  );\n} else {\n  stage.appointment = {\n    appointment_ref: 'test-appointment:' + body.run_id,\n    status: 'confirmed',\n    starts_at: '2026-10-15T15:00:00-03:00',\n    ends_at: '2026-10-15T16:00:00-03:00',\n    timezone: 'America/Sao_Paulo',\n    tool_operation: 'appointment.create',\n    reminder_allowed: true,\n    cancellation_keeps_pause_until_end: true,\n  };\n  stage.trace.push(\n    { step: 'agenda_contract', status: 'passed' },\n    { step: 'appointment_create_tool', status: 'simulated', reason: 'calendar_tool_disabled' },\n    { step: 'appointment_event_binding', status: 'passed' },\n  );\n}\nreturn [{ json: stage }];"
+      }
+    },
+    {
+      "id": "78dbb1c7-c3ea-4e84-84da-0fd4adafec6d",
+      "name": "Espelhar evento de agenda no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        840,
+        360
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "0m9dWrKrZSFBMUM0",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "f1ce08da-b3f3-4522-8d0a-3767ee3a4125",
+      "name": "Finalizar resultado de agenda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const stage = $input.first().json;\nconst fail = (code) => { throw new Error('lexia_lab_result_rejected:' + code); };\nif (stage?.schema_version !== 'lexia.workflow.test.stage.v2') fail('schema_version');\nif (!stage.run_id || !stage.target || stage.provider_send_attempted !== false) fail('correlation');\nconst output = {\n  simulation_engine: 'n8n_subworkflow_lab_v2',\n  executed_workflows: [...new Set(stage.executed_workflows || [])],\n  external_effects: { supabase: false, redis: false, model: false, tool: false, provider: false },\n};\nif (stage.assistant_message) output.assistant_message = stage.assistant_message;\nif (stage.context) output.context = {\n  context_call_id: stage.context.context_call_id,\n  config_version: stage.context.config_version,\n  source_message_ids: stage.context.source_message_ids,\n};\nif (stage.appointment) output.appointment = stage.appointment;\nif (stage.availability) output.availability = stage.availability;\nif (stage.automation) output.automation = stage.automation;\nif (stage.delivery) output.delivery = stage.delivery;\nreturn [{ json: {\n  schema_version: 'lexia.workflow.test.result.v1',\n  run_id: stage.run_id,\n  target: stage.target,\n  status: 'completed',\n  provider_send_attempted: false,\n  summary: 'Fluxo de laboratório executado entre subworkflows reais do n8n, sem efeitos externos.',\n  trace: stage.trace,\n  output,\n} }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receber teste de agenda": {
+      "main": [
+        [
+          {
+            "node": "Validar operação e simular tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar operação e simular tool": {
+      "main": [
+        [
+          {
+            "node": "Espelhar evento de agenda no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espelhar evento de agenda no CRM": {
+      "main": [
+        [
+          {
+            "node": "Finalizar resultado de agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": []
+}

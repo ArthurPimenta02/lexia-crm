@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-12",
+  "status": "local_implementation_candidate_not_installed_or_runtime_verified",
+  "layout_revision": {
+    "scope": "positions and sanitized section notes only; executable fingerprints unchanged",
+    "original_nodes_at_exact_production_positions": 138,
+    "layout_tests": { "command": "node --test tests/miranda-migration-layout.test.mjs", "passed": 31, "failed": 0 },
+    "combined_tests": { "command": "node --test tests/miranda-*.test.mjs tests/n8n-code-bundle.test.mjs", "passed": 285, "failed": 0 },
+    "initial_failure": "One section-overlap regression failed during layout iteration; fixed and full suite rerun successfully",
+    "eslint": "passed: layout module, reapplication/preview scripts, builder and regressions; zero warnings",
+    "typecheck": "passed: npm run typecheck",
+    "visual_check": "Six local offline diagrams inspected; not the real n8n canvas",
+    "fresh_generator_check": "Six freshly generated workflows equal the delivered artifacts; no CLI SQL generation invoked",
+    "previous_results_below": "Retained evidence from the prior implementation round; Lote 2 and Frappe suites not rerun for visual-only changes"
+  },
+  "new_migration_tests": { "command": "node --test tests/miranda-migration-*.test.mjs tests/miranda-team-notifications.test.mjs", "passed": 46, "failed": 0 },
+  "combined_workflow_regressions": { "command": "node --test tests/miranda-*.test.mjs tests/n8n-code-bundle.test.mjs", "passed": 254, "failed": 0, "includes_new_tests": true, "uses": "pure functions, generated graphs, injected adapters; archived package regressions are not proof of the new integration" },
+  "lot2_contract_state_regressions": { "command": "npm run test:lote2:local", "passed": 193, "failed": 0 },
+  "frappe_handler_doubles": { "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_miranda_frappe_migration.py", "passed": 9, "failed": 0, "real_frappe_site": false },
+  "eslint": "passed: changed builders, runtime helpers and JavaScript regressions; zero warnings",
+  "typecheck": "passed: npm run typecheck",
+  "not_verified": [ "SQL execution/compilation in PostgreSQL", "n8n import/runtime and real canvas", "Supabase/Redis integration", "Google OAuth/create/cancel", "real models or conversation quality", "provider delivery and team notifications", "Frappe migration, installed DocTypes, pipeline and command consumption", "Next build: not needed for this workflow/local dependency change; not executed" ],
+  "external_services_called": false,
+  "sql_applied": false,
+  "workflows_imported_or_activated": false,
+  "production_changed": false,
+  "git_mutations": false
+}

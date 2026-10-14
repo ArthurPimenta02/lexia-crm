@@ -1,0 +1,13 @@
+--- docker-compose.yml
++++ docker-compose.yml
+@@ -68,1 +68,2 @@
+-      - /local-files:/files
++      - /local-files:/files
++      - ./lexia-hml-ca:/opt/custom-certificates
+@@ -91,4 +92,6 @@
+   n8n-worker:
++    volumes:
++      - ./lexia-hml-ca:/opt/custom-certificates
+     image: n8nio/n8n
+     restart: always
+     command: worker

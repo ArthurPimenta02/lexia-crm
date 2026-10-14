@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/context-agent-config.schema.json",
+  "title": "Lexia Context Agent Configuration v1",
+  "$comment": "PROVISIONAL: prompts and company field schemas need approval per company before integration.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "environment",
+    "cliente_slug",
+    "config_version",
+    "status",
+    "prompt_template",
+    "common_schema_version",
+    "company_fields_schema",
+    "locale",
+    "timezone",
+    "model_policy_ref"
+  ],
+  "properties": {
+    "schema_version": { "const": "lexia.context.agent.config.v1" },
+    "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+    "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+    "config_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "status": { "enum": ["active", "inactive"] },
+    "prompt_template": { "type": "string", "minLength": 1, "maxLength": 20000 },
+    "common_schema_version": { "const": "lexia.context.result.v1" },
+    "company_fields_schema": { "type": "object" },
+    "locale": { "type": "string", "minLength": 2, "maxLength": 32 },
+    "timezone": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "model_policy_ref": { "type": "string", "minLength": 1, "maxLength": 128 }
+  }
+}

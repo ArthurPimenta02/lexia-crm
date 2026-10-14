@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/brain-result.schema.json",
+  "title": "Lexia Brain Result v1",
+  "$comment": "PROVISIONAL: action and tool event output must be checked against real brain workflows.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "invocation_id", "captured_state", "decision", "actions", "context_patch", "domain_events", "tool_audit"],
+  "properties": {
+    "schema_version": { "const": "lexia.brain.result.v1" },
+    "invocation_id": { "type": "string", "format": "uuid" },
+    "captured_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_version", "delivery_epoch"],
+      "properties": {
+        "state_version": { "type": "integer", "minimum": 0 },
+        "delivery_epoch": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "decision": { "enum": ["reply", "no_reply", "handoff", "error"] },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "https://contracts.uselexia.invalid/omnichannel/v1/outbound-action.schema.json" }
+    },
+    "context_patch": { "type": "object" },
+    "domain_events": {
+      "type": "array",
+      "items": { "$ref": "https://contracts.uselexia.invalid/omnichannel/v1/domain-event.schema.json" }
+    },
+    "tool_audit": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool_name", "invocation_id", "operation", "result"],
+        "properties": {
+          "tool_name": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "invocation_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "operation": { "enum": ["availability.check", "appointment.create", "appointment.cancel", "other"] },
+          "result": { "enum": ["succeeded", "failed"] },
+          "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "oneOf": [
+          { "properties": { "operation": { "enum": ["availability.check", "other"] } } },
+          {
+            "required": ["appointment_ref"],
+            "properties": { "operation": { "enum": ["appointment.create", "appointment.cancel"] } }
+          }
+        ]
+      }
+    }
+  }
+}

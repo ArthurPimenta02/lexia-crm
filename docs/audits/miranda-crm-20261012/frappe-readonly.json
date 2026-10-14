@@ -1,0 +1,1355 @@
+{
+  "site": "crm-hml.localhost",
+  "scope": "HML read-only metadata, no conversations/messages/customer data",
+  "configuration": {
+    "lexia_environment": "isolated_test",
+    "lexia_client_ref": "empresa_sintetica_a",
+    "lexia_allow_workflow_tests": true,
+    "lexia_workflow_test_mode": "remote",
+    "lexia_workflow_test_execution_mode": "full_agent_virtual",
+    "lexia_workflow_test_account_ref": "24000000-0000-4000-8000-000000000001",
+    "lexia_workflow_test_calendar_access": "test_read_only",
+    "lexia_workflow_test_calendar_write_enabled": null,
+    "lexia_workflow_test_targets": {
+      "brain": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-crm-agent-test-v1",
+      "check_availability": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-crm-agent-test-v1",
+      "create_appointment": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-crm-agent-test-v1",
+      "followup": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-crm-agent-test-v1",
+      "omnichannel": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-miranda-crm-agent-test-readonly-v3",
+      "reminder": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-crm-agent-test-v1"
+    },
+    "lexia_workflow_test_allowed_hosts": [
+      "n8n.srv1541887.hstgr.cloud"
+    ],
+    "lexia_migration_pipeline_enabled": null,
+    "lexia_migration_commands_enabled": null
+  },
+  "secret_presence_only": {
+    "lexia_workflow_test_bearer_token": true,
+    "lexia_migration_command_token": false
+  },
+  "files": {
+    "integration.py": {
+      "exists": true,
+      "sha256": "6bff2574fa1f922e6d74d1a238251173c266e230c4d46a1ffbc7b0e429eac9a5",
+      "migration_hook_present": false
+    },
+    "commands.py": {
+      "exists": true,
+      "sha256": "c8ebc05de062ffa06868647c66f23c0e6898855cf0cc60aeccac4302cbb8a18f",
+      "migration_hook_present": false
+    },
+    "workflow_tests.py": {
+      "exists": true,
+      "sha256": "d6ea2067d4acab08be1c7e724850bf4b83af207289aace79a8cb329b65784e83",
+      "migration_hook_present": false
+    },
+    "workflow_test_chat.py": {
+      "exists": true,
+      "sha256": "690c7af5a61b854da5f6842ed850405617968858bb4368cc25d178e41c27584a"
+    },
+    "migration_commands.py": {
+      "exists": false
+    },
+    "migration_pipeline.py": {
+      "exists": false
+    },
+    "__init__.py": {
+      "exists": true,
+      "sha256": "c306eb388c76ad00346071a86ff286158f3da860ec876d2b876337cb751ae39f"
+    }
+  },
+  "installed_doctypes": [
+    "Lexia Appointment",
+    "Lexia Automation Event",
+    "Lexia Conversation",
+    "Lexia Conversation Block",
+    "Lexia Handoff",
+    "Lexia Integration Event",
+    "Lexia Message",
+    "Lexia Workflow Test Run"
+  ],
+  "fields": [
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "appointment_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "conversation",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "lead",
+      "fieldtype": "Link",
+      "options": "CRM Lead",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "deal",
+      "fieldtype": "Link",
+      "options": "CRM Deal",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "external_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "tool_invocation_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "block",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation Block",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "schedule_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Confirmado\nCancelado\nConcluído",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "starts_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "ends_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "timezone",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "column_break_schedule",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "attendance_status",
+      "fieldtype": "Select",
+      "options": "Não informado\nCompareceu\nNão compareceu",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "reminder_status",
+      "fieldtype": "Select",
+      "options": "Não programado\nProgramado\nEnviado\nSuprimido\nCancelado",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Appointment",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "event_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "external_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "conversation",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "event_type",
+      "fieldtype": "Select",
+      "options": "Follow-up\nLembrete de agendamento\nNotificação de handoff\nReconciliação",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Programado\nPendente\nEnviado\nSuprimido\nCancelado\nFalhou\nResultado incerto",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "source_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "action_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "due_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "attempted_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "result_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Automation Event",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "conversation_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "client_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "environment",
+      "fieldtype": "Select",
+      "options": "local\nisolated_test\nstaging\nproduction",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "channel",
+      "fieldtype": "Select",
+      "options": "WhatsApp\nInstagram\nMessenger\nWebchat\nVoz",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "account_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "external_conversation_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "lead",
+      "fieldtype": "Link",
+      "options": "CRM Lead",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "deal",
+      "fieldtype": "Link",
+      "options": "CRM Deal",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "state_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Aberta\nPausada\nHandoff\nEncerrada",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "ai_status",
+      "fieldtype": "Select",
+      "options": "Ativa\nPausada\nHandoff\nDesativada",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "resume_mode",
+      "fieldtype": "Select",
+      "options": "Aguardar nova mensagem\nResponder pendências",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "column_break_state",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "state_version",
+      "fieldtype": "Int",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "delivery_epoch",
+      "fieldtype": "Int",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "pending_count",
+      "fieldtype": "Int",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "timeline_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "opened_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "last_message_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "column_break_timeline",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "last_human_message_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "last_ai_message_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "context_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "context_version",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "current_summary",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "block_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "external_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "conversation",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "block_type",
+      "fieldtype": "Select",
+      "options": "Intervenção humana\nPausa manual\nHandoff\nAgendamento",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Ativo\nExpirado\nResolvido\nCancelado",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "source_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "starts_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "expires_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "resolved_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "policy_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "blocks_replies",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "blocks_followups",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "blocks_reminders",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Conversation Block",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "handoff_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "external_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "central_handoff_id",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "conversation",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "block",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation Block",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Pendente\nEm atendimento\nResolvido\nPerdido",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "priority",
+      "fieldtype": "Select",
+      "options": "Baixa\nNormal\nAlta",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "requested_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "details_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "reason",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "summary",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "resolution_notes",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "column_break_timeline",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "resolved_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "resumed_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Handoff",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "event_id",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "idempotency_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "event_type",
+      "fieldtype": "Select",
+      "options": "contact.upserted\nconversation.opened\nconversation.context.updated\nmessage.recorded\nmessage.enrichment.updated\nmessage.delivery.updated\nblock.upserted\nblock.closed\nappointment.confirmed\nappointment.cancelled\nappointment.attendance.updated\nautomation.updated\nhandoff.requested\nhandoff.resolved\nhandoff.resumed\nattribution.captured",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Recebido\nAplicado\nDuplicado\nRejeitado\nFalhou",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "correlation_id",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "causation_id",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "sequence",
+      "fieldtype": "Int",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "scope_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "environment",
+      "fieldtype": "Select",
+      "options": "local\nisolated_test\nstaging\nproduction",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "client_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "channel",
+      "fieldtype": "Select",
+      "options": "WhatsApp\nInstagram\nMessenger",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "column_break_scope",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "account_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "external_conversation_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_system",
+      "fieldtype": "Select",
+      "options": "provider\nworkflow\nbrain\ntool\ncrm\nsystem",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_authority",
+      "fieldtype": "Select",
+      "options": "provider_event\nprovider_result\nworkflow_execution\ntool_result\nbrain_result\ncrm_user\nsystem_reconciliation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_workflow",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "column_break_source",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_execution",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "source_node",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "timeline_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "occurred_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "emitted_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "payload_hash",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "column_break_result",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "aggregate_type",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "aggregate_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "failure_code",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Integration Event",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "identity_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "message_key",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "external_message_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "conversation",
+      "fieldtype": "Link",
+      "options": "Lexia Conversation",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "source_event_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "provider_message_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "action_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "column_break_identity",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "direction",
+      "fieldtype": "Select",
+      "options": "Entrada\nSaída",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "author_type",
+      "fieldtype": "Select",
+      "options": "Lead\nHumano\nIA\nSistema",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "message_type",
+      "fieldtype": "Select",
+      "options": "Texto\nÁudio\nImagem\nPDF\nVídeo\nEvento",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "occurred_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "content_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "content",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "caption",
+      "fieldtype": "Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "media_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "transcription_status",
+      "fieldtype": "Select",
+      "options": "Não aplicável\nPendente\nConcluída\nFalhou\nNão suportada",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "transcription",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "enrichment_kind",
+      "fieldtype": "Select",
+      "options": "\nTranscrição\nAnálise de imagem\nTexto de PDF\nAnálise de vídeo",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "enrichment_status",
+      "fieldtype": "Select",
+      "options": "Não aplicável\nPendente\nConcluído\nFalhou\nNão suportado",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "enrichment_content",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "enrichment_attempted_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "enrichment_reason",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "delivery_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "delivery_status",
+      "fieldtype": "Select",
+      "options": "Recebida\nPreparando\nEnviada\nEntregue\nLida\nFalhou\nResultado incerto\nSuprimida",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "delivery_attempted_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "delivery_reason",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "sequence",
+      "fieldtype": "Int",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "raw_payload_hash",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Message",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "request_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "test_run_id",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "target",
+      "fieldtype": "Select",
+      "options": "Omnichannel + Cérebro\nCérebro\nFollow-up\nLembrete\nCriar agendamento\nVerificar disponibilidade",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "options": "Rascunho\nNa fila\nExecutando\nConcluído\nFalhou\nConfiguração ausente",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "delivery_mode",
+      "fieldtype": "Select",
+      "options": "Simulado",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "column_break_request",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "channel",
+      "fieldtype": "Select",
+      "options": "WhatsApp\nInstagram\nMessenger",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "message",
+      "fieldtype": "Small Text",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "source_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "source_doctype",
+      "fieldtype": "Link",
+      "options": "DocType",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "source_name",
+      "fieldtype": "Dynamic Link",
+      "options": "source_doctype",
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "environment",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "client_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "conversation_ref",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "requested_by",
+      "fieldtype": "Link",
+      "options": "User",
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "synthetic",
+      "fieldtype": "Check",
+      "options": null,
+      "reqd": 1
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "timeline_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "started_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "finished_at",
+      "fieldtype": "Datetime",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "column_break_timeline",
+      "fieldtype": "Column Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "request_payload_hash",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "error_code",
+      "fieldtype": "Data",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "result_section",
+      "fieldtype": "Section Break",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "result_summary",
+      "fieldtype": "Long Text",
+      "options": null,
+      "reqd": 0
+    },
+    {
+      "parent": "Lexia Workflow Test Run",
+      "fieldname": "result_payload",
+      "fieldtype": "Code",
+      "options": "JSON",
+      "reqd": 0
+    }
+  ]
+}

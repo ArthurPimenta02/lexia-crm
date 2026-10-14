@@ -1,0 +1,131 @@
+{
+  "id": "mPwHqXNS2ACuzSb7",
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 06 SAÍDA SEGURA",
+  "description": "Runtime sintético executável do gate e da saída, sem provedor real.",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "bbd10d53-cd4a-44a5-88f4-f177b2105d33",
+      "name": "LEIA-ME | Saída do laboratório",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "content": "## 06 Saída segura\nRevalida estado antes de cada ação, preserva ordem e exige reconciliação para resultado incerto. Todo envio externo permanece bloqueado.",
+        "width": 1280,
+        "height": 180,
+        "color": 5
+      }
+    },
+    {
+      "id": "df1bb265-9037-461c-8348-cd5fde09f7eb",
+      "name": "Receber plano de ações",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "02c87996-8b7e-4223-873e-604f00ba4d28",
+      "name": "Revalidar permissão antes de cada ação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const stage = $input.first().json;\nconst fail = (code) => { throw new Error('lexia_lab_delivery_rejected:' + code); };\nif (stage?.schema_version !== 'lexia.workflow.test.stage.v2') fail('schema_version');\nif (stage.scope?.environment !== 'isolated_test' || stage.scope?.cliente_slug !== 'empresa_sintetica_a') fail('scope');\nif (stage.guard?.external_effects_allowed !== false || stage.guard?.provider_send_allowed !== false) fail('guard');\nif (stage.provider_send_attempted !== false) fail('provider_send_attempted');\nconst actions = Array.isArray(stage.actions) ? stage.actions : [];\nconst seen = new Set();\nconst checks = [];\nlet previous = 0;\nfor (const action of actions) {\n  if (!action || typeof action !== 'object') fail('action');\n  if (typeof action.action_id !== 'string' || seen.has(action.action_id)) fail('action_id');\n  if (!Number.isInteger(action.sequence) || action.sequence !== previous + 1) fail('action_sequence');\n  if (action.captured_state?.state_version !== stage.guard.state_version || action.captured_state?.delivery_epoch !== stage.guard.delivery_epoch) fail('captured_state');\n  seen.add(action.action_id);\n  previous = action.sequence;\n  checks.push(\n    { step: 'delivery_permission_revalidated_' + action.sequence, status: 'passed' },\n    { step: 'provider_send_' + action.sequence, status: 'simulated', reason: 'external_send_disabled' },\n  );\n}\nreturn [{ json: {\n  ...stage,\n  stage: 'delivery_checked',\n  provider_send_attempted: false,\n  executed_workflows: [...(stage.executed_workflows || []), '06_saida_segura'],\n  delivery: {\n    mode: 'simulate',\n    planned_actions: actions.length,\n    confirmed_actions: 0,\n    uncertain_actions: 0,\n    automatic_retry_allowed: false,\n  },\n  trace: [...(stage.trace || []), ...checks, {\n    step: 'uncertain_delivery_policy', status: 'passed', reason: 'reconciliation_required_before_retry'\n  }],\n} }];"
+      }
+    },
+    {
+      "id": "35c0945e-3435-4b27-8bf9-2eae193e9989",
+      "name": "Espelhar resultado de entrega no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        360
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "0m9dWrKrZSFBMUM0",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "b27136fb-6552-4214-89ef-4c888f893c19",
+      "name": "Finalizar resultado protegido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const stage = $input.first().json;\nconst fail = (code) => { throw new Error('lexia_lab_result_rejected:' + code); };\nif (stage?.schema_version !== 'lexia.workflow.test.stage.v2') fail('schema_version');\nif (!stage.run_id || !stage.target || stage.provider_send_attempted !== false) fail('correlation');\nconst output = {\n  simulation_engine: 'n8n_subworkflow_lab_v2',\n  executed_workflows: [...new Set(stage.executed_workflows || [])],\n  external_effects: { supabase: false, redis: false, model: false, tool: false, provider: false },\n};\nif (stage.assistant_message) output.assistant_message = stage.assistant_message;\nif (stage.context) output.context = {\n  context_call_id: stage.context.context_call_id,\n  config_version: stage.context.config_version,\n  source_message_ids: stage.context.source_message_ids,\n};\nif (stage.appointment) output.appointment = stage.appointment;\nif (stage.availability) output.availability = stage.availability;\nif (stage.automation) output.automation = stage.automation;\nif (stage.delivery) output.delivery = stage.delivery;\nreturn [{ json: {\n  schema_version: 'lexia.workflow.test.result.v1',\n  run_id: stage.run_id,\n  target: stage.target,\n  status: 'completed',\n  provider_send_attempted: false,\n  summary: 'Fluxo de laboratório executado entre subworkflows reais do n8n, sem efeitos externos.',\n  trace: stage.trace,\n  output,\n} }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receber plano de ações": {
+      "main": [
+        [
+          {
+            "node": "Revalidar permissão antes de cada ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revalidar permissão antes de cada ação": {
+      "main": [
+        [
+          {
+            "node": "Espelhar resultado de entrega no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espelhar resultado de entrega no CRM": {
+      "main": [
+        [
+          {
+            "node": "Finalizar resultado protegido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": []
+}

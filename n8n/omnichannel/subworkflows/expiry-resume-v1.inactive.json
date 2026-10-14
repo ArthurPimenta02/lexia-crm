@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Expiry Resume - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "30000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Expiry",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { expired_block_ids: ['synthetic-block'], other_blocks_preserved: true, resume_mode: 'await_new_message', automatic_reply_started: false, simulated: true } }];"
+      },
+      "id": "30000000-0000-4000-8000-000000000002",
+      "name": "Simulate Independent Expiry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Expiry": {
+      "main": [[{ "node": "Simulate Independent Expiry", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

@@ -1,0 +1,67 @@
+{
+  "schema_version": "lexia.miranda.v2.candidate.manifest.v2",
+  "generated_at": "2026-10-10T23:33:02.763Z",
+  "status": "inactive_local_candidate",
+  "provisional_contracts": [
+    "provider ingress payloads",
+    "provider send responses",
+    "private brain output",
+    "calendar and private Supabase node responses",
+    "Frappe command authentication transport"
+  ],
+  "guarantees": {
+    "original_exports_included": false,
+    "credentials_included": false,
+    "real_destinations_included": false,
+    "workflows_active": false,
+    "consolidated_workflow_count": 6,
+    "internal_capability_blocks_preserved": 16,
+    "provider_send_single_owner": true,
+    "delivery_unknown_requires_reconciliation": true,
+    "followup_image_contract_ready": true
+  },
+  "workflows": [
+    {
+      "file": "01-entrada-omnichannel-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 01 ENTRADA OMNICHANNEL",
+      "nodes": 85,
+      "sha256": "1e5b9b08018a6af35fae6bdf124c6c22531f6c6cdb6d9d0b7e842301db026e83",
+      "active": false
+    },
+    {
+      "file": "02-atendimento-ia-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 02 ATENDIMENTO IA",
+      "nodes": 80,
+      "sha256": "b4ca7822fe491f3dc93741d6689cb71284ff1ac7e5182c3469c4bbb38ebe96b3",
+      "active": false
+    },
+    {
+      "file": "03-agenda-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 03 AGENDA",
+      "nodes": 34,
+      "sha256": "c9dbd8d0b8a4b82bb039c843273a347637dcf14562ee5792e975b87f78685458",
+      "active": false
+    },
+    {
+      "file": "04-followups-lembretes-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 04 FOLLOW-UPS E LEMBRETES",
+      "nodes": 60,
+      "sha256": "fb2c42d53fc2623391247bc3ebe6d016f50825a071c66836a141c3a7b4d1e79b",
+      "active": false
+    },
+    {
+      "file": "05-integracao-crm-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM",
+      "nodes": 22,
+      "sha256": "8c2f2cbfd169cf1e89b8523f9a128377aaefcf38d27e6906969254a9fbefae17",
+      "active": false
+    },
+    {
+      "file": "06-saida-segura-v2.inactive.json",
+      "name": "LEXIA V2 CANDIDATO - MIRANDA - 06 SAÍDA SEGURA",
+      "nodes": 31,
+      "sha256": "9f4070089f81895530f64d997a104b0d8914c91cc98462dd40f4daaa29ecec03",
+      "active": false
+    }
+  ]
+}

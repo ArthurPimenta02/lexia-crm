@@ -1,0 +1,18 @@
+{
+  "schema_version": "lexia.automation.delivery.request.v1",
+  "request": {
+    "schema_version": "lexia.automation.request.v1",
+    "request_id": "20000000-0000-4000-8000-000000000002",
+    "kind": "appointment_reminder",
+    "scope": {"environment":"isolated_test","cliente_slug":"empresa_sintetica_b","channel":"instagram","account_ref":"20000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-conversation-b"},
+    "source_ref": "appointment:synthetic-event-b",
+    "due_at": "2026-10-12T15:00:00Z",
+    "proposed_actions": [{
+      "schema_version":"lexia.outbound.action.v1","action_id":"20000000-0000-4000-8000-000000000021","invocation_id":"20000000-0000-4000-8000-000000000002",
+      "scope":{"environment":"isolated_test","cliente_slug":"empresa_sintetica_b","channel":"instagram","account_ref":"20000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-conversation-b"},
+      "sequence":1,"kind":"appointment_reminder","captured_state":{"state_version":12,"delivery_epoch":7},
+      "content":{"type":"text","text":"Olá, sua avaliação está marcada para amanhã."},
+      "source_ref":"appointment:synthetic-event-b"
+    }]
+  }
+}

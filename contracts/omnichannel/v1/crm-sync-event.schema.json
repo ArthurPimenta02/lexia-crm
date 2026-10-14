@@ -1,0 +1,406 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/crm-sync-event.schema.json",
+  "title": "Lexia CRM synchronization event v1",
+  "$comment": "PROVISIONAL: node mappings must be confirmed in inactive copies of every source workflow before any live connection.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "idempotency_key",
+    "correlation_id",
+    "event_type",
+    "occurred_at",
+    "emitted_at",
+    "sequence",
+    "scope",
+    "source",
+    "payload"
+  ],
+  "properties": {
+    "schema_version": { "const": "lexia.crm.event.v1" },
+    "event_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 140 },
+    "correlation_id": { "type": "string", "format": "uuid" },
+    "causation_id": { "type": "string", "format": "uuid" },
+    "event_type": { "$ref": "#/$defs/event_type" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "emitted_at": { "type": "string", "format": "date-time" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "scope": { "$ref": "#/$defs/scope" },
+    "source": { "$ref": "#/$defs/source" },
+    "payload": { "type": "object" }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "event_type": { "const": "contact.upserted" },
+        "payload": { "$ref": "#/$defs/contact_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "conversation.opened" },
+        "payload": { "$ref": "#/$defs/conversation_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "conversation.context.updated" },
+        "payload": { "$ref": "#/$defs/context_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "message.recorded" },
+        "payload": { "$ref": "#/$defs/message_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "message.enrichment.updated" },
+        "payload": { "$ref": "#/$defs/message_enrichment_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "message.delivery.updated" },
+        "payload": { "$ref": "#/$defs/delivery_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "block.upserted" },
+        "payload": { "$ref": "#/$defs/block_upsert_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "block.closed" },
+        "payload": { "$ref": "#/$defs/block_closed_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "appointment.confirmed" },
+        "payload": { "$ref": "#/$defs/appointment_confirmed_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "appointment.cancelled" },
+        "payload": { "$ref": "#/$defs/appointment_cancelled_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "appointment.attendance.updated" },
+        "payload": { "$ref": "#/$defs/attendance_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "automation.updated" },
+        "payload": { "$ref": "#/$defs/automation_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "handoff.requested" },
+        "payload": { "$ref": "#/$defs/handoff_requested_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "handoff.resolved" },
+        "payload": { "$ref": "#/$defs/handoff_resolved_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "handoff.resumed" },
+        "payload": { "$ref": "#/$defs/handoff_resumed_payload" }
+      }
+    },
+    {
+      "properties": {
+        "event_type": { "const": "attribution.captured" },
+        "payload": { "$ref": "#/$defs/attribution_payload" }
+      }
+    }
+  ],
+  "$defs": {
+    "event_type": {
+      "enum": [
+        "contact.upserted",
+        "conversation.opened",
+        "conversation.context.updated",
+        "message.recorded",
+        "message.enrichment.updated",
+        "message.delivery.updated",
+        "block.upserted",
+        "block.closed",
+        "appointment.confirmed",
+        "appointment.cancelled",
+        "appointment.attendance.updated",
+        "automation.updated",
+        "handoff.requested",
+        "handoff.resolved",
+        "handoff.resumed",
+        "attribution.captured"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "authority", "workflow_ref", "execution_ref"],
+      "properties": {
+        "system": { "enum": ["provider", "workflow", "brain", "tool", "crm", "system"] },
+        "authority": {
+          "enum": [
+            "provider_event",
+            "provider_result",
+            "workflow_execution",
+            "tool_result",
+            "brain_result",
+            "crm_user",
+            "system_reconciliation"
+          ]
+        },
+        "workflow_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "execution_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "node_ref": { "type": "string", "maxLength": 256 },
+        "provider_ref": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "contact_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contact_ref", "display_name"],
+      "properties": {
+        "contact_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 64 },
+        "email": { "type": "string", "maxLength": 256 }
+      }
+    },
+    "conversation_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contact_ref", "display_name", "resume_mode"],
+      "properties": {
+        "contact_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "resume_mode": { "enum": ["await_new_message", "answer_pending"] }
+      }
+    },
+    "context_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context_version", "summary", "source_message_ids"],
+      "properties": {
+        "context_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "summary": { "type": "string", "maxLength": 20000 },
+        "source_message_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    },
+    "message_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message_id", "direction", "author", "message_type", "delivery_status"],
+      "properties": {
+        "message_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "provider_message_ref": { "type": "string", "maxLength": 256 },
+        "direction": { "enum": ["inbound", "outbound"] },
+        "author": { "enum": ["lead", "human_agent", "ai", "system"] },
+        "message_type": { "enum": ["text", "audio", "image", "pdf", "video", "event"] },
+        "text": { "type": "string", "maxLength": 20000 },
+        "caption": { "type": "string", "maxLength": 4096 },
+        "media_ref": { "type": "string", "maxLength": 512 },
+        "transcription_status": { "enum": ["not_applicable", "pending", "completed", "failed", "not_supported"] },
+        "transcription": { "type": "string", "maxLength": 20000 },
+        "delivery_status": { "enum": ["received", "preparing", "sent", "delivered", "read", "failed", "delivery_unknown", "suppressed"] },
+        "action_id": { "type": "string", "format": "uuid" }
+      }
+    },
+    "delivery_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message_id", "delivery_status", "attempted_at"],
+      "properties": {
+        "message_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "provider_message_ref": { "type": "string", "maxLength": 256 },
+        "delivery_status": { "enum": ["sent", "delivered", "read", "failed", "delivery_unknown", "suppressed"] },
+        "attempted_at": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "message_enrichment_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message_id", "enrichment_kind", "status", "attempted_at"],
+      "properties": {
+        "message_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "enrichment_kind": { "enum": ["transcription", "image_analysis", "pdf_text", "video_analysis"] },
+        "status": { "enum": ["pending", "completed", "failed", "not_supported"] },
+        "attempted_at": { "type": "string", "format": "date-time" },
+        "content": { "type": "string", "maxLength": 20000 },
+        "media_ref": { "type": "string", "maxLength": 512 },
+        "reason": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "block_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["replies", "followups", "reminders"],
+      "properties": {
+        "replies": { "type": "boolean" },
+        "followups": { "type": "boolean" },
+        "reminders": { "type": "boolean" }
+      }
+    },
+    "block_upsert_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block_id", "block_type", "source_ref", "reason", "starts_at", "effects"],
+      "properties": {
+        "block_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "block_type": { "enum": ["human_intervention", "manual_pause", "handoff", "appointment"] },
+        "source_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "starts_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "effects": { "$ref": "#/$defs/block_effects" }
+      }
+    },
+    "block_closed_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["block_id", "status", "resolved_at"],
+      "properties": {
+        "block_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "status": { "enum": ["expired", "resolved", "cancelled"] },
+        "resolved_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "appointment_confirmed_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appointment_ref", "tool_invocation_id", "starts_at", "ends_at", "timezone", "pause_until_end"],
+      "properties": {
+        "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "tool_invocation_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "starts_at": { "type": "string", "format": "date-time" },
+        "ends_at": { "type": "string", "format": "date-time" },
+        "timezone": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "pause_until_end": { "type": "boolean" }
+      }
+    },
+    "appointment_cancelled_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appointment_ref", "tool_invocation_id", "cancelled_at"],
+      "properties": {
+        "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "tool_invocation_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "cancelled_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "attendance_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appointment_ref", "attendance_status", "recorded_at"],
+      "properties": {
+        "appointment_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "attendance_status": { "enum": ["attended", "no_show", "cancelled"] },
+        "recorded_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "automation_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automation_ref", "automation_type", "status", "source_ref", "due_at"],
+      "properties": {
+        "automation_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "automation_type": { "enum": ["followup", "appointment_reminder", "handoff_notification", "reconciliation"] },
+        "status": { "enum": ["scheduled", "pending", "sent", "suppressed", "cancelled", "failed", "delivery_unknown"] },
+        "source_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "action_ref": { "type": "string", "maxLength": 256 },
+        "due_at": { "type": "string", "format": "date-time" },
+        "attempted_at": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "maxLength": 512 }
+      }
+    },
+    "handoff_requested_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_ref", "reason", "summary", "priority", "requested_at"],
+      "properties": {
+        "handoff_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "central_handoff_id": { "type": "string", "format": "uuid" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "summary": { "type": "string", "maxLength": 4000 },
+        "priority": { "enum": ["low", "normal", "high"] },
+        "requested_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "handoff_resolved_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_ref", "resolution", "resolved_at"],
+      "properties": {
+        "handoff_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "resolution": { "enum": ["resolved", "lost"] },
+        "resolved_at": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string", "maxLength": 4000 }
+      }
+    },
+    "handoff_resumed_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handoff_ref", "resumed_at"],
+      "properties": {
+        "handoff_ref": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "resumed_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "attribution_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_type", "captured_at"],
+      "properties": {
+        "source_type": { "enum": ["meta_ad", "google_ad", "organic", "direct", "unknown"] },
+        "campaign_ref": { "type": "string", "maxLength": 256 },
+        "adset_ref": { "type": "string", "maxLength": 256 },
+        "ad_ref": { "type": "string", "maxLength": 256 },
+        "utm_source": { "type": "string", "maxLength": 256 },
+        "utm_medium": { "type": "string", "maxLength": 256 },
+        "utm_campaign": { "type": "string", "maxLength": 256 },
+        "utm_content": { "type": "string", "maxLength": 256 },
+        "utm_term": { "type": "string", "maxLength": 256 },
+        "gclid": { "type": "string", "maxLength": 256 },
+        "fbclid": { "type": "string", "maxLength": 256 },
+        "captured_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

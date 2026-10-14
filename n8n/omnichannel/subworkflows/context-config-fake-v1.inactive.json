@@ -1,0 +1,73 @@
+{
+  "name": "OMNI v2 - Context Config Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "28000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Tenant",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { context_config: { schema_version: 'lexia.context.agent.config.v1', cliente_slug: 'empresa_sintetica_a', config_version: 'context-a-v1', prompt_template: 'Synthetic prompt A only', locale: 'pt-BR', timezone: 'America/Sao_Paulo' }, fallback_used: false, simulated: true } }];"
+      },
+      "id": "28000000-0000-4000-8000-000000000002",
+      "name": "Fake Central Config Lookup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28000000-0000-4000-8000-000000000010",
+              "name": "config_version",
+              "value": "={{ $json.context_config.config_version }}",
+              "type": "string"
+            },
+            {
+              "id": "28000000-0000-4000-8000-000000000011",
+              "name": "prompt_template",
+              "value": "={{ $json.context_config.prompt_template }}",
+              "type": "string"
+            },
+            {
+              "id": "28000000-0000-4000-8000-000000000012",
+              "name": "locale",
+              "value": "={{ $json.context_config.locale }}",
+              "type": "string"
+            },
+            {
+              "id": "28000000-0000-4000-8000-000000000013",
+              "name": "timezone",
+              "value": "={{ $json.context_config.timezone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28000000-0000-4000-8000-000000000003",
+      "name": "Set Generic Context Agent Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Tenant": {
+      "main": [[{ "node": "Fake Central Config Lookup", "type": "main", "index": 0 }]]
+    },
+    "Fake Central Config Lookup": {
+      "main": [[{ "node": "Set Generic Context Agent Config", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

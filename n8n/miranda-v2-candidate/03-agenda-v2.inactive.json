@@ -1,0 +1,1120 @@
+{
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 03 AGENDA",
+  "nodes": [
+    {
+      "id": "04e613bd-f446-46bd-8f29-5ecef43f7012",
+      "name": "NOTA | OPERAÇÃO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -310
+      ],
+      "parameters": {
+        "content": "## OPERAÇÃO\nEscolhe disponibilidade ou criação de agendamento por contrato explícito.",
+        "width": 1460,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "0d69681c-7df6-43ee-813e-7e2dcfe78140",
+      "name": "NOTA | DISPONIBILIDADE",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        -800
+      ],
+      "parameters": {
+        "content": "## DISPONIBILIDADE\nConsulta serviços e horários, mas nunca comprova criação de agendamento.",
+        "width": 2540,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "36d6e291-3763-4c7b-8653-e421ebd81fe8",
+      "name": "NOTA | AGENDAMENTO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        180
+      ],
+      "parameters": {
+        "content": "## AGENDAMENTO\nCria o evento e só então emite appointment.confirmed com atestado da tool.",
+        "width": 4700,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "7137c1fc-4c3a-426a-8ad9-9d6dac1108a8",
+      "name": "OPERAÇÃO | Receber operação de agenda",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        120,
+        -20
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "191d3612-7091-40dc-8ec8-65f0b8c8af5a",
+      "name": "OPERAÇÃO | Aplicar política de Calendar do teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst test = input.test_control;\nif (!test) return [{ json: { ...input, agenda_route: input.operation } }];\nif (test.execution_mode !== 'full_agent_virtual') throw new Error('agenda_test_mode_invalid');\nconst calendar = test.tool_policy?.calendar;\nif (!['disabled','test_read_only','test_read_write'].includes(calendar)) throw new Error('agenda_test_calendar_policy_invalid');\nif (calendar === 'disabled') return [{ json: { ...input, agenda_route: 'test.calendar.disabled' } }];\nif (calendar === 'test_read_only' && input.operation === 'appointment.create') return [{ json: { ...input, agenda_route: 'test.calendar.read_only' } }];\nreturn [{ json: { ...input, agenda_route: input.operation } }];"
+      }
+    },
+    {
+      "id": "a4c12630-e69a-4af4-8847-f02b6738fc28",
+      "name": "OPERAÇÃO | Escolher operação",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        840,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "dd64c360-2d17-4e7e-893a-f7ed0eb07fcd",
+                    "leftValue": "={{ $json.agenda_route }}",
+                    "rightValue": "availability.check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "availability.check"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "9baa84e6-c2a4-49b5-87d0-04ab2665b18d",
+                    "leftValue": "={{ $json.agenda_route }}",
+                    "rightValue": "appointment.create",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "appointment.create"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "0bdd8025-aad8-41dd-8a9b-75fe77a54daf",
+                    "leftValue": "={{ $json.agenda_route }}",
+                    "rightValue": "test.calendar.disabled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "test.calendar.disabled"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "d0311334-2c34-4ab6-8271-1fc9de81e244",
+                    "leftValue": "={{ $json.agenda_route }}",
+                    "rightValue": "test.calendar.read_only",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "test.calendar.read_only"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "682170e8-2a33-4d75-860c-61cb3dce689d",
+      "name": "OPERAÇÃO | Responder Calendar desativado no teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: {\n  status: 'CALENDAR_DISABLED_IN_TEST',\n  operation: input.operation,\n  instrucao_apresentacao: 'A agenda está desativada neste teste. Informe que a consulta ou criação de horário não foi executada e não invente disponibilidade.',\n  provider_send_attempted: false,\n} }];"
+      }
+    },
+    {
+      "id": "3ed6b6a6-7a1c-4e97-80be-f64f9fc87df9",
+      "name": "OPERAÇÃO | Bloquear escrita no Calendar de leitura",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        90
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: {\n  status: 'CALENDAR_READ_ONLY_IN_TEST',\n  operation: input.operation,\n  instrucao_apresentacao: 'O calendário deste teste permite somente consulta. Nenhum agendamento foi criado.',\n  provider_send_attempted: false,\n} }];"
+      }
+    },
+    {
+      "id": "d49d98e1-b3db-4c03-8059-24df7f4b8e90",
+      "name": "DISPONIBILIDADE | Get many rows",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        -510
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "servicos_miranda",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ativo",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "c26413cb-252b-4a44-8cf3-335bddcfe684",
+      "name": "DISPONIBILIDADE | Resolver Serviço e Janela",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "const TZ = 'America/New_York';\nconst input = $('OPERAÇÃO | Receber operação de agenda').first().json;\nconst servicoPedido = (input.servico || '').toString();\nconst variante = (input.variante || '').toString().trim();\nconst varianteConfirmada = (input.variante_confirmada || '').toString().trim().toLowerCase() === 'sim';\nconst dataPreferida = (input.data_preferida || '').toString().trim();\nconst periodo = (input.periodo_preferido || '').toString().trim().toLowerCase();\n\nconst norm = s => s.toString().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/_/g, ' ').trim();\nconst rows = $input.all().map(i => i.json);\nconst alvo = norm(servicoPedido);\n\nlet servico = rows.find(r => norm(r.nome) === alvo || norm(r.nome_en || '') === alvo || norm(r.nome_es || '') === alvo);\nif (!servico) servico = rows.find(r => {\n  let al = r.aliases;\n  if (typeof al === 'string') { try { al = JSON.parse(al); } catch (e) { al = []; } }\n  return (al || []).some(a => norm(a) === alvo) || norm(r.nome).includes(alvo) || alvo.includes(norm(r.nome));\n});\nif (!servico) return [{ json: { status: 'ERRO', mensagem: `Serviço \"${servicoPedido}\" não encontrado. Use consultar_servicos e passe o nome exato em português.` } }];\n\n// requer_avaliacao => o que se agenda é a Consulta de Avaliação\nlet agendado = servico;\nlet observacao = '';\nif (String(servico.requer_avaliacao) === 'true') {\n  agendado = rows.find(r => norm(r.nome) === 'consulta de avaliacao') || servico;\n  observacao = `\"${servico.nome}\" requer avaliação: o agendamento é da Consulta de Avaliação (US$ 40, 100% revertidos no primeiro tratamento).`;\n}\n\n// ===== matching inteligente de variante =====\n// aceita: nome oficial (\"padrao\", \"estendida\"), pedaço do nome (\"área média\", \"media\")\n// ou os MINUTOS (\"60\", \"a de 60\", \"60 min\") casando pelo valor cadastrado\nfunction acharVariante(variantes, pedido) {\n  if (!variantes || !pedido) return null;\n  const p = norm(pedido);\n  const chaves = Object.keys(variantes);\n  let k = chaves.find(x => norm(x) === p);\n  if (!k) k = chaves.find(x => p.includes(norm(x)) || norm(x).includes(p));\n  if (k) return k;\n  const num = (p.match(/\\d+/) || [])[0];\n  if (num) {\n    k = chaves.find(x => Number(variantes[x]) === Number(num));\n    if (!k) k = chaves.find(x => norm(x).includes(num));\n    if (k) return k;\n  }\n  return null;\n}\n\n// ===== MÚLTIPLAS ÁREAS (ex.: Depilação a Laser) =====\n// variante pode vir com várias áreas: \"pequena + media\", \"axila, perna\", \"2 areas medias\", etc.\n// Regra de duração (confirmada pelo Samuel):\n//   corpo inteiro em qualquer parte  => 150 min\n//   3 ou mais áreas                  => 60 min fixo\n//   2 áreas                          => SOMA das duas\n//   1 área                           => valor da variante\nfunction resolverAreas(variantes, pedido) {\n  if (!variantes || !pedido) return null;\n  // separa por vírgula, +, /, \" e \", \" y \", \" and \"\n  const partes = pedido.split(/\\s*(?:,|\\+|\\/|;)\\s*|\\s+(?:e|y|and)\\s+/i)\n    .map(p => p.trim()).filter(Boolean);\n  const chavesAchadas = [];\n  const numPorExtenso = { uma: 1, una: 1, one: 1, duas: 2, dos: 2, two: 2, tres: 3, three: 3, quatro: 4, cuatro: 4, four: 4 };\n  for (const parte of partes) {\n    // multiplicador tipo \"2 areas medias\" / \"duas áreas pequenas\" / \"3 small areas\"\n    const pn = norm(parte);\n    let mult = 1;\n    let busca = parte;\n    const mPref = pn.match(/^(\\d+|uma|una|one|duas|dos|two|tres|three|quatro|cuatro|four)\\s+areas?\\s+(.+)$/);\n    if (mPref) {\n      mult = Number(mPref[1]) || numPorExtenso[mPref[1]] || 1;\n      // remove plural das palavras restantes (\"grandes\" -> \"grande\") para casar com a chave\n      busca = mPref[2].replace(/(\\w)s(?=\\s|$)/g, '$1');\n    }\n    const k = acharVariante(variantes, busca);\n    if (!k) return { erro: parte };\n    for (let i = 0; i < mult; i++) chavesAchadas.push(k);\n  }\n  if (!chavesAchadas.length) return null;\n  const temCorpoInteiro = chavesAchadas.some(k => /corpo|full\\s*body|cuerpo/.test(norm(k)) || Number(variantes[k]) >= 150);\n  let dur;\n  if (temCorpoInteiro) dur = 150;\n  else if (chavesAchadas.length >= 3) dur = 60;\n  else if (chavesAchadas.length === 2) dur = Number(variantes[chavesAchadas[0]]) + Number(variantes[chavesAchadas[1]]);\n  else dur = Number(variantes[chavesAchadas[0]]);\n  return { chaves: chavesAchadas, duracao: dur };\n}\n\nlet variantes = agendado.duracao_variantes;\nif (typeof variantes === 'string' && variantes) { try { variantes = JSON.parse(variantes); } catch (e) { variantes = null; } }\nlet duracao = null;\nlet varianteKey = null;\n\n// GUARDRAIL: variante só vale se veio com variante_confirmada=\"sim\"\n// (o modelo tem histórico de assumir \"padrão\" sozinho — aqui isso é bloqueado)\nif (variantes && variante && varianteConfirmada) {\n  const res = resolverAreas(variantes, variante);\n  if (res && !res.erro) {\n    varianteKey = res.chaves.join(' + ');\n    duracao = res.duracao;\n  } else if (res && res.erro) {\n    return [{ json: {\n      status: 'VARIANTE_NECESSARIA',\n      servico: servico.nome,\n      variantes_disponiveis: Object.entries(variantes).map(([k, v]) => `${k} (${v} min)`),\n      mensagem: `Não reconheci a área/variante \"${res.erro}\". Pergunte ao cliente qual(is) das opções disponíveis ele quer e chame de novo usando os nomes oficiais (ex.: area_pequena, area_media), separados por vírgula se forem várias.`\n    } }];\n  }\n}\nif (!duracao && variantes && Object.keys(variantes).length && agendado.id === servico.id) {\n  return [{ json: {\n    status: 'VARIANTE_NECESSARIA',\n    servico: servico.nome,\n    variantes_disponiveis: Object.entries(variantes).map(([k, v]) => `${k} (${v} min)`),\n    mensagem: 'Este serviço tem variações de duração e o cliente ainda NÃO escolheu (ou a escolha não foi confirmada). Pergunte ao cliente qual(is) área(s) ele quer tratar, apresentando as opções. Se forem VÁRIAS áreas, colete TODAS antes de chamar de novo e passe-as separadas por vírgula (ex.: \"area_pequena, area_media\"). Só depois que ELE responder, chame de novo passando variante e variante_confirmada=\"sim\". NUNCA escolha por ele.'\n  } }];\n}\nif (!duracao) duracao = Number(agendado.duracao_agenda_min) || null;\nif (!duracao) duracao = Math.min(150, Math.ceil((Number(agendado.duracao_max) || 60) / 30) * 30); // fallback\n\n// janela de busca\nconst hoje = DateTime.now().setZone(TZ).startOf('day');\nconst minDia = hoje.plus({ days: 1 });\nconst maxDia = hoje.plus({ days: 60 });\nlet inicio = minDia;\nif (dataPreferida) {\n  const d = DateTime.fromISO(dataPreferida, { zone: TZ }).startOf('day');\n  if (d.isValid) {\n    if (d > maxDia) return [{ json: { status: 'FORA_DO_LIMITE', mensagem: 'Agendamos com no máximo 60 dias de antecedência. Peça uma data mais próxima.' } }];\n    inicio = d < minDia ? minDia : d;\n  }\n}\nlet fim = inicio.plus({ days: 7 });\nif (fim > maxDia) fim = maxDia;\n\nreturn [{ json: {\n  status: 'OK',\n  servico_original: servico.nome,\n  servico_agendado: agendado.nome,\n  profissional: agendado.profissional,\n  duracao_min: duracao,\n  variante: varianteKey || variante || null,\n  observacao,\n  periodo_preferido: ['manha','tarde','noite'].includes(periodo) ? periodo : null,\n  data_preferida_aplicada: dataPreferida || null,\n  timeMin: inicio.toISO(),\n  timeMax: fim.endOf('day').toISO()\n} }];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "c5685930-0e39-4992-86ed-57c3a9eb6218",
+      "name": "DISPONIBILIDADE | Status OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3180,
+        -510
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "87d2e061-d42c-40b6-bbf9-ab9c6233ab47",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "OK",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "15f902f4-532c-4419-8973-1b90bd2eee01",
+      "name": "DISPONIBILIDADE | Get many events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        3540,
+        -620
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LEXIA_MIRANDA_CALENDAR_ID }}"
+        },
+        "returnAll": true,
+        "timeMin": "= {{ $json.timeMin }}",
+        "timeMax": "={{ $json.timeMax }}",
+        "options": {
+          "orderBy": "startTime",
+          "recurringEventHandling": "expand"
+        },
+        "additionalFields": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "c75326ed-ffb5-4a71-8e0a-2a70b7763687",
+      "name": "DISPONIBILIDADE | Calcular Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        -620
+      ],
+      "parameters": {
+        "jsCode": "const TZ = 'America/New_York';\nconst BUFFER = 15;\nconst cfg = $('DISPONIBILIDADE | Resolver Serviço e Janela').first().json;\n\n// ===== DIAS BLOQUEADOS (pedido do Samuel) =====\n// Dias em que a clínica NÃO aceita agendamento nenhum, para os dois\n// profissionais. Formato: 'YYYY-MM-DD'. Para bloquear outro dia no futuro,\n// basta acrescentar uma linha aqui.\nconst DIAS_BLOQUEADOS = [\n  '2026-09-05', // sábado 05/09/2026 — bloqueado a pedido do Samuel (03/09)\n];\n// ==============================================\n\n// formato americano de hora: 10:00 AM / 2:30 PM\nconst fmtHora = (d) => d.toFormat('h:mm a');\n\n// ===== JANELA POR PROFISSIONAL =====\n// A partir de 27/08/2026 (volta às aulas do Samuel), seg–sex a agenda do Samuel\n// só aceita agendamento com INÍCIO entre 3:30 PM e 7:00 PM.\n// Ter e qui, tudo tem de TERMINAR até 7:30 PM — na prática, começar às 7:00 PM\n// nesses dias só cabe serviço de até 30 min (a \"consulta rápida\" do Samuel).\n// Nos demais dias a sessão pode terminar até as 8:00 PM (fechamento).\n// Sábado continua o dia todo (10 AM–8 PM). Bruna não muda.\n// A regra usa a DATA DO SLOT, não a de hoje.\nconst VOLTA_AS_AULAS = DateTime.fromISO('2026-08-27', { zone: TZ });\nfunction regraSamuelDia(dia) {\n  return cfg.profissional === 'Samuel' &&\n    dia >= VOLTA_AS_AULAS.startOf('day') &&\n    dia.weekday >= 1 && dia.weekday <= 5;\n}\n// devolve os limites do dia em MINUTOS desde 00:00:\n// iniMin/iniMax = janela de INÍCIO permitida; fimMax = hora máxima de TÉRMINO\nfunction janelaDoDia(dia) {\n  if (regraSamuelDia(dia)) {\n    return {\n      iniMin: 15 * 60 + 30, // 3:30 PM\n      iniMax: 19 * 60,      // último início: 7:00 PM\n      fimMax: (dia.weekday === 2 || dia.weekday === 4) ? 19 * 60 + 30 : 20 * 60\n    };\n  }\n  return { iniMin: 10 * 60, iniMax: 20 * 60, fimMax: 20 * 60 };\n}\n// ===================================\n\n// ----- horário específico pedido pelo cliente (opcional) -----\nlet horaPref = null;\ntry {\n  const hpRaw = ($('OPERAÇÃO | Receber operação de agenda').first().json.horario_preferido || '').toString().trim();\n  const m = hpRaw.match(/(\\d{1,2})(?:\\s*[:hH]\\s*(\\d{2}))?\\s*(am|pm|a\\.?m\\.?|p\\.?m\\.?)?/i);\n  if (hpRaw && m) {\n    let h = Number(m[1]);\n    const mn = m[2] ? Number(m[2]) : 0;\n    const sufixo = (m[3] || '').toLowerCase().replace(/\\./g, '');\n    if (sufixo.startsWith('p') && h < 12) h += 12;\n    if (sufixo.startsWith('a') && h === 12) h = 0;\n    // sem sufixo: horas pequenas em clínica que abre às 10h são da tarde (2 = 14h)\n    if (!sufixo && h >= 1 && h <= 7) h += 12;\n    if (h >= 0 && h <= 23 && mn >= 0 && mn <= 59) horaPref = { h, mn };\n  }\n} catch (e) { horaPref = null; }\nlet pedido = null;\n\n// ocupação por profissional (título define o dono; desconhecido bloqueia ambos)\nconst busy = { Samuel: [], Bruna: [] };\nfor (const item of $input.all()) {\n  const ev = item.json;\n  if (!ev || !ev.start) continue;\n  const ini = DateTime.fromISO(ev.start.dateTime || ev.start.date, { zone: TZ });\n  const fimEv = DateTime.fromISO(ev.end.dateTime || ev.end.date, { zone: TZ });\n  const titulo = (ev.summary || '').trim();\n  if (/^samuel\\s*-/i.test(titulo)) busy.Samuel.push([ini, fimEv]);\n  else if (/^bruna\\s*-/i.test(titulo)) busy.Bruna.push([ini, fimEv]);\n  else { busy.Samuel.push([ini, fimEv]); busy.Bruna.push([ini, fimEv]); }\n}\n\nconst ocupado = busy[cfg.profissional] || [];\nconst dur = Number(cfg.duracao_min);\nconst periodos = { manha: [10, 12], tarde: [12, 17], noite: [17, 20] };\nconst nomesDias = ['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'];\n\nfunction livre(ini, fim) {\n  const a = ini.minus({ minutes: BUFFER });\n  const b = fim.plus({ minutes: BUFFER });\n  return !ocupado.some(([x, y]) => a < y && b > x);\n}\n\nconst maxPorDia = cfg.data_preferida_aplicada ? 4 : 2;\nconst slots = [];\nlet dia = DateTime.fromISO(cfg.timeMin, { zone: TZ }).startOf('day');\nconst fimJanela = DateTime.fromISO(cfg.timeMax, { zone: TZ });\n\nwhile (dia <= fimJanela && slots.length < 4) {\n  const diaBloqueado = DIAS_BLOQUEADOS.includes(dia.toISODate());\n  // cliente pediu exatamente um dia bloqueado → avisar o Agente com clareza\n  if (diaBloqueado && !pedido && cfg.data_preferida_aplicada &&\n      dia.hasSame(DateTime.fromISO(cfg.timeMin, { zone: TZ }), 'day')) {\n    pedido = {\n      status: 'INDISPONIVEL',\n      pedido: `${nomesDias[dia.weekday - 1]}, ${dia.toFormat('dd/MM')}`,\n      instrucao: 'O DIA INTEIRO pedido pelo cliente está indisponível (agenda bloqueada pela clínica). Diga brevemente que nesse dia não há horários — sem explicar o motivo e sem prometer encaixe — e ofereça as opcoes retornadas de outros dias, perguntando se alguma serve.'\n    };\n  }\n  if (dia.weekday !== 7 && !diaBloqueado) { // domingo fechado; dias bloqueados idem\n    const jan = janelaDoDia(dia);\n    const [hIni, hFim] = cfg.periodo_preferido ? periodos[cfg.periodo_preferido] : [10, 20];\n    // cruza o período pedido com a janela do profissional (tudo em minutos)\n    const iniM = Math.max(hIni * 60, jan.iniMin);\n    const limIniM = Math.min(hFim * 60, jan.iniMax);\n    const fechamento = dia.startOf('day').plus({ minutes: jan.fimMax });\n    const limiteInicio = dia.startOf('day').plus({ minutes: limIniM });\n\n    // 1) coletar TODOS os inícios livres do dia (grade de 30 min)\n    const livresDoDia = [];\n    let t = dia.startOf('day').plus({ minutes: iniM });\n    while (t <= limiteInicio) {\n      const fimSlot = t.plus({ minutes: dur });\n      if (fimSlot <= fechamento && livre(t, fimSlot)) livresDoDia.push(t);\n      t = t.plus({ minutes: 30 });\n    }\n\n    // 2) checar o horário específico pedido pelo cliente (independe do período)\n    let alvoPedido = null;\n    // SÁBADO ANTES DAS 10 AM: a clínica está fechada, mas o Samuel avalia caso\n    // a caso — o agente NÃO nega nem confirma: encaminha a solicitação.\n    if (horaPref && !pedido && cfg.data_preferida_aplicada && dia.weekday === 6 &&\n        (horaPref.h * 60 + horaPref.mn) < 10 * 60) {\n      const alvoSab = dia.set({ hour: horaPref.h, minute: horaPref.mn });\n      pedido = {\n        status: 'ENCAMINHAR_EQUIPE',\n        pedido: `${nomesDias[alvoSab.weekday - 1]} às ${fmtHora(alvoSab)}`,\n        instrucao: 'O cliente pediu SÁBADO antes das 10:00 AM — fora do horário normal, mas o Samuel avalia esses casos. NÃO diga que não é possível e NÃO confirme: faça handoff prioridade \"media\" com serviço + sábado + horário pedido para o Samuel avaliar, e diga ao cliente que vai verificar essa possibilidade com a equipe e que ela retorna por aqui. NÃO ofereça as opcoes neste turno.'\n      };\n    }\n    if (horaPref && !pedido) {\n      const alvo = dia.set({ hour: horaPref.h, minute: horaPref.mn });\n      const fimAlvo = alvo.plus({ minutes: dur });\n      const naGrade = horaPref.mn % 30 === 0;\n      const alvoM = horaPref.h * 60 + horaPref.mn;\n      const dentro = alvoM >= jan.iniMin && alvoM <= jan.iniMax && fimAlvo <= fechamento;\n      if (naGrade && dentro && livre(alvo, fimAlvo)) {\n        alvoPedido = alvo;\n        pedido = {\n          status: 'DISPONIVEL',\n          inicio_iso: alvo.toISO(),\n          fim_iso: fimAlvo.toISO(),\n          rotulo: `${nomesDias[alvo.weekday - 1]}, ${alvo.toFormat('dd/MM')} às ${fmtHora(alvo)}`,\n          instrucao: 'O horário pedido pelo cliente ESTÁ livre e JÁ está escolhido. Use este inicio_iso e avance direto para pedir nome completo e WhatsApp. NÃO ofereça outras opções nem pergunte qual horário ele prefere.'\n        };\n      } else if (cfg.data_preferida_aplicada) {\n        pedido = {\n          status: 'INDISPONIVEL',\n          pedido: `${nomesDias[alvo.weekday - 1]} às ${fmtHora(alvo)}`,\n          instrucao: 'O horário pedido pelo cliente NÃO está livre. Diga isso brevemente (ex.: \"infelizmente às ' + fmtHora(alvo) + ' não tenho\") e ofereça as opcoes retornadas, perguntando se alguma serve.'\n        };\n      }\n    }\n\n    // 3) escolher até maxPorDia opções espalhadas (sempre inclui a primeira e a última)\n    const restante = 4 - slots.length;\n    const qtd = Math.min(maxPorDia, restante, livresDoDia.length);\n    let escolhidos = [];\n    if (qtd >= livresDoDia.length) {\n      escolhidos = livresDoDia;\n    } else if (qtd === 1) {\n      escolhidos = [livresDoDia[0]];\n    } else if (qtd > 1) {\n      const idxUsados = new Set();\n      for (let i = 0; i < qtd; i++) {\n        idxUsados.add(Math.round(i * (livresDoDia.length - 1) / (qtd - 1)));\n      }\n      escolhidos = [...idxUsados].sort((a, b) => a - b).map(i => livresDoDia[i]);\n    }\n\n    // horário pedido disponível entra sempre, em primeiro lugar\n    if (alvoPedido) {\n      escolhidos = [alvoPedido, ...escolhidos.filter(x => +x !== +alvoPedido)].slice(0, Math.max(qtd, 1));\n    }\n\n    for (const s of escolhidos) {\n      slots.push({\n        inicio_iso: s.toISO(),\n        fim_iso: s.plus({ minutes: dur }).toISO(),\n        rotulo: `${nomesDias[s.weekday - 1]}, ${s.toFormat('dd/MM')} às ${fmtHora(s)}`\n      });\n    }\n  }\n  dia = dia.plus({ days: 1 });\n}\n\nif (!slots.length) return [{ json: {\n  status: 'SEM_DISPONIBILIDADE',\n  servico: cfg.servico_agendado,\n  profissional: cfg.profissional,\n  horario_pedido: pedido,\n  mensagem: 'Nenhum horário livre nesse intervalo. Pergunte ao cliente outra data ou período.'\n} }];\n\nreturn [{ json: {\n  status: 'OK',\n  servico_original: cfg.servico_original,\n  servico_agendado: cfg.servico_agendado,\n  profissional: cfg.profissional,\n  duracao_min: dur,\n  variante: cfg.variante,\n  observacao: cfg.observacao,\n  horario_pedido: pedido,\n  nota: 'IMPORTANTE: estas opções são apenas uma AMOSTRA dos horários livres. Um horário ausente da lista NÃO está ocupado. Se horario_pedido existir, siga a instrução dele. Nunca diga ao cliente que um horário foi preenchido por conta própria. Ao falar horários com o cliente, use SEMPRE o formato americano (10:00 AM, 2:30 PM) — nunca 14h ou 15:00.',\n  opcoes: slots\n} }];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "bbaa762a-be61-4821-8148-a59ec93587d6",
+      "name": "DISPONIBILIDADE | Saída Erro",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3540,
+        -400
+      ],
+      "parameters": {},
+      "retryOnFail": false
+    },
+    {
+      "id": "eda560db-cef1-4af5-8abc-c00684edf865",
+      "name": "DISPONIBILIDADE | Validar solicitação de disponibilidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!input.servico || !input.invocation_id || !input.tool_invocation_id) throw new Error('availability_request_invalid');\nreturn [{ json: input }];"
+      }
+    },
+    {
+      "id": "c63a32a0-d2e9-4b59-81d0-94b6634b9feb",
+      "name": "DISPONIBILIDADE | Emitir disponibilidade sem confirmar agendamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4260,
+        -510
+      ],
+      "parameters": {
+        "jsCode": "const input = $('DISPONIBILIDADE | Validar solicitação de disponibilidade').first().json;\nreturn [{ json: { status: 'OK', availability: $input.all().map((item) => item.json),\n  tool_audit: [{ invocation_id: input.tool_invocation_id, operation: 'availability.check', result: 'succeeded' }], domain_events: [] } }];"
+      }
+    },
+    {
+      "id": "dfd479e9-25fc-43dd-8188-fae724180bdf",
+      "name": "DISPONIBILIDADE | Emitir falha de disponibilidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        -400
+      ],
+      "parameters": {
+        "jsCode": "const input = $('DISPONIBILIDADE | Validar solicitação de disponibilidade').first().json;\nreturn [{ json: { status: 'ERRO', message: $input.first().json.mensagem || 'availability_failed',\n  tool_audit: [{ invocation_id: input.tool_invocation_id, operation: 'availability.check', result: 'failed' }], domain_events: [] } }];"
+      }
+    },
+    {
+      "id": "aae9c5c5-f4b2-43c0-8f2b-34acc7fae49d",
+      "name": "AGENDAMENTO | Get many rows",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        470
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "servicos_miranda",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ativo",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "d32030b9-74b9-4469-8808-7afac1be9195",
+      "name": "AGENDAMENTO | Validar Pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        470
+      ],
+      "parameters": {
+        "jsCode": "const TZ = 'America/New_York';\nconst input = $('OPERAÇÃO | Receber operação de agenda').first().json;\nconst norm = s => s.toString().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/_/g, ' ').trim();\nconst rows = $input.all().map(i => i.json);\nconst alvo = norm((input.servico || '').toString());\n\nlet servico = rows.find(r => norm(r.nome) === alvo || norm(r.nome_en || '') === alvo || norm(r.nome_es || '') === alvo);\nif (!servico) servico = rows.find(r => {\n  let al = r.aliases;\n  if (typeof al === 'string') { try { al = JSON.parse(al); } catch (e) { al = []; } }\n  return (al || []).some(a => norm(a) === alvo) || norm(r.nome).includes(alvo) || alvo.includes(norm(r.nome));\n});\nif (!servico) return [{ json: { status: 'ERRO', mensagem: `Serviço \"${input.servico}\" não encontrado.` } }];\n\nlet agendado = servico;\nif (String(servico.requer_avaliacao) === 'true') {\n  agendado = rows.find(r => norm(r.nome) === 'consulta de avaliacao') || servico;\n}\n\n// ===== matching inteligente de variante (igual ao Resolver) =====\nfunction acharVariante(variantes, pedido) {\n  if (!variantes || !pedido) return null;\n  const p = norm(pedido);\n  const chaves = Object.keys(variantes);\n  let k = chaves.find(x => norm(x) === p);\n  if (!k) k = chaves.find(x => p.includes(norm(x)) || norm(x).includes(p));\n  if (k) return k;\n  const num = (p.match(/\\d+/) || [])[0];\n  if (num) {\n    k = chaves.find(x => Number(variantes[x]) === Number(num));\n    if (!k) k = chaves.find(x => norm(x).includes(num));\n    if (k) return k;\n  }\n  return null;\n}\n\n// ===== MÚLTIPLAS ÁREAS (igual ao Resolver Serviço e Janela) =====\n// Regra de duração (confirmada pelo Samuel):\n//   corpo inteiro em qualquer parte  => 150 min\n//   3 ou mais áreas                  => 60 min fixo\n//   2 áreas                          => SOMA das duas\n//   1 área                           => valor da variante\nfunction resolverAreas(variantes, pedido) {\n  if (!variantes || !pedido) return null;\n  const partes = pedido.split(/\\s*(?:,|\\+|\\/|;)\\s*|\\s+(?:e|y|and)\\s+/i)\n    .map(p => p.trim()).filter(Boolean);\n  const chavesAchadas = [];\n  const numPorExtenso = { uma: 1, una: 1, one: 1, duas: 2, dos: 2, two: 2, tres: 3, three: 3, quatro: 4, cuatro: 4, four: 4 };\n  for (const parte of partes) {\n    const pn = norm(parte);\n    let mult = 1;\n    let busca = parte;\n    const mPref = pn.match(/^(\\d+|uma|una|one|duas|dos|two|tres|three|quatro|cuatro|four)\\s+areas?\\s+(.+)$/);\n    if (mPref) {\n      mult = Number(mPref[1]) || numPorExtenso[mPref[1]] || 1;\n      busca = mPref[2].replace(/(\\w)s(?=\\s|$)/g, '$1');\n    }\n    const k = acharVariante(variantes, busca);\n    if (!k) return { erro: parte };\n    for (let i = 0; i < mult; i++) chavesAchadas.push(k);\n  }\n  if (!chavesAchadas.length) return null;\n  const temCorpoInteiro = chavesAchadas.some(k => /corpo|full\\s*body|cuerpo/.test(norm(k)) || Number(variantes[k]) >= 150);\n  let dur;\n  if (temCorpoInteiro) dur = 150;\n  else if (chavesAchadas.length >= 3) dur = 60;\n  else if (chavesAchadas.length === 2) dur = Number(variantes[chavesAchadas[0]]) + Number(variantes[chavesAchadas[1]]);\n  else dur = Number(variantes[chavesAchadas[0]]);\n  return { chaves: chavesAchadas, duracao: dur };\n}\n\nlet variantes = agendado.duracao_variantes;\nif (typeof variantes === 'string' && variantes) { try { variantes = JSON.parse(variantes); } catch (e) { variantes = null; } }\nconst variante = (input.variante || '').toString().trim();\nlet duracao = null;\nlet varianteKey = null;\nif (variantes && variante) {\n  const res = resolverAreas(variantes, variante);\n  if (res && !res.erro) {\n    varianteKey = res.chaves.join(' + ');\n    duracao = res.duracao;\n  } else if (res && res.erro) {\n    return [{ json: { status: 'ERRO', mensagem: `Área/variante \"${res.erro}\" não reconhecida. Opções: ` + Object.entries(variantes).map(([k, v]) => `${k} (${v} min)`).join(', ') + '. Use os nomes oficiais, separados por vírgula se forem várias áreas, e passe EXATAMENTE a mesma variante usada em verificar_disponibilidade.' } }];\n  }\n}\nif (!duracao && variantes && Object.keys(variantes).length && agendado.id === servico.id) {\n  return [{ json: { status: 'ERRO', mensagem: 'Este serviço exige variante (área). Opções: ' + Object.entries(variantes).map(([k, v]) => `${k} (${v} min)`).join(', ') + '. Pergunte ao cliente qual(is) área(s) quer tratar e chame novamente passando todas separadas por vírgula.' } }];\n}\nif (!duracao) duracao = Number(agendado.duracao_agenda_min) || Math.min(150, Math.ceil((Number(agendado.duracao_max) || 60) / 30) * 30);\n\n// ===== GUARDRAIL: nome e telefone reais, dados pelo cliente =====\nconst nomeIn = (input.nome || '').toString().trim();\nconst telIn = (input.telefone || '').toString().trim();\nconst digitos = telIn.replace(/\\D/g, '');\nconst nomeNorm = norm(nomeIn);\nconst nomesProibidos = ['teste', 'lexia', 'cliente', 'contato', 'usuario', 'user', 'admin'];\nif (!nomeIn || nomeIn.split(/\\s+/).length < 2) {\n  return [{ json: { status: 'ERRO', mensagem: 'Nome completo obrigatório (nome e sobrenome). Pergunte ao cliente o nome completo antes de criar.' } }];\n}\nif (nomesProibidos.some(p => nomeNorm.includes(p))) {\n  return [{ json: { status: 'ERRO', mensagem: 'Este nome é um registro interno do sistema, NÃO é o nome do cliente. Pergunte o nome completo ao cliente no chat antes de criar.' } }];\n}\nif (digitos.length < 8 || digitos.length > 15 || /[a-z]/i.test(telIn.replace(/[x ()+-]/gi, ''))) {\n  return [{ json: { status: 'ERRO', mensagem: 'Telefone inválido — isso não é um número de telefone. Peça ao cliente o número de WhatsApp; NUNCA use o ID do contato.' } }];\n}\n// ================================================================\n\n// validar o horário pedido\nconst inicio = DateTime.fromISO((input.inicio_iso || '').toString(), { setZone: true }).setZone(TZ);\nif (!inicio.isValid) return [{ json: { status: 'ERRO', mensagem: 'inicio_iso inválido. Use exatamente o inicio_iso retornado por verificar_disponibilidade.' } }];\nconst fim = inicio.plus({ minutes: duracao });\nconst hoje = DateTime.now().setZone(TZ).startOf('day');\nconst erros = [];\nif (inicio.startOf('day') < hoje.plus({ days: 1 })) erros.push('horário no passado ou para hoje');\nif (inicio.startOf('day') > hoje.plus({ days: 60 })) erros.push('mais de 60 dias de antecedência');\nif (inicio.weekday === 7) erros.push('domingo não há agenda');\nif (inicio.hour < 10 || fim > inicio.startOf('day').set({ hour: 20 })) erros.push('fora do horário de funcionamento');\nif (inicio.minute % 30 !== 0) erros.push('fora da grade de 30 minutos');\n// ===== JANELA DO SAMUEL (volta às aulas, a partir de 27/08/2026) =====\n// Seg–sex a agenda do Samuel só aceita INÍCIO entre 3:30 PM e 7:00 PM.\n// Ter e qui tudo tem de TERMINAR até 7:30 PM (às 7:00 PM só cabe serviço de\n// até 30 min — a consulta rápida); demais dias, término até 8:00 PM.\n// Sábado continua o dia todo. Bruna não muda. Espelho da regra do Calcular\n// Slots em verificar_disponibilidade — se as duas divergirem, esta manda.\nconst VOLTA_AS_AULAS = DateTime.fromISO('2026-08-27', { zone: TZ });\nif (\n  agendado.profissional === 'Samuel' &&\n  inicio.startOf('day') >= VOLTA_AS_AULAS.startOf('day') &&\n  inicio.weekday >= 1 && inicio.weekday <= 5\n) {\n  const minutosInicio = inicio.hour * 60 + inicio.minute;\n  if (minutosInicio < 15 * 60 + 30 || minutosInicio > 19 * 60) {\n    erros.push('a agenda do Samuel em dia de semana só aceita início entre 3:30 PM e 7:00 PM');\n  }\n  const fimMax = (inicio.weekday === 2 || inicio.weekday === 4) ? 19 * 60 + 30 : 20 * 60;\n  if (fim > inicio.startOf('day').plus({ minutes: fimMax })) {\n    erros.push('às terças e quintas a sessão do Samuel precisa terminar até 7:30 PM — este serviço não cabe nesse horário');\n  }\n}\n// =====================================================================\nif (erros.length) return [{ json: { status: 'ERRO', mensagem: `Horário inválido (${erros.join('; ')}). Chame verificar_disponibilidade novamente e ofereça apenas opções retornadas.` } }];\n\nconst idioma = ['pt', 'en', 'es'].includes((input.idioma || '').toString().toLowerCase()) ? input.idioma.toLowerCase() : 'pt';\n\nreturn [{ json: {\n  status: 'OK',\n  servico_original: servico.nome,\n  servico_agendado: agendado.nome,\n  servico_nome_en: agendado.nome_en, servico_nome_es: agendado.nome_es,\n  profissional: agendado.profissional,\n  duracao_min: duracao,\n  variante: varianteKey || variante || null,\n  inicio: inicio.toISO(), fim: fim.toISO(),\n  nome: nomeIn,\n  telefone: telIn,\n  email: (input.email || '').toString().trim() || null,\n  resumo_queixa: (input.resumo_queixa || '').toString().trim(),\n  idioma,\n  timeMin: inicio.startOf('day').toISO(),\n  timeMax: inicio.startOf('day').plus({ days: 3 }).endOf('day').toISO()\n} }];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "efe70987-5d3d-41da-895c-5d6cd8b54243",
+      "name": "AGENDAMENTO | Validação OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3180,
+        470
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dd4f9d48-0ac8-474f-8ed2-9e97cd556674",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "OK",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "b979eb50-4c3d-42be-8e94-df9b34d282d2",
+      "name": "AGENDAMENTO | Get many events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        4620,
+        360
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LEXIA_MIRANDA_CALENDAR_ID }}"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $json.timeMin }}",
+        "timeMax": "={{ $json.timeMax }}",
+        "options": {
+          "orderBy": "startTime",
+          "recurringEventHandling": "expand"
+        },
+        "additionalFields": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "139fa2f2-ddb5-4e5f-850b-6ba77dd2a7fd",
+      "name": "AGENDAMENTO | Checar Conflito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4980,
+        470
+      ],
+      "parameters": {
+        "jsCode": "const TZ = 'America/New_York';\nconst BUFFER = 15;\nconst cfg = $('AGENDAMENTO | Validar Pedido').first().json;\n\nconst busy = { Samuel: [], Bruna: [] };\nfor (const item of $input.all()) {\n  const ev = item.json;\n  if (!ev || !ev.start) continue;\n  const ini = DateTime.fromISO(ev.start.dateTime || ev.start.date, { zone: TZ });\n  const fimEv = DateTime.fromISO(ev.end.dateTime || ev.end.date, { zone: TZ });\n  const titulo = (ev.summary || '').trim();\n  if (/^samuel\\s*-/i.test(titulo)) busy.Samuel.push([ini, fimEv]);\n  else if (/^bruna\\s*-/i.test(titulo)) busy.Bruna.push([ini, fimEv]);\n  else { busy.Samuel.push([ini, fimEv]); busy.Bruna.push([ini, fimEv]); }\n}\nconst ocupado = busy[cfg.profissional] || [];\nconst dur = Number(cfg.duracao_min);\n\nfunction livre(ini, fim) {\n  const a = ini.minus({ minutes: BUFFER });\n  const b = fim.plus({ minutes: BUFFER });\n  return !ocupado.some(([x, y]) => a < y && b > x);\n}\n\nconst inicio = DateTime.fromISO(cfg.inicio, { zone: TZ });\nconst fim = DateTime.fromISO(cfg.fim, { zone: TZ });\n\nif (livre(inicio, fim)) return [{ json: { ...cfg, status: 'LIVRE' } }];\n\n// conflito: gerar alternativas nos próximos 3 dias\nconst nomesDias = ['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'];\nconst novas = [];\nlet dia = inicio.startOf('day');\nconst fimJanela = DateTime.fromISO(cfg.timeMax, { zone: TZ });\nwhile (dia <= fimJanela && novas.length < 4) {\n  if (dia.weekday !== 7) {\n    let t = dia.set({ hour: 10, minute: 0 });\n    let doDia = 0;\n    while (t.plus({ minutes: dur }) <= dia.set({ hour: 20 }) && novas.length < 4 && doDia < 2) {\n      const f = t.plus({ minutes: dur });\n      if (livre(t, f)) {\n        novas.push({ inicio_iso: t.toISO(), rotulo: `${nomesDias[t.weekday - 1]}, ${t.toFormat('dd/MM')} às ${t.toFormat('HH:mm')}` });\n        doDia++; t = t.plus({ minutes: 120 });\n      } else t = t.plus({ minutes: 30 });\n    }\n  }\n  dia = dia.plus({ days: 1 });\n}\nreturn [{ json: { status: 'CONFLITO', mensagem: 'O horário acabou de ser ocupado. Peça desculpas breves e ofereça as novas opções.', novas_opcoes: novas } }];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "07bf454d-8df5-4042-8088-6604bb12957e",
+      "name": "AGENDAMENTO | Livre?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        5340,
+        470
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0884efd8-ebc9-43ac-840e-5a44d0d0c819",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "LIVRE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "c3470e90-d642-49ec-8589-dedab73ea3e1",
+      "name": "AGENDAMENTO | Create an event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        5700,
+        360
+      ],
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $env.LEXIA_MIRANDA_CALENDAR_ID }}"
+        },
+        "start": "={{ $json.inicio }}",
+        "end": "={{ $json.fim }}",
+        "additionalFields": {
+          "description": "=Serviço: {{ $json.servico_original }}{{ $json.variante ? ' (' + $json.variante + ')' : '' }} | Idioma: {{ $json.idioma }} | Queixa: {{ $json.resumo_queixa }} | Criado pelo Agente",
+          "location": "={{ $env.LEXIA_MIRANDA_LOCATION_LABEL || '' }}",
+          "summary": "={{ $json.profissional }} - Atendimento {{ $json.nome }} - {{ $json.servico_agendado }} - {{ $json.telefone }}"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "5f3b092f-4dee-43e9-8321-e194cfdc87c1",
+      "name": "AGENDAMENTO | Create a row",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6060,
+        470
+      ],
+      "parameters": {
+        "tableId": "agendamentos_miranda_skin",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "event_id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldId": "nome_cliente",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.nome }}"
+            },
+            {
+              "fieldId": "telefone",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.telefone }}"
+            },
+            {
+              "fieldId": "servico",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.servico_agendado }}"
+            },
+            {
+              "fieldId": "variante",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.variante }}"
+            },
+            {
+              "fieldId": "profissional",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.profissional }}"
+            },
+            {
+              "fieldId": "inicio",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.inicio }}"
+            },
+            {
+              "fieldId": "fim",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.fim }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.email }}"
+            },
+            {
+              "fieldId": "idioma",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.idioma }}"
+            },
+            {
+              "fieldId": "resumo_queixa",
+              "fieldValue": "={{ $('AGENDAMENTO | Checar Conflito').item.json.resumo_queixa }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "77ad03e5-7279-4485-85ef-a609e14a780e",
+      "name": "AGENDAMENTO | Evento confirmado?",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3540,
+        360
+      ],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "agendamentos_miranda_skin",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "confirmado"
+            }
+          ]
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "44ec5543-a071-4a61-8898-60d0b0889f81",
+      "name": "AGENDAMENTO | Checar Duplicidade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        360
+      ],
+      "parameters": {
+        "jsCode": "const TZ = 'America/New_York';\nconst cfg = $('AGENDAMENTO | Validar Pedido').first().json;\nconst input = $('OPERAÇÃO | Receber operação de agenda').first().json;\n\nif ((input.ignorar_duplicado || '').toString().toLowerCase() === 'sim') return [{ json: cfg }];\n\nconst dig = s => (s || '').toString().replace(/\\D/g, '');\nconst norm = s => (s || '').toString().toLowerCase()\n  .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim();\n\nconst tel = dig(cfg.telefone);\nconst servicoNovo = norm(cfg.servico_agendado);\nconst agora = DateTime.now().setZone(TZ);\nconst dups = [];\n\nfor (const item of $input.all()) {\n  const r = item.json;\n  if (!r || !r.telefone || dig(r.telefone) !== tel) continue;\n  if (norm(r.servico) !== servicoNovo) continue; // serviço diferente = agendamento legítimo, passa\n  const ini = DateTime.fromISO(r.inicio, { zone: TZ }).setZone(TZ);\n  if (ini > agora) dups.push(`${r.servico} em ${ini.toFormat('dd/MM')} às ${ini.toFormat('HH:mm')} com ${r.profissional}`);\n}\n\nif (dups.length) return [{ json: {\n  status: 'JA_AGENDADO',\n  agendamentos_existentes: dups,\n  mensagem: 'Cliente já tem este MESMO serviço agendado no futuro. Informe e pergunte: se ele realmente quer as duas sessões, chame novamente com ignorar_duplicado=\"sim\"; se quer TROCAR a existente, é remarcação → handoff \"media\".'\n} }];\n\nreturn [{ json: cfg }];"
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "81d70e4e-530a-4558-8b76-6d5eecfbc682",
+      "name": "AGENDAMENTO | Sem duplicado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4260,
+        470
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "326eee41-a731-47ed-980c-a90117d9db37",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "OK",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "44b9a2f5-e8ca-4a29-8977-bebe52ae5aa7",
+      "name": "AGENDAMENTO | Saída Erro",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3540,
+        580
+      ],
+      "parameters": {},
+      "retryOnFail": false
+    },
+    {
+      "id": "d11655f9-c5c6-46e5-8cba-d2d7f8e4b606",
+      "name": "AGENDAMENTO | Saída Erro1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        5700,
+        580
+      ],
+      "parameters": {},
+      "retryOnFail": false
+    },
+    {
+      "id": "923e144c-a09d-4d50-8a20-3b7885948775",
+      "name": "AGENDAMENTO | Saída Erro2",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        4620,
+        580
+      ],
+      "parameters": {},
+      "retryOnFail": false
+    },
+    {
+      "id": "a72125a8-ec6b-4ecb-854b-94890cf3faac",
+      "name": "AGENDAMENTO | Validar contrato de criação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        470
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nfor (const field of ['servico','inicio_iso','nome','telefone','idioma','invocation_id','tool_invocation_id']) if (!String(input[field] || '').trim()) throw new Error('appointment_request_missing_' + field);\nif (!input.scope || input.scope.cliente_slug !== 'miranda_skin_experts') throw new Error('appointment_scope_invalid');\nreturn [{ json: input }];"
+      }
+    },
+    {
+      "id": "c0aa39cd-59f8-4374-85d5-4e1942520de4",
+      "name": "AGENDAMENTO | Emitir agendamento atestado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6420,
+        470
+      ],
+      "parameters": {
+        "jsCode": "const request = $('AGENDAMENTO | Validar contrato de criação').first().json;\nconst calendar = $('AGENDAMENTO | Create an event').first().json;\nconst cfg = $('AGENDAMENTO | Checar Conflito').first().json;\nconst appointmentRef = String(calendar.id || '').trim();\nif (!appointmentRef || !cfg.inicio || !cfg.fim) throw new Error('appointment_effect_not_confirmed');\nconst eventId = (() => {\n  const seedText = String(request.tool_invocation_id + ':appointment:confirmed');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst domain = { schema_version: 'lexia.domain.event.v1', event_id: eventId, invocation_id: request.invocation_id,\n  idempotency_key: 'appointment:' + appointmentRef + ':confirmed', type: 'appointment.confirmed', occurred_at: new Date().toISOString(),\n  appointment: { appointment_ref: appointmentRef, status: 'confirmed', starts_at: cfg.inicio, ends_at: cfg.fim,\n    timezone: $env.LEXIA_MIRANDA_TIMEZONE || 'America/New_York', tool_invocation_id: request.tool_invocation_id } };\nreturn [{ json: { status: 'CRIADO', appointment_ref: appointmentRef, starts_at: cfg.inicio, ends_at: cfg.fim,\n  confirmation_text: 'Agendamento confirmado.',\n  tool_audit: [{ invocation_id: request.tool_invocation_id, operation: 'appointment.create', result: 'succeeded', appointment_ref: appointmentRef }],\n  domain_events: [domain] } }];"
+      }
+    },
+    {
+      "id": "d487333e-c3f2-4c15-867b-f7f97f9aa9b6",
+      "name": "AGENDAMENTO | Emitir falha sem evento confirmado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        580
+      ],
+      "parameters": {
+        "jsCode": "const request = $('AGENDAMENTO | Validar contrato de criação').first().json;\nconst value = $input.first().json || {};\nreturn [{ json: { status: value.status || 'ERRO', message: value.mensagem || 'appointment_creation_failed', reconciliation_required: Boolean(value.error),\n  tool_audit: [{ invocation_id: request.tool_invocation_id, operation: 'appointment.create', result: 'failed' }], domain_events: [] } }];"
+      }
+    }
+  ],
+  "connections": {
+    "OPERAÇÃO | Receber operação de agenda": {
+      "main": [
+        [
+          {
+            "node": "OPERAÇÃO | Aplicar política de Calendar do teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OPERAÇÃO | Aplicar política de Calendar do teste": {
+      "main": [
+        [
+          {
+            "node": "OPERAÇÃO | Escolher operação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OPERAÇÃO | Escolher operação": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Validar solicitação de disponibilidade",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Validar contrato de criação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OPERAÇÃO | Responder Calendar desativado no teste",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OPERAÇÃO | Bloquear escrita no Calendar de leitura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Get many rows": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Resolver Serviço e Janela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Resolver Serviço e Janela": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Status OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Status OK?": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DISPONIBILIDADE | Saída Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Get many events": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Calcular Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Validar solicitação de disponibilidade": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Calcular Slots": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Emitir disponibilidade sem confirmar agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DISPONIBILIDADE | Saída Erro": {
+      "main": [
+        [
+          {
+            "node": "DISPONIBILIDADE | Emitir falha de disponibilidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Get many rows": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Validar Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Validar Pedido": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Validação OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Validação OK?": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Evento confirmado?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Saída Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Get many events": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Checar Conflito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Checar Conflito": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Livre?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Livre?": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Saída Erro1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Create an event": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Emitir falha sem evento confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Evento confirmado?": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Checar Duplicidade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Checar Duplicidade": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Sem duplicado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Sem duplicado?": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Saída Erro2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Validar contrato de criação": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Create a row": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Emitir agendamento atestado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AGENDAMENTO | Emitir falha sem evento confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Saída Erro": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Emitir falha sem evento confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Saída Erro1": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Emitir falha sem evento confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AGENDAMENTO | Saída Erro2": {
+      "main": [
+        [
+          {
+            "node": "AGENDAMENTO | Emitir falha sem evento confirmado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": []
+}

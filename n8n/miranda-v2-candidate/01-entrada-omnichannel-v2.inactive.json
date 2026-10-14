@@ -1,0 +1,3114 @@
+{
+  "name": "LEXIA V2 CANDIDATO - MIRANDA - 01 ENTRADA OMNICHANNEL",
+  "nodes": [
+    {
+      "id": "5a90622e-9667-4693-85ab-55ba07d8cb07",
+      "name": "NOTA | CANAIS",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -420
+      ],
+      "parameters": {
+        "content": "## CANAIS\nRecebe Z-API, Meta e o teste sintético. Não aceita o tenant enviado pelo payload.",
+        "width": 1100,
+        "height": 840,
+        "color": 7
+      }
+    },
+    {
+      "id": "9b98c6ba-4902-41c7-8bee-27b91fbbe490",
+      "name": "NOTA | INGRESSO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        -420
+      ],
+      "parameters": {
+        "content": "## INGRESSO\nDeduplica, resolve a conta confiável e grava toda mensagem antes de qualquer decisão.",
+        "width": 7220,
+        "height": 840,
+        "color": 7
+      }
+    },
+    {
+      "id": "59a1c770-ba60-4bc0-81a1-01435d77e219",
+      "name": "NOTA | DECISÃO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9360,
+        -200
+      ],
+      "parameters": {
+        "content": "## DECISÃO\nSepara lead, intervenção humana, eco e duplicidade depois da persistência.",
+        "width": 380,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "14799174-6889-4eba-8ed3-168816d48be4",
+      "name": "NOTA | MÍDIA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        10260,
+        -640
+      ],
+      "parameters": {
+        "content": "## MÍDIA\nProcessa texto, áudio, imagem, PDF ou vídeo. Falha de mídia preserva mensagem e pausa.",
+        "width": 3260,
+        "height": 1280,
+        "color": 7
+      }
+    },
+    {
+      "id": "5920d161-a409-4b89-84e7-983fb365ba36",
+      "name": "NOTA | BUFFER",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        14040,
+        -420
+      ],
+      "parameters": {
+        "content": "## BUFFER\nAgrupa mensagens do lead e chama a IA somente com um lote ainda permitido.",
+        "width": 5780,
+        "height": 840,
+        "color": 7
+      }
+    },
+    {
+      "id": "c86e7b49-3acc-4467-8eb0-d4e8c18374c7",
+      "name": "NOTA | RETORNO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        20340,
+        -310
+      ],
+      "parameters": {
+        "content": "## RETORNO\nFecha o evento e responde o teste da plataforma sem liberar envio real.",
+        "width": 2180,
+        "height": 620,
+        "color": 7
+      }
+    },
+    {
+      "id": "674631fc-bed6-42a9-8a91-67e1c1eb902e",
+      "name": "NOTA | LABORATÓRIO",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        23040,
+        -200
+      ],
+      "parameters": {
+        "content": "## LABORATÓRIO\nOferece simulação curta e execução completa com canal virtual. Nenhum modo alcança provedor real.",
+        "width": 2900,
+        "height": 400,
+        "color": 7
+      }
+    },
+    {
+      "id": "2775363c-14b4-424c-8c83-9476e7aaee27",
+      "name": "CANAIS | Webhook interno Z-API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        -240
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lexia-v2-miranda-zapi",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "1f1e2a8c-e3e6-47f4-832a-cc5e98f3ceed",
+      "name": "CANAIS | Webhook interno Meta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        -20
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lexia-v2-miranda-meta",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "454bfd48-2ec8-4f1b-882c-1fba9a662dc7",
+      "name": "CANAIS | Webhook de teste da plataforma",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        120,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lexia-v2-test-miranda-omnichannel",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "6813d737-6b47-44dc-8777-a54f7424e01c",
+      "name": "CANAIS | Normalizar Z-API sem confiar no tenant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.body || $input.first().json;\nif (String(raw.type || '') !== 'ReceivedCallback' || raw.notification || raw.isGroup === true || raw.isNewsletter === true || raw.isStatusReply === true || raw.broadcast === true || raw.isEdit === true) return [];\nconst phone = String(raw.phone || '').replace(/[^0-9]/g, '');\nif (!phone || String(raw.phone || '').endsWith('@lid')) return [];\nlet kind = 'text', mediaRef = '', mime = '', caption = '', text = String(raw.text?.message || '');\nif (raw.image) { kind = 'image'; mediaRef = String(raw.image.imageUrl || ''); mime = String(raw.image.mimeType || ''); caption = String(raw.image.caption || ''); }\nelse if (raw.audio) { kind = 'audio'; mediaRef = String(raw.audio.audioUrl || ''); mime = String(raw.audio.mimeType || ''); }\nelse if (raw.video) { kind = 'video'; mediaRef = String(raw.video.videoUrl || ''); mime = String(raw.video.mimeType || ''); caption = String(raw.video.caption || ''); }\nelse if (raw.document) { kind = 'pdf'; mediaRef = String(raw.document.documentUrl || ''); mime = String(raw.document.mimeType || ''); caption = String(raw.document.title || raw.document.fileName || ''); }\nif (!text && !mediaRef && !caption) return [];\nconst occurredAt = raw.momment ? new Date(Number(raw.momment)).toISOString() : new Date().toISOString();\nconst providerId = String(raw.messageId || ''); if (!providerId) return [];\nconst eventId = (() => {\n  const seedText = String(providerId + ':zapi:event');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst correlationId = (() => {\n  const seedText = String(providerId + ':zapi:correlation');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst echoCandidate = raw.fromMe === true;\nconst event = { schema_version: 'lexia.ingress.event.v1', event_id: eventId, provider_event_id: providerId, correlation_id: correlationId,\n  scope: { environment: 'local', cliente_slug: 'untrusted', channel: 'whatsapp', account_ref: '00000000-0000-4000-8000-000000000000', conversation_ref: phone },\n  provider: 'zapi', event_type: 'message', occurred_at: occurredAt,\n  message: { schema_version: 'lexia.message.v1', event_id: eventId, provider_event_id: providerId, message_id: providerId, scope: {},\n    author: echoCandidate ? 'human_agent' : 'lead', direction: echoCandidate ? 'outbound' : 'inbound', occurred_at: occurredAt,\n    ...(text ? { text } : {}), media: { kind, provider_media_ref: mediaRef || undefined, mime_type: mime || undefined, caption: caption || undefined, processing_status: kind === 'text' ? 'completed' : 'pending' },\n    ...(raw.externalAdReply ? { ad_origin: { source_type: 'click_to_whatsapp', campaign_ref: raw.externalAdReply.campaignId ? String(raw.externalAdReply.campaignId) : undefined, adset_ref: raw.externalAdReply.adsetId ? String(raw.externalAdReply.adsetId) : undefined, ad_ref: raw.externalAdReply.sourceId ? String(raw.externalAdReply.sourceId) : undefined } } : {}) },\n  contact: { provider_contact_ref: phone, display_name: String(raw.chatName || raw.senderName || 'Contato sem nome'), phone }, capability_refs: [] };\nreturn [{ json: { trusted_account_id: $env.LEXIA_MIRANDA_ZAPI_ACCOUNT_ID, echo_candidate: echoCandidate, trusted_media_download_url: mediaRef || null, event, delivery_mode: $env.LEXIA_DELIVERY_MODE || 'observe_only' } }];"
+      }
+    },
+    {
+      "id": "2d43a6af-2c79-4300-8aee-18a3b8e93819",
+      "name": "CANAIS | Normalizar Meta sem token inline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.body || $input.first().json;\nconst channel = raw.object === 'instagram' ? 'instagram' : 'messenger';\nconst account = channel === 'instagram' ? $env.LEXIA_MIRANDA_INSTAGRAM_ACCOUNT_ID : $env.LEXIA_MIRANDA_MESSENGER_ACCOUNT_ID;\nif (!account) throw new Error('meta_account_binding_missing');\nconst output = [];\nfor (const entry of Array.isArray(raw.entry) ? raw.entry : []) {\n  for (const messaging of Array.isArray(entry?.messaging) ? entry.messaging : []) {\n    const message = messaging.message || null, postback = messaging.postback || null;\n    if (!message && !postback) continue;\n    if (message?.reaction || message?.is_deleted === true || message?.is_unsupported === true) continue;\n    const sender = String(messaging.sender?.id || ''), recipient = String(messaging.recipient?.id || '');\n    if (!sender || !recipient) continue;\n    const echoCandidate = message?.is_echo === true;\n    const conversationRef = echoCandidate ? recipient : sender;\n    const providerId = String(message?.mid || postback?.mid || ['postback', sender, messaging.timestamp || '', postback?.payload || ''].join(':'));\n    if (!providerId) continue;\n    const attachment = message?.attachments?.[0] || null;\n    const attachmentType = String(attachment?.type || '');\n    const kind = attachmentType === 'image' ? 'image' : attachmentType === 'audio' ? 'audio' : attachmentType === 'video' ? 'video' : attachmentType === 'file' ? 'pdf' : 'text';\n    const mediaRef = String(attachment?.payload?.url || ''), text = String(postback?.title || message?.text || '').trim();\n    if (!text && !mediaRef) continue;\n    const occurredAt = new Date(Number(messaging.timestamp || Date.now())).toISOString();\n    const eventId = (() => {\n  const seedText = String(providerId + ':meta:event');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\n    const correlationId = (() => {\n  const seedText = String(providerId + ':meta:correlation');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\n    const referral = messaging.referral || message?.referral || null;\n    const event = { schema_version: 'lexia.ingress.event.v1', event_id: eventId, provider_event_id: providerId, correlation_id: correlationId,\n      scope: { environment: 'local', cliente_slug: 'untrusted', channel, account_ref: '00000000-0000-4000-8000-000000000000', conversation_ref: conversationRef },\n      provider: 'meta', event_type: 'message', occurred_at: occurredAt,\n      message: { schema_version: 'lexia.message.v1', event_id: eventId, provider_event_id: providerId, message_id: providerId, scope: {},\n        author: echoCandidate ? 'human_agent' : 'lead', direction: echoCandidate ? 'outbound' : 'inbound', occurred_at: occurredAt,\n        ...(text ? { text } : {}), media: { kind, provider_media_ref: mediaRef || undefined, processing_status: kind === 'text' ? 'completed' : 'pending' },\n        ...(referral ? { ad_origin: { source_type: 'meta_ad', campaign_ref: referral.campaign_id ? String(referral.campaign_id) : undefined, adset_ref: referral.adset_id ? String(referral.adset_id) : undefined, ad_ref: referral.ad_id ? String(referral.ad_id) : undefined, fbclid: referral.fbclid ? String(referral.fbclid) : undefined } } : {}) },\n      contact: { provider_contact_ref: conversationRef, display_name: 'Contato Meta' }, capability_refs: [] };\n    output.push({ json: { trusted_account_id: account, echo_candidate: echoCandidate, trusted_media_download_url: mediaRef || null, event, delivery_mode: $env.LEXIA_DELIVERY_MODE || 'observe_only' } });\n  }\n}\nreturn output;"
+      }
+    },
+    {
+      "id": "77efa87f-e156-4cfc-8e77-7cb13482984b",
+      "name": "CANAIS | Validar teste sintético",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const incoming = $input.first().json;\nconst body = incoming.body || incoming;\nconst fail = (code) => { throw new Error('workflow_test_contract_invalid:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\nconst uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst chatConversation = /^test:SYNTH-LEXIA-TEST-CHAT-([0-9a-f-]{36})$/i;\nexactKeys(body, ['schema_version','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations'], 'top_level');\nif (body.schema_version !== 'lexia.workflow.test.request.v1' || !uuidPattern.test(String(body.run_id || ''))) fail('identity');\nif (body.target !== 'omnichannel' || body.delivery_mode !== 'simulate' || body.execution_mode !== 'full_agent_virtual') fail('mode');\nexactKeys(body.tool_policy, ['calendar'], 'tool_policy');\nif (!['disabled','test_read_only','test_read_write'].includes(body.tool_policy.calendar)) fail('calendar_policy');\nexactKeys(body.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'scope');\nif (body.scope.environment !== 'isolated_test' || body.scope.cliente_slug !== 'empresa_sintetica_a') fail('scope_owner');\nif (!['whatsapp','instagram','messenger'].includes(body.scope.channel) || !uuidPattern.test(String(body.scope.account_ref || ''))) fail('scope');\nconst chatMatch = chatConversation.exec(String(body.scope.conversation_ref || ''));\nif (body.scope.conversation_ref !== 'test:' + body.run_id && !(chatMatch && uuidPattern.test(chatMatch[1]))) fail('conversation_ref');\nexactKeys(body.input, ['message_id','type','text'], 'input');\nif (body.input.message_id !== 'test-message:' + body.run_id || body.input.type !== 'text') fail('message');\nif (typeof body.input.text !== 'string' || !body.input.text.trim() || body.input.text.length > 4000) fail('message_text');\nexactKeys(body.expectations, ['provider_send','persist_synthetic_events','return_trace'], 'expectations');\nif (body.expectations.provider_send !== false || body.expectations.persist_synthetic_events !== true || body.expectations.return_trace !== true) fail('expectations');\nconst occurredAt = new Date().toISOString();\nconst eventId = (() => {\n  const seedText = String(body.run_id + ':test:event');\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nreturn [{ json: {\n  trusted_account_id: body.scope.account_ref,\n  delivery_mode: 'observe_only',\n  echo_candidate: false,\n  event: {\n    schema_version: 'lexia.ingress.event.v1', event_id: eventId,\n    provider_event_id: body.input.message_id, correlation_id: body.run_id,\n    scope: body.scope, provider: 'fake', event_type: 'message', occurred_at: occurredAt,\n    message: {\n      schema_version: 'lexia.message.v1', event_id: eventId,\n      provider_event_id: body.input.message_id, message_id: body.input.message_id,\n      scope: body.scope, author: 'lead', direction: 'inbound', occurred_at: occurredAt,\n      text: body.input.text, media: { kind: 'text', processing_status: 'completed' },\n    },\n    contact: { provider_contact_ref: body.scope.conversation_ref, display_name: 'Lead sintético' },\n    capability_refs: [],\n  },\n  workflow_test: {\n    run_id: body.run_id,\n    target: body.target,\n    execution_mode: body.execution_mode,\n    tool_policy: body.tool_policy,\n    transport: incoming.test_transport === 'subworkflow' ? 'subworkflow' : 'webhook',\n  },\n} }];"
+      }
+    },
+    {
+      "id": "982ac15a-5626-4920-80c6-b8a6a0e0f7d4",
+      "name": "INGRESSO | Validar envelope do adaptador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst event = input.event;\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nif (!uuid.test(String(input.trusted_account_id || ''))) throw new Error('trusted_account_required');\nif (event?.schema_version !== 'lexia.ingress.event.v1' || event.event_type !== 'message') throw new Error('ingress_contract_invalid');\nif (!uuid.test(String(event.event_id || '')) || !uuid.test(String(event.correlation_id || ''))) throw new Error('ingress_ids_invalid');\nif (!event.message || !['lead','human_agent'].includes(event.message.author)) throw new Error('ingress_author_invalid');\nif (!['meta','zapi','fake'].includes(event.provider)) throw new Error('ingress_provider_invalid');\nreturn [{ json: { trusted_account_id: input.trusted_account_id, event, echo_candidate: input.echo_candidate === true, trusted_media_download_url: input.trusted_media_download_url || null, delivery_mode: input.delivery_mode || 'observe_only', workflow_test: input.workflow_test || null } }];"
+      }
+    },
+    {
+      "id": "8d59a652-e884-4f9c-8096-269093ac412f",
+      "name": "INGRESSO | Carregar conta confiável",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        -20
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_channel_accounts?id=eq.' + encodeURIComponent($json.trusted_account_id) + '&select=id,environment,cliente_slug,channel,provider,status,delivery_owner,delivery_mode' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "c3c11d5b-ddb0-41cd-86e0-3d6760edd22c",
+      "name": "INGRESSO | Vincular escopo à integração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const prepared = $('INGRESSO | Validar envelope do adaptador').first().json;\nconst rows = (() => { const items = $('INGRESSO | Carregar conta confiável').all(); if (items.length !== 1) throw new Error('Carregar conta confiável output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1 || rows[0].status !== 'active') throw new Error('trusted_account_unavailable');\nconst account = rows[0];\nif (prepared.event.provider !== account.provider && prepared.event.provider !== 'fake') throw new Error('provider_account_mismatch');\nconst event = JSON.parse(JSON.stringify(prepared.event));\nconst conversationRef = String(event.scope?.conversation_ref || '').slice(0, 256);\nif (!conversationRef) throw new Error('conversation_ref_required');\nevent.scope = { environment: account.environment, cliente_slug: account.cliente_slug, channel: account.channel, account_ref: account.id, conversation_ref: conversationRef };\nevent.message.scope = event.scope;\nreturn [{ json: { ...prepared, event, account, rpc_body: { p_account_id: account.id, p_conversation_ref: conversationRef, p_identificador_conversa: conversationRef } } }];"
+      }
+    },
+    {
+      "id": "9dccb606-e65e-42ab-86b4-4048581b4553",
+      "name": "INGRESSO | Resolver conversa central",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2820,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_resolve_conversation' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "a1b57996-4b44-4aa0-8950-8f3aaed33702",
+      "name": "INGRESSO | Preparar verificação de eco",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3180,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Vincular escopo à integração').first().json;\nconst value = (() => { const items = $('INGRESSO | Resolver conversa central').all(); if (items.length !== 1) throw new Error('Resolver conversa central output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst conversationId = typeof value === 'string' ? value.replace(/^\"|\"$/g, '') : value;\nif (!conversationId) throw new Error('conversation_not_resolved');\nreturn [{ json: { ...input, conversation_id: conversationId } }];"
+      }
+    },
+    {
+      "id": "f80e2db6-5ed4-43a3-87c2-a5b16ab9bddd",
+      "name": "INGRESSO | Procurar ação de saída pelo ID do provedor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3540,
+        -20
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_outbound_actions?conversation_id=eq.' + encodeURIComponent($json.conversation_id) + '&provider_message_id=eq.' + encodeURIComponent($json.event.provider_event_id) + '&status=in.(sent,delivery_unknown)&select=id,status&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "dbb8193b-e993-4be7-8820-3de60958e0be",
+      "name": "INGRESSO | Classificar eco ou intervenção humana",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Preparar verificação de eco').first().json;\nconst rows = (() => { const items = $('INGRESSO | Procurar ação de saída pelo ID do provedor').all(); if (items.length !== 1) throw new Error('Procurar ação de saída pelo ID do provedor output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows)) throw new Error('echo_lookup_invalid');\nif (input.echo_candidate && rows.length > 1) throw new Error('provider_message_id_not_unique');\nconst automaticEcho = input.echo_candidate && rows.length === 1;\nif (input.echo_candidate && !automaticEcho) input.event.message.author = 'human_agent';\nreturn [{ json: { ...input, automatic_echo: automaticEcho, matched_action_id: automaticEcho ? rows[0].id : null, rpc_body: {\n  p_account_id: input.account.id, p_provider_event_id: input.event.provider_event_id,\n  p_event_type: input.event.event_type, p_occurred_at: input.event.occurred_at,\n  p_conversation_id: input.conversation_id,\n} } }];"
+      }
+    },
+    {
+      "id": "505e78dc-2d70-4bd0-86c4-1845ad7ec55f",
+      "name": "INGRESSO | Deduplicar evento antes de efeitos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4260,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_register_ingress' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "bfaf96a9-3af4-4685-8eb9-d3cc6d75f509",
+      "name": "INGRESSO | Avaliar deduplicação e eco",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Classificar eco ou intervenção humana').first().json;\nconst rows = (() => { const items = $('INGRESSO | Deduplicar evento antes de efeitos').all(); if (items.length !== 1) throw new Error('Deduplicar evento antes de efeitos output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result) throw new Error('ingress_result_missing');\nconst route = result.out_duplicate === true ? 'duplicate' : input.automatic_echo ? 'automatic_echo' : 'persist';\nreturn [{ json: { ...input, route } }];"
+      }
+    },
+    {
+      "id": "29f2940c-ad04-40f2-81f5-0ce8425fdadb",
+      "name": "INGRESSO | Rotear evento identificado",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        4980,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "40a6bdf5-248e-414a-8eb9-b650283140ed",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "persist",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "persist"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "8cdf6b7e-f4c5-4da4-8946-d74a18afefef",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "automatic_echo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "automatic_echo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "de1bff8e-13d9-4250-8eff-a7c9197e6fff",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "duplicate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "duplicate"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "ce2ae33a-687f-403a-8416-761258fbfd2d",
+      "name": "INGRESSO | Preparar mensagem canônica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5340,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst message = input.event.message;\nreturn [{ json: { ...input, rpc_body: {\n  p_conversation_id: input.conversation_id, p_author: message.author,\n  p_provider_message_id: message.message_id, p_provider_timestamp: message.occurred_at,\n  p_tipo: message.media?.kind || 'text', p_conteudo: message.text || message.media?.caption || null,\n  p_media_kind: message.media?.kind || 'text', p_media_processing_status: message.media?.processing_status || 'completed', p_action_id: null,\n} } }];"
+      }
+    },
+    {
+      "id": "d1e799eb-7169-4e01-80b0-0c1b9f03e6da",
+      "name": "INGRESSO | Persistir mensagem antes de pausa buffer ou mídia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5700,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_record_message' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "ccd9fe17-f1ac-47fa-8599-fe3d2ee5f143",
+      "name": "INGRESSO | Preparar mutação de estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6060,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Preparar mensagem canônica').first().json;\nconst rows = (() => { const items = $('INGRESSO | Persistir mensagem antes de pausa buffer ou mídia').all(); if (items.length !== 1) throw new Error('Persistir mensagem antes de pausa buffer ou mídia output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result?.out_mensagem_id) throw new Error('message_not_persisted');\nconst author = input.event.message.author;\nreturn [{ json: { ...input, mensagem_id: result.out_mensagem_id,\n  rpc_name: author === 'human_agent' ? 'lexia_omni_record_human_intervention' : 'lexia_omni_record_lead_message',\n  rpc_body: author === 'human_agent' ? {\n    p_conversation_id: input.conversation_id, p_command_id: 'human:' + input.event.provider_event_id,\n    p_mensagem_id: result.out_mensagem_id, p_occurred_at: input.event.occurred_at,\n  } : {\n    p_conversation_id: input.conversation_id, p_command_id: 'lead:' + input.event.provider_event_id,\n    p_mensagem_id: result.out_mensagem_id, p_occurred_at: input.event.occurred_at,\n  },\n} }];"
+      }
+    },
+    {
+      "id": "de4e2110-8e67-4cdd-85b0-eddb8d8ba4e3",
+      "name": "INGRESSO | Aplicar pausa ou buffer atomicamente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6420,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/' + encodeURIComponent($json.rpc_name) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "d8161e63-847a-46ce-88ba-11153fb6a668",
+      "name": "INGRESSO | Preparar projeção Redis do estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6780,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Preparar mutação de estado').first().json;\nconst stateRows = (() => { const items = $('INGRESSO | Aplicar pausa ou buffer atomicamente').all(); if (items.length !== 1) throw new Error('Aplicar pausa ou buffer atomicamente output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst state = Array.isArray(stateRows) ? stateRows[0] : stateRows;\nif (!state || !input.conversation_id) throw new Error('state_projection_input_missing');\nconst scope = input.event.scope;\nconst key = ['lexia','omni','v2',scope.environment,scope.cliente_slug,scope.channel,scope.account_ref,'{' + input.conversation_id + '}','state'].join(':');\nreturn [{ json: { ...input, state_result: state, redis_projection_key: key,\n  redis_projection_value: JSON.stringify({ schema_version: 'lexia.redis.state.v1', projected_at: new Date().toISOString(),\n    conversation_id: input.conversation_id, state }) } }];"
+      }
+    },
+    {
+      "id": "f56b01d8-bfa1-4e1a-894c-2120b5079bae",
+      "name": "INGRESSO | Projetar estado no Redis compartilhado",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        7140,
+        -20
+      ],
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $json.redis_projection_key }}",
+        "value": "={{ $json.redis_projection_value }}",
+        "expire": true,
+        "ttl": 604800
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "17ea7083-2342-4936-8864-fe1923bdcfa3",
+      "name": "INGRESSO | Montar espelho CRM após persistência",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7500,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('INGRESSO | Preparar mutação de estado').first().json;\nconst stateRows = (() => { const items = $('INGRESSO | Aplicar pausa ou buffer atomicamente').all(); if (items.length !== 1) throw new Error('Aplicar pausa ou buffer atomicamente output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst state = Array.isArray(stateRows) ? stateRows[0] : stateRows;\nconst message = input.event.message;\nconst scope = input.event.scope;\nconst makeUuid = (seed) => (() => {\n  const seedText = String(seed);\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})();\nconst sourceProvider = { system: 'provider', authority: 'provider_event', workflow_ref: 'miranda-v2-ingress', execution_ref: $execution.id, provider_ref: input.event.provider };\nconst base = (eventType, sequence, payload, source = sourceProvider) => ({\n  schema_version: 'lexia.crm.event.v1', event_id: makeUuid(input.event.event_id + ':' + eventType),\n  idempotency_key: input.event.provider_event_id + ':' + eventType, correlation_id: input.event.correlation_id,\n  causation_id: input.event.event_id, event_type: eventType, occurred_at: input.event.occurred_at,\n  emitted_at: new Date().toISOString(), sequence, scope, source, payload,\n});\nconst contactRef = input.event.contact?.provider_contact_ref || scope.conversation_ref;\nconst displayName = input.event.contact?.display_name || 'Contato sem nome';\nconst events = [\n  base('contact.upserted', 10, { contact_ref: contactRef, display_name: displayName, ...(input.event.contact?.phone ? { phone: input.event.contact.phone } : {}) }),\n  base('conversation.opened', 20, { contact_ref: contactRef, display_name: displayName, resume_mode: 'await_new_message' }),\n  base('message.recorded', 30, { message_id: message.message_id, provider_message_ref: message.message_id,\n    direction: message.direction, author: message.author, message_type: message.media?.kind || 'text', delivery_status: 'received',\n    ...(message.text ? { text: message.text } : {}), ...(message.media?.caption ? { caption: message.media.caption } : {}),\n    ...(message.media?.provider_media_ref ? { media_ref: message.media.provider_media_ref } : {}),\n    transcription_status: message.media?.kind === 'audio' ? 'pending' : 'not_applicable' }),\n];\nif (message.ad_origin) events.push(base('attribution.captured', 40, {\n  source_type: message.ad_origin.source_type || 'unknown', captured_at: input.event.occurred_at,\n  ...(message.ad_origin.campaign_ref ? { campaign_ref: message.ad_origin.campaign_ref } : {}),\n  ...(message.ad_origin.adset_ref ? { adset_ref: message.ad_origin.adset_ref } : {}),\n  ...(message.ad_origin.ad_ref ? { ad_ref: message.ad_origin.ad_ref } : {}),\n  ...(message.ad_origin.fbclid ? { fbclid: message.ad_origin.fbclid } : {}),\n}));\nif (message.author === 'human_agent') events.push(base('block.upserted', 50, {\n  block_id: 'human_intervention', block_type: 'human_intervention', source_ref: message.message_id,\n  reason: 'human_message', starts_at: input.event.occurred_at, ...(state?.out_expires_at ? { expires_at: state.out_expires_at } : {}),\n  effects: { replies: true, followups: true, reminders: true },\n}, { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-ingress', execution_ref: $execution.id }));\nreturn [{ json: { events, passthrough: { ...input, route: message.author === 'human_agent' ? 'human_intervention' : (state?.out_disposition === 'pending' ? 'pending' : 'process'), lead_seq: state?.out_lead_seq || null, state_result: state } } }];"
+      }
+    },
+    {
+      "id": "b3975967-8472-4485-89b4-be44b073093f",
+      "name": "INGRESSO | Criar Lead Deal timeline no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        7860,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "060b3860-9f18-46a8-8b53-dc397766486b",
+      "name": "INGRESSO | Retornar ingresso persistido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8580,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input.crm_mirrored !== true) throw new Error('crm_mirror_required');\nreturn [{ json: input.passthrough }];"
+      }
+    },
+    {
+      "id": "aa7fa9fe-aea3-4188-8606-59314da504eb",
+      "name": "INGRESSO | Ignorar eco automático já registrado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8580,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, route: 'automatic_echo', duplicate: true, provider_send_attempted: false } }];"
+      }
+    },
+    {
+      "id": "c9dbf033-a19d-48fa-8021-5aaf28c8aeb8",
+      "name": "INGRESSO | Retornar evento duplicado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8580,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, route: 'duplicate', duplicate: true, provider_send_attempted: false } }];"
+      }
+    },
+    {
+      "id": "307fd0cb-5f9e-4597-8ef2-af34a862af7e",
+      "name": "DECISÃO | Rotear mensagem já persistida",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        9480,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "cc6cc74e-9be2-4eaa-8d27-1af1b3ee0d73",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "process",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "process"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "6b411509-6e3b-4133-88cd-54ac7399d571",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "human_intervention",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "human_intervention"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "f0bbe230-6399-4616-8602-a53e8fb41d96",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "pending",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pending"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "d4006d9d-0a0b-438d-8379-f10d1daf1bee",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "automatic_echo",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "automatic_echo"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "5c1fd19b-9620-41ec-891c-171703958ade",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "duplicate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "duplicate"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "4d6c1e00-305f-4ca2-84f3-64fc215fb42e",
+      "name": "MÍDIA | Validar mídia de mensagem persistida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10380,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!input.mensagem_id || !input.event?.message) throw new Error('persisted_message_required');\nconst media = input.event.message.media || { kind: 'text', processing_status: 'completed' };\nconst kind = media.kind || 'text';\nif (!['text','audio','image','pdf','video'].includes(kind)) throw new Error('media_kind_not_supported');\nif (kind !== 'text') {\n  const rawUrl = String(input.trusted_media_download_url || '');\n  const allowed = String($env.LEXIA_MEDIA_ALLOWED_HOSTS || '').split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);\n  let parsed;\n  try { parsed = new URL(rawUrl); } catch (_) { throw new Error('trusted_media_url_invalid'); }\n  if (parsed.protocol !== 'https:' || !allowed.includes(parsed.hostname.toLowerCase())) throw new Error('trusted_media_host_denied');\n}\nreturn [{ json: { ...input, media_kind: kind } }];"
+      }
+    },
+    {
+      "id": "1914fd27-bc2e-472e-84d0-37c79090641b",
+      "name": "MÍDIA | É texto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        10740,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7f997af9-e6e3-468b-8e22-31532c05d0e2",
+              "leftValue": "={{ $json.media_kind === 'text' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "daa331d3-b767-4964-81ea-9fba42f6386e",
+      "name": "MÍDIA | Texto não exige processamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11100,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const input = $('MÍDIA | Validar mídia de mensagem persistida').first().json;\nreturn [{ json: { ...input, media_result: { status: 'completed', content: input.event.message.text || '' } } }];"
+      }
+    },
+    {
+      "id": "3f72ffa0-8ec3-4402-8ff9-3fed5d04b196",
+      "name": "MÍDIA | Baixar mídia por URL confiável",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11100,
+        90
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.trusted_media_download_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "bc233970-6c40-4366-88c6-ca5a3011cbe1",
+      "name": "MÍDIA | Rotear processamento de mídia",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        11460,
+        200
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "b6dcf8d3-f1df-4573-84f4-b79433366e68",
+                    "leftValue": "={{ $('MÍDIA | Validar mídia de mensagem persistida').first().json.media_kind }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "d3e86d25-84f2-4d22-8674-411ab15d084a",
+                    "leftValue": "={{ $('MÍDIA | Validar mídia de mensagem persistida').first().json.media_kind }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "750ac13e-5c2a-4983-816b-e156bdf352fe",
+                    "leftValue": "={{ $('MÍDIA | Validar mídia de mensagem persistida').first().json.media_kind }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "fbd693c6-c285-4ff8-855f-fb5bf552d7ea",
+                    "leftValue": "={{ $('MÍDIA | Validar mídia de mensagem persistida').first().json.media_kind }}",
+                    "rightValue": "video",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "video"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "1591bf73-1105-4c55-8360-052e6398afb7",
+      "name": "MÍDIA | Transcrever áudio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        11820,
+        -240
+      ],
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {
+          "language": "pt"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "8b455146-67e9-461c-8e4e-85037bf7435f",
+      "name": "MÍDIA | Analisar imagem",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        11820,
+        -20
+      ],
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "=# Agente de Análise de Imagem — Miranda Skin Experts\n\nÉs o analisador de imagens da Miranda Skin Experts, uma clínica de estética em Medford, Massachusetts, especializada em tratamentos faciais, depilação a laser, injetáveis e tratamentos corporais.\n\nA tua função é analisar imagens enviadas por clientes via WhatsApp, Messenger ou Instagram e produzir uma descrição objectiva e útil para o agente de atendimento.\n\nResponde SEMPRE em português. NUNCA faças diagnóstico médico — descreve apenas o que é visível.\n\n---\n\n## Contexto adicional da mensagem do cliente\n\nA imagem pode vir acompanhada de uma mensagem/caption enviada pelo cliente. Usa essa mensagem como contexto extra para perceber:\n\n* O que o cliente provavelmente quer mostrar\n* Se está a pedir orçamento ou indicação de tratamento\n* Se está a relatar um problema ou reacção pós-procedimento\n* Se menciona dor, urgência, tratamento pretendido ou detalhes que não são visíveis na imagem\n\nNunca trates a mensagem como prova visual. Se algo estiver apenas escrito na mensagem, indica como \"mencionado pelo cliente\".\n\n---\n\n## Dados recebidos\n\n<MensagemUsuario>\n{{ $json.ImagemCaption }}\n</MensagemUsuario>\n\n---\n\n## O que analisar na imagem\n\n### 1. Tipo de conteúdo\n* Pele do rosto (identifica a zona: testa, bochechas, queixo, barba/pescoço)\n* Pele do corpo (costas, braços, pernas, axilas, abdómen, etc.)\n* Tatuagem (para remoção — descreve tamanho aproximado, cores, localização)\n* Sobrancelhas\n* Área pós-procedimento (com sinais de reacção)\n* Comprovativo de pagamento (Zelle, Venmo, transferência — indica valor e data visíveis, sem validar autenticidade)\n* Print de anúncio ou publicação da clínica (indica que promoção/serviço mostra)\n* Outro conteúdo não relacionado\n\n### 2. Condições visíveis na pele (descrição objectiva, sem diagnóstico)\n* Lesões tipo acne (comedões, pápulas, pústulas, nódulos aparentes) e a extensão (localizada, moderada, extensa)\n* Manchas/hiperpigmentação (localização, tonalidade, extensão)\n* Pelos encravados, foliculite aparente, irritação pós-barbear\n* Cicatrizes ou marcas (deprimidas, elevadas, recentes/antigas na aparência)\n* Sinais de flacidez, linhas ou rugas visíveis\n* Vermelhidão, descamação, oleosidade ou desidratação aparentes\n\n### 3. Sinais de possível intercorrência (IMPORTANTE — destacar no topo da descrição)\n* Bolhas, queimaduras, crostas extensas, sangramento\n* Inchaço acentuado, vermelhidão intensa, hematomas grandes\n* Qualquer sinal compatível com reacção pós-procedimento\n\nSe houver sinais destes, começa a descrição com: \"POSSÍVEL INTERCORRÊNCIA:\" seguido do que é visível.\n\n### 4. Qualidade da imagem\n* Se a imagem estiver escura, desfocada ou não permitir ver a área com clareza, di-lo — o agente pode pedir outra foto.\n\n---\n\n## Formato de saída\n\nDescrição objectiva em texto corrido, 3-8 frases: tipo de conteúdo, área do corpo, o que é visível, extensão/gravidade aparente, e qualquer elemento do caption relevante (marcado como \"mencionado pelo cliente\"). Sem opiniões, sem recomendações de tratamento, sem diagnósticos, sem prometer resultados.",
+        "inputType": "base64",
+        "options": {}
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "cbea3a68-c2da-4b6a-80c7-cd29e613ce95",
+      "name": "MÍDIA | Extrair PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        11820,
+        200
+      ],
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "be4ece34-5549-4d68-83d2-665d58df5df7",
+      "name": "MÍDIA | Analisar vídeo",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        11820,
+        420
+      ],
+      "parameters": {
+        "resource": "video",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=# Agente de Análise de Vídeo — Miranda Skin Experts\n\nÉs o analisador de vídeos da Miranda Skin Experts, uma clínica de estética em Medford, Massachusetts, especializada em tratamentos faciais, depilação a laser, injetáveis e tratamentos corporais.\n\nA tua função é analisar vídeos enviados por clientes via WhatsApp, Messenger ou Instagram e produzir uma descrição objectiva e útil para o agente de atendimento.\n\nResponde SEMPRE em português. NUNCA faças diagnóstico médico — descreve apenas o que é visível e audível.\n\n---\n\n## O que analisar\n\n### 1. Tipo de conteúdo\n* Pele do rosto ou do corpo (identifica a área mostrada)\n* Tatuagem para remoção (tamanho aproximado, cores, localização)\n* Área pós-procedimento (com possíveis sinais de reacção)\n* Vídeo de anúncio/publicação da clínica ou de terceiros\n* Outro conteúdo não relacionado\n\n### 2. Condições visíveis (descrição objectiva, sem diagnóstico)\n* Lesões tipo acne, manchas, pelos encravados, cicatrizes, flacidez, linhas\n* Extensão e localização do que é mostrado\n* Movimento relevante (ex.: cliente mostra a área de vários ângulos, aponta para zonas específicas)\n\n### 3. Áudio (se existir)\n* Resume o que o cliente diz: queixa, pergunta, tratamento pretendido, sintomas relatados\n* Identifica o idioma falado (português, inglês ou espanhol) e indica-o na descrição\n* Marca informação apenas falada como \"mencionado pelo cliente\"\n\n### 4. Sinais de possível intercorrência (IMPORTANTE — destacar no topo)\n* Bolhas, queimaduras, sangramento, inchaço acentuado, vermelhidão intensa\n* Se houver, começa a descrição com: \"POSSÍVEL INTERCORRÊNCIA:\" seguido do que é visível/relatado.\n\n### 5. Qualidade\n* Se o vídeo estiver escuro, tremido ou não permitir ver a área com clareza, di-lo.\n\n---\n\n## Formato de saída\n\nDescrição objectiva em texto corrido, 3-8 frases: tipo de conteúdo, área mostrada, o que é visível, resumo do áudio (se houver) com o idioma identificado, e sinais relevantes. Sem opiniões, sem recomendações de tratamento, sem diagnósticos.",
+        "inputType": "binary",
+        "simplify": false,
+        "options": {}
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": false
+    },
+    {
+      "id": "a32f50b3-e0da-404b-8d12-9435423f53bd",
+      "name": "MÍDIA | Normalizar mídia processada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12180,
+        90
+      ],
+      "parameters": {
+        "jsCode": "const input = $('MÍDIA | Validar mídia de mensagem persistida').first().json;\nconst output = $input.first().json || {};\nconst content = String(output.text || output.output || output.content || output.data || '').slice(0, 20000);\nreturn [{ json: { ...input, media_result: content ? { status: 'completed', content } : { status: 'failed', reason: 'empty_media_result' } } }];"
+      }
+    },
+    {
+      "id": "4b4a855c-f034-4ed9-81f3-ef725456c8c7",
+      "name": "MÍDIA | Preservar mensagem em falha de mídia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11460,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('MÍDIA | Validar mídia de mensagem persistida').first().json;\nreturn [{ json: { ...input, media_result: { status: 'failed', reason: 'media_processing_failed' } } }];"
+      }
+    },
+    {
+      "id": "457d10f4-65d3-4021-8752-ff8d5d754143",
+      "name": "MÍDIA | Preparar atualização sem tocar na pausa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11460,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, rpc_body: { p_mensagem_id: input.mensagem_id, p_media_processing_status: input.media_result.status, p_media_error_code: input.media_result.reason || null } } }];"
+      }
+    },
+    {
+      "id": "7bedfecb-18d0-4527-84d2-8381d86d3926",
+      "name": "MÍDIA | Atualizar somente estado da mídia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11820,
+        -460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_update_media_status' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "8a208e69-2438-497d-87bb-20b26280f9db",
+      "name": "MÍDIA | Espelhar enriquecimento da mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        12180,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "const input = $('MÍDIA | Preparar atualização sem tocar na pausa').first().json;\nconst kindMap = { audio: 'transcription', image: 'image_analysis', pdf: 'pdf_text', video: 'video_analysis' };\nif (input.media_kind === 'text') return [{ json: { events: [], passthrough: input, skip_crm: true } }];\nconst event = {\n  schema_version: 'lexia.crm.event.v1', event_id: (() => {\n  const seedText = String(input.event.message.message_id + ':enrichment:' + input.media_result.status);\n  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;\n  for (let i = 0; i < seedText.length; i++) {\n    h1 = Math.imul(h1 ^ seedText.charCodeAt(i), 0x01000193) >>> 0;\n    h2 = Math.imul(h2 ^ (seedText.charCodeAt(i) + i), 0x85ebca6b) >>> 0;\n  }\n  const hex = [h1, h2, h1 ^ h2, Math.imul(h1, 31) ^ h2]\n    .map((n) => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return hex.slice(0,8) + '-' + hex.slice(8,12) + '-4' + hex.slice(13,16) + '-8' + hex.slice(17,20) + '-' + hex.slice(20,32);\n})(),\n  idempotency_key: input.event.message.message_id + ':enrichment:' + input.media_result.status,\n  correlation_id: input.event.correlation_id, event_type: 'message.enrichment.updated',\n  occurred_at: new Date().toISOString(), emitted_at: new Date().toISOString(), sequence: 60,\n  scope: input.event.scope,\n  source: { system: 'workflow', authority: 'workflow_execution', workflow_ref: 'miranda-v2-media', execution_ref: $execution.id },\n  payload: { message_id: input.event.message.message_id, enrichment_kind: kindMap[input.media_kind], status: input.media_result.status,\n    attempted_at: new Date().toISOString(), ...(input.media_result.content ? { content: input.media_result.content } : {}),\n    ...(input.event.message.media?.provider_media_ref ? { media_ref: input.event.message.media.provider_media_ref } : {}),\n    ...(input.media_result.reason ? { reason: input.media_result.reason } : {}) },\n};\nreturn [{ json: { events: [event], passthrough: input, skip_crm: false } }];"
+      }
+    },
+    {
+      "id": "20048dce-be6e-4dc3-823c-74927d853cc3",
+      "name": "MÍDIA | Enriquecimento precisa de espelho?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        12540,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5a12a8bc-67e0-4393-8a01-49730da42d68",
+              "leftValue": "={{ $json.skip_crm !== true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9053849b-98f0-49cc-8b8e-871290c21c35",
+      "name": "MÍDIA | Espelhar enriquecimento no CRM",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        12900,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 05 INTEGRAÇÃO CRM"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "d953100e-1427-491a-8f87-c5acb4919079",
+      "name": "MÍDIA | Retornar resultado da mídia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        13260,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst passthrough = input.passthrough || input;\nif (input.skip_crm !== true && input.crm_mirrored !== true) throw new Error('crm_media_not_mirrored');\nreturn [{ json: passthrough }];"
+      }
+    },
+    {
+      "id": "9ca74f04-5889-4a70-8393-2658d8ab51b9",
+      "name": "BUFFER | Encerrar intervenção antes da IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        19560,
+        -240
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { status: 'blocked_by_human_intervention', message_persisted: true, media_status: input.media_result?.status || 'not_applicable', provider_send_attempted: false, workflow_test: input.workflow_test || null } }];"
+      }
+    },
+    {
+      "id": "ce0a2def-f0aa-458c-8f57-5908c0895891",
+      "name": "BUFFER | Carregar janela de buffer da empresa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        14520,
+        -20
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_omnichannel_policies?environment=eq.' + encodeURIComponent($json.event.scope.environment) + '&cliente_slug=eq.' + encodeURIComponent($json.event.scope.cliente_slug) + '&status=eq.active&select=buffer_window_ms,resume_mode&limit=2' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "0cf80731-91fe-47f0-8a19-7bf127561e7b",
+      "name": "BUFFER | Validar política antes do buffer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        14880,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('MÍDIA | Retornar resultado da mídia').first().json;\nconst rows = (() => { const items = $('BUFFER | Carregar janela de buffer da empresa').all(); if (items.length !== 1) throw new Error('Carregar janela de buffer da empresa output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1) throw new Error('omnichannel_policy_unavailable');\nreturn [{ json: { ...input, buffer_window_seconds: Math.max(1, Math.ceil(Number(rows[0].buffer_window_ms) / 1000)), resume_mode: rows[0].resume_mode } }];"
+      }
+    },
+    {
+      "id": "3b67c1cf-b2a6-4911-84dd-3dcfe1cddce4",
+      "name": "BUFFER | Aguardar janela configurada",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        15240,
+        -20
+      ],
+      "parameters": {
+        "amount": "={{ $json.buffer_window_seconds }}",
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "f5357e8d-9ff1-4624-87d9-bf12422a0b62",
+      "name": "BUFFER | Preparar claim atômico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        15600,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: { ...input, rpc_body: { p_conversation_id: input.conversation_id, p_candidate_seq: input.lead_seq } } }];"
+      }
+    },
+    {
+      "id": "922f2d72-5f39-49df-8914-fd776735a9be",
+      "name": "BUFFER | Reivindicar lote sem GET DEL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        15960,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_claim_inbound_batch' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "7e0c5472-d429-4788-8adc-008acd11a8af",
+      "name": "BUFFER | Avaliar lote reivindicado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16320,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('BUFFER | Preparar claim atômico').first().json;\nconst rows = (() => { const items = $('BUFFER | Reivindicar lote sem GET DEL').all(); if (items.length !== 1) throw new Error('Reivindicar lote sem GET DEL output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result) throw new Error('batch_claim_result_missing');\nreturn [{ json: { ...input, claimed: result.out_claimed === true, claim_reason: result.out_reason || null,\n  batch_id: result.out_batch_id, batch_fencing_token: Number(result.out_fencing_token || 0),\n  lead_cutoff_seq: Number(result.out_cutoff_seq || 0), mensagem_ids: result.out_mensagem_ids || [],\n  superseded_invocation_ids: result.out_superseded_invocation_ids || [], claim_attempts: 1 } }];"
+      }
+    },
+    {
+      "id": "1f623e49-507b-45ad-80b4-194df9cec758",
+      "name": "BUFFER | Lote ainda permitido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        16680,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "2bd41353-f8a6-4572-8081-1b8eb6a79eb4",
+              "leftValue": "={{ $json.claimed === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "638494f9-98a8-4c70-8b95-27528a2247df",
+      "name": "BUFFER | Claim deve aguardar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        17040,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "9d3aa36e-2186-453f-8886-fdbc0d697be7",
+              "leftValue": "={{ $json.claimed !== true && ['window_open','batch_in_progress','newer_message_waiting'].includes($json.claim_reason) && Number($json.claim_attempts || 1) < 60 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c0f6c219-aa3e-4bc6-8dcf-543500b99d3d",
+      "name": "BUFFER | Aguardar liberação ou novo debounce",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        17400,
+        -20
+      ],
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "e561a241-f51f-4145-8e4f-36897c86436e",
+      "name": "BUFFER | Carregar sequência para nova tentativa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        17760,
+        -20
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/lexia_conversation_states?id=eq.' + encodeURIComponent($json.conversation_id) + '&environment=eq.' + encodeURIComponent($json.event.scope.environment) + '&cliente_slug=eq.' + encodeURIComponent($json.event.scope.cliente_slug) + '&select=id,lead_message_seq&limit=1' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "da5c9578-8e2d-41cb-8cc5-48bb054f8b4b",
+      "name": "BUFFER | Preparar nova tentativa de claim",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        18120,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('BUFFER | Aguardar liberação ou novo debounce').item.json;\nconst rows = (() => { const items = $('BUFFER | Carregar sequência para nova tentativa').all(); if (items.length !== 1) throw new Error('Carregar sequência para nova tentativa output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nif (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== input.conversation_id) throw new Error('batch_retry_state_unavailable');\nconst candidateSeq = Number(rows[0].lead_message_seq || 0);\nif (!Number.isSafeInteger(candidateSeq) || candidateSeq < 1) throw new Error('batch_retry_sequence_invalid');\nreturn [{ json: { ...input, claim_attempts: Number(input.claim_attempts || 1) + 1,\n  rpc_body: { p_conversation_id: input.conversation_id, p_candidate_seq: candidateSeq } } }];"
+      }
+    },
+    {
+      "id": "e22a9063-efe5-46d9-8c86-a2c42e158ff4",
+      "name": "BUFFER | Reivindicar lote após prontidão",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        18480,
+        -20
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEXIA_CENTRAL_SUPABASE_URL + '/rest/v1/rpc' + '/lexia_omni_claim_inbound_batch' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.rpc_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "outputPropertyName": "body",
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 12000
+        }
+      },
+      "onError": "stopWorkflow",
+      "retryOnFail": false
+    },
+    {
+      "id": "d9b39911-ed2a-4028-8966-b53b8812949a",
+      "name": "BUFFER | Avaliar lote após prontidão",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        18840,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $('BUFFER | Preparar nova tentativa de claim').item.json;\nconst rows = (() => { const items = $('BUFFER | Reivindicar lote após prontidão').all(); if (items.length !== 1) throw new Error('Reivindicar lote após prontidão output cardinality invalid'); const value = items[0].json; const raw = value.body ?? value; if (typeof raw !== 'string') return raw; const text = raw.trim(); if (!text) return null; try { return JSON.parse(text); } catch { return text; } })();\nconst result = Array.isArray(rows) ? rows[0] : rows;\nif (!result) throw new Error('batch_readiness_claim_result_missing');\nreturn [{ json: { ...input, claimed: result.out_claimed === true, claim_reason: result.out_reason || null,\n  batch_id: result.out_batch_id, batch_fencing_token: Number(result.out_fencing_token || 0),\n  lead_cutoff_seq: Number(result.out_cutoff_seq || 0), mensagem_ids: result.out_mensagem_ids || [],\n  superseded_invocation_ids: result.out_superseded_invocation_ids || [] } }];"
+      }
+    },
+    {
+      "id": "a5b010ae-694e-4c49-8092-4fcf239e3aaf",
+      "name": "BUFFER | Lote permitido após prontidão?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        19200,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "31a6d055-401d-4039-8596-6db65b71b1e2",
+              "leftValue": "={{ $json.claimed === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a2fbab4e-18d1-4a50-8262-8ed5847f6660",
+      "name": "BUFFER | Executar contexto e cérebro",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        19560,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 02 ATENDIMENTO IA"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "bd06fb77-3744-4fa0-8c55-754826d50943",
+      "name": "BUFFER | Encerrar sem efeito automático",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        19560,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst retryable = ['window_open','batch_in_progress','newer_message_waiting'].includes(input.claim_reason);\nconst status = retryable && Number(input.claim_attempts || 1) >= 60 ? 'buffer_retry_exhausted' : (input.claim_reason || input.route || 'not_processed');\nreturn [{ json: { status, reason: input.claim_reason || null, message_persisted: input.duplicate !== true, provider_send_attempted: false, workflow_test: input.workflow_test || null } }];"
+      }
+    },
+    {
+      "id": "e52f1ddf-b687-4a96-88bc-e080cf14a2dc",
+      "name": "RETORNO | Responder teste",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        21900,
+        -20
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "b78786d3-7bd5-4294-875c-37eeb7ce8180",
+      "name": "LABORATÓRIO | Receber teste seguro do gateway",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        23160,
+        -20
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "5413fbfb-9a0d-4bdb-8c57-01aaf8223abf",
+      "name": "LABORATÓRIO | Validar contrato isolado do teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        23520,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst fail = (code) => { throw new Error('candidate_entry_test_rejected:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\nconst copyJson = (value) => JSON.parse(JSON.stringify(value));\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst chatConversation = /^test:SYNTH-LEXIA-TEST-CHAT-([0-9a-f-]{36})$/i;\n\nexactKeys(body, ['schema_version','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations'], 'top_level');\nif (body.schema_version !== 'lexia.workflow.test.request.v1') fail('schema_version');\nif (!uuid.test(String(body.run_id || ''))) fail('run_id');\nif (body.target !== 'omnichannel') fail('target');\nif (body.delivery_mode !== 'simulate') fail('delivery_mode');\nif (!['safe_simulation','full_agent_virtual'].includes(body.execution_mode)) fail('execution_mode');\nexactKeys(body.tool_policy, ['calendar'], 'tool_policy');\nif (!['disabled','test_read_only','test_read_write'].includes(body.tool_policy.calendar)) fail('calendar_policy');\nif (body.execution_mode === 'safe_simulation' && body.tool_policy.calendar !== 'disabled') fail('safe_simulation_calendar');\n\nexactKeys(body.scope, ['environment','cliente_slug','channel','account_ref','conversation_ref'], 'scope');\nif (body.scope.environment !== 'isolated_test') fail('environment');\nif (body.scope.cliente_slug !== 'empresa_sintetica_a') fail('cliente_slug');\nif (!['whatsapp','instagram','messenger'].includes(body.scope.channel)) fail('channel');\nif (!uuid.test(String(body.scope.account_ref || ''))) fail('account_ref');\nconst chatMatch = chatConversation.exec(String(body.scope.conversation_ref || ''));\nconst isSingleRunConversation = body.scope.conversation_ref === 'test:' + body.run_id;\nconst isPersistentChatConversation = Boolean(chatMatch && uuid.test(chatMatch[1]));\nif (!isSingleRunConversation && !isPersistentChatConversation) fail('conversation_ref');\n\nexactKeys(body.input, ['message_id','type','text'], 'input');\nif (body.input.message_id !== 'test-message:' + body.run_id) fail('message_id');\nif (body.input.type !== 'text') fail('message_type');\nif (typeof body.input.text !== 'string' || body.input.text.trim().length === 0 || body.input.text.length > 4000) fail('message_text');\n\nexactKeys(body.expectations, ['provider_send','persist_synthetic_events','return_trace'], 'expectations');\nif (body.expectations.provider_send !== false) fail('provider_send');\nif (body.expectations.persist_synthetic_events !== true) fail('persist_synthetic_events');\nif (body.expectations.return_trace !== true) fail('return_trace');\n\nconst stage = {\n  schema_version: 'lexia.workflow.test.stage.v1',\n  stage: 'entry_validated',\n  run_id: body.run_id,\n  target: body.target,\n  delivery_mode: 'simulate',\n  execution_mode: body.execution_mode,\n  tool_policy: copyJson(body.tool_policy),\n  scope: copyJson(body.scope),\n  input: copyJson(body.input),\n  expectations: copyJson(body.expectations),\n  guard: {\n    environment: 'isolated_test',\n    external_effects_allowed: false,\n    provider_send_allowed: false,\n  },\n  entry: {\n    provider: 'fake',\n    event_ref: 'test-event:' + body.run_id,\n    message_id: body.input.message_id,\n    author: 'lead',\n    persistence: 'simulated',\n  },\n  trace: [\n    { step: 'candidate_entry_contract', status: 'passed' },\n    { step: 'candidate_entry_scope', status: 'passed' },\n    { step: 'candidate_entry_persistence', status: 'simulated', reason: 'isolated_candidate_has_no_database_credential' },\n  ],\n};\nreturn [{ json: { route: body.execution_mode, request: copyJson(body), stage } }];"
+      }
+    },
+    {
+      "id": "0b54e271-7da1-44a0-8659-3db9b4053b70",
+      "name": "LABORATÓRIO | Escolher profundidade do teste",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        23880,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "0fada016-44ea-4fba-8727-f53d18955b4c",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "safe_simulation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "safe_simulation"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "9c77d4fd-fcdc-456c-8dc7-ebe2add0af69",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "full_agent_virtual",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "full_agent_virtual"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "ce8df2d3-4136-4268-8dec-6be8a76f3fe8",
+      "name": "LABORATÓRIO | Preparar simulação curta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24240,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json.stage }];"
+      }
+    },
+    {
+      "id": "23839e56-236c-4e98-8a02-e10dab2d2f88",
+      "name": "LABORATÓRIO | Preparar agente completo com canal virtual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25680,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const validated = $input.first().json;\nreturn [{ json: { body: validated.request, test_transport: 'subworkflow' } }];"
+      }
+    },
+    {
+      "id": "86641462-3400-4b3b-87a7-79d4aafef698",
+      "name": "LABORATÓRIO | Executar atendimento sintético isolado",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        24600,
+        -20
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "LEXIA V2 CANDIDATO - MIRANDA - 02 ATENDIMENTO IA"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "459fb6d0-2d50-415f-88d7-dd9be15c1cfa",
+      "name": "LABORATÓRIO | Validar retorno correlacionado do atendimento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24960,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const request = $('LABORATÓRIO | Validar contrato isolado do teste').first().json.request;\nconst result = $input.first().json;\nconst fail = (code) => { throw new Error('candidate_service_result_rejected:' + code); };\nconst isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);\nconst exactKeys = (value, allowed, code) => {\n  if (!isObject(value)) fail(code);\n  for (const key of Object.keys(value)) if (!allowed.includes(key)) fail(code + '_field_' + key);\n};\n\nexactKeys(result, ['schema_version','stage','run_id','target','delivery_mode','execution_mode','tool_policy','scope','input','expectations','guard','entry','trace','context','assistant_message','provider_send_attempted'], 'top_level');\nif (result.schema_version !== 'lexia.workflow.test.stage.v1' || result.stage !== 'service_completed') fail('stage');\nif (result.run_id !== request.run_id || result.target !== request.target) fail('request_correlation');\nif (JSON.stringify(result.scope) !== JSON.stringify(request.scope)) fail('scope_correlation');\nif (result.input?.message_id !== request.input?.message_id) fail('message_correlation');\nif (result.context?.context_call_id !== 'test-context:' + request.run_id) fail('context_call_correlation');\nif (result.context?.source_message_ids?.length !== 1 || result.context.source_message_ids[0] !== request.input.message_id) fail('context_source_messages');\nif (result.assistant_message?.message_id !== 'n8n-test-out:' + request.run_id) fail('assistant_message_id');\nif (result.assistant_message?.type !== 'text' || typeof result.assistant_message?.text !== 'string') fail('assistant_message');\nif (result.provider_send_attempted !== false) fail('provider_send_attempted');\nif (!Array.isArray(result.trace)) fail('trace');\n\nreturn [{ json: {\n  schema_version: 'lexia.workflow.test.result.v1',\n  run_id: request.run_id,\n  target: request.target,\n  status: 'completed',\n  provider_send_attempted: false,\n  summary: 'Entrada e atendimento candidatos executados em corredor sintético sem efeitos externos.',\n  trace: [\n    ...result.trace,\n    { step: 'candidate_result_correlation', status: 'passed' },\n    { step: 'delivery_gate', status: 'passed' },\n    { step: 'provider_send', status: 'simulated', reason: 'external_send_disabled' },\n  ],\n  output: {\n    simulation_engine: 'n8n_candidate_chain_v1',\n    candidate_chain: ['01_entrada_omnichannel', '02_atendimento_ia'],\n    assistant_message: result.assistant_message,\n    context: {\n      context_call_id: result.context.context_call_id,\n      config_version: result.context.config_version,\n      source_message_ids: result.context.source_message_ids,\n    },\n    external_effects: {\n      supabase: false,\n      redis: false,\n      model: false,\n      tool: false,\n      provider: false,\n    },\n  },\n} }];"
+      }
+    },
+    {
+      "id": "de3bd898-9c85-45de-8e1c-058c2d6208c8",
+      "name": "BUFFER | Continuar conforme autoria",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        14160,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "c75df9ff-f2e1-4a19-88d5-4a6ca88d1e9a",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "process",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "process"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "47b4dba5-cac5-45b4-8c23-a6021d58c225",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "human_intervention",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "human_intervention"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "fdcf229c-30cd-4fac-8397-1cf78124f9a7",
+      "name": "RETORNO | Consolidar resultado da entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20460,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn [{ json: input }];"
+      }
+    },
+    {
+      "id": "912c1f10-97de-4e06-8423-3fa6f4986d1a",
+      "name": "RETORNO | É teste da plataforma?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        20820,
+        -20
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "9d666ad8-28f0-4499-8a50-6b278a0be706",
+              "leftValue": "={{ Boolean($json.workflow_test?.run_id) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a09d3680-3577-4d7c-860d-d43cf87a8b1b",
+      "name": "RETORNO | Encerrar evento real",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21180,
+        -130
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      }
+    },
+    {
+      "id": "4854396f-7380-4208-8edd-f57e8871424a",
+      "name": "RETORNO | Montar resultado do agente completo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        21180,
+        90
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst test = input.workflow_test;\nif (!test || test.execution_mode !== 'full_agent_virtual') throw new Error('full_agent_test_context_missing');\nif (input.provider_send_attempted === true) throw new Error('full_agent_test_provider_send_attempted');\nconst messages = Array.isArray(input.assistant_messages) ? input.assistant_messages : [];\nconst language = input.language_policy || {};\nconst languageBlocked = language.status === 'blocked';\nconst bufferedReasons = new Set(['newer_message_waiting', 'batch_in_progress', 'empty', 'window_open', 'superseded_by_new_message']);\nconst bufferedIntoNewerRun = messages.length === 0 && input.message_persisted === true &&\n  (bufferedReasons.has(input.status) || input.reprocess_required === true);\nif (!languageBlocked && !bufferedIntoNewerRun && (language.status !== 'passed' || messages.length === 0)) {\n  throw new Error('full_agent_test_brain_not_completed');\n}\nreturn [{ json: {\n  schema_version: 'lexia.workflow.test.result.v1',\n  run_id: test.run_id,\n  target: test.target,\n  status: languageBlocked ? 'blocked' : 'completed',\n  provider_send_attempted: false,\n  summary: languageBlocked\n    ? 'A resposta foi bloqueada porque não corresponde ao idioma do lead.'\n    : bufferedIntoNewerRun\n      ? 'Mensagem incorporada ao buffer; a execução mais nova ficou responsável pela resposta.'\n      : 'Inteligência completa executada com canal virtual e sem envio ao provedor.',\n  ...(languageBlocked ? { error_code: 'response_language_mismatch' } : {}),\n  trace: [\n    { step: 'trusted_scope', status: 'passed' },\n    { step: 'persist_synthetic_message', status: 'passed' },\n    { step: 'buffer_and_context', status: 'passed', ...(bufferedIntoNewerRun ? { reason: input.status } : {}) },\n    { step: 'real_miranda_brain', status: bufferedIntoNewerRun ? 'simulated' : 'passed', ...(bufferedIntoNewerRun ? { reason: 'owned_by_newer_batch' } : {}) },\n    { step: 'response_language_gate', status: languageBlocked ? 'blocked' : 'passed', ...(languageBlocked ? { reason: 'response_language_mismatch' } : bufferedIntoNewerRun ? { reason: 'no_response_owned_by_newer_batch' } : {}) },\n    { step: 'delivery_gate', status: 'passed' },\n    { step: 'provider_send', status: 'blocked', reason: 'virtual_channel_observe_only' },\n  ],\n  output: {\n    simulation_engine: 'n8n_full_agent_virtual_v1',\n    assistant_messages: messages,\n    buffered_into_newer_run: bufferedIntoNewerRun,\n    ...(messages[0] ? { assistant_message: { message_id: messages[0].message_id, type: messages[0].type, text: messages[0].text } } : {}),\n    expected_language: language.expected_language || null,\n    response_languages: language.detected_languages || [],\n    language_policy_status: bufferedIntoNewerRun ? 'passed' : (language.status || 'not_applicable'),\n    calendar_access: test.tool_policy?.calendar || 'disabled',\n    external_effects: {\n      central_supabase: true,\n      redis: true,\n      model: true,\n      calendar: false,\n      provider: false,\n    },\n  },\n} }];"
+      }
+    },
+    {
+      "id": "91fc0d4d-c0fd-4f08-8009-3342673da66e",
+      "name": "RETORNO | Escolher retorno do teste",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        21540,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "d16daaf8-c7d9-4cfe-87a8-c7ebac7279c1",
+                    "leftValue": "={{ $json.workflow_test.transport }}",
+                    "rightValue": "subworkflow",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "subworkflow"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "8edbf5fc-8e35-4a5e-89e6-0575b9d73b3b",
+                    "leftValue": "={{ $json.workflow_test.transport }}",
+                    "rightValue": "webhook",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "webhook"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "ddb15db8-dab0-489b-8ff7-d30b53c0c73c",
+      "name": "RETORNO | Retornar resultado ao gateway",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        22260,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      }
+    },
+    {
+      "id": "1b33b57f-f046-4eb9-889e-53778a2cebbf",
+      "name": "LABORATÓRIO | Retornar contrato único ao gateway",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25320,
+        -20
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      }
+    }
+  ],
+  "connections": {
+    "LABORATÓRIO | Receber teste seguro do gateway": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Validar contrato isolado do teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Validar contrato isolado do teste": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Escolher profundidade do teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Escolher profundidade do teste": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Preparar simulação curta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LABORATÓRIO | Preparar agente completo com canal virtual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Preparar simulação curta": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Executar atendimento sintético isolado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Executar atendimento sintético isolado": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Validar retorno correlacionado do atendimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Preparar agente completo com canal virtual": {
+      "main": [
+        [
+          {
+            "node": "CANAIS | Validar teste sintético",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Normalizar Z-API sem confiar no tenant": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Validar envelope do adaptador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Normalizar Meta sem token inline": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Validar envelope do adaptador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Validar teste sintético": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Validar envelope do adaptador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Retornar ingresso persistido": {
+      "main": [
+        [
+          {
+            "node": "DECISÃO | Rotear mensagem já persistida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Ignorar eco automático já registrado": {
+      "main": [
+        [
+          {
+            "node": "DECISÃO | Rotear mensagem já persistida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Retornar evento duplicado": {
+      "main": [
+        [
+          {
+            "node": "DECISÃO | Rotear mensagem já persistida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DECISÃO | Rotear mensagem já persistida": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Validar mídia de mensagem persistida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Validar mídia de mensagem persistida",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Retornar resultado da mídia": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Continuar conforme autoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Continuar conforme autoria": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Carregar janela de buffer da empresa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar intervenção antes da IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Executar contexto e cérebro": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Consolidar resultado da entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Encerrar intervenção antes da IA": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Consolidar resultado da entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Encerrar sem efeito automático": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Consolidar resultado da entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RETORNO | Consolidar resultado da entrada": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | É teste da plataforma?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RETORNO | É teste da plataforma?": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Montar resultado do agente completo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RETORNO | Encerrar evento real",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RETORNO | Montar resultado do agente completo": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Escolher retorno do teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RETORNO | Escolher retorno do teste": {
+      "main": [
+        [
+          {
+            "node": "RETORNO | Retornar resultado ao gateway",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "RETORNO | Responder teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LABORATÓRIO | Validar retorno correlacionado do atendimento": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Retornar contrato único ao gateway",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RETORNO | Retornar resultado ao gateway": {
+      "main": [
+        [
+          {
+            "node": "LABORATÓRIO | Retornar contrato único ao gateway",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Webhook interno Z-API": {
+      "main": [
+        [
+          {
+            "node": "CANAIS | Normalizar Z-API sem confiar no tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Webhook interno Meta": {
+      "main": [
+        [
+          {
+            "node": "CANAIS | Normalizar Meta sem token inline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANAIS | Webhook de teste da plataforma": {
+      "main": [
+        [
+          {
+            "node": "CANAIS | Validar teste sintético",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Validar envelope do adaptador": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Carregar conta confiável",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Carregar conta confiável": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Vincular escopo à integração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Vincular escopo à integração": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Resolver conversa central",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Resolver conversa central": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Preparar verificação de eco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Preparar verificação de eco": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Procurar ação de saída pelo ID do provedor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Procurar ação de saída pelo ID do provedor": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Classificar eco ou intervenção humana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Classificar eco ou intervenção humana": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Deduplicar evento antes de efeitos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Deduplicar evento antes de efeitos": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Avaliar deduplicação e eco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Avaliar deduplicação e eco": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Rotear evento identificado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Rotear evento identificado": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Preparar mensagem canônica",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "INGRESSO | Ignorar eco automático já registrado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "INGRESSO | Retornar evento duplicado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "INGRESSO | Retornar evento duplicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Preparar mensagem canônica": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Persistir mensagem antes de pausa buffer ou mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Persistir mensagem antes de pausa buffer ou mídia": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Preparar mutação de estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Preparar mutação de estado": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Aplicar pausa ou buffer atomicamente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Aplicar pausa ou buffer atomicamente": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Preparar projeção Redis do estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Preparar projeção Redis do estado": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Projetar estado no Redis compartilhado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Projetar estado no Redis compartilhado": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Montar espelho CRM após persistência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Montar espelho CRM após persistência": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Criar Lead Deal timeline no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INGRESSO | Criar Lead Deal timeline no CRM": {
+      "main": [
+        [
+          {
+            "node": "INGRESSO | Retornar ingresso persistido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Carregar janela de buffer da empresa": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Validar política antes do buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Validar política antes do buffer": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Aguardar janela configurada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Aguardar janela configurada": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Preparar claim atômico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Preparar claim atômico": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Reivindicar lote sem GET DEL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Reivindicar lote sem GET DEL": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Avaliar lote reivindicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Avaliar lote reivindicado": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Lote ainda permitido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Lote ainda permitido?": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Executar contexto e cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Claim deve aguardar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Claim deve aguardar?": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Aguardar liberação ou novo debounce",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Encerrar sem efeito automático",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Aguardar liberação ou novo debounce": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Carregar sequência para nova tentativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Carregar sequência para nova tentativa": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Preparar nova tentativa de claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Preparar nova tentativa de claim": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Reivindicar lote após prontidão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Reivindicar lote após prontidão": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Avaliar lote após prontidão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Avaliar lote após prontidão": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Lote permitido após prontidão?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUFFER | Lote permitido após prontidão?": {
+      "main": [
+        [
+          {
+            "node": "BUFFER | Executar contexto e cérebro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUFFER | Claim deve aguardar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Validar mídia de mensagem persistida": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | É texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | É texto?": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Texto não exige processamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Baixar mídia por URL confiável",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Baixar mídia por URL confiável": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Rotear processamento de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Rotear processamento de mídia": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Transcrever áudio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Analisar imagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Extrair PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Analisar vídeo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Transcrever áudio": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Normalizar mídia processada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Analisar imagem": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Normalizar mídia processada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Extrair PDF": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Normalizar mídia processada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Analisar vídeo": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Normalizar mídia processada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Preservar mensagem em falha de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Texto não exige processamento": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Preparar atualização sem tocar na pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Normalizar mídia processada": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Preparar atualização sem tocar na pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Preservar mensagem em falha de mídia": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Preparar atualização sem tocar na pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Preparar atualização sem tocar na pausa": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Atualizar somente estado da mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Atualizar somente estado da mídia": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Espelhar enriquecimento da mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Espelhar enriquecimento da mensagem": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Enriquecimento precisa de espelho?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Enriquecimento precisa de espelho?": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Espelhar enriquecimento no CRM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MÍDIA | Retornar resultado da mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MÍDIA | Espelhar enriquecimento no CRM": {
+      "main": [
+        [
+          {
+            "node": "MÍDIA | Retornar resultado da mídia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": []
+}

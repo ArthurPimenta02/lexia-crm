@@ -1,0 +1,42 @@
+{
+  "name": "OMNI v2 - Apply Brain Result - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2b000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Brain Result",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Applies a validated brain result with the company policy read from the\n// central store (a fixture here). Domain events are real effects and are\n// applied idempotently; the post-appointment pause comes only from the\n// policy and covers every channel of the conversation where it happened.\nconst policy = { pause_after_appointment: true, policy_version: 1 };\nconst result = {\n  actions: [\n    { action_id: 'synthetic-a1', sequence: 1, kind: 'reply' },\n    { action_id: 'synthetic-a2', sequence: 2, kind: 'appointment_confirmation', source_ref: 'synthetic-appointment-1' },\n  ],\n  domain_events: [{ type: 'appointment.confirmed', appointment_ref: 'synthetic-appointment-1', attested_by_tool: true }],\n};\nconst confirmations = result.actions.filter(a => a.kind === 'appointment_confirmation');\nconst lastSequence = Math.max(...result.actions.map(a => a.sequence));\nconst confirmationValid = confirmations.length <= 1 && confirmations.every(a =>\n  a.sequence === lastSequence &&\n  result.domain_events.some(e => e.type === 'appointment.confirmed' && e.appointment_ref === a.source_ref && e.attested_by_tool));\nconst unchangedSinceRequest = true;\nconst appointmentBlockCreated = policy.pause_after_appointment && result.domain_events.some(e => e.type === 'appointment.confirmed');\nlet actions = result.actions;\nif (appointmentBlockCreated) actions = actions.filter(a => a.kind === 'appointment_confirmation');\nactions = actions.map((a, index) => ({ ...a, sequence: index + 1, rebased_on_own_events: unchangedSinceRequest }));\nreturn [{ json: { accepted: confirmationValid, invocation_checked: true, capabilities_checked: true, tool_payload_private: true, policy_source: 'central_company_policy', pause_after_appointment: policy.pause_after_appointment, appointment_block_created: appointmentBlockCreated, single_confirmation_only: appointmentBlockCreated, superseded_context_patch_applied: false, actions, simulated: true } }];"
+      },
+      "id": "2b000000-0000-4000-8000-000000000002",
+      "name": "Validate Fake Domain Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Brain Result": {
+      "main": [
+        [
+          {
+            "node": "Validate Fake Domain Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

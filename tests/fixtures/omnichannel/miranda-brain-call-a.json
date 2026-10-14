@@ -1,0 +1,11 @@
+{
+  "scope": {"environment":"isolated_test","cliente_slug":"empresa_sintetica_a","channel":"whatsapp","account_ref":"24000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-brain-a"},
+  "invocation_id":"71000000-0000-4000-8000-000000000001",
+  "captured_state":{"state_version":12,"delivery_epoch":7},
+  "cliente":{"slug":"empresa_sintetica_a","canal":"whatsapp","timezone":"America/New_York"},
+  "contacto":{"nome":"Lead Ficticio A","telefone":"","identificador_conversa":"synthetic-a"},
+  "mensagem":{"actual":"Gostaria de saber o valor da consulta de avaliacao","tipo":"texto"},
+  "historico":[],
+  "contexto":{"tipo_assunto":"servicos","confianca":0.9,"resumo":"Interesse ficticio em consulta.","dados":{"idioma":"pt"}},
+  "operacao":{"modo_teste":true,"permitir_envio_real":false,"permitir_notificacao_handoff":false,"tools_permitidas":false,"calendar_access":"disabled"}
+}

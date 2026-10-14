@@ -1,0 +1,2134 @@
+[
+  {
+    "name": "AGENTE DE FOLLOW-UP — MIRANDA",
+    "nodes": [
+      {
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Buscar Follow-ups Vencidos",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          416,
+          0
+        ]
+      },
+      {
+        "name": "Travas de Follow-up",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          624,
+          0
+        ]
+      },
+      {
+        "name": "Rotear por Ação",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          880,
+          -16
+        ]
+      },
+      {
+        "name": "Reagendar Follow-up",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          1392,
+          880
+        ]
+      },
+      {
+        "name": "Loop Follow-ups - Leads",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          1344,
+          -384
+        ]
+      },
+      {
+        "name": "Buscar Histórico Follow-up",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          1616,
+          -368
+        ]
+      },
+      {
+        "name": "Montar Análise do Juiz",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2064,
+          -368
+        ]
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          2272,
+          -176
+        ]
+      },
+      {
+        "name": "Juiz de Follow-up",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          2272,
+          -368
+        ]
+      },
+      {
+        "name": "Validar Decisão do Juiz",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          2656,
+          -368
+        ]
+      },
+      {
+        "name": "Rotear Decisão do Juiz",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          2864,
+          -384
+        ]
+      },
+      {
+        "name": "Pular Etapa",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          3360,
+          -368
+        ]
+      },
+      {
+        "name": "Encerrar Follow-up",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          3616,
+          16
+        ]
+      },
+      {
+        "name": "Redator de Follow-up",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "position": [
+          3424,
+          -720
+        ]
+      },
+      {
+        "name": "OpenAI Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          3424,
+          -528
+        ]
+      },
+      {
+        "name": "Config Follow-up",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          208,
+          0
+        ]
+      },
+      {
+        "name": "Preparar Envio Follow-up",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3936,
+          -720
+        ]
+      },
+      {
+        "name": "Registrar Eco Follow-up",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          4256,
+          -720
+        ]
+      },
+      {
+        "name": "Guardar Follow-up no Histórico",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          4800,
+          -720
+        ]
+      },
+      {
+        "name": "Atualizar Após Envio",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          5120,
+          -720
+        ]
+      },
+      {
+        "name": "Preparar Aviso Samuel",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1408,
+          384
+        ]
+      },
+      {
+        "name": "Enviar Aviso Samuel",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2128,
+          384
+        ]
+      },
+      {
+        "name": "Atualizar Após Aviso",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          2384,
+          384
+        ]
+      },
+      {
+        "name": "Buscar Perfil do Lead",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1632,
+          384
+        ]
+      },
+      {
+        "name": "Montar Link do Aviso",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1872,
+          384
+        ]
+      },
+      {
+        "name": "Enviar Follow-up",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          4528,
+          -720
+        ]
+      },
+      {
+        "name": "Buscar Playbook de Vendas",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          1840,
+          -368
+        ]
+      }
+    ]
+  },
+  {
+    "name": "AGENTE DE LEMBRETES — MIRANDA",
+    "nodes": [
+      {
+        "name": "Intervalo 1h",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Config Lembretes",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          240,
+          0
+        ]
+      },
+      {
+        "name": "Buscar Consultas Próximas",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          464,
+          0
+        ]
+      },
+      {
+        "name": "Travas de Lembrete",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          688,
+          0
+        ]
+      },
+      {
+        "name": "Enviar Lembrete",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          912,
+          0
+        ]
+      },
+      {
+        "name": "Marcar Lembrete Enviado",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          1136,
+          0
+        ]
+      },
+      {
+        "name": "Pausa Eterna (Lembrete)",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          1408,
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Cérebro — MIRANDA SKIN EXPERT",
+    "nodes": [
+      {
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          -2928,
+          624
+        ]
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -1424,
+          1408
+        ]
+      },
+      {
+        "name": "Validar Saída Cérebro",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1520,
+          624
+        ]
+      },
+      {
+        "name": "Especialista em Serviços",
+        "type": "@n8n/n8n-nodes-langchain.agentTool",
+        "position": [
+          -1408,
+          -288
+        ]
+      },
+      {
+        "name": "OpenAI Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          -1536,
+          -64
+        ]
+      },
+      {
+        "name": "Preparar Entrada",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2688,
+          624
+        ]
+      },
+      {
+        "name": "Rotear por Assunto",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -1888,
+          592
+        ]
+      },
+      {
+        "name": "Agente Indefinido",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1424,
+          1216
+        ]
+      },
+      {
+        "name": "Preparar Briefing",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          592,
+          624
+        ]
+      },
+      {
+        "name": "Redator — Voz do Cliente",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          848,
+          624
+        ]
+      },
+      {
+        "name": "Montar Saída Final",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1200,
+          624
+        ]
+      },
+      {
+        "name": "consultar_servicos",
+        "type": "n8n-nodes-base.supabaseTool",
+        "position": [
+          -1120,
+          -64
+        ]
+      },
+      {
+        "name": "Orquestrador de Atendimento",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1440,
+          336
+        ]
+      },
+      {
+        "name": "consultar_promocoes",
+        "type": "n8n-nodes-base.supabaseTool",
+        "position": [
+          -928,
+          -64
+        ]
+      },
+      {
+        "name": "consultar_info_clinica",
+        "type": "n8n-nodes-base.supabaseTool",
+        "position": [
+          -736,
+          -64
+        ]
+      },
+      {
+        "name": "Orquestrador de Agendamento",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          -1120,
+          640
+        ]
+      },
+      {
+        "name": "consultar-servicos",
+        "type": "n8n-nodes-base.supabaseTool",
+        "position": [
+          -1040,
+          896
+        ]
+      },
+      {
+        "name": "verificar_disponibilidade",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "position": [
+          -864,
+          896
+        ]
+      },
+      {
+        "name": "criar_agendamento",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "position": [
+          -688,
+          896
+        ]
+      },
+      {
+        "name": "Anthropic Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "position": [
+          -1440,
+          752
+        ]
+      },
+      {
+        "name": "Preparar Handoff",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1760,
+          624
+        ]
+      },
+      {
+        "name": "Notificar Equipe?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2016,
+          624
+        ]
+      },
+      {
+        "name": "Notificar Samuel (uazapi)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          2368,
+          432
+        ]
+      },
+      {
+        "name": "Pausar Bot?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2720,
+          640
+        ]
+      },
+      {
+        "name": "Pausar Conversa",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2992,
+          400
+        ]
+      },
+      {
+        "name": "Devolver Saída Cérebro",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3200,
+          656
+        ]
+      },
+      {
+        "name": "consultar_info_clinica1",
+        "type": "n8n-nodes-base.supabaseTool",
+        "position": [
+          -1216,
+          896
+        ]
+      },
+      {
+        "name": "Anthropic Chat Model1",
+        "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "position": [
+          752,
+          864
+        ]
+      },
+      {
+        "name": "Buscar Playbook de Vendas (Cérebro)",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -2416,
+          624
+        ]
+      },
+      {
+        "name": "Anexar Playbook ao Contexto",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2192,
+          624
+        ]
+      }
+    ]
+  },
+  {
+    "name": "MIRANDA SKIN EXPERT -  OMNICHANNEL",
+    "nodes": [
+      {
+        "name": "Filtro de Mensagens",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          -2896,
+          720
+        ]
+      },
+      {
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -7008,
+          384
+        ],
+        "parameters": {
+          "content": "## ENTRADAS",
+          "width": 1780,
+          "height": 608,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note1",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2736,
+          528
+        ],
+        "parameters": {
+          "content": "## AUTORIA",
+          "width": 656,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note2",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4288,
+          512
+        ],
+        "parameters": {
+          "content": "## DADOS",
+          "width": 192,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note6",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          3872,
+          608
+        ],
+        "parameters": {
+          "content": "## MENSAGEM",
+          "width": 230,
+          "height": 464,
+          "color": 6
+        }
+      },
+      {
+        "name": "Redis",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2080,
+          80
+        ]
+      },
+      {
+        "name": "Wait",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          3008,
+          768
+        ]
+      },
+      {
+        "name": "Redis_Buffer2",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          3232,
+          768
+        ]
+      },
+      {
+        "name": "Redis_Buffer1",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2816,
+          768
+        ]
+      },
+      {
+        "name": "If1",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          3456,
+          768
+        ]
+      },
+      {
+        "name": "No Operation, do nothing1",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          3680,
+          864
+        ]
+      },
+      {
+        "name": "Sticky Note7",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          2720,
+          608
+        ],
+        "parameters": {
+          "content": "## BUFFER",
+          "width": 1088,
+          "height": 464,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note8",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          16
+        ],
+        "parameters": {
+          "content": "## TEXTO",
+          "width": 1312,
+          "height": 224,
+          "color": 6
+        }
+      },
+      {
+        "name": "Redis3",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2080,
+          448
+        ]
+      },
+      {
+        "name": "Sticky Note9",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          368
+        ],
+        "parameters": {
+          "content": "## AUDIO",
+          "width": 1312,
+          "height": 224,
+          "color": 6
+        }
+      },
+      {
+        "name": "Redis4",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2096,
+          752
+        ]
+      },
+      {
+        "name": "Redis5",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2080,
+          1184
+        ]
+      },
+      {
+        "name": "Sticky Note10",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          704
+        ],
+        "parameters": {
+          "content": "## IMAGEM",
+          "width": 1312,
+          "height": 224,
+          "color": 6
+        }
+      },
+      {
+        "name": "Sticky Note11",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          1136
+        ],
+        "parameters": {
+          "content": "## PDF",
+          "width": 1328,
+          "height": 224,
+          "color": 6
+        }
+      },
+      {
+        "name": "CENTRAL DE CONTROLE",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -4752,
+          720
+        ]
+      },
+      {
+        "name": "Mensagem para o Agente",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          3936,
+          672
+        ]
+      },
+      {
+        "name": "Sticky Note12",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4816,
+          512
+        ],
+        "parameters": {
+          "content": "## CONTROLE",
+          "width": 224,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Apagar Buffer1",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          3664,
+          672
+        ]
+      },
+      {
+        "name": "Sticky Note13",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -384,
+          528
+        ],
+        "parameters": {
+          "content": "## ESTADO DO AGENTE",
+          "width": 1104,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "É intervenção humana?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1952,
+          720
+        ]
+      },
+      {
+        "name": "Sticky Note15",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -2032,
+          528
+        ],
+        "parameters": {
+          "content": "## INTERVENCAO HUMANA",
+          "width": 848,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Webhook WhatsApp Omnichannel",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -6976,
+          480
+        ]
+      },
+      {
+        "name": "Switch",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          560,
+          704
+        ]
+      },
+      {
+        "name": "Transcribe a recording",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          1760,
+          448
+        ]
+      },
+      {
+        "name": "Audio",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          992,
+          448
+        ]
+      },
+      {
+        "name": "Texto",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          992,
+          80
+        ]
+      },
+      {
+        "name": "Analyze image",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          1744,
+          752
+        ]
+      },
+      {
+        "name": "PDF",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          992,
+          1184
+        ]
+      },
+      {
+        "name": "Imagem",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1008,
+          752
+        ]
+      },
+      {
+        "name": "Extract from File",
+        "type": "n8n-nodes-base.extractFromFile",
+        "position": [
+          1728,
+          1184
+        ]
+      },
+      {
+        "name": "HTTP Request9",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1376,
+          1184
+        ]
+      },
+      {
+        "name": "Imagem1",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          1040,
+          1600
+        ]
+      },
+      {
+        "name": "HTTP Request11",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1408,
+          1600
+        ]
+      },
+      {
+        "name": "Analyze video",
+        "type": "@n8n/n8n-nodes-langchain.googleGemini",
+        "position": [
+          1776,
+          1600
+        ]
+      },
+      {
+        "name": "Sticky Note20",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          960,
+          1536
+        ],
+        "parameters": {
+          "content": "## VIDEO",
+          "width": 1328,
+          "height": 224,
+          "color": 6
+        }
+      },
+      {
+        "name": "Redis8",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2128,
+          1600
+        ]
+      },
+      {
+        "name": "Normalizar Dados Operacionais",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -4240,
+          720
+        ]
+      },
+      {
+        "name": "Verificar Intervenção",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -2400,
+          720
+        ]
+      },
+      {
+        "name": "Set Intervenção Humana",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -1696,
+          560
+        ]
+      },
+      {
+        "name": "Ver Status Agente",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -288,
+          736
+        ]
+      },
+      {
+        "name": "Agente desativado?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -32,
+          736
+        ]
+      },
+      {
+        "name": "Buscar Contacto",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          4208,
+          672
+        ]
+      },
+      {
+        "name": "Contacto Existe?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          4432,
+          672
+        ]
+      },
+      {
+        "name": "Actualizar Contacto",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          4768,
+          656
+        ]
+      },
+      {
+        "name": "Criar Contacto",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          4768,
+          896
+        ]
+      },
+      {
+        "name": "Unificar Contacto",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          5088,
+          672
+        ]
+      },
+      {
+        "name": "Sticky Note40",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          4128,
+          608
+        ],
+        "parameters": {
+          "content": "## CONTACTO",
+          "width": 1152,
+          "height": 464,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note41",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          5328,
+          608
+        ],
+        "parameters": {
+          "content": "## REGISTRO",
+          "width": 288,
+          "height": 464,
+          "color": 4
+        }
+      },
+      {
+        "name": "Guardar Mensagem Recebida",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          5424,
+          672
+        ]
+      },
+      {
+        "name": "Buscar Histórico da Conversa",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          5696,
+          672
+        ]
+      },
+      {
+        "name": "Agrupar Histórico",
+        "type": "n8n-nodes-base.aggregate",
+        "position": [
+          5920,
+          672
+        ]
+      },
+      {
+        "name": "Preparar Pacote de Contexto",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          6352,
+          672
+        ]
+      },
+      {
+        "name": "Agente de Contexto",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "position": [
+          6592,
+          672
+        ]
+      },
+      {
+        "name": "OpenAI Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "position": [
+          6512,
+          896
+        ]
+      },
+      {
+        "name": "Obter Contexto Activo",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          6128,
+          672
+        ]
+      },
+      {
+        "name": "Sticky Note3",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          5648,
+          608
+        ],
+        "parameters": {
+          "content": "## HISTORICO E CONTEXTO",
+          "width": 1408,
+          "height": 464,
+          "color": 4
+        }
+      },
+      {
+        "name": "Preparar Contexto Activo",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          6896,
+          672
+        ]
+      },
+      {
+        "name": "Config Cliente Lexia",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          -4512,
+          720
+        ]
+      },
+      {
+        "name": "Sticky Note21",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4560,
+          512
+        ],
+        "parameters": {
+          "content": "## CLIENTE",
+          "width": 224,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Contatos Bloqueados",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2688,
+          720
+        ]
+      },
+      {
+        "name": "Entrada Unificada",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -5120,
+          720
+        ]
+      },
+      {
+        "name": "Webhook Meta Omnichannel",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -6960,
+          832
+        ]
+      },
+      {
+        "name": "Normalizar Entrada Meta Omnichannel",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -5904,
+          832
+        ]
+      },
+      {
+        "name": "Obter Eco IA Omnichannel",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -3984,
+          720
+        ]
+      },
+      {
+        "name": "É Eco IA Omnichannel?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3696,
+          720
+        ]
+      },
+      {
+        "name": "No Operation - Eco IA Omnichannel",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -3472,
+          512
+        ]
+      },
+      {
+        "name": "Permitir Execução?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3440,
+          736
+        ]
+      },
+      {
+        "name": "No Operation - Execução Bloqueada",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -3248,
+          848
+        ]
+      },
+      {
+        "name": "Sticky Note22",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4048,
+          512
+        ],
+        "parameters": {
+          "content": "## ECO E PERMISSAO",
+          "width": 1044,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Guardar Contexto Activo Genérico",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          7232,
+          672
+        ]
+      },
+      {
+        "name": "É Teste Workflow? - Saída Genérica",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          9248,
+          672
+        ]
+      },
+      {
+        "name": "Guardar Resultado Teste Workflow Agente Genérico",
+        "type": "n8n-nodes-base.postgres",
+        "position": [
+          9504,
+          448
+        ]
+      },
+      {
+        "name": "No Operation - Teste Agente Genérico Guardado",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          9760,
+          448
+        ]
+      },
+      {
+        "name": "Pode Enviar Real? - Texto Genérico",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          9504,
+          768
+        ]
+      },
+      {
+        "name": "No Operation - Envio Real Bloqueado",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          9760,
+          880
+        ]
+      },
+      {
+        "name": "No Operation - Texto Genérico Fim",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          10352,
+          480
+        ]
+      },
+      {
+        "name": "Registrar Eco IA - Texto Genérico",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          10272,
+          688
+        ]
+      },
+      {
+        "name": "Enviar Mensagem Cliente - Texto Genérico",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          11056,
+          688
+        ]
+      },
+      {
+        "name": "Wait - Texto Genérico",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          10784,
+          688
+        ]
+      },
+      {
+        "name": "Guardar Mensagem Enviada - Texto Genérico",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          11104,
+          880
+        ]
+      },
+      {
+        "name": "Sticky Note4",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          7072,
+          608
+        ],
+        "parameters": {
+          "content": "## CEREBRO",
+          "width": 688,
+          "height": 464,
+          "color": 5
+        }
+      },
+      {
+        "name": "Sticky Note5",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          8240,
+          608
+        ],
+        "parameters": {
+          "content": "## SAIDA",
+          "width": 836,
+          "height": 464,
+          "color": 4
+        }
+      },
+      {
+        "name": "Sticky Note14",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          9136,
+          416
+        ],
+        "parameters": {
+          "content": "## ENTREGA",
+          "width": 2256,
+          "height": 656,
+          "color": 4
+        }
+      },
+      {
+        "name": "Preparar Payload Cérebro",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          7488,
+          672
+        ]
+      },
+      {
+        "name": "Chamar Cérebro do Cliente",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "position": [
+          7968,
+          672
+        ]
+      },
+      {
+        "name": "Validar Saída Cérebro Cliente",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          8272,
+          672
+        ]
+      },
+      {
+        "name": "Preparar Saída Omnichannel",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          8960,
+          672
+        ]
+      },
+      {
+        "name": "Split Out - Texto Genérico",
+        "type": "n8n-nodes-base.splitOut",
+        "position": [
+          9776,
+          672
+        ]
+      },
+      {
+        "name": "Loop Over Items - Entregas",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          10064,
+          672
+        ]
+      },
+      {
+        "name": "Fundir Contexto Pós-Cérebro",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          8480,
+          672
+        ]
+      },
+      {
+        "name": "Guardar Contexto Pós-Cérebro",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          8704,
+          672
+        ]
+      },
+      {
+        "name": "Webhook Meta Omnichannel1",
+        "type": "n8n-nodes-base.webhook",
+        "position": [
+          -7008,
+          1104
+        ]
+      },
+      {
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "position": [
+          -6768,
+          1104
+        ]
+      },
+      {
+        "name": "Preparar Perfil Meta",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -6528,
+          832
+        ]
+      },
+      {
+        "name": "HTTP Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -6320,
+          832
+        ]
+      },
+      {
+        "name": "Juntar Nome Meta",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -6112,
+          832
+        ]
+      },
+      {
+        "name": "Cancelar Follow-up",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -2128,
+          1072
+        ]
+      },
+      {
+        "name": "Preparar Follow-up",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          10720,
+          48
+        ]
+      },
+      {
+        "name": "Armar Follow-up",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          11072,
+          48
+        ]
+      },
+      {
+        "name": "Enviar Digitando - Meta",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          10528,
+          688
+        ]
+      },
+      {
+        "name": "Esperar 5 Minutos",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          -4752,
+          1280
+        ]
+      },
+      {
+        "name": "Buscar Resposta do Cliente",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -4544,
+          1280
+        ]
+      },
+      {
+        "name": "Cliente Respondeu?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -4320,
+          1280
+        ]
+      },
+      {
+        "name": "No Operation, do nothing",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -3808,
+          1152
+        ]
+      },
+      {
+        "name": "Preparar Follow-up Rápido",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3808,
+          1424
+        ]
+      },
+      {
+        "name": "Registrar Eco Follow-up Rápido",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -2896,
+          1440
+        ]
+      },
+      {
+        "name": "Enviar Follow-up Rápido",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2624,
+          1440
+        ]
+      },
+      {
+        "name": "Guardar Follow-up Rápido no Histórico",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -2416,
+          1440
+        ]
+      },
+      {
+        "name": "Sticky Note16",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -4832,
+          1104
+        ],
+        "parameters": {
+          "content": "## FOLLOW-UP RAPIDO",
+          "width": 2532,
+          "height": 624,
+          "color": 5
+        }
+      },
+      {
+        "name": "É Cartão de Anúncio?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -5680,
+          832
+        ]
+      },
+      {
+        "name": "Verificar Trava Follow-up",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -3600,
+          1424
+        ]
+      },
+      {
+        "name": "Follow-up Já Enviado?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -3392,
+          1424
+        ]
+      },
+      {
+        "name": "No Operation, do nothing4",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -2912,
+          1248
+        ]
+      },
+      {
+        "name": "Contatos Bloqueados Meta",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -6736,
+          832
+        ]
+      },
+      {
+        "name": "Buscar Última Mensagem do Lead",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -4032,
+          1424
+        ]
+      },
+      {
+        "name": "Guardar Mensagem da Intervenção",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          -336,
+          -16
+        ]
+      },
+      {
+        "name": "Guardar Mensagem Recebida na Pausa",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          288,
+          592
+        ]
+      },
+      {
+        "name": "Separar Balões Follow-up",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -3152,
+          1440
+        ]
+      },
+      {
+        "name": "Esperar 15 Minutos (Retomada)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          416,
+          -512
+        ]
+      },
+      {
+        "name": "Sticky Note17",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          368,
+          -608
+        ],
+        "parameters": {
+          "content": "## RETOMADA",
+          "width": 2816,
+          "height": 352,
+          "color": 4
+        }
+      },
+      {
+        "name": "Ver Status Pós-Pausa",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          1184,
+          -512
+        ]
+      },
+      {
+        "name": "Samuel Continuou?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1408,
+          -512
+        ]
+      },
+      {
+        "name": "Buscar Mensagens Pós-Pausa",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          1680,
+          -432
+        ]
+      },
+      {
+        "name": "Verificar Última Mensagem Pós-Pausa",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1904,
+          -432
+        ]
+      },
+      {
+        "name": "Última É do Cliente?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2128,
+          -432
+        ]
+      },
+      {
+        "name": "Trava Retomada",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2416,
+          -544
+        ]
+      },
+      {
+        "name": "Retomada Já Feita?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2640,
+          -544
+        ]
+      },
+      {
+        "name": "Apagar Mensagem da Pausa",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          2864,
+          -448
+        ]
+      },
+      {
+        "name": "Adaptar Entrada Z-API",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -6768,
+          480
+        ]
+      },
+      {
+        "name": "HTTP Request7",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1376,
+          752
+        ]
+      },
+      {
+        "name": "HTTP Request5",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          1376,
+          448
+        ]
+      },
+      {
+        "name": "Bloquear Contatos WhatsApp",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -6496,
+          480
+        ]
+      },
+      {
+        "name": "Ver Pausa Eterna",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -6240,
+          480
+        ]
+      },
+      {
+        "name": "Pausado Eternamente?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -5920,
+          480
+        ]
+      },
+      {
+        "name": "No Operation, do nothing2",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          -5696,
+          656
+        ]
+      },
+      {
+        "name": "Restaurar Mensagem",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -5552,
+          464
+        ]
+      },
+      {
+        "name": "Ver Pausa Manual",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          -864,
+          736
+        ]
+      },
+      {
+        "name": "Sticky Note18",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1152,
+          528
+        ],
+        "parameters": {
+          "content": "## PAUSA MANUAL",
+          "width": 704,
+          "height": 480,
+          "color": 4
+        }
+      },
+      {
+        "name": "Ver Pausa Manual Pós-Pausa",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          736,
+          -512
+        ]
+      },
+      {
+        "name": "Intervenção é áudio?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          -1264,
+          -32
+        ]
+      },
+      {
+        "name": "Baixar Áudio da Intervenção",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -944,
+          -192
+        ]
+      },
+      {
+        "name": "Transcrever Áudio da Intervenção",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "position": [
+          -672,
+          -192
+        ]
+      },
+      {
+        "name": "Sticky Note19",
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          -1392,
+          -240
+        ],
+        "parameters": {
+          "content": "## AUDIO DA EQUIPE",
+          "width": 1332,
+          "height": 432,
+          "color": 5
+        }
+      }
+    ]
+  },
+  {
+    "name": "criar_agendamento",
+    "nodes": [
+      {
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Get many rows",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          240,
+          0
+        ]
+      },
+      {
+        "name": "Validar Pedido",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          496,
+          0
+        ]
+      },
+      {
+        "name": "Validação OK?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          704,
+          0
+        ]
+      },
+      {
+        "name": "Get many events",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          1568,
+          -416
+        ]
+      },
+      {
+        "name": "Checar Conflito",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1776,
+          -416
+        ]
+      },
+      {
+        "name": "Livre?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1984,
+          -416
+        ]
+      },
+      {
+        "name": "Create an event",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          2272,
+          -592
+        ]
+      },
+      {
+        "name": "Create a row",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          2480,
+          -592
+        ]
+      },
+      {
+        "name": "Montar Confirmação",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          4736,
+          -560
+        ]
+      },
+      {
+        "name": "Evento confirmado?",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          912,
+          -304
+        ]
+      },
+      {
+        "name": "Checar Duplicidade",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1120,
+          -304
+        ]
+      },
+      {
+        "name": "Sem duplicado?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          1328,
+          -304
+        ]
+      },
+      {
+        "name": "Saída Erro",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          912,
+          96
+        ]
+      },
+      {
+        "name": "Saída Erro1",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          2272,
+          -336
+        ]
+      },
+      {
+        "name": "Saída Erro2",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          1584,
+          -176
+        ]
+      },
+      {
+        "name": "Preparar Notificação Marcação",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          3376,
+          -576
+        ]
+      },
+      {
+        "name": "Enviar notificação?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          3600,
+          -576
+        ]
+      },
+      {
+        "name": "Notificar Samuel (uazapi)",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          3808,
+          -784
+        ]
+      },
+      {
+        "name": "Notificar Sócio?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          4080,
+          -784
+        ]
+      },
+      {
+        "name": "Notificar Sócio",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          4384,
+          -800
+        ]
+      },
+      {
+        "name": "Agendado via WhatsApp?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          2704,
+          -592
+        ]
+      },
+      {
+        "name": "Pausa Eterna WhatsApp",
+        "type": "n8n-nodes-base.redis",
+        "position": [
+          2944,
+          -736
+        ]
+      },
+      {
+        "name": "Encerrar Follow-up do Lead",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          3168,
+          -736
+        ]
+      }
+    ]
+  },
+  {
+    "name": "verificar_disponibilidade",
+    "nodes": [
+      {
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "position": [
+          -80,
+          -16
+        ]
+      },
+      {
+        "name": "Get many rows",
+        "type": "n8n-nodes-base.supabase",
+        "position": [
+          128,
+          -16
+        ]
+      },
+      {
+        "name": "Resolver Serviço e Janela",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          336,
+          -16
+        ]
+      },
+      {
+        "name": "Status OK?",
+        "type": "n8n-nodes-base.if",
+        "position": [
+          544,
+          -16
+        ]
+      },
+      {
+        "name": "Get many events",
+        "type": "n8n-nodes-base.googleCalendar",
+        "position": [
+          864,
+          -160
+        ]
+      },
+      {
+        "name": "Calcular Slots",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          1072,
+          -160
+        ]
+      },
+      {
+        "name": "Saída Erro",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          864,
+          112
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Adapter Ingress Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "21000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Provider Event",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { schema_version: 'lexia.ingress.event.v1', provider: 'fake', event_type: 'message', capability_refs: ['meta_events', 'zapi_events', 'authorship'], synthetic: true } }];"
+      },
+      "id": "21000000-0000-4000-8000-000000000002",
+      "name": "Normalize Fake Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Provider Event": {
+      "main": [[{ "node": "Normalize Fake Event", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

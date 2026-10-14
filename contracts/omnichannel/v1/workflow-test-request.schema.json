@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/workflow-test-request.schema.json",
+  "title": "Lexia Workflow Test Request v1",
+  "$comment": "PROVISIONAL: target-specific traces still require validation against imported inactive client workflows.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "target",
+    "delivery_mode",
+    "execution_mode",
+    "tool_policy",
+    "scope",
+    "input",
+    "expectations"
+  ],
+  "properties": {
+    "schema_version": { "const": "lexia.workflow.test.request.v1" },
+    "run_id": { "type": "string", "format": "uuid" },
+    "target": {
+      "enum": [
+        "omnichannel",
+        "brain",
+        "followup",
+        "reminder",
+        "create_appointment",
+        "check_availability"
+      ]
+    },
+    "delivery_mode": { "const": "simulate" },
+    "execution_mode": {
+      "enum": ["safe_simulation", "full_agent_virtual"]
+    },
+    "tool_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calendar"],
+      "properties": {
+        "calendar": {
+          "enum": ["disabled", "test_read_only", "test_read_write"]
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "cliente_slug",
+        "channel",
+        "account_ref",
+        "conversation_ref"
+      ],
+      "properties": {
+        "environment": { "enum": ["isolated_test", "staging"] },
+        "cliente_slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+        },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": {
+          "type": "string",
+          "pattern": "^test:(?:[0-9a-fA-F-]{36}|SYNTH-LEXIA-TEST-CHAT-[0-9a-fA-F-]{36})$",
+          "maxLength": 96
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message_id", "type", "text"],
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "pattern": "^test-message:[0-9a-fA-F-]{36}$",
+          "maxLength": 64
+        },
+        "type": { "const": "text" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 4000 }
+      }
+    },
+    "expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider_send", "persist_synthetic_events", "return_trace"],
+      "properties": {
+        "provider_send": { "const": false },
+        "persist_synthetic_events": { "const": true },
+        "return_trace": { "const": true }
+      }
+    }
+  }
+}

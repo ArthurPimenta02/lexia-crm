@@ -1,0 +1,13 @@
+{
+  "servico":"Consulta de Avaliação",
+  "data_preferida":"2026-10-13",
+  "horario_preferido":"3:30 PM",
+  "lexia_call_context":{
+    "scope":{"environment":"isolated_test","cliente_slug":"empresa_sintetica_a","channel":"whatsapp","account_ref":"24000000-0000-4000-8000-000000000001","conversation_ref":"test:synthetic-calendar-a"},
+    "invocation_id":"74000000-0000-4000-8000-000000000010",
+    "captured_state":{"state_version":12,"delivery_epoch":7},
+    "operation":"availability.check",
+    "calendar_access":"isolated_test",
+    "tools_permitidas":true
+  }
+}

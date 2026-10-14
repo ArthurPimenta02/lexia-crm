@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (bytecode compilado dos scripts de migracao)
+__pycache__/
+*.py[cod]

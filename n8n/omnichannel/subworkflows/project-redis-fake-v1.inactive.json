@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Project Redis Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "25000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Projection",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { projected: false, simulated: true, external_call_performed: false } }];"
+      },
+      "id": "25000000-0000-4000-8000-000000000002",
+      "name": "Do Not Connect Redis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Projection": {
+      "main": [[{ "node": "Do Not Connect Redis", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

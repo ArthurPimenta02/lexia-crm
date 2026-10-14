@@ -1,0 +1,16 @@
+{
+  "lexia_environment": "isolated_test",
+  "lexia_client_ref": "miranda_skin_experts",
+  "lexia_allow_workflow_tests": false,
+  "lexia_workflow_test_mode": "remote",
+  "lexia_workflow_test_execution_mode": "full_agent_virtual",
+  "lexia_workflow_test_account_ref": "24000000-0000-4000-8000-000000000003",
+  "lexia_workflow_test_calendar_access": "disabled",
+  "lexia_workflow_test_calendar_write_enabled": false,
+  "lexia_workflow_test_targets": {
+    "omnichannel": "https://n8n.srv1541887.hstgr.cloud/webhook/lexia-miranda-migration-agent-test"
+  },
+  "lexia_workflow_test_allowed_hosts": ["n8n.srv1541887.hstgr.cloud"],
+  "lexia_migration_pipeline_enabled": false,
+  "lexia_migration_commands_enabled": false
+}

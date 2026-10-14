@@ -1,0 +1,217 @@
+{
+  "fixture_version": "lexia.omnichannel.fixture.v1",
+  "contract_status": "provisional",
+  "context_config": {
+    "schema_version": "lexia.context.agent.config.v1",
+    "environment": "isolated_test",
+    "cliente_slug": "empresa_sintetica_a",
+    "config_version": "context-a-v1",
+    "status": "active",
+    "prompt_template": "Extraia somente contexto operacional da empresa sintetica A.",
+    "common_schema_version": "lexia.context.result.v1",
+    "company_fields_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service_interest"],
+      "properties": {
+        "service_interest": { "type": "string" },
+        "first_visit": { "type": "boolean" }
+      }
+    },
+    "locale": "pt-BR",
+    "timezone": "America/Sao_Paulo",
+    "model_policy_ref": "context-policy-test-v1"
+  },
+  "ingress_event": {
+    "schema_version": "lexia.ingress.event.v1",
+    "event_id": "aaaaaaaa-0000-4000-8000-000000000001",
+    "provider_event_id": "provider-event-shared-001",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000002",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_a",
+      "channel": "whatsapp",
+      "account_ref": "11111111-1111-4111-8111-111111111111",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "provider": "zapi",
+    "event_type": "message",
+    "occurred_at": "2026-10-08T12:00:00.000Z",
+    "message": {
+      "schema_version": "lexia.message.v1",
+      "event_id": "aaaaaaaa-0000-4000-8000-000000000001",
+      "provider_event_id": "provider-event-shared-001",
+      "message_id": "message-shared-001",
+      "scope": {
+        "environment": "isolated_test",
+        "cliente_slug": "empresa_sintetica_a",
+        "channel": "whatsapp",
+        "account_ref": "11111111-1111-4111-8111-111111111111",
+        "conversation_ref": "conversation-shared-001"
+      },
+      "author": "lead",
+      "direction": "inbound",
+      "occurred_at": "2026-10-08T12:00:00.000Z",
+      "text": "Gostaria de conhecer o servico alfa."
+    },
+    "contact": {
+      "provider_contact_ref": "contact-a-001",
+      "display_name": "Pessoa Ficticia A",
+      "phone": "+5500000000001"
+    },
+    "capability_refs": ["zapi_events", "authorship", "inbound_text"]
+  },
+  "context_result": {
+    "schema_version": "lexia.context.result.v1",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_a",
+      "channel": "whatsapp",
+      "account_ref": "11111111-1111-4111-8111-111111111111",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "context_call_id": "aaaaaaaa-0000-4000-8000-000000000008",
+    "config_version": "context-a-v1",
+    "source_message_ids": ["message-shared-001"],
+    "operational_context": {
+      "summary": "Contato ficticio perguntou sobre o servico alfa.",
+      "language": "pt-BR",
+      "intent": "learn_service",
+      "topic": {
+        "current": "servico alfa",
+        "changed": false,
+        "resumed_previous": false
+      },
+      "confidence": 0.96,
+      "missing_information": ["data_preferida"],
+      "contact_updates": {},
+      "scheduling_intent": {}
+    },
+    "company_fields": {
+      "service_interest": "alfa",
+      "first_visit": true
+    }
+  },
+  "brain_request": {
+    "schema_version": "lexia.brain.request.v1",
+    "invocation_id": "aaaaaaaa-0000-4000-8000-000000000003",
+    "correlation_id": "aaaaaaaa-0000-4000-8000-000000000002",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_a",
+      "channel": "whatsapp",
+      "account_ref": "11111111-1111-4111-8111-111111111111",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "state": { "state_version": 0, "delivery_epoch": 0 },
+    "messages": [],
+    "contact": { "provider_contact_ref": "contact-a-001" },
+    "operational_context": {
+      "summary": "Contato ficticio perguntou sobre o servico alfa.",
+      "language": "pt-BR",
+      "intent": "learn_service",
+      "topic": { "current": "servico alfa", "changed": false, "resumed_previous": false },
+      "confidence": 0.96,
+      "missing_information": ["data_preferida"],
+      "contact_updates": {},
+      "scheduling_intent": {}
+    },
+    "company_fields": { "service_interest": "alfa", "first_visit": true },
+    "policy": { "resume_mode": "await_new_message" },
+    "capabilities": ["appointment.confirmed"]
+  },
+  "brain_result": {
+    "schema_version": "lexia.brain.result.v1",
+    "invocation_id": "aaaaaaaa-0000-4000-8000-000000000003",
+    "captured_state": { "state_version": 0, "delivery_epoch": 0 },
+    "decision": "reply",
+    "actions": [
+      {
+        "schema_version": "lexia.outbound.action.v1",
+        "action_id": "aaaaaaaa-0000-4000-8000-000000000004",
+        "invocation_id": "aaaaaaaa-0000-4000-8000-000000000003",
+        "scope": {
+          "environment": "isolated_test",
+          "cliente_slug": "empresa_sintetica_a",
+          "channel": "whatsapp",
+          "account_ref": "11111111-1111-4111-8111-111111111111",
+          "conversation_ref": "conversation-shared-001"
+        },
+        "sequence": 1,
+        "kind": "reply",
+        "captured_state": { "state_version": 0, "delivery_epoch": 0 },
+        "content": { "type": "text", "text": "Resposta ficticia da empresa A." }
+      }
+    ],
+    "context_patch": { "last_topic": "servico alfa" },
+    "domain_events": [
+      {
+        "schema_version": "lexia.domain.event.v1",
+        "event_id": "aaaaaaaa-0000-4000-8000-000000000005",
+        "invocation_id": "aaaaaaaa-0000-4000-8000-000000000003",
+        "idempotency_key": "appointment-a-001-confirmed",
+        "type": "appointment.confirmed",
+        "occurred_at": "2026-10-08T12:01:00.000Z",
+        "appointment": {
+          "appointment_ref": "appointment-a-001",
+          "starts_at": "2026-10-09T13:00:00.000Z",
+          "ends_at": "2026-10-09T14:00:00.000Z",
+          "timezone": "America/Sao_Paulo",
+          "tool_invocation_id": "tool-a-001",
+          "status": "confirmed"
+        }
+      }
+    ],
+    "tool_audit": [
+      {
+        "tool_name": "fake_calendar_create",
+        "invocation_id": "tool-a-001",
+        "operation": "appointment.create",
+        "result": "succeeded",
+        "appointment_ref": "appointment-a-001"
+      }
+    ]
+  },
+  "automation_request": {
+    "schema_version": "lexia.automation.request.v1",
+    "request_id": "aaaaaaaa-0000-4000-8000-000000000006",
+    "kind": "appointment_reminder",
+    "scope": {
+      "environment": "isolated_test",
+      "cliente_slug": "empresa_sintetica_a",
+      "channel": "whatsapp",
+      "account_ref": "11111111-1111-4111-8111-111111111111",
+      "conversation_ref": "conversation-shared-001"
+    },
+    "source_ref": "appointment-a-001",
+    "due_at": "2026-10-09T12:00:00.000Z",
+    "proposed_actions": [
+      {
+        "schema_version": "lexia.outbound.action.v1",
+        "action_id": "aaaaaaaa-0000-4000-8000-000000000007",
+        "invocation_id": "aaaaaaaa-0000-4000-8000-000000000003",
+        "scope": {
+          "environment": "isolated_test",
+          "cliente_slug": "empresa_sintetica_a",
+          "channel": "whatsapp",
+          "account_ref": "11111111-1111-4111-8111-111111111111",
+          "conversation_ref": "conversation-shared-001"
+        },
+        "sequence": 1,
+        "kind": "appointment_reminder",
+        "captured_state": { "state_version": 1, "delivery_epoch": 1 },
+        "content": { "type": "text", "text": "Lembrete inteiramente ficticio." },
+        "source_ref": "appointment-a-001"
+      }
+    ]
+  },
+  "delivery_results": [
+    {
+      "schema_version": "lexia.delivery.result.v1",
+      "action_id": "aaaaaaaa-0000-4000-8000-000000000004",
+      "status": "sent",
+      "attempted_at": "2026-10-08T12:01:01.000Z",
+      "provider_message_id": "fake-provider-message-a-001"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "OMNI v2 - Recovery - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "31000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Recovery",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { source_of_truth: 'synthetic_central_state', redis_connected: false, projection_rebuilt: false, ambiguous_delivery_requires_reconciliation: true, simulated: true } }];"
+      },
+      "id": "31000000-0000-4000-8000-000000000002",
+      "name": "Simulate Recovery Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Recovery": {
+      "main": [[{ "node": "Simulate Recovery Decision", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

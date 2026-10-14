@@ -1,0 +1,42 @@
+{
+  "name": "OMNI v2 - Invoke Brain Fake - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2a000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Brain Request",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// item.json.reprocess (lexia.brain.request.v1), when present, lists the\n// superseded invocations, delivered action IDs and executed tool effects that\n// the private brain must not repeat. This fake never calls a brain.\nreturn items.map(item => ({ json: { schema_version: 'lexia.brain.result.v1', invocation_id: item.json.invocation_id, captured_state: item.json.state, decision: 'no_reply', actions: [], context_patch: {}, domain_events: [], tool_audit: [] } }));"
+      },
+      "id": "2a000000-0000-4000-8000-000000000002",
+      "name": "Return Fake Brain Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Brain Request": {
+      "main": [
+        [
+          {
+            "node": "Return Fake Brain Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

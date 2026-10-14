@@ -1,0 +1,42 @@
+{
+  "name": "OMNI v2 - Delivery Gate - LOCAL INACTIVE",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2e000000-0000-4000-8000-000000000001",
+      "name": "Manual Synthetic Action",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Per-action gate, evaluated again before every bubble, in this order:\n// captured state, blocks (an appointment block admits only its own reminder\n// and single confirmation), appointment checks, then a newer lead message.\n// A newer lead message discards the unsent remainder and reprocesses the\n// batch; sent actions and executed tools are never repeated. This harness\n// has no provider credential, so an allowed action still ends observe_only.\nconst state = {\n  state_version: 3,\n  delivery_epoch: 3,\n  lead_message_seq: 2,\n  blocks: [{ type: 'appointment', source_ref: 'synthetic-appointment-1', active: true }],\n  appointments: [{ ref: 'synthetic-appointment-1', status: 'confirmed', starts_at: '2026-10-09T13:00:00.000Z', confirmation_action_id: null }],\n};\nconst now = Date.parse('2026-10-08T12:02:00.000Z');\nconst actions = [\n  { action_id: 'synthetic-a2', kind: 'appointment_confirmation', source_ref: 'synthetic-appointment-1', captured_state_version: 3, captured_delivery_epoch: 3, lead_cutoff_seq: 1 },\n];\nconst bound = new Set(['appointment_reminder', 'appointment_confirmation']);\nfunction evaluate(action) {\n  if (action.captured_state_version !== state.state_version || action.captured_delivery_epoch !== state.delivery_epoch) return 'state_changed';\n  if (state.blocks.some(b => b.active && !(b.type === 'appointment' && bound.has(action.kind) && b.source_ref === action.source_ref))) return 'blocked';\n  if (bound.has(action.kind)) {\n    const appointment = state.appointments.find(a => a.ref === action.source_ref);\n    if (!appointment) return 'appointment_not_found';\n    if (appointment.status === 'cancelled') return 'appointment_cancelled';\n    if (Date.parse(appointment.starts_at) <= now) return 'appointment_started';\n    if (action.kind === 'appointment_confirmation' && appointment.confirmation_action_id && appointment.confirmation_action_id !== action.action_id) return 'appointment_confirmation_already_sent';\n  }\n  if (action.lead_cutoff_seq !== undefined && state.lead_message_seq > action.lead_cutoff_seq) return 'superseded_by_new_message';\n  return 'observe_only';\n}\nconst decisions = actions.map(a => ({ action_id: a.action_id, reason: evaluate(a) }));\nreturn [{ json: { permission_checked: true, checked_before_each_action: true, allowed: false, decisions, reprocess_batch: decisions.some(d => d.reason === 'superseded_by_new_message'), sent_actions_repeated: false, reason: 'observe_only', simulated: true } }];"
+      },
+      "id": "2e000000-0000-4000-8000-000000000002",
+      "name": "Fail Closed Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Manual Synthetic Action": {
+      "main": [
+        [
+          {
+            "node": "Fail Closed Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

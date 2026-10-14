@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.uselexia.invalid/omnichannel/v1/state-command.schema.json",
+  "title": "Lexia Omnichannel State Command v1",
+  "$comment": "PROVISIONAL: command payload details require validation against platform and workflow consumers.",
+  "x-lexia-contract-status": "provisional",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "command_id", "scope", "type", "occurred_at", "payload"],
+  "properties": {
+    "schema_version": { "const": "lexia.state.command.v1" },
+    "command_id": { "type": "string", "format": "uuid" },
+    "scope": { "$ref": "#/$defs/scope" },
+    "type": {
+      "enum": [
+        "human_intervention.record",
+        "manual_pause.start",
+        "manual_pause.end",
+        "handoff.request",
+        "handoff.resolve",
+        "handoff.resume",
+        "appointment.confirm",
+        "appointment.cancel",
+        "appointment.remove",
+        "appointment.attendance.update"
+      ]
+    },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "payload": { "type": "object" }
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "cliente_slug", "channel", "account_ref", "conversation_ref"],
+      "properties": {
+        "environment": { "enum": ["local", "isolated_test", "staging", "production"] },
+        "cliente_slug": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "channel": { "enum": ["whatsapp", "instagram", "messenger"] },
+        "account_ref": { "type": "string", "format": "uuid" },
+        "conversation_ref": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    }
+  }
+}
