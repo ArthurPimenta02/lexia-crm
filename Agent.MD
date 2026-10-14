@@ -1,12 +1,17 @@
 # Lexia CRM - Mapa Operacional e Técnico
 
 > Documento canônico do projeto para pessoas e agentes de código.
-> Última auditoria: 01/10/2026.
+> Última auditoria: 05/10/2026.
 > Leia também `PLAN.MD` antes de alterar arquitetura, banco, autenticação, métricas ou integrações.
 
 ## 1. Leia Isto Primeiro
 
-Este repositório contém o painel web da Lexia AI. Ele não contém os workflows do n8n, a configuração dos Redis dos clientes nem um baseline completo e versionado do schema/RLS remoto. A migration do Analista Lexia está versionada em `supabase/migrations/`, mas o restante do banco ainda precisa ser exportado. A aplicação depende desses elementos externos para funcionar corretamente.
+Este repositório contém o painel web da Lexia AI e o export versionado do
+workflow do Analista em `n8n/`. Ele não contém os workflows omnichannel de
+produção, a configuração dos Redis dos clientes nem um baseline completo e
+versionado do schema/RLS remoto. A migration do Analista Lexia está versionada
+em `supabase/migrations/`, mas o restante do banco ainda precisa ser exportado.
+A aplicação depende desses elementos externos para funcionar corretamente.
 
 Regras inegociáveis:
 
@@ -34,22 +39,29 @@ Regras inegociáveis:
 
 ### Situação do código-fonte
 
-Este é o maior risco atual do projeto:
+- Repositório remoto: `origin` configurado no GitHub.
+- `main`, `origin/main` e o snapshot de produção estavam em `8e13d2b` no
+  início da revisão de 03/10/2026.
+- O Lote 1 de segurança está isolado na branch
+  `codex/lote-1-autorizacao-workflows`.
+- O Lote 1 ainda não foi mesclado, publicado ou aplicado ao banco de produção.
+- O runbook de revisão, implantação e recuperação está em
+  `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 
-- Branch local: `main`.
-- Histórico: apenas o commit inicial `4f3c258` do Create Next App.
-- Remote Git: nenhum configurado.
-- Quase toda a aplicação real está sem rastreamento no Git.
-- Arquivos centrais modificados também não foram consolidados em commit.
-
-Consequência: o deploy pode estar funcional, mas não existe hoje uma trilha confiável para reconstruir, revisar ou reverter a aplicação. A primeira atividade de `PLAN.MD` é preservar e versionar o estado atual.
+O Git já possui uma trilha remota, mas a reconstrução integral ainda depende
+do baseline externo de schema/RLS, n8n, Redis e segredos por ambiente.
 
 ### Segurança conhecida
 
 - Chaves `service_role` foram compartilhadas anteriormente em mensagens e capturas de tela. Elas devem ser consideradas expostas e rotacionadas.
-- `npm audit` em 22/09/2026 encontrou 9 vulnerabilidades: 2 moderadas, 6 altas e 1 crítica.
+- A instalação limpa em 03/10/2026 reportou 14 vulnerabilidades no conjunto de
+  dependências: 2 moderadas, 11 altas e 1 crítica. Nenhum `audit fix` foi
+  aplicado neste lote de autorização.
 - O pacote `next` está em `16.2.9`; o audit indicou correção disponível em `16.3.6`.
-- Existe uma migration isolada para o Analista Lexia, mas ainda não há baseline completo do schema/RLS, testes automatizados ou CI no repositório.
+- Existem migrations incrementais do Analista e do Lote 1, mas ainda não há
+  baseline completo do schema/RLS. A branch do Lote 1 adiciona CI localmente
+  versionado, testes comportamentais/de contrato e uma suite mínima de banco
+  que exige um Supabase descartável. Ela não substitui os E2E da aplicação.
 - Não há `proxy.ts`. O cliente SSR menciona um middleware para renovação de cookies, mas Next.js 16 usa a convenção `proxy.ts`. O fluxo de renovação de sessão precisa ser auditado antes de ser considerado robusto.
 
 ## 3. O Que a Plataforma Faz
@@ -154,9 +166,30 @@ npm run dev
 npm run build
 npm run start
 npm run lint
+npm run typecheck
+npm test
+npm run test:lote1:db:isolated
+npm run test:lote1:isolated
+npm run test:lote1:runtime:isolated
+npm run db:lote1:runtime:verify
+npm run db:lote1:index
 ```
 
-Não existem scripts de teste, typecheck isolado, seed, migration ou geração de tipos.
+Ainda não existem `test:e2e` geral, seed completo ou geração automática de tipos. A
+branch do Lote 1 inclui CI com `npm test`, lint, typecheck e build, mas ainda
+não foi mesclada. `test:lote1:db:isolated` valida somente o harness mínimo de
+banco; `test:lote1:isolated` é um alias compatível. Ambos só podem usar um
+projeto Supabase descartável identificado por marcador remoto.
+`db:lote1:index` exige conexão Postgres identificada pelo `project_ref` e
+confirmação explícita do destino. Existe um harness Next descartável e
+manifestado para cadastro, edição, dispatch e callbacks selecionados. Em
+05/10/2026, o trilho passou os 13 cenários no projeto descartável. A edição de
+configurações não usa mais `revalidatePath`: cada sucesso devolve um token
+novo, e o formulário consome esse token uma única vez com `router.refresh()`.
+Erros preservam o token anterior e não atualizam a rota. O runner confirmou
+duas edições consecutivas, voltar/avançar entre cliente e Dashboard, URL vazia
+preservada, dispatch admin/cliente, callbacks e ausência de segredos no
+navegador, com limpeza final independente.
 
 ## 6. Mapa de Diretórios
 
@@ -192,7 +225,9 @@ app/
   login/                             login
 lib/
   analyst/                           escopo, dados, orquestração n8n e implementação OpenAI legada
+  auth/access-context.ts             autorização central por perfil, tenant, status e operação
   auth/profile.ts                    resolução de usuário e perfil
+  auth/user-link-pending.ts          recuperação de vínculos Auth que falharam
   conversations/message-display.ts  ordenação e expansão visual de mensagens
   dashboard/date-range.ts            períodos e fusos
   dashboard/message-metrics-data.ts  consultas enxutas das métricas por período
@@ -201,8 +236,12 @@ lib/
   redis/agent-locks.ts               travas do agente no Redis (server-only)
   redis/pause-durations.ts           opções de pausa manual (seguro p/ client)
   supabase/                          clientes browser, SSR, admin e paginação concorrente
+  workflows/                         contratos públicos e DAL privado de workflows
 public/lexia/                        símbolos claro e escuro da Lexia
 supabase/migrations/                 migrations incrementais versionadas
+supabase/checks/                     preflight e verificação pós-migration
+supabase/operations/                 operações explícitas fora de transação
+tests/                               testes de contrato e segurança do Lote 1
 ```
 
 Arquivos de referência:
@@ -214,6 +253,7 @@ Arquivos de referência:
 - `lib/dashboard/operational-metrics.ts`: fonte de verdade das fórmulas centrais.
 - `lib/metrics/external-client-metrics.ts`: mapa atual de integrações de agendamento.
 - `lib/conversations/message-display.ts`: comportamento visual das mensagens.
+- `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`: runbook completo do Lote 1.
 
 ## 7. Rotas
 
@@ -336,14 +376,25 @@ Rotas fora da navegação devem ser preservadas. A ausência no menu não signif
 
 ### Status
 
-O perfil possui `status`, normalmente `ativo` ou `inativo`. O comportamento atual é inconsistente:
+Na branch do Lote 1, `lib/auth/access-context.ts` centraliza perfil, papel,
+tenant, empresa e natureza da operação:
 
-- Conversas e algumas ações exigem status `ativo`.
-- Login e layouts validam role, mas não validam status globalmente.
-- Algumas páginas cliente só verificam a existência do `cliente_slug`.
-- Algumas ações admin verificam apenas role; ajustes verificam role e status.
+- perfil inativo é bloqueado no login, layouts, ações e APIs alteradas;
+- usuário cliente acessa somente o slug do próprio vínculo e apenas quando
+  `lexia_clientes.status = 'ativo'`;
+- admin Lexia ativo mantém leitura administrativa global, inclusive de
+  histórico de empresa inativa;
+- novas operações, dispatch, retomada e nova análise exigem empresa ativa;
+- dispatch com origem `painel_admin` exige admin Lexia e empresa ativa tanto
+  na Server Action quanto no DAL; um cliente não ganha esse acesso por conhecer
+  IDs de sessão ou workflow do próprio tenant;
+- admin pode pausar/conter uma integração ainda ativa mesmo depois de a
+  empresa ser inativada;
+- callback assinado pode apenas finalizar uma execução registrada antes da
+  inativação, sem iniciar ferramenta ou nova consulta analítica.
 
-Até a correção planejada, desativar apenas o vínculo pode não bloquear todas as superfícies. A segurança também depende das políticas RLS remotas.
+Essas regras ainda não estão em produção. Dependem da sequência de migrations
+e aplicação descrita em `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 
 ### Clientes Supabase
 
@@ -354,12 +405,22 @@ Até a correção planejada, desativar apenas o vínculo pode não bloquear toda
 
 ### RLS
 
-As políticas não estão no repositório. Portanto:
+O repositório ainda não possui um baseline completo das políticas. O Lote 1
+versiona apenas as policies que precisa endurecer: quatro tabelas do Analista e
+`lexia_ajustes_agente`. `supabase/isolated/` contém somente um baseline mínimo
+e descartável para os contratos de banco do lote, nunca um baseline de
+produção nem um ambiente de smoke da aplicação completa. Portanto:
 
 - Não é possível reconstruir nem auditar completamente a segurança apenas pelo Git.
 - Consultas cliente adicionam `cliente_slug`, mas isso não substitui RLS.
 - Ações com service role precisam validar role, cliente, ID, sessão e origem no próprio código.
+- Empresa inativa precisa ser bloqueada tanto no DAL quanto nas policies de
+  leitura direta do cliente.
 - Qualquer mudança no Supabase deve ser exportada como migration antes do próximo deploy.
+- `site_feedback` permanece inalterada até seu consumidor externo ser
+  identificado.
+- `lexia_buscar_ajustes_agente` permanece `SECURITY INVOKER` e sem mudança de
+  grants/search path até seu consumidor e papel legítimos serem confirmados.
 
 ## 9. Variáveis de Ambiente
 
@@ -397,6 +458,73 @@ MIRANDA_UPSTASH_REDIS_REST_TOKEN
 ```
 
 O prefixo segue o `envPrefix` de `lib/redis/agent-locks.ts`. O token dá leitura e escrita no Redis de produção do cliente: é segredo de servidor e nunca pode ser `NEXT_PUBLIC_*`. Sem estas variáveis a secção de pausas não aparece.
+
+### Destinos privados dos workflows
+
+```text
+LEXIA_WORKFLOW_ALLOWED_HOSTS
+```
+
+Lista de hosts exatos, separados por vírgula, autorizados para cadastro e
+dispatch dos workflows de teste. É server-only. Não aceita wildcard, esquema,
+caminho ou credenciais embutidas. Na branch do Lote 1, sem essa variável o
+cadastro, a edição de destino e o dispatch falham de forma fechada.
+
+### Operações isoladas do Lote 1
+
+Os scripts destrutivos ou com potencial de escrita não inferem produção pela
+URL do preview. Eles exigem refs explícitos e confirmações vinculadas ao alvo:
+
+```text
+LEXIA_PRODUCTION_SUPABASE_PROJECT_REF
+LEXIA_PROTECTED_SUPABASE_PROJECT_REFS       # opcional, CSV
+LEXIA_TEST_SUPABASE_PROJECT_REF
+LEXIA_TEST_CONFIRM_ISOLATED
+LEXIA_DB_OPERATION_URL
+LEXIA_DB_OPERATION_EXPECTED_HOST          # obrigatório para Session pooler
+LEXIA_DB_OPERATION_SSL_ROOT_CERT          # CA pública oficial, caminho local
+LEXIA_DB_OPERATION_EXPECTED_PROJECT_REF
+LEXIA_DB_OPERATION_ENVIRONMENT
+LEXIA_DB_OPERATION_CONFIRM
+LEXIA_DB_OPERATION_PRODUCTION_APPROVAL      # só para produção
+```
+
+Em desenvolvimento, os valores ficam exclusivamente no arquivo ignorado
+`.env.lote1.test.local`; os scripts o carregam por padrão. A suite mínima de
+banco também exige uma linha coerente em `lexia_environment_identity` antes da
+primeira escrita. A reconstrução está em `supabase/isolated/README.md` e exige
+confirmação humana do `project_ref` antes de qualquer SQL. Destinos de workflow
+usam `*.invalid` e não são chamados.
+
+Em redes sem rota IPv6, somente o projeto descartável pode usar o Session
+pooler oficial do Supabase: usuário `postgres.<project_ref>`, host exato
+repetido em `LEXIA_DB_OPERATION_EXPECTED_HOST` e porta `5432`. A porta `6543`
+do Transaction pooler é recusada, assim como pooler em staging ou produção.
+`npm run db:lote1:connectivity` valida alvo, refs protegidos e TLS
+`verify-full`, incluindo subject e fingerprint da `Supabase Root 2021 CA`,
+autentica com o cliente `psql` e encerra com `\q`, sem executar SQL. O script
+de índice ainda exige o marcador remoto descartável antes da primeira escrita.
+
+Esse ambiente mínimo cobre migrations, helper de acesso, policies, grants,
+RPCs e constraints. Ele não contém `lexia_testes_sessoes`,
+`lexia_testes_execucoes`, `lexia_mensagens`, `lexia_contactos`,
+`lexia_feedbacks` nem todos os campos de `lexia_clientes`; por isso não serve
+para smoke tests ponta a ponta de cadastro ou dispatch. Esses testes exigem um
+segundo harness com schema completo, preview isolado e receptor HTTPS falso.
+
+Em 04/10/2026, o projeto descartável `ghwinxmpwqkvqpfkmyve` recebeu o
+baseline mínimo, o marcador de identidade, a migration do Analista, o índice
+concorrente e as migrations `002` e `003`. A verificação pós-corte e
+`npm run test:lote1:db:isolated` passaram. A conferência final encontrou zero
+usuários, identidades e registros sintéticos; somente o schema do harness e o
+marcador permanente foram preservados. Isso não autoriza nem substitui staging
+ou produção.
+
+Em 05/10/2026, o schema adicional do runtime Next no mesmo projeto também foi
+verificado. O ensaio completo usou somente usuários e registros sintéticos e
+um receptor HTTPS no loopback. Os 13 cenários passaram; a conferência posterior
+encontrou novamente zero usuários Auth e zero linhas de produto. O schema e os
+marcadores descartáveis foram preservados para novos ensaios.
 
 ### Analista Lexia (n8n ativo)
 
@@ -469,7 +597,26 @@ Importante: `modo_teste` é hoje majoritariamente informativo na aplicação web
 - `criado_em timestamptz`.
 - `atualizado_em timestamptz`.
 
-A Área de Testes lista apenas workflows `ativo`. A tela de detalhe exibe todos, mas o formulário de configurações edita somente o primeiro workflow ativo, ou o primeiro da lista. Não existe ainda gestão completa de múltiplos workflows pela UI.
+A Área de Testes lista apenas workflows `ativo`. A tela de detalhe exibe todos,
+mas o formulário de configurações edita somente o primeiro workflow ativo, ou
+o primeiro da lista. Não existe ainda gestão completa de múltiplos workflows
+pela UI.
+
+Na branch do Lote 1:
+
+- a UI nunca recebe `webhook_url`, nem mesmo para o admin;
+- a tela recebe apenas `webhookConfigured`;
+- criar e editar exige `requireLexiaAdmin()` e usa `service_role` no servidor;
+- URL vazia na edição preserva o destino atual;
+- cliente pode somente disparar um workflow ativo do próprio tenant;
+- o destino precisa usar HTTPS e host presente em
+  `LEXIA_WORKFLOW_ALLOWED_HOSTS`;
+- a migration de corte revoga leitura ampla e escrita de `authenticated`,
+  inclusive para JWT de admin, concede SELECT apenas às colunas públicas,
+  habilita RLS explicitamente e preserva as policies de admin e tenant.
+
+O corte de grants só pode acontecer depois de a versão compatível da aplicação
+estar ativa no ambiente. Ver `docs/LOTE_1_AUTORIZACAO_WORKFLOWS.md`.
 
 ### `lexia_usuarios_clientes`
 
@@ -481,6 +628,9 @@ A Área de Testes lista apenas workflows `ativo`. A tela de detalhe exibe todos,
 - `criado_em timestamptz`.
 
 O código assume no máximo um perfil por `user_id`, pois usa `maybeSingle()`.
+O Lote 1 formaliza essa regra com `UNIQUE(user_id)` e uma constraint de escopo:
+admin global usa `cliente_slug` nulo; papéis cliente exigem slug. O índice é
+criado concorrentemente fora de transação antes de ser anexado pela migration.
 
 ### `lexia_contactos`
 
@@ -616,7 +766,22 @@ Criadas por `supabase/migrations/202609220001_lexia_ai_analyst.sql`:
 - `lexia_conversation_insights`: uma classificação incremental por `cliente_slug + identificador_conversa`, com resumo, intenção, etapa, sentimento, objeções, qualidade, evidências, cobertura da fonte, modelo e versão do prompt.
 - `lexia_ai_execucoes`: auditoria de chat/classificação, período, canal, ferramentas, fontes, tokens, duração e erro sanitizado.
 
-As quatro tabelas usam RLS. Sessões e mensagens só podem ser vistas pelo autor autenticado; insights só podem ser lidos por admin ou por perfil ativo do próprio tenant; escrita de insights e execuções acontece exclusivamente no backend com service role após autorização. A migration revoga privilégios implícitos de `anon` e concede ao papel `authenticated` apenas as operações previstas.
+As quatro tabelas usam RLS. Sessões e mensagens só podem ser vistas pelo autor
+autenticado; insights só podem ser lidos por admin ou por perfil ativo do
+próprio tenant; escrita de insights e execuções acontece exclusivamente no
+backend com service role após autorização. O Lote 1 preserva dono, sessão e
+tenant nas policies, acrescenta empresa ativa ao acesso cliente e restringe a
+inserção direta de mensagens a `papel = 'usuario'`.
+
+O Lote 1 também cria RPCs somente para `service_role`:
+
+- `lexia_reivindicar_ferramenta_analista`: aceita ferramenta apenas enquanto a
+  execução segue `iniciada`;
+- `lexia_finalizar_execucao_analista`: trava a execução e finaliza mensagem,
+  auditoria e sessão de forma transacional e idempotente. Retry igual não
+  altera o resultado; retry divergente retorna conflito. Dentro do mesmo lock,
+  une os claims de ferramenta já persistidos às ferramentas válidas do
+  callback e grava a mesma lista na execução e na metadata da resposta.
 
 Rollback destrutivo: `supabase/rollbacks/202609220001_lexia_ai_analyst_down.sql`. Fazer export das quatro tabelas antes de executar em ambiente com histórico real.
 
@@ -745,7 +910,10 @@ Regras:
 
 ### Área de Testes
 
-O painel faz `POST` server-side para o `webhook_url` do workflow ativo:
+O painel faz `POST` server-side para o destino privado do workflow ativo. Na
+branch do Lote 1, o navegador envia apenas o ID público; o servidor valida
+perfil, empresa ativa, tenant, sessão, origem, workflow ativo e host permitido,
+carrega `webhook_url` com `service_role` e gera o `run_id`:
 
 ```json
 {
@@ -764,6 +932,14 @@ O painel faz `POST` server-side para o `webhook_url` do workflow ativo:
 ```
 
 O endpoint precisa responder HTTP 2xx. Depois, o workflow deve gravar em `lexia_testes_execucoes` uma linha com o mesmo `cliente_slug`, `session_id`, `run_id` e `origem`.
+
+O POST usa timeout de 12 segundos e recusa redirects. Cliente operacional pode
+somente disparar o workflow autorizado do próprio tenant; cadastro, edição e
+leitura do destino são exclusivos do admin Lexia no servidor.
+
+`painel_admin` não é apenas um valor de origem: ele exige admin Lexia e empresa
+ativa antes de qualquer leitura privilegiada. `painel_cliente` continua preso
+ao único tenant do perfil cliente.
 
 A UI consulta a execução a cada 2 segundos, por até 45 tentativas, aproximadamente 90 segundos. Não existe callback HTTP para a aplicação.
 
@@ -1051,7 +1227,13 @@ Se a criação do workflow falhar, o cliente permanece criado. Não há transaç
 1. Cria usuário no Supabase Auth com e-mail confirmado.
 2. Insere vínculo em `lexia_usuarios_clientes`.
 
-Se o vínculo falhar, o usuário de Auth fica órfão. Não há rollback automático. A interface não possui exclusão de usuário, redefinição de senha ou troca de role depois da criação; apenas status do vínculo.
+Na branch do Lote 1, se o vínculo falhar, o usuário Auth não é excluído nem
+reassociado automaticamente. A falha é gravada em
+`lexia_user_link_pendencias` para revisão e retry administrativo. O retry só
+cria o vínculo quando nenhum outro existe, conclui idempotentemente quando o
+vínculo desejado já existe e preserva a pendência diante de conflito. A
+interface continua sem redefinição de senha ou troca de role depois da criação;
+apenas status do vínculo.
 
 ## 18. Ações Destrutivas
 
@@ -1293,22 +1475,25 @@ Verificar:
 
 ### P0
 
-- Aplicação praticamente inteira fora do Git e sem remote.
 - Service roles previamente expostas e ainda não confirmadas como rotacionadas.
 - Vulnerabilidade crítica no conjunto de dependências atual.
 - Schema, constraints e RLS não versionados.
+- Backup do Supabase central ainda não possui restauração verificada.
 
 ### P1
 
-- Ausência de testes e CI.
-- Status de usuário não aplicado uniformemente.
+- O CI do Lote 1 existe na branch e executa testes, lint, typecheck e build,
+  mas ainda não foi mesclado. As suites isoladas de banco e runtime Next
+  passaram no projeto descartável; ainda não existe E2E geral nem baseline
+  completo do produto, e staging continua sem validação.
+- O Lote 1 de status/autorização ainda não foi aplicado ou validado em staging.
 - Ausência de `proxy.ts`/fluxo documentado de renovação Supabase SSR.
 - Métricas ainda são agregadas no servidor Next.js; índices do banco, view/RPC e comportamento com volume dez vezes maior ainda precisam de auditoria.
 - Gestão de múltiplos workflows incompleta.
-- Criação de usuário pode deixar Auth órfão.
-- Chamada de webhook sem timeout e sem tratamento de exceção de rede.
+- Pendências recuperáveis de vínculo Auth dependem da migration do Lote 1.
 - Dados externos configurados em código.
-- Webhook URL pode aparecer em logs de erro administrativos.
+- Destinos privados e allowlist de workflows dependem do corte faseado do Lote
+  1 e de `LEXIA_WORKFLOW_ALLOWED_HOSTS`.
 - Sem observabilidade estruturada ou alertas.
 - O painel depende do formato das chaves Redis dos workflows; não há teste automatizado desse contrato.
 - O token Upstash usado pelo painel tem acesso total ao Redis do cliente, não apenas às chaves de trava.
@@ -1318,6 +1503,10 @@ Verificar:
 - O disparo inicial do Analista ainda não possui chave idempotente própria.
 - A implementação direta OpenAI e as rotas legadas continuam no repositório até o novo fluxo ser validado em produção.
 - Não há orçamento mensal, alerta de custo ou retenção formal definidos para chamadas e histórico da IA.
+- O consumidor externo de `lexia_buscar_ajustes_agente` ainda não foi
+  identificado; não alterar seus grants/search path antes disso.
+- O consumidor de `site_feedback` ainda não foi identificado; não restringir a
+  submissão pública sem mapear esse fluxo.
 
 ### P2
 
@@ -1455,8 +1644,9 @@ O Analista Lexia é um chat somente leitura para responder perguntas sobre desem
 4. O navegador acompanha a execução a cada 1,5 segundo em `/api/analista/status`; uma sessão recarregada retoma o polling pendente.
 5. O n8n consulta apenas `/api/analista/n8n/tool`, sempre com o ID da execução e Bearer secreto. O backend reconstrói o escopo persistido e não aceita SQL, slug, período ou tabela arbitrária.
 6. Para qualitativo, `listar_conversas` entrega lotes de até quatro conversas, no máximo 120 mensagens e 24 mil caracteres redigidos por conversa.
-7. O n8n chama `/api/analista/n8n/callback` com resposta, ferramentas e referências opacas. O backend valida as fontes, grava a resposta e encerra a execução.
-8. O callback é idempotente por ID determinístico da mensagem. Execuções abertas por mais de 10 minutos expiram como erro.
+7. O n8n chama `/api/analista/n8n/callback` com resposta, ferramentas e referências opacas. O backend valida a execução e as fontes e usa uma RPC transacional para gravar a resposta e encerrar a execução.
+8. O callback é idempotente por execução e ID determinístico da mensagem. Retry igual não sobrescreve; retry divergente retorna conflito. Uma execução final não aceita ferramenta nova. Execuções abertas por mais de 10 minutos expiram como erro.
+9. Se perfil ou empresa forem inativados durante um trabalho já registrado, o callback tardio pode apenas concluir essa execução. Ele não resolve novas fontes nem inicia ferramenta. Pergunta, ferramenta ou execução nova permanecem bloqueadas.
 
 O contrato integral e a montagem nó a nó do workflow estão em
 `docs/LEXIA_CRM_E_ANALISTA_N8N.md`.
@@ -1495,6 +1685,10 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 - Identificadores reais de conversa não são enviados ao workflow; as ferramentas usam referências opacas estáveis.
 - IDs reais e links são resolvidos apenas no servidor e devolvidos como fontes ao usuário autorizado.
 - O n8n não recebe a `service_role` do Supabase central.
+- Callbacks e ferramentas exigem execução registrada e coerência entre
+  execução, sessão, tenant e autor.
+- As RPCs de claim/finalização são exclusivas de `service_role`; o JWT do
+  usuário não consegue chamá-las.
 - O chat limita cada usuário a 12 perguntas por cinco minutos.
 - Histórico de sessão é privado por usuário, mesmo entre dois admins do mesmo tenant.
 - Nunca logar conteúdo integral, credencial ou payload bruto da conversa em erro de aplicação.
@@ -1510,7 +1704,16 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 
 ### Ativação e smoke test
 
-Snapshot em 22/09/2026: migration aplicada e fluxo direto anterior publicado. O código local foi migrado para orquestração n8n assíncrona, mas o workflow e as novas variáveis ainda precisam ser configurados antes do deploy dessa versão.
+Snapshot de produção em 03/10/2026: a migration original do Analista foi aplicada e o
+fluxo direto anterior foi publicado. A branch do Lote 1 acrescenta
+finalização transacional com união de claims concorrentes, claim de ferramenta
+e policies por empresa ativa,
+mas essas mudanças não foram aplicadas ao banco de produção nem publicadas. Em
+04/10/2026 elas passaram no Supabase descartável do Lote 1; staging, backup com
+restauração verificada e nova aprovação continuam obrigatórios antes de
+produção. Em 05/10/2026, o runtime Next descartável também passou cadastro,
+duas edições, dispatch admin/cliente, callbacks e auditoria de exposição; isso
+continua sem equivaler a staging ou autorizar produção.
 
 1. Fazer backup do Supabase central.
 2. Executar `supabase/migrations/202609220001_lexia_ai_analyst.sql` no SQL Editor do projeto central.

@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  getAccessErrorMessage,
+  requireContainmentClientAccess,
+  requireOperationalClientAccess,
+} from "@/lib/auth/access-context";
 import {
   clearEternalPause,
   clearManualPause,
@@ -25,27 +29,29 @@ type PauseContext =
   | { clienteSlug: string; ok: true; role: string; userId: string }
   | { error: string; ok: false };
 
-// O slug do cliente vem sempre do perfil autenticado. O parâmetro só é
-// considerado para o admin Lexia, que precisa escolher o cliente.
-async function getPauseContext(requestedSlug: string): Promise<PauseContext> {
-  const { profile, user } = await getLoggedInUserProfile();
+async function getPauseContext(
+  requestedSlug: string,
+  operation: "pause" | "resume",
+): Promise<PauseContext> {
+  try {
+    const context =
+      operation === "pause"
+        ? await requireContainmentClientAccess(requestedSlug)
+        : await requireOperationalClientAccess(requestedSlug);
 
-  if (!user || !profile || profile.status !== "ativo") {
-    return { error: "Acesso não autorizado.", ok: false };
+    if (!hasAgentLocksIntegration(context.clienteSlug)) {
+      return { error: "Pausas não disponíveis para este cliente.", ok: false };
+    }
+
+    return {
+      clienteSlug: context.clienteSlug,
+      ok: true,
+      role: context.profile.role,
+      userId: context.user.id,
+    };
+  } catch (error) {
+    return { error: getAccessErrorMessage(error), ok: false };
   }
-
-  const clienteSlug =
-    profile.role === "lexia_admin"
-      ? requestedSlug
-      : isClientRole(profile.role)
-        ? profile.cliente_slug
-        : null;
-
-  if (!clienteSlug || !hasAgentLocksIntegration(clienteSlug)) {
-    return { error: "Pausas não disponíveis para este cliente.", ok: false };
-  }
-
-  return { clienteSlug, ok: true, role: profile.role, userId: user.id };
 }
 
 async function conversationExists(
@@ -77,7 +83,7 @@ export async function pauseAgentForConversation(
   identificadorConversa: string,
   duration: string,
 ): Promise<AgentPauseActionResult> {
-  const context = await getPauseContext(requestedSlug);
+  const context = await getPauseContext(requestedSlug, "pause");
 
   if (!context.ok) {
     return { error: context.error, ok: false };
@@ -117,7 +123,7 @@ export async function resumeAgentForConversation(
   identificadorConversa: string,
   kinds: ResumableLockKind[],
 ): Promise<AgentPauseActionResult> {
-  const context = await getPauseContext(requestedSlug);
+  const context = await getPauseContext(requestedSlug, "resume");
 
   if (!context.ok) {
     return { error: context.error, ok: false };

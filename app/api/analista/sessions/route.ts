@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       clienteSlug: url.searchParams.get("clienteSlug") ?? undefined,
       periodo: "mes",
     };
-    const scope = await resolveAnalystScope(input);
+    const scope = await resolveAnalystScope(input, { mode: "read" });
     const sessionId = url.searchParams.get("sessaoId");
     const admin = createAdminClient();
 

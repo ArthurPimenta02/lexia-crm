@@ -7,8 +7,9 @@ import {
   type TestSession,
   type TestWorkflow,
 } from "@/app/app/area-testes/actions";
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { requireClientPanelAccess } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
+import { listClientTestWorkflows } from "@/lib/workflows/private-config";
 
 type ClientTestAreaPageProps = {
   searchParams: Promise<{
@@ -19,25 +20,15 @@ type ClientTestAreaPageProps = {
 export default async function ClientTestAreaPage({
   searchParams,
 }: ClientTestAreaPageProps) {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  if (!user || !profile) {
-    redirect("/login");
-  }
-
-  if (!isClientRole(profile.role)) {
-    redirect("/admin");
-  }
-
-  if (!profile.cliente_slug) {
-    redirect("/app");
-  }
+  const { profile, user } = await requireClientPanelAccess().catch(() =>
+    redirect("/login"),
+  );
 
   const { session } = await searchParams;
   const supabase = await createClient();
   const [
     { data: sessionsData, error: sessionsError },
-    { data: workflowsData, error: workflowsError },
+    workflows,
   ] = await Promise.all([
     supabase
       .from("lexia_testes_sessoes")
@@ -45,24 +36,14 @@ export default async function ClientTestAreaPage({
       .eq("cliente_slug", profile.cliente_slug)
       .eq("origem", "painel_cliente")
       .order("criado_em", { ascending: false }),
-    supabase
-      .from("lexia_workflows")
-      .select("id, nome, tipo, webhook_url")
-      .eq("cliente_slug", profile.cliente_slug)
-      .eq("status", "ativo")
-      .order("nome"),
+    listClientTestWorkflows(),
   ]);
 
   if (sessionsError) {
     throw new Error("Não foi possível buscar as sessões de teste.");
   }
 
-  if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows ativos.");
-  }
-
   const sessions = (sessionsData ?? []) as TestSession[];
-  const workflows = (workflowsData ?? []) as TestWorkflow[];
   const selectedSessionId =
     sessions.find((testSession) => testSession.session_id === session)
       ?.session_id ??
@@ -121,7 +102,7 @@ export default async function ClientTestAreaPage({
         key={selectedSessionId ?? "sem-sessao"}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
-        workflows={workflows}
+        workflows={workflows as TestWorkflow[]}
       />
     </section>
   );

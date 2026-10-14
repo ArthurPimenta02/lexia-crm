@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   updateClientSettings,
   type ClientSettingsState,
 } from "@/app/admin/clientes/[slug]/actions";
+import { getSettingsRefreshTokenToApply } from "@/lib/workflows/settings-refresh";
 
 type ClientSettingsFormProps = {
   clienteSlug: string;
@@ -18,12 +20,14 @@ type ClientSettingsFormProps = {
     workflow_nome: string;
     workflow_tipo: string;
     webhook_url: string;
+    webhook_configured: boolean;
     workflow_status: string;
   };
 };
 
 const initialState: ClientSettingsState = {
   message: null,
+  refreshToken: null,
   type: null,
 };
 
@@ -32,8 +36,26 @@ export function ClientSettingsForm({
   workflowId,
   initialValues,
 }: ClientSettingsFormProps) {
+  const router = useRouter();
   const action = updateClientSettings.bind(null, clienteSlug, workflowId);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const appliedRefreshToken = useRef(
+    state.type === "success" ? state.refreshToken : null,
+  );
+
+  useEffect(() => {
+    const nextToken = getSettingsRefreshTokenToApply(
+      state,
+      appliedRefreshToken.current,
+    );
+
+    if (!nextToken) {
+      return;
+    }
+
+    appliedRefreshToken.current = nextToken;
+    router.refresh();
+  }, [router, state]);
 
   return (
     <form action={formAction} className="grid gap-6">
@@ -139,8 +161,18 @@ export function ClientSettingsForm({
               defaultValue={initialValues.webhook_url}
               id="webhook_url"
               name="webhook_url"
-              placeholder="https://..."
+              placeholder={
+                initialValues.webhook_configured
+                  ? "Deixe vazio para preservar o destino atual"
+                  : "https://..."
+              }
             />
+            {initialValues.webhook_configured ? (
+              <p className="text-xs text-zinc-500">
+                O destino atual é privado. Informe uma nova URL somente para
+                substituí-lo.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2">

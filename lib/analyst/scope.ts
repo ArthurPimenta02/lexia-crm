@@ -1,9 +1,12 @@
 import "server-only";
 
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  AccessDeniedError,
+  requireOperationalClientAccess,
+  requireReadableClientAccess,
+} from "@/lib/auth/access-context";
 import { getDateRange } from "@/lib/dashboard/date-range";
 import { getClientTimezone } from "@/lib/metrics/external-client-metrics";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
   analystChannels,
@@ -29,47 +32,28 @@ function normalizeChannel(value: string | undefined): AnalystChannel {
 
 export async function resolveAnalystScope(
   input: AnalystScopeInput,
+  options: { mode?: "operation" | "read" } = {},
 ): Promise<AnalystScope> {
-  const { profile, user } = await getLoggedInUserProfile();
+  let access;
 
-  if (!user || !profile) {
-    throw new AnalystRequestError("Faça login novamente para continuar.", 401);
-  }
-
-  if (profile.status !== "ativo") {
-    throw new AnalystRequestError("Este acesso não está ativo.", 403);
-  }
-
-  let clienteSlug = "";
-
-  if (profile.role === "lexia_admin") {
-    clienteSlug = String(input.clienteSlug ?? "").trim();
-
-    if (!clienteSlug) {
-      throw new AnalystRequestError("Selecione um cliente para consultar.", 400);
+  try {
+    access =
+      options.mode === "read"
+        ? await requireReadableClientAccess(input.clienteSlug)
+        : await requireOperationalClientAccess(input.clienteSlug);
+  } catch (error) {
+    if (error instanceof AccessDeniedError) {
+      const status =
+        error.status === 404 && !String(input.clienteSlug ?? "").trim()
+          ? 400
+          : error.status;
+      throw new AnalystRequestError(error.message, status);
     }
-  } else if (isClientRole(profile.role) && profile.cliente_slug) {
-    clienteSlug = profile.cliente_slug;
+
+    throw error;
   }
 
-  if (!clienteSlug) {
-    throw new AnalystRequestError("Cliente não encontrado para este acesso.", 403);
-  }
-
-  const admin = createAdminClient();
-  const { data: client, error } = await admin
-    .from("lexia_clientes")
-    .select("nome, slug, status")
-    .eq("slug", clienteSlug)
-    .maybeSingle();
-
-  if (error || !client) {
-    throw new AnalystRequestError("Cliente não encontrado.", 404);
-  }
-
-  if (client.status !== "ativo") {
-    throw new AnalystRequestError("Este cliente não está ativo.", 403);
-  }
+  const { client, clienteSlug, profile, user } = access;
 
   const timezone = getClientTimezone(clienteSlug);
   const range = getDateRange(

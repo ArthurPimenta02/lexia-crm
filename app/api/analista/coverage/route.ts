@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       fim: url.searchParams.get("fim") ?? undefined,
       inicio: url.searchParams.get("inicio") ?? undefined,
       periodo: url.searchParams.get("periodo") ?? undefined,
-    });
+    }, { mode: "read" });
     const context = new AnalystDataContext(scope);
     const coverage = await context.getCoverage();
 

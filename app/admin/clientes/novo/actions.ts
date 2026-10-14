@@ -2,8 +2,9 @@
 
 import { redirect } from "next/navigation";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { createClient } from "@/lib/supabase/server";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createWorkflowAsAdmin } from "@/lib/workflows/private-config";
 
 export type NewClientState = {
   message: string | null;
@@ -11,12 +12,6 @@ export type NewClientState = {
 
 const clientStatuses = ["ativo", "inativo", "suspenso"];
 const workflowStatuses = ["ativo", "inativo", "teste"];
-
-async function isLexiaAdmin() {
-  const { profile, user } = await getLoggedInUserProfile();
-
-  return Boolean(user && profile?.role === "lexia_admin");
-}
 
 function getValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -36,7 +31,9 @@ export async function createClientAction(
   _state: NewClientState,
   formData: FormData,
 ): Promise<NewClientState> {
-  if (!(await isLexiaAdmin())) {
+  try {
+    await requireLexiaAdmin();
+  } catch {
     return { message: "Acesso não autorizado." };
   }
 
@@ -63,7 +60,13 @@ export async function createClientAction(
     return { message: "Status do workflow inválido." };
   }
 
-  const supabase = await createClient();
+  if (criarWorkflow && (!workflowNome || !workflowTipo || !webhookUrl)) {
+    return {
+      message: "Preencha nome, tipo e URL para criar o workflow inicial.",
+    };
+  }
+
+  const supabase = createAdminClient();
   const { data: existingClient, error: lookupError } = await supabase
     .from("lexia_clientes")
     .select("slug")
@@ -91,17 +94,15 @@ export async function createClientAction(
   }
 
   if (criarWorkflow) {
-    const { error: workflowError } = await supabase
-      .from("lexia_workflows")
-      .insert({
-        cliente_slug: slug,
-        nome: workflowNome || null,
-        tipo: workflowTipo || null,
-        webhook_url: webhookUrl || null,
+    try {
+      await createWorkflowAsAdmin({
+        clienteSlug: slug,
+        nome: workflowNome,
         status: workflowStatus,
+        tipo: workflowTipo,
+        webhookUrl,
       });
-
-    if (workflowError) {
+    } catch {
       return {
         message:
           "Cliente criado, mas não foi possível criar o workflow inicial.",

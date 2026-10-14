@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { requireLexiaAdmin } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
 
 type ConversationMessage = {
@@ -65,9 +65,11 @@ export async function saveAdminConversationFeedback(
   categoria: string,
   observacao: string,
 ): Promise<SaveAdminConversationFeedbackResult> {
-  const { profile, user } = await getLoggedInUserProfile();
+  let userId = "";
 
-  if (!user || !profile || profile.role !== "lexia_admin") {
+  try {
+    userId = (await requireLexiaAdmin()).user.id;
+  } catch {
     return { ok: false, error: "Acesso não autorizado." };
   }
 
@@ -141,7 +143,7 @@ export async function saveAdminConversationFeedback(
     mensagem_cliente: previousClientMessage,
     resposta_agente: message.conteudo,
     status: "pendente",
-    criado_por: user.id,
+    criado_por: userId,
   });
 
   if (insertError) {

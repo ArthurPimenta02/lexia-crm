@@ -10,7 +10,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:lote1:db:isolated": "node scripts/test-lote1-isolated.mjs",
+    "test:lote1:isolated": "npm run test:lote1:db:isolated",
+    "test:lote1:runtime:isolated": "node scripts/test-lote1-runtime-next.mjs",
+    "db:lote1:connectivity": "node scripts/check-lote1-db-connectivity.mjs",
+    "db:lote1:runtime:harness": "node scripts/apply-lote1-runtime-harness.mjs",
+    "db:lote1:runtime:verify": "node scripts/apply-lote1-runtime-harness.mjs --verify-only",
+    "db:lote1:index": "node scripts/apply-profile-unique-index.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -22,6 +30,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -29,6 +38,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

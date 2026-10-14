@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { requireClientPanelAccess } from "@/lib/auth/access-context";
 import { createClient } from "@/lib/supabase/server";
 
 type ConversationMessage = {
@@ -64,17 +64,15 @@ export async function saveClientConversationFeedback(
   categoria: string,
   observacao: string,
 ): Promise<SaveConversationFeedbackResult> {
-  const { profile, user } = await getLoggedInUserProfile();
+  let context;
 
-  if (
-    !user ||
-    !profile ||
-    !isClientRole(profile.role) ||
-    !profile.cliente_slug ||
-    profile.status !== "ativo"
-  ) {
+  try {
+    context = await requireClientPanelAccess();
+  } catch {
     return { ok: false, error: "Acesso não autorizado." };
   }
+
+  const { clienteSlug, user } = context;
 
   const selectedCategory = categoria.trim();
 
@@ -89,7 +87,7 @@ export async function saveClientConversationFeedback(
       "id, cliente_slug, identificador_conversa, direccao, tipo, conteudo, criado_em",
     )
     .eq("id", messageId)
-    .eq("cliente_slug", profile.cliente_slug)
+    .eq("cliente_slug", clienteSlug)
     .eq("direccao", "enviada")
     .not("identificador_conversa", "like", "teste:%")
     .maybeSingle();
@@ -98,7 +96,7 @@ export async function saveClientConversationFeedback(
     console.error("Erro ao buscar mensagem para feedback de conversa", {
       error: messageError,
       messageId,
-      clienteSlug: profile.cliente_slug,
+      clienteSlug,
     });
   }
 
@@ -110,7 +108,7 @@ export async function saveClientConversationFeedback(
   const { data: previousMessageData, error: previousMessageError } = await supabase
     .from("lexia_mensagens")
     .select("conteudo")
-    .eq("cliente_slug", profile.cliente_slug)
+    .eq("cliente_slug", clienteSlug)
     .eq("identificador_conversa", message.identificador_conversa)
     .eq("direccao", "recebida")
     .lte("criado_em", message.criado_em ?? new Date().toISOString())
@@ -123,7 +121,7 @@ export async function saveClientConversationFeedback(
     console.error("Erro ao buscar mensagem anterior para feedback de conversa", {
       error: previousMessageError,
       messageId,
-      clienteSlug: profile.cliente_slug,
+      clienteSlug,
     });
   }
 
@@ -133,7 +131,7 @@ export async function saveClientConversationFeedback(
       : null;
 
   const { error: insertError } = await supabase.from("lexia_feedbacks").insert({
-    cliente_slug: profile.cliente_slug,
+    cliente_slug: clienteSlug,
     origem: "painel_cliente",
     avaliacao: getFeedbackRating(selectedCategory),
     comentario: buildComment(
@@ -153,7 +151,7 @@ export async function saveClientConversationFeedback(
     console.error("Erro ao criar feedback de conversa", {
       error: insertError,
       messageId,
-      clienteSlug: profile.cliente_slug,
+      clienteSlug,
       origem: "app_conversas",
     });
 

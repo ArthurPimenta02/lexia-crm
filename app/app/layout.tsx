@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
-import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  requireActiveProfile,
+  requireClientPanelAccess,
+} from "@/lib/auth/access-context";
+import { isClientRole } from "@/lib/auth/profile";
 
 const clientNavigation = [
   { label: "Dashboard", href: "/app" },
@@ -17,14 +21,18 @@ export default async function ClientAppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { profile } = await getLoggedInUserProfile();
-
-  if (!profile) {
-    redirect("/login");
-  }
+  const { profile } = await requireActiveProfile().catch(() =>
+    redirect("/login"),
+  );
 
   if (!isClientRole(profile.role)) {
     redirect("/admin");
+  }
+
+  try {
+    await requireClientPanelAccess();
+  } catch {
+    redirect("/login");
   }
 
   return (
