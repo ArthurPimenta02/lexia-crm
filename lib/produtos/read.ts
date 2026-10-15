@@ -55,6 +55,23 @@ export type ItemReceita = {
 
 export type ReceitasPorServico = Map<string, ItemReceita[]>;
 
+/** Uma linha da receita vista do lado do produto: que serviço o gasta. */
+export type ServicoQueGasta = {
+  custo: number | null;
+  quantidade: number;
+  servicoId: string;
+  servicoNome: string;
+};
+
+export type ServicosPorProduto = Map<string, ServicoQueGasta[]>;
+
+/** Produto excluído: só o suficiente para o repor. */
+export type ProdutoExcluido = {
+  id: string;
+  nome: string;
+  unidade: string;
+};
+
 type ProdutoRow = {
   id: string;
   nome: string;
@@ -77,6 +94,7 @@ type ReceitaRow = {
   produto_id: string;
   quantidade: number | string;
   servico_id: string;
+  servico_nome: string;
 };
 
 function arredondar(valor: number, casas = 2) {
@@ -250,22 +268,109 @@ export function montarReceitas(
   return mapa;
 }
 
-export async function getReceitas(
-  clienteSlug: string,
-  produtos: ProdutoLinha[],
-): Promise<ReceitasPorServico> {
+async function lerLinhasDeReceita(clienteSlug: string): Promise<ReceitaRow[]> {
   const central = await createClient();
 
   const { data, error } = await central
     .from("lexia_servico_produtos")
-    .select("servico_id, produto_id, quantidade")
+    .select("servico_id, servico_nome, produto_id, quantidade")
     .eq("cliente_slug", clienteSlug);
 
   if (error) {
     console.error("[produtos] falha a ler as receitas", error);
 
-    return new Map();
+    return [];
   }
 
-  return montarReceitas((data ?? []) as unknown as ReceitaRow[], produtos);
+  return (data ?? []) as unknown as ReceitaRow[];
+}
+
+export async function getReceitas(
+  clienteSlug: string,
+  produtos: ProdutoLinha[],
+): Promise<ReceitasPorServico> {
+  return montarReceitas(await lerLinhasDeReceita(clienteSlug), produtos);
+}
+
+/**
+ * A mesma receita, virada do avesso: por produto, que serviços o gastam.
+ *
+ * É a vista que a página de Produtos precisa. Sem ela, para saber onde é que
+ * um champô é usado o dono tinha de abrir os serviços um a um.
+ *
+ * `nomesVivos` traz o nome actual do catálogo do cliente. O `servico_nome`
+ * guardado na linha só entra quando o serviço já não aparece lá — serve para a
+ * linha continuar legível, não para competir com a fonte da verdade.
+ */
+export async function getServicosPorProduto(
+  clienteSlug: string,
+  produtos: ProdutoLinha[],
+  nomesVivos: Map<string, string>,
+): Promise<ServicosPorProduto> {
+  const linhas = await lerLinhasDeReceita(clienteSlug);
+  const porId = new Map(produtos.map((produto) => [produto.id, produto]));
+  const mapa: ServicosPorProduto = new Map();
+
+  for (const linha of linhas) {
+    const produto = porId.get(linha.produto_id);
+
+    if (!produto) {
+      continue;
+    }
+
+    const quantidade = toNumber(linha.quantidade) ?? 0;
+
+    const item: ServicoQueGasta = {
+      custo:
+        produto.custoUnitario === null
+          ? null
+          : arredondar(quantidade * produto.custoUnitario),
+      quantidade,
+      servicoId: linha.servico_id,
+      servicoNome: nomesVivos.get(linha.servico_id) ?? linha.servico_nome,
+    };
+
+    const lista = mapa.get(linha.produto_id);
+
+    if (lista) {
+      lista.push(item);
+    } else {
+      mapa.set(linha.produto_id, [item]);
+    }
+  }
+
+  for (const lista of mapa.values()) {
+    lista.sort((a, b) => a.servicoNome.localeCompare(b.servicoNome, "pt"));
+  }
+
+  return mapa;
+}
+
+/**
+ * Produtos excluídos, para poderem ser repostos.
+ *
+ * Excluir é pôr `activo = false`, nunca apagar a linha: os movimentos são o
+ * próprio livro de stock e apagar o produto levava com ele o histórico de
+ * compras. Esta lista é o caminho de volta — sem ela, excluir era uma porta
+ * que só abria num sentido.
+ */
+export async function getProdutosExcluidos(
+  clienteSlug: string,
+): Promise<ProdutoExcluido[]> {
+  const central = await createClient();
+
+  const { data, error } = await central
+    .from("lexia_produtos")
+    .select("id, nome, unidade")
+    .eq("cliente_slug", clienteSlug)
+    .eq("activo", false)
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("[produtos] falha a ler os produtos excluídos", error);
+
+    return [];
+  }
+
+  return (data ?? []) as unknown as ProdutoExcluido[];
 }

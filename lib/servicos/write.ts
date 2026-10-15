@@ -166,6 +166,187 @@ export async function gravarPrecoENotas({
 }
 
 /**
+ * Excluir um serviço: `activo = false` nas duas tabelas do cliente.
+ *
+ * Nunca é um `delete`. A linha do catálogo é a fonte de venda do agente e está
+ * referida por `lexia_servico_produtos` e pelo histórico de consumos em
+ * `lexia_produto_movimentos`; apagá-la era irreversível e deixava o histórico
+ * a apontar para o nada.
+ *
+ * Medido a 15/10/2026 nos workflows do n8n: os três workflows activos que leem
+ * estas tabelas filtram todos `activo = true` (`Cérebro — Detail By Cordeiro
+ * V2`, `verificar_disponibilidade` e `criar_marcacao`). Logo `activo = false`
+ * tira o serviço do que o agente vende e do que o agendamento aceita, de
+ * imediato.
+ *
+ * **A ordem das duas escritas é deliberada e não se inverte.** O catálogo é
+ * desactivado primeiro. Se a segunda escrita falhar, fica um serviço que o
+ * agente já não vende mas que o agendamento ainda aceitaria — inofensivo,
+ * porque ninguém chega ao agendamento sem passar pela venda. Ao contrário: se
+ * o agendamento fosse desactivado primeiro e o catálogo falhasse, o agente
+ * continuava a vender um serviço que já não se consegue marcar, e o cliente
+ * ouvia "sim" e ficava sem marcação. Por isso aqui não se reverte nada — a
+ * reversão é que seria o estado perigoso.
+ */
+export async function excluirServico({
+  caminhoParaRevalidar,
+  clienteSlug,
+  servicoId,
+}: {
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  servicoId: string;
+}): Promise<GravarServicoResultado> {
+  return await definirEstadoDoServico({
+    activo: false,
+    caminhoParaRevalidar,
+    clienteSlug,
+    servicoId,
+  });
+}
+
+/**
+ * Repor um serviço excluído. Volta a aparecer no painel, volta a ser vendido
+ * pelo agente e volta a ser marcável — com a receita de produtos que tinha,
+ * porque excluir o serviço não lhe apaga a receita.
+ */
+export async function reporServico({
+  caminhoParaRevalidar,
+  clienteSlug,
+  servicoId,
+}: {
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  servicoId: string;
+}): Promise<GravarServicoResultado> {
+  return await definirEstadoDoServico({
+    activo: true,
+    caminhoParaRevalidar,
+    clienteSlug,
+    servicoId,
+  });
+}
+
+async function definirEstadoDoServico({
+  activo,
+  caminhoParaRevalidar,
+  clienteSlug,
+  servicoId,
+}: {
+  activo: boolean;
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  servicoId: string;
+}): Promise<GravarServicoResultado> {
+  const config = getServicosConfig(clienteSlug);
+
+  if (!config) {
+    return { mensagem: "Este cliente não tem painel de serviços.", ok: false };
+  }
+
+  const externo = createServicosClient(config);
+
+  if (!externo) {
+    return {
+      mensagem: "Credenciais da base de dados do cliente não configuradas.",
+      ok: false,
+    };
+  }
+
+  // Esta leitura é a autorização sobre o `servicoId` que veio do formulário: se
+  // o id não for um serviço desta empresa, não aparece aqui.
+  const { data: servico, error: erroServico } = await externo
+    .from(config.catalogoTable)
+    .select("id, nome")
+    .eq("id", servicoId)
+    .maybeSingle();
+
+  if (erroServico) {
+    console.error("[servicos] falha a ler o serviço antes de mudar o estado", erroServico);
+
+    return { mensagem: "Não foi possível ler o serviço.", ok: false };
+  }
+
+  if (!servico?.nome) {
+    return { mensagem: "Serviço desconhecido.", ok: false };
+  }
+
+  const nome = String(servico.nome);
+  const verbo = activo ? "reposto" : "excluído";
+
+  const { error: erroCatalogo } = await externo
+    .from(config.catalogoTable)
+    .update({ activo })
+    .eq("id", servicoId);
+
+  if (erroCatalogo) {
+    console.error("[servicos] falha a mudar o estado no catálogo", erroCatalogo);
+
+    return {
+      mensagem: `"${nome}" não foi ${verbo}: o catálogo recusou a escrita.`,
+      ok: false,
+    };
+  }
+
+  // A ligação entre as duas tabelas é o nome: não há chave comum.
+  const { data: operacionais, error: erroLeitura } = await externo
+    .from(config.agendamentoTable)
+    .select("id, nome");
+
+  if (erroLeitura) {
+    console.error("[servicos] falha a ler a tabela operacional", erroLeitura);
+
+    revalidatePath(caminhoParaRevalidar);
+
+    return {
+      mensagem: `"${nome}" ficou ${verbo} no catálogo, mas não foi possível confirmar a linha de agendamento. Verifica ${config.agendamentoTable} na Supabase.`,
+      ok: false,
+    };
+  }
+
+  const alvo = (operacionais ?? []).find(
+    (linha) =>
+      typeof linha.nome === "string" &&
+      normalizarNomeServico(linha.nome) === normalizarNomeServico(nome),
+  );
+
+  if (!alvo) {
+    revalidatePath(caminhoParaRevalidar);
+
+    return {
+      mensagem: `"${nome}" ${verbo}. Não tinha linha em ${config.agendamentoTable}, por isso só o catálogo mudou.`,
+      ok: true,
+    };
+  }
+
+  const { error: erroOperacional } = await externo
+    .from(config.agendamentoTable)
+    .update({ activo })
+    .eq("id", alvo.id);
+
+  revalidatePath(caminhoParaRevalidar);
+
+  if (erroOperacional) {
+    console.error(
+      "[servicos] falha a mudar o estado no operacional",
+      erroOperacional,
+    );
+
+    return {
+      mensagem: `"${nome}" ficou ${verbo} no catálogo, mas a tabela de agendamento recusou a escrita. Verifica ${config.agendamentoTable} na Supabase.`,
+      ok: false,
+    };
+  }
+
+  return {
+    mensagem: activo
+      ? `"${nome}" reposto: volta a ser vendido pelo agente e a aceitar marcações.`
+      : `"${nome}" excluído: sai do painel e o agente deixa de o vender. Podes repô-lo em baixo.`,
+    ok: true,
+  };
+}
+
+/**
  * Escreve o preço nas duas tabelas do cliente.
  *
  * Porque é que isto é delicado: as duas tabelas estão hoje em sintonia (medido

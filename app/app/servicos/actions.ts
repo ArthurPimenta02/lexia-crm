@@ -7,7 +7,9 @@ import {
   type GravarProdutoResultado,
 } from "@/lib/produtos/write";
 import {
+  excluirServico,
   gravarPrecoENotas,
+  reporServico,
   type GravarServicoResultado,
 } from "@/lib/servicos/write";
 
@@ -121,5 +123,51 @@ export async function registarExecucaoAction(
     clienteSlug: perfil.clienteSlug,
     servicoId,
     userId: perfil.userId,
+  });
+}
+
+export async function excluirServicoAction(
+  _anterior: GravarServicoResultado | null,
+  formData: FormData,
+): Promise<GravarServicoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return excluirServico({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    servicoId,
+  });
+}
+
+export async function reporServicoAction(
+  _anterior: GravarServicoResultado | null,
+  formData: FormData,
+): Promise<GravarServicoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return reporServico({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    servicoId,
   });
 }

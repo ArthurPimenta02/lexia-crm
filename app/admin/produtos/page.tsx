@@ -4,14 +4,22 @@ import { redirect } from "next/navigation";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { getProdutos } from "@/lib/produtos/read";
+import {
+  getProdutos,
+  getProdutosExcluidos,
+  getServicosPorProduto,
+} from "@/lib/produtos/read";
 import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosSimples } from "@/lib/servicos/read";
 import { createClient } from "@/lib/supabase/server";
 
 import {
   criarProdutoAdminAction,
+  definirReceitaDoProdutoAdminAction,
+  excluirProdutoAdminAction,
   registarAjusteAdminAction,
   registarCompraAdminAction,
+  reporProdutoAdminAction,
 } from "./actions";
 
 type AdminCliente = {
@@ -84,7 +92,18 @@ export default async function AdminProdutosPage({
   }
 
   const clienteSlug = clienteSelecionado.slug;
-  const produtos = await getProdutos(clienteSlug);
+  const [produtos, servicos, excluidos] = await Promise.all([
+    getProdutos(clienteSlug),
+    getServicosSimples(clienteSlug),
+    getProdutosExcluidos(clienteSlug),
+  ]);
+
+  const servicosPorProduto = await getServicosPorProduto(
+    clienteSlug,
+    produtos,
+    new Map(servicos.map((servico) => [servico.id, servico.nome])),
+  );
+
   const moeda = getServicosConfig(clienteSlug)?.moeda ?? "EUR";
 
   const selectorDeCliente = (
@@ -131,11 +150,17 @@ export default async function AdminProdutosPage({
         actionAjuste={registarAjusteAdminAction}
         actionCompra={registarCompraAdminAction}
         actionCriar={criarProdutoAdminAction}
+        actionExcluir={excluirProdutoAdminAction}
+        actionReceita={definirReceitaDoProdutoAdminAction}
+        actionRepor={reporProdutoAdminAction}
         clienteSlug={clienteSlug}
+        excluidos={excluidos}
         leading={selectorDeCliente}
         moeda={moeda}
         podeEditar
         produtos={produtos}
+        servicos={servicos}
+        servicosPorProduto={servicosPorProduto}
       />
     </div>
   );

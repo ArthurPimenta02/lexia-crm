@@ -128,7 +128,7 @@ Next.js na Vercel (este repositório)
 
 Cada cliente tem o seu próprio Redis no Upstash, usado pelo n8n para buffer, contexto e travas do agente. Desde 19/09/2026 o painel acede diretamente a esse Redis, apenas no servidor e pela API REST do Upstash, para uma única finalidade: ler as travas do agente e gravar ou remover a pausa manual e a pausa pós-agendamento. O painel não lê buffer, contexto nem eco. O contrato das chaves está na secção 12 e o código em `lib/redis/agent-locks.ts`. Não há dependência npm de Redis; o acesso é feito com `fetch`.
 
-Clientes com a integração ativa: `miranda_skin_experts`. Para os demais, as telas simplesmente não mostram a secção de pausas.
+Clientes com a integração ativa: `miranda_skin_experts` e `detail_by_cordeiro`. Para os demais, as telas simplesmente não mostram a secção de pausas — e o mesmo acontecia ao Detail até 15/10/2026, nos **dois** ecrãs, por lhe faltar a entrada em `clientConfigs`.
 
 ## 5. Stack e Convenções
 
@@ -501,6 +501,47 @@ o `servicoId` que vem do formulário é a leitura do catálogo do cliente
 
 Na receita, **quantidade zero apaga a linha**. É o mesmo campo e o mesmo botão,
 em vez de um segundo botão que tinha de ser explicado.
+
+### Excluir produtos e serviços (Fase 11)
+
+Nada é apagado: excluir é `activo = false`, e há sempre o caminho de volta
+(`getProdutosExcluidos` / `getServicosExcluidos`, com o bloco "Excluídos" no fim
+de cada ecrã). Um `delete` real era irreversível por desenho: as FKs
+`lexia_produto_movimentos.produto_id` e `lexia_servico_produtos.produto_id` têm
+`on delete cascade`, logo levavam o histórico de stock e o custo unitário que
+alimenta a margem de serviços **já vendidos**.
+
+**Excluir um produto apaga as linhas da receita dele — essas sim, a sério.** Se
+ficassem, `registarExecucao` continuava a descontar stock de um produto que já
+não aparece em sítio nenhum: stock a desaparecer sem o dono ter onde o ver. Por
+isso repor um produto não repõe as quantidades por serviço, e a confirmação di-lo
+antes de excluir. `definirReceita` recusa produtos excluídos: o ecrã não os
+oferece, mas o `produto_id` vem do formulário e um separador aberto antes da
+exclusão voltava a ligá-lo.
+
+**Excluir um serviço escreve `activo = false` nas duas tabelas do cliente, por
+esta ordem: catálogo primeiro, agendamento depois.** Medido a 15/10/2026 contra
+os 139 workflows do n8n via API: só três workflows activos leem estas tabelas
+(`Cérebro — Detail By Cordeiro V2`, `verificar_disponibilidade` e
+`criar_marcacao`) e **os três filtram `activo = true`** — ou seja, `activo =
+false` basta para o agente deixar de vender e o agendamento deixar de aceitar.
+A ordem não é arbitrária e **nada é revertido se a segunda escrita falhar**:
+catálogo-off com agendamento-on é inofensivo (ninguém chega ao agendamento sem
+passar pela venda), o inverso fazia o agente vender o que não se pode marcar e o
+cliente ouvia "sim" sem ficar com marcação. Nesse caso a mensagem é honesta e
+nomeia a tabela que ficou por mudar.
+
+Risco latente, não corrigido: 15 nós em workflows **inactivos** leem estas
+tabelas sem filtro nenhum. Se algum for reactivado, serviços excluídos voltam ao
+agente.
+
+**Ligar serviços a um produto também se faz na página Produtos.** É a mesma
+tabela `lexia_servico_produtos` e a mesma escrita (`definirReceita`); muda só a
+direcção da leitura (`getServicosPorProduto`). Quando acaba o champô, a pergunta
+que o dono tem na cabeça é "onde é que isto se está a gastar", e essa não se
+responde abrindo os quinze serviços um a um. Quando o nome do serviço vivo e o
+`servico_nome` guardado divergem, ganha o vivo — o guardado serve para a linha
+continuar legível, não para competir com a fonte da verdade.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 
@@ -938,7 +979,14 @@ Contrato mínimo de mensagem:
 
 ### Travas do agente no Redis
 
-Contrato partilhado entre o painel e os workflows da Miranda. O namespace é `lexia:novo_cliente:{canal}:v1` e o `identificador_conversa` tem o formato `{canal}:{dígitos}`, igual ao de `lexia_contactos`.
+Contrato partilhado entre o painel e os workflows do cliente. O `identificador_conversa` tem o formato `{canal}:{dígitos}`, igual ao de `lexia_contactos`. O namespace é por cliente:
+
+| Cliente | Namespace | `pausa_eterna` |
+| --- | --- | --- |
+| `miranda_skin_experts` | `lexia:novo_cliente:{canal}:v1` | sim, só WhatsApp |
+| `detail_by_cordeiro` | `lexia:detail_by_cordeiro:{canal}:v1` | não — nenhum workflow a escreve |
+
+O Detail foi ligado a 15/10/2026. A integração já existia inteira (acções, componentes, autorização para roles de cliente) e os workflows dele já liam estas chaves — faltava só a entrada em `clientConfigs`, e sem ela `hasAgentLocksIntegration` devolvia `false` e `ConversationAgentStatus` devolvia `null` nos dois ecrãs. Antes de ligar, verificado contra dados reais: as 10 chaves `status` no Redis do Detail são reproduzidas **byte a byte** por `buildKey`, 9 das 10 conversas existem em `lexia_contactos` (a décima não passaria o `conversationExists` do `pauseAgentForConversation`), e 916 dos 997 contactos do Detail têm identificador no formato aceite — os 81 restantes são `teste:%`, que a acção exclui de propósito.
 
 | Trava | Chave | Valor | Validade | Quem grava | Painel |
 | --- | --- | --- | --- | --- | --- |
@@ -948,7 +996,8 @@ Contrato partilhado entre o painel e os workflows da Miranda. O namespace é `le
 
 Regras:
 
-- O omnichannel lê `pausa_manual` antes de `Agente desativado?` e antes de `Samuel Continuou?`. Qualquer valor não vazio pausa; `DEL` despausa.
+- O omnichannel lê `pausa_manual` antes de `Agente desativado?` e antes de `Samuel Continuou?`. Qualquer valor não vazio pausa; `DEL` despausa. No Detail é o nó `Ver Pausa Manual` do omnichannel activo, que monta `redis_namespace + ':pausa_manual:' + identificador_conversa`; o follow-up V2 lê a mesma chave e, se estiver pausado, empurra o envio 2 h em vez de o perder.
+- No `lexia_followups` do Detail o `identificador` traz o slug à frente (`detail_by_cordeiro:whatsapp:351…`), ao contrário da Miranda. O painel não toca nessa tabela, mas quem montar chaves a partir dela tem de tirar o prefixo — senão lê uma chave que nunca existe e falha em silêncio.
 - Intervenção humana e handoff partilham a mesma chave e o mesmo valor, por isso o painel não os distingue.
 - Os detalhes do handoff (motivo, resumo, prioridade) não ficam no Redis nem em `lexia_handoffs`; hoje só vão na notificação de WhatsApp para a equipa.
 - Mudar o formato de qualquer chave exige alterar `lib/redis/agent-locks.ts` e este documento no mesmo commit.

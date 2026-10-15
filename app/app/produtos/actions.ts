@@ -3,8 +3,11 @@
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   criarProduto,
+  definirReceita,
+  excluirProduto,
   registarAjuste,
   registarCompra,
+  reporProduto,
   type GravarProdutoResultado,
 } from "@/lib/produtos/write";
 
@@ -108,6 +111,88 @@ export async function registarAjusteAction(
     notaBruta: String(formData.get("nota") ?? ""),
     produtoId,
     quantidadeBruta: String(formData.get("quantidade") ?? ""),
+    userId: perfil.userId,
+  });
+}
+
+export async function excluirProdutoAction(
+  _anterior: GravarProdutoResultado | null,
+  formData: FormData,
+): Promise<GravarProdutoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const produtoId = String(formData.get("produto_id") ?? "").trim();
+
+  if (!produtoId) {
+    return { mensagem: "Produto não identificado.", ok: false };
+  }
+
+  return excluirProduto({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    produtoId,
+    userId: perfil.userId,
+  });
+}
+
+export async function reporProdutoAction(
+  _anterior: GravarProdutoResultado | null,
+  formData: FormData,
+): Promise<GravarProdutoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const produtoId = String(formData.get("produto_id") ?? "").trim();
+
+  if (!produtoId) {
+    return { mensagem: "Produto não identificado.", ok: false };
+  }
+
+  return reporProduto({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    produtoId,
+    userId: perfil.userId,
+  });
+}
+
+/**
+ * Ligar um serviço a este produto, a partir da página de Produtos.
+ *
+ * É a mesma escrita que a receita faz do lado dos Serviços — a tabela é uma só.
+ * O que muda é só por onde o dono entra: às vezes pensa "o que gasta este
+ * champô", não "o que gasta esta lavagem".
+ */
+export async function definirReceitaDoProdutoAction(
+  _anterior: GravarProdutoResultado | null,
+  formData: FormData,
+): Promise<GravarProdutoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const produtoId = String(formData.get("produto_id") ?? "").trim();
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!produtoId || !servicoId) {
+    return { mensagem: "Produto ou serviço não identificado.", ok: false };
+  }
+
+  return definirReceita({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    produtoId,
+    quantidadeBruta: String(formData.get("quantidade") ?? ""),
+    servicoId,
     userId: perfil.userId,
   });
 }

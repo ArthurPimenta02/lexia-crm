@@ -7,7 +7,9 @@ import {
   type GravarProdutoResultado,
 } from "@/lib/produtos/write";
 import {
+  excluirServico,
   gravarPrecoENotas,
+  reporServico,
   type GravarServicoResultado,
 } from "@/lib/servicos/write";
 import { createClient } from "@/lib/supabase/server";
@@ -128,5 +130,51 @@ export async function registarExecucaoAdminAction(
     clienteSlug: autorizado.clienteSlug,
     servicoId,
     userId: autorizado.userId,
+  });
+}
+
+export async function excluirServicoAdminAction(
+  _anterior: GravarServicoResultado | null,
+  formData: FormData,
+): Promise<GravarServicoResultado> {
+  const autorizado = await clienteAutorizado(formData);
+
+  if (!autorizado) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return excluirServico({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: autorizado.clienteSlug,
+    servicoId,
+  });
+}
+
+export async function reporServicoAdminAction(
+  _anterior: GravarServicoResultado | null,
+  formData: FormData,
+): Promise<GravarServicoResultado> {
+  const autorizado = await clienteAutorizado(formData);
+
+  if (!autorizado) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return reporServico({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: autorizado.clienteSlug,
+    servicoId,
   });
 }

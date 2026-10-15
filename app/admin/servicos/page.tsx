@@ -10,8 +10,10 @@ import { createClient } from "@/lib/supabase/server";
 
 import {
   definirReceitaAdminAction,
+  excluirServicoAdminAction,
   gravarServicoAdminAction,
   registarExecucaoAdminAction,
+  reporServicoAdminAction,
 } from "./actions";
 
 type AdminCliente = {
@@ -155,8 +157,10 @@ export default async function AdminServicosPage({
 
       <ServicosPanel
         action={gravarServicoAdminAction}
+        actionExcluir={excluirServicoAdminAction}
         actionExecucao={registarExecucaoAdminAction}
         actionReceita={definirReceitaAdminAction}
+        actionRepor={reporServicoAdminAction}
         basePath="/admin/servicos"
         clienteSlug={clienteSlug}
         leading={selectorDeCliente}
