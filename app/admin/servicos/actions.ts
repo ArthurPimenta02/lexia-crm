@@ -2,8 +2,12 @@
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
-  gravarCustoDoServico,
-  gravarCustoHoraDoExecutor,
+  definirReceita,
+  registarExecucao,
+  type GravarProdutoResultado,
+} from "@/lib/produtos/write";
+import {
+  gravarPrecoENotas,
   type GravarServicoResultado,
 } from "@/lib/servicos/write";
 import { createClient } from "@/lib/supabase/server";
@@ -66,10 +70,9 @@ export async function gravarServicoAdminAction(
     return { mensagem: "Serviço não identificado.", ok: false };
   }
 
-  return gravarCustoDoServico({
+  return gravarPrecoENotas({
     caminhoParaRevalidar: caminho,
     clienteSlug: autorizado.clienteSlug,
-    custoProdutoBruto: String(formData.get("custo_produto") ?? ""),
     notasBruto: String(formData.get("notas") ?? ""),
     precoBruto: String(formData.get("preco") ?? ""),
     servicoId,
@@ -77,27 +80,53 @@ export async function gravarServicoAdminAction(
   });
 }
 
-export async function gravarCustoHoraAdminAction(
-  _anterior: GravarServicoResultado | null,
+export async function definirReceitaAdminAction(
+  _anterior: GravarProdutoResultado | null,
   formData: FormData,
-): Promise<GravarServicoResultado> {
+): Promise<GravarProdutoResultado> {
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
     return semPermissao;
   }
 
-  const executor = String(formData.get("executor") ?? "").trim();
+  const produtoId = String(formData.get("produto_id") ?? "").trim();
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
 
-  if (!executor) {
-    return { mensagem: "Executor não identificado.", ok: false };
+  if (!produtoId || !servicoId) {
+    return { mensagem: "Produto ou serviço não identificado.", ok: false };
   }
 
-  return gravarCustoHoraDoExecutor({
+  return definirReceita({
     caminhoParaRevalidar: caminho,
     clienteSlug: autorizado.clienteSlug,
-    custoHoraBruto: String(formData.get("custo_hora") ?? ""),
-    executor,
+    produtoId,
+    quantidadeBruta: String(formData.get("quantidade") ?? ""),
+    servicoId,
+    userId: autorizado.userId,
+  });
+}
+
+export async function registarExecucaoAdminAction(
+  _anterior: GravarProdutoResultado | null,
+  formData: FormData,
+): Promise<GravarProdutoResultado> {
+  const autorizado = await clienteAutorizado(formData);
+
+  if (!autorizado) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return registarExecucao({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: autorizado.clienteSlug,
+    servicoId,
     userId: autorizado.userId,
   });
 }

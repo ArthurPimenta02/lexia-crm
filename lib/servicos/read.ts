@@ -1,4 +1,10 @@
 import {
+  getProdutos,
+  getReceitas,
+  type ItemReceita,
+  type ProdutoLinha,
+} from "@/lib/produtos/read";
+import {
   createServicosClient,
   getServicosConfig,
   normalizarNomeServico,
@@ -10,34 +16,35 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Leitura do painel de serviços: junta o catálogo e o operacional da Supabase
- * DO CLIENTE com os custos da Supabase CENTRAL e calcula a margem.
+ * DO CLIENTE com a receita de produtos da Supabase CENTRAL e calcula a margem.
  *
- * A margem nunca é guardada. Preço e duração vivem na base do cliente e mudam
- * lá; um valor gravado aqui ficava velho em silêncio.
+ * Nada disto é guardado. Preço e duração vivem na base do cliente e mudam lá;
+ * o custo de produto sai da receita ao preço da última compra. Um valor
+ * gravado aqui ficava velho em silêncio.
  */
 
 export const escalaoBase = "base";
 
 export type ExecutorLinha = {
   chave: string;
-  custoHora: number | null;
-  custoMaoDeObra: number | null;
   duracaoMinutos: number | null;
   euroPorHora: number | null;
   executa: boolean;
-  margem: number | null;
-  margemPercent: number | null;
   nome: string;
 };
 
 export type ServicoLinha = {
   agendamentoId: string | null;
   categoria: string | null;
-  custoActualizadoEm: string | null;
+  /** Soma da receita ao custo unitário actual. Null se a receita está vazia. */
   custoProduto: number | null;
+  /** Há produtos na receita sem compra registada, logo sem preço. */
+  custoProdutoIncompleto: boolean;
   descricaoCurta: string | null;
   executores: ExecutorLinha[];
   id: string;
+  margem: number | null;
+  margemPercent: number | null;
   moeda: string;
   nome: string;
   notas: string | null;
@@ -55,14 +62,9 @@ export type ServicoLinha = {
    * Ver `extrairPrecosAlternativos`.
    */
   precosAlternativos: { label: string; valor: number }[];
+  /** Que produtos este serviço consome e quanto. */
+  receita: ItemReceita[];
   tipoPreco: string | null;
-};
-
-export type ExecutorCusto = {
-  actualizadoEm: string | null;
-  chave: string;
-  custoHora: number | null;
-  nome: string;
 };
 
 export type PainelServicos = {
@@ -70,9 +72,10 @@ export type PainelServicos = {
   escalaoActivo: string;
   escaloes: EscalaoConfig[];
   executorPrincipal: string | null;
-  executores: ExecutorCusto[];
   moeda: string;
-  semCusto: number;
+  /** Produtos activos do cliente, para montar a receita de cada serviço. */
+  produtos: ProdutoLinha[];
+  semReceita: number;
   servicos: ServicoLinha[];
   vazioMotivo: string | null;
 };
@@ -102,9 +105,9 @@ function painelVazio(motivo: string | null, config?: ServicosClientConfig | null
     escalaoActivo: escalaoBase,
     escaloes: config?.escaloes ?? [],
     executorPrincipal: config?.executores[0]?.chave ?? null,
-    executores: [],
     moeda: config?.moeda ?? "EUR",
-    semCusto: 0,
+    produtos: [],
+    semReceita: 0,
     servicos: [],
     vazioMotivo: motivo,
   };
@@ -317,7 +320,7 @@ export async function getPainelServicos({
     ]),
   ).join(", ");
 
-  const [catalogo, agendamento, custos, executoresCusto] = await Promise.all([
+  const [catalogo, agendamento, custos, produtos] = await Promise.all([
     externo
       .from(config.catalogoTable)
       .select(
@@ -328,13 +331,14 @@ export async function getPainelServicos({
     externo.from(config.agendamentoTable).select(colunasAgendamento),
     central
       .from("lexia_servico_custos")
-      .select("servico_id, custo_produto, notas, actualizado_em")
+      .select("servico_id, notas, actualizado_em")
       .eq("cliente_slug", clienteSlug),
-    central
-      .from("lexia_executores_custo")
-      .select("executor, nome, custo_hora, actualizado_em")
-      .eq("cliente_slug", clienteSlug),
+    getProdutos(clienteSlug),
   ]);
+
+  // Depende dos produtos: o custo de cada linha da receita é o custo unitário
+  // da última compra desse produto.
+  const receitas = await getReceitas(clienteSlug, produtos);
 
   if (catalogo.error) {
     console.error("[servicos] falha a ler o catálogo do cliente", catalogo.error);
@@ -353,36 +357,13 @@ export async function getPainelServicos({
   }
 
   if (custos.error) {
-    console.error("[servicos] falha a ler os custos centrais", custos.error);
+    console.error("[servicos] falha a ler as notas centrais", custos.error);
   }
 
-  if (executoresCusto.error) {
-    console.error(
-      "[servicos] falha a ler o custo por hora",
-      executoresCusto.error,
-    );
-  }
-
-  const custoPorHora = new Map<string, { actualizadoEm: string | null; custoHora: number | null }>();
-
-  for (const linha of executoresCusto.data ?? []) {
-    custoPorHora.set(String(linha.executor), {
-      actualizadoEm: linha.actualizado_em ?? null,
-      custoHora: toNumber(linha.custo_hora),
-    });
-  }
-
-  const custoPorServico = new Map<
-    string,
-    { actualizadoEm: string | null; custoProduto: number | null; notas: string | null }
-  >();
+  const notasPorServico = new Map<string, string | null>();
 
   for (const linha of custos.data ?? []) {
-    custoPorServico.set(String(linha.servico_id), {
-      actualizadoEm: linha.actualizado_em ?? null,
-      custoProduto: toNumber(linha.custo_produto),
-      notas: linha.notas ?? null,
-    });
+    notasPorServico.set(String(linha.servico_id), linha.notas ?? null);
   }
 
   const agendamentoPorNome = new Map<string, AgendamentoRow>();
@@ -417,8 +398,25 @@ export async function getPainelServicos({
     const precoBaseAgendamento = operacional
       ? toNumber(operacional.preco_base)
       : null;
-    const custo = custoPorServico.get(linha.id) ?? null;
-    const custoProduto = custo?.custoProduto ?? null;
+    const receita = receitas.get(linha.id) ?? [];
+
+    // Com um produto sem compra registada, a soma seria mentira por omissão:
+    // dava um custo mais baixo do que o real e a margem aparecia melhor do que
+    // é. Nesse caso não há número, há o aviso de que falta registar a compra.
+    const custoProdutoIncompleto = receita.some((item) => item.custo === null);
+    const custoProduto =
+      receita.length === 0 || custoProdutoIncompleto
+        ? null
+        : arredondar(receita.reduce((total, item) => total + (item.custo ?? 0), 0));
+
+    const margem =
+      preco !== null && custoProduto !== null
+        ? arredondar(preco - custoProduto)
+        : null;
+    const margemPercent =
+      margem !== null && preco !== null && preco > 0
+        ? arredondar((margem / preco) * 100)
+        : null;
 
     const executores = config.executores.map<ExecutorLinha>((executor) => {
       const executa = operacional
@@ -427,33 +425,17 @@ export async function getPainelServicos({
       const duracaoMinutos = operacional
         ? toNumber(operacional[executor.duracaoColumn] as number | string | null)
         : null;
-      const custoHora = custoPorHora.get(executor.chave)?.custoHora ?? null;
       const horas = duracaoMinutos !== null ? duracaoMinutos / 60 : null;
-
-      const custoMaoDeObra =
-        horas !== null && custoHora !== null ? arredondar(horas * custoHora) : null;
       const euroPorHora =
         preco !== null && horas !== null && horas > 0
           ? arredondar(preco / horas)
           : null;
-      const margem =
-        preco !== null && custoProduto !== null && custoMaoDeObra !== null
-          ? arredondar(preco - custoProduto - custoMaoDeObra)
-          : null;
-      const margemPercent =
-        margem !== null && preco !== null && preco > 0
-          ? arredondar((margem / preco) * 100)
-          : null;
 
       return {
         chave: executor.chave,
-        custoHora,
-        custoMaoDeObra,
         duracaoMinutos,
         euroPorHora,
         executa,
-        margem,
-        margemPercent,
         nome: executor.nome,
       };
     });
@@ -461,14 +443,16 @@ export async function getPainelServicos({
     servicos.push({
       agendamentoId: operacional?.id ?? null,
       categoria: linha.categoria ?? null,
-      custoActualizadoEm: custo?.actualizadoEm ?? null,
       custoProduto,
+      custoProdutoIncompleto,
       descricaoCurta: linha.descricao_curta ?? null,
       executores,
       id: linha.id,
+      margem,
+      margemPercent,
       moeda: config.moeda,
       nome,
-      notas: custo?.notas ?? null,
+      notas: notasPorServico.get(linha.id) ?? null,
       notasCatalogo: extrairNotasDoCatalogo(linha.precos_por_categoria),
       ordem: linha.ordem ?? 0,
       preco,
@@ -487,6 +471,7 @@ export async function getPainelServicos({
         escaloesConhecidos,
         valorBase,
       ),
+      receita,
       tipoPreco: linha.tipo_preco ?? null,
     });
   }
@@ -498,14 +483,9 @@ export async function getPainelServicos({
     escalaoActivo,
     escaloes: config.escaloes,
     executorPrincipal: config.executores[0]?.chave ?? null,
-    executores: config.executores.map((executor) => ({
-      actualizadoEm: custoPorHora.get(executor.chave)?.actualizadoEm ?? null,
-      chave: executor.chave,
-      custoHora: custoPorHora.get(executor.chave)?.custoHora ?? null,
-      nome: executor.nome,
-    })),
     moeda: config.moeda,
-    semCusto: servicos.filter((servico) => servico.custoProduto === null).length,
+    produtos,
+    semReceita: servicos.filter((servico) => servico.receita.length === 0).length,
     servicos,
     vazioMotivo: servicos.length === 0 ? "Sem serviços activos no catálogo." : null,
   };

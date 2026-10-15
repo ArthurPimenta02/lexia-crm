@@ -368,8 +368,9 @@ e `app/admin/servicos/actions.ts`). A lógica partilhada está em
 **Os dados vivem em duas bases de dados de propósito.** Preço e duração ficam na
 Supabase **do cliente**, nas duas tabelas que já existem — `agendamento_servicos`
 (operacional, com duração por executor) e `servicos_detail_by_cordeiro` (mestre
-de venda, que alimenta o RAG do agente). Custo de produto e custo por hora ficam
-na Supabase **central**, em `lexia_servico_custos` e `lexia_executores_custo`.
+de venda, que alimenta o RAG do agente). Na Supabase **central** fica a receita
+de produtos de cada serviço (`lexia_servico_produtos`, Fase 10) e as notas
+(`lexia_servico_custos.notas`).
 
 O custo não desce para a base do cliente por um motivo concreto: essa é a base
 que o agente de vendas lê. A margem do dono não é para poder aparecer numa
@@ -379,9 +380,20 @@ O catálogo não sobe para a central porque passaria a existir uma quarta
 representação dos serviços — e seria a única que o agente não lê. Duas semanas
 depois o painel mostrava um preço e o agente vendia outro.
 
-**A margem nunca é guardada.** É calculada na leitura:
-`preço − custo_produto − (duração_do_executor / 60 × custo_hora)`. Um valor
-gravado envelheceria em silêncio a cada alteração de preço do outro lado.
+**A margem nunca é guardada.** É calculada na leitura: `preço − custo_produto`,
+onde `custo_produto` é a soma da receita (`Σ quantidade × custo da última compra
+desse produto`). Um valor gravado envelheceria em silêncio a cada alteração de
+preço do outro lado, ou na próxima vez que o dono comprasse mais caro.
+
+Se algum produto da receita não tiver compra registada, `custoProduto` e
+`margem` ficam **null** em vez de somarem só os que têm preço: uma soma parcial
+dava uma margem melhor do que a real e ninguém notava.
+
+A Fase 10 **apagou** `lexia_executores_custo` e `lexia_servico_custos.
+custo_produto`. O custo/hora por executor não era pedido — o painel serve para
+ligar produtos a serviços e o cliente calcula o seu custo/hora como quiser. O
+que resta do executor no painel é a duração e a receita por hora ocupada
+(`preço / horas`), que vem só do catálogo do cliente.
 
 **Gravar o preço escreve nas duas tabelas do cliente.** Em 15/10/2026 os 14
 serviços que casam têm preço idêntico nas duas, e não há transacção possível
@@ -443,6 +455,52 @@ por hora do Martim vai de 40,00 EUR (Clareamento de Faróis, 30 EUR em 45 min) a
 13,89 EUR (Polimento Técnico, 500 EUR em 36 h). O serviço de bandeira é o pior
 de todos, e isso antes de descontar o cerâmico. O Roberto é 20–65% mais lento no
 mesmo serviço.
+
+### Produtos e controlo de stock (Fase 10)
+
+Três tabelas na Supabase **central**, criadas em
+`supabase/migrations/202610150004_fase10_produtos_e_stock.sql`:
+`lexia_produtos`, `lexia_produto_movimentos` e `lexia_servico_produtos`. A
+lógica está em `lib/produtos/{read,write}.ts`, os ecrãs em `/app/produtos` e
+`/admin/produtos` (`app/components/produtos-panel.tsx`).
+
+O ciclo que isto fecha: o dono registra o produto, registra a compra, diz na
+página Serviços quanto cada serviço gasta dele, e a partir daí cada carregar em
+**"Realizei este serviço"** tira as quantidades do stock.
+
+**O stock não é uma coluna — é a soma de `lexia_produto_movimentos`.** Compras
+entram positivas, consumos saem negativos. Um número guardado dessincroniza-se
+em silêncio na primeira escrita que falhe a meio; uma soma de movimentos não
+pode mentir, e dá de graça o histórico de para onde foi cada mililitro.
+
+**O custo unitário vem da compra mais recente** (`custo_total / quantidade`),
+não de média ponderada. É o número que o dono reconhece — "o frasco custou-me
+180 EUR" — e actualiza-se sozinho quando ele volta a comprar.
+
+**O stock pode ficar negativo de propósito.** Significa que foi usado produto
+que nunca foi registado como comprado. Recusar o consumo obrigava-o a inventar
+uma compra para poder trabalhar; o ajuste de stock existe para corrigir depois.
+
+**Sem duas saídas registadas não há previsão.** `consumoPorDia` é
+`total_consumido / dias desde a primeira saída`, e `diasRestantes` é
+`floor(stock / consumoPorDia)`. Com uma única saída não há ritmo — um número ali
+seria lido como previsão quando é uma amostra de um. Não há histórico importado:
+a plataforma conta a partir do dia em que ele começa a registar. Foi decisão
+explícita do Arthur a 15/10/2026 ("ele vai ir colocando e a plataforma
+calculando a partir de agora").
+
+**`registarExecucao` insere todas as saídas numa só instrução.** Se uma falhar,
+nenhuma entra. Sem isso metade dos produtos saía do stock e a outra metade não,
+e o dono não tinha como saber qual.
+
+`lexia_servico_produtos.servico_id` aponta para o catálogo na base do **cliente**
+— outra instância de Postgres, logo sem FK. `servico_nome` fica guardado ao lado
+para a linha continuar legível se o serviço for apagado lá. A autorização sobre
+o `servicoId` que vem do formulário é a leitura do catálogo do cliente
+(`lerServico`): se o id não for um serviço daquela empresa, não aparece.
+
+Na receita, **quantidade zero apaga a linha**. É o mesmo campo e o mesmo botão,
+em vez de um segundo botão que tinha de ser explicado.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 

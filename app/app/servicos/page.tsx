@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 
 import {
-  gravarCustoHoraAction,
+  definirReceitaAction,
   gravarServicoAction,
+  registarExecucaoAction,
 } from "@/app/app/servicos/actions";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -49,18 +50,23 @@ export default async function ServicosPage({
             Custo e margem por serviço
           </h1>
           <p className="mt-2 max-w-2xl text-zinc-600">
-            O preço e a duração vêm do teu catálogo, já como estão. Só precisas
-            de preencher duas coisas: quanto custa uma hora de cada pessoa e
-            quanto gastas de produto em cada serviço. A margem é calculada a
-            partir daí e nunca é guardada — muda sozinha sempre que mexes num
-            preço.
+            O preço e a duração vêm do teu catálogo, já como estão. O que tens
+            de dizer aqui é quanto cada serviço gasta de cada produto. O custo
+            sai do que pagaste na última compra desse produto e a margem é
+            calculada a partir daí — nunca é guardada, muda sozinha quando
+            mexes num preço ou compras mais caro.
+          </p>
+          <p className="mt-2 max-w-2xl text-zinc-600">
+            Cada vez que carregas em <strong>Realizei este serviço</strong>, as
+            quantidades da receita saem do stock.
           </p>
         </div>
       </div>
 
       <ServicosPanel
         action={gravarServicoAction}
-        actionCustoHora={gravarCustoHoraAction}
+        actionExecucao={registarExecucaoAction}
+        actionReceita={definirReceitaAction}
         basePath="/app/servicos"
         painel={painel}
         podeEditar={profile.role === "cliente_admin"}

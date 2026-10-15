@@ -2,8 +2,12 @@
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
-  gravarCustoDoServico,
-  gravarCustoHoraDoExecutor,
+  definirReceita,
+  registarExecucao,
+  type GravarProdutoResultado,
+} from "@/lib/produtos/write";
+import {
+  gravarPrecoENotas,
   type GravarServicoResultado,
 } from "@/lib/servicos/write";
 
@@ -59,10 +63,9 @@ export async function gravarServicoAction(
     return { mensagem: "Serviço não identificado.", ok: false };
   }
 
-  return gravarCustoDoServico({
+  return gravarPrecoENotas({
     caminhoParaRevalidar: caminho,
     clienteSlug: perfil.clienteSlug,
-    custoProdutoBruto: String(formData.get("custo_produto") ?? ""),
     notasBruto: String(formData.get("notas") ?? ""),
     precoBruto: String(formData.get("preco") ?? ""),
     servicoId,
@@ -70,27 +73,53 @@ export async function gravarServicoAction(
   });
 }
 
-export async function gravarCustoHoraAction(
-  _anterior: GravarServicoResultado | null,
+export async function definirReceitaAction(
+  _anterior: GravarProdutoResultado | null,
   formData: FormData,
-): Promise<GravarServicoResultado> {
+): Promise<GravarProdutoResultado> {
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
     return semPermissao;
   }
 
-  const executor = String(formData.get("executor") ?? "").trim();
+  const produtoId = String(formData.get("produto_id") ?? "").trim();
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
 
-  if (!executor) {
-    return { mensagem: "Executor não identificado.", ok: false };
+  if (!produtoId || !servicoId) {
+    return { mensagem: "Produto ou serviço não identificado.", ok: false };
   }
 
-  return gravarCustoHoraDoExecutor({
+  return definirReceita({
     caminhoParaRevalidar: caminho,
     clienteSlug: perfil.clienteSlug,
-    custoHoraBruto: String(formData.get("custo_hora") ?? ""),
-    executor,
+    produtoId,
+    quantidadeBruta: String(formData.get("quantidade") ?? ""),
+    servicoId,
+    userId: perfil.userId,
+  });
+}
+
+export async function registarExecucaoAction(
+  _anterior: GravarProdutoResultado | null,
+  formData: FormData,
+): Promise<GravarProdutoResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const servicoId = String(formData.get("servico_id") ?? "").trim();
+
+  if (!servicoId) {
+    return { mensagem: "Serviço não identificado.", ok: false };
+  }
+
+  return registarExecucao({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    servicoId,
     userId: perfil.userId,
   });
 }

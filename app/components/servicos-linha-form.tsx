@@ -6,7 +6,11 @@ import { FormSubmitButton } from "@/app/components/form-submit-button";
 import type { GravarServicoResultado } from "@/lib/servicos/write";
 
 /**
- * Preço, custo de produto e notas de um serviço.
+ * Preço e notas de um serviço.
+ *
+ * Não há campo de custo de produto: esse número sai da receita, do que o dono
+ * pagou na última compra de cada produto. Escrevê-lo à mão aqui era deixá-lo
+ * ficar velho em silêncio na próxima compra.
  *
  * O campo de preço fica desactivado quando o painel está a mostrar um escalão
  * de viatura em vez do preço base: o preço por escalão vive num jsonb e
@@ -16,7 +20,6 @@ import type { GravarServicoResultado } from "@/lib/servicos/write";
 export function ServicosLinhaForm({
   action,
   clienteSlug,
-  custoProduto,
   moeda,
   notas,
   podeEditar,
@@ -29,7 +32,6 @@ export function ServicosLinhaForm({
     formData: FormData,
   ) => Promise<GravarServicoResultado>;
   clienteSlug?: string;
-  custoProduto: number | null;
   moeda: string;
   notas: string | null;
   podeEditar: boolean;
@@ -53,21 +55,6 @@ export function ServicosLinhaForm({
       <input name="servico_id" type="hidden" value={servicoId} />
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
-          Custo de produto ({moeda})
-          <input
-            className={`${inputClass} w-32`}
-            defaultValue={custoProduto === null ? "" : String(custoProduto)}
-            disabled={!podeEditar}
-            inputMode="decimal"
-            min="0"
-            name="custo_produto"
-            placeholder="0,00"
-            step="0.01"
-            type="number"
-          />
-        </label>
-
         <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
           Preço base ({moeda})
           <input

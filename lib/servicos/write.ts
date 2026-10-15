@@ -12,8 +12,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Gravação do painel de serviços.
  *
  * Escreve em duas bases de dados diferentes:
- *   - custo de produto e custo/hora  -> Supabase CENTRAL da Lexia
- *   - preço                          -> Supabase DO CLIENTE, nas DUAS tabelas
+ *   - notas do serviço  -> Supabase CENTRAL da Lexia
+ *   - preço             -> Supabase DO CLIENTE, nas DUAS tabelas
+ *
+ * O custo de produto NÃO se escreve aqui: sai da receita (`lib/produtos`)
+ * multiplicada pelo custo da última compra, e muda sozinho quando o dono volta
+ * a comprar. Um número escrito à mão ficava velho sem ninguém dar por isso.
  *
  * A autorização é deliberadamente deixada a quem chama. As server actions do
  * cliente e do admin validam o perfil de maneiras diferentes (uma tira o slug
@@ -47,69 +51,9 @@ function validarValor(bruto: string, etiqueta: string) {
   return { erro: null, valor: Math.round(valor * 100) / 100 };
 }
 
-export async function gravarCustoHoraDoExecutor({
+export async function gravarPrecoENotas({
   caminhoParaRevalidar,
   clienteSlug,
-  custoHoraBruto,
-  executor,
-  userId,
-}: {
-  caminhoParaRevalidar: string;
-  clienteSlug: string;
-  custoHoraBruto: string;
-  executor: string;
-  userId: string;
-}): Promise<GravarServicoResultado> {
-  const config = getServicosConfig(clienteSlug);
-
-  if (!config) {
-    return { mensagem: "Este cliente não tem painel de serviços.", ok: false };
-  }
-
-  const definicao = config.executores.find((item) => item.chave === executor);
-
-  if (!definicao) {
-    return { mensagem: "Executor desconhecido.", ok: false };
-  }
-
-  const { erro, valor } = validarValor(custoHoraBruto, "custo por hora");
-
-  if (erro || valor === null) {
-    return { mensagem: erro ?? "Valor inválido.", ok: false };
-  }
-
-  const admin = createAdminClient();
-
-  const { error } = await admin.from("lexia_executores_custo").upsert(
-    {
-      actualizado_em: new Date().toISOString(),
-      actualizado_por: userId,
-      cliente_slug: clienteSlug,
-      custo_hora: valor,
-      executor: definicao.chave,
-      nome: definicao.nome,
-    },
-    { onConflict: "cliente_slug,executor" },
-  );
-
-  if (error) {
-    console.error("[servicos] falha a gravar o custo por hora", error);
-
-    return { mensagem: "Não foi possível gravar o custo por hora.", ok: false };
-  }
-
-  revalidatePath(caminhoParaRevalidar);
-
-  return {
-    mensagem: `Custo por hora do ${definicao.nome} gravado.`,
-    ok: true,
-  };
-}
-
-export async function gravarCustoDoServico({
-  caminhoParaRevalidar,
-  clienteSlug,
-  custoProdutoBruto,
   notasBruto,
   precoBruto,
   servicoId,
@@ -117,7 +61,6 @@ export async function gravarCustoDoServico({
 }: {
   caminhoParaRevalidar: string;
   clienteSlug: string;
-  custoProdutoBruto: string;
   notasBruto: string;
   precoBruto: string;
   servicoId: string;
@@ -136,12 +79,6 @@ export async function gravarCustoDoServico({
       mensagem: "Credenciais da base de dados do cliente não configuradas.",
       ok: false,
     };
-  }
-
-  const custo = validarValor(custoProdutoBruto, "custo de produto");
-
-  if (custo.erro || custo.valor === null) {
-    return { mensagem: custo.erro ?? "Valor inválido.", ok: false };
   }
 
   const notas = notasBruto.trim();
@@ -171,12 +108,11 @@ export async function gravarCustoDoServico({
 
   const admin = createAdminClient();
 
-  const { error: erroCusto } = await admin.from("lexia_servico_custos").upsert(
+  const { error: erroNotas } = await admin.from("lexia_servico_custos").upsert(
     {
       actualizado_em: new Date().toISOString(),
       actualizado_por: userId,
       cliente_slug: clienteSlug,
-      custo_produto: custo.valor,
       notas: notas === "" ? null : notas,
       servico_id: servicoId,
       servico_nome: servico.nome,
@@ -184,10 +120,10 @@ export async function gravarCustoDoServico({
     { onConflict: "cliente_slug,servico_id" },
   );
 
-  if (erroCusto) {
-    console.error("[servicos] falha a gravar o custo do serviço", erroCusto);
+  if (erroNotas) {
+    console.error("[servicos] falha a gravar as notas do serviço", erroNotas);
 
-    return { mensagem: "Não foi possível gravar o custo.", ok: false };
+    return { mensagem: "Não foi possível gravar as notas.", ok: false };
   }
 
   const precoPedido = precoBruto.trim();
@@ -195,14 +131,14 @@ export async function gravarCustoDoServico({
   if (precoPedido === "") {
     revalidatePath(caminhoParaRevalidar);
 
-    return { mensagem: `Custo de "${servico.nome}" gravado.`, ok: true };
+    return { mensagem: `Notas de "${servico.nome}" gravadas.`, ok: true };
   }
 
   const preco = validarValor(precoPedido, "preço");
 
   if (preco.erro || preco.valor === null) {
     return {
-      mensagem: `Custo gravado, mas o preço não: ${preco.erro}`,
+      mensagem: `Notas gravadas, mas o preço não: ${preco.erro}`,
       ok: false,
     };
   }
@@ -212,7 +148,7 @@ export async function gravarCustoDoServico({
   if (precoAnterior !== null && precoAnterior === preco.valor) {
     revalidatePath(caminhoParaRevalidar);
 
-    return { mensagem: `Custo de "${servico.nome}" gravado.`, ok: true };
+    return { mensagem: `Notas de "${servico.nome}" gravadas.`, ok: true };
   }
 
   const resultadoPreco = await sincronizarPreco({
@@ -266,7 +202,7 @@ async function sincronizarPreco({
     console.error("[servicos] falha a gravar o preço no catálogo", erroCatalogo);
 
     return {
-      mensagem: "Custo gravado, mas o preço não foi alterado.",
+      mensagem: "Notas gravadas, mas o preço não foi alterado.",
       ok: false,
     };
   }
@@ -326,7 +262,7 @@ async function sincronizarPreco({
   }
 
   return {
-    mensagem: `"${nome}" gravado: custo e preço actualizados nas duas tabelas.`,
+    mensagem: `"${nome}" gravado: preço actualizado nas duas tabelas do cliente.`,
     ok: true,
   };
 }
