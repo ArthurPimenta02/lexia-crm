@@ -46,6 +46,11 @@ export type ServicoLinha = {
   precoBaseAgendamento: number | null;
   precoDivergente: boolean;
   precoEstimado: boolean;
+  /**
+   * Preços que estão no jsonb mas não correspondem a escalões de viatura.
+   * Ver `extrairPrecosAlternativos`.
+   */
+  precosAlternativos: { label: string; valor: number }[];
   tipoPreco: string | null;
 };
 
@@ -145,6 +150,50 @@ function extrairPrecoDoEscalao(precos: unknown, chave: string): number | null {
   }
 
   return lerNumero(bruto);
+}
+
+/**
+ * Preços que existem no jsonb mas não são escalões de viatura.
+ *
+ * Medido a 15/10/2026: a maioria dos serviços do Detail tem exactamente as
+ * quatro chaves de escalão, mas a "Impermeabilização de Capota e Tecidos" tem
+ * `capota_parcial`, `capota_completa`, `bancos_tecido` e `carpetes_tapetes` —
+ * de 60 a 150 EUR — e uma chave `nota` a dizer que o preço depende do trabalho
+ * e não da viatura. Sem isto, o painel mostrava só o preço base e escondia que
+ * o serviço tem quatro preços reais.
+ *
+ * Chaves que não dão número (como a `nota`) são ignoradas.
+ */
+function extrairPrecosAlternativos(
+  precos: unknown,
+  escaloesConhecidos: Set<string>,
+) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return [];
+  }
+
+  const alternativos: { label: string; valor: number }[] = [];
+
+  for (const [chave, bruto] of Object.entries(precos as Record<string, unknown>)) {
+    if (escaloesConhecidos.has(chave)) {
+      continue;
+    }
+
+    const valor = lerNumero(bruto);
+
+    if (valor === null) {
+      continue;
+    }
+
+    const label = chave.replace(/_/g, " ");
+
+    alternativos.push({
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      valor,
+    });
+  }
+
+  return alternativos.sort((a, b) => a.valor - b.valor);
 }
 
 function lerNumero(valor: unknown): number | null {
@@ -286,6 +335,9 @@ export async function getPainelServicos({
   }
 
   const servicos: ServicoLinha[] = [];
+  const escaloesConhecidos = new Set(
+    config.escaloes.map((escalao) => escalao.chave),
+  );
 
   for (const linha of (catalogo.data ?? []) as unknown as CatalogoRow[]) {
     const nome = linha.nome?.trim();
@@ -367,6 +419,10 @@ export async function getPainelServicos({
         precoBaseAgendamento !== null &&
         arredondar(valorBase) !== arredondar(precoBaseAgendamento),
       precoEstimado: escalaoActivo !== escalaoBase && precoDoEscalao === null,
+      precosAlternativos: extrairPrecosAlternativos(
+        linha.precos_por_categoria,
+        escaloesConhecidos,
+      ),
       tipoPreco: linha.tipo_preco ?? null,
     });
   }

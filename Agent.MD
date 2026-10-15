@@ -415,6 +415,15 @@ Escalões do Detail: `citadino`, `utilitario`, `sedan_mini_suv`,
 é só de leitura — o preço só se edita no escalão base, porque reescrever o jsonb
 exigiria decidir o que fazer com os escalões que o serviço não tem.
 
+Formato do `precos_por_categoria` medido a 15/10/2026: objecto plano,
+`{"citadino": 30, "utilitario": 35, ...}`. **Nem todos os serviços usam escalões
+de viatura.** A "Impermeabilização de Capota e Tecidos" tem `capota_parcial`
+(60), `capota_completa` (80), `bancos_tecido` (100) e `carpetes_tapetes` (150),
+mais uma chave `nota` em texto a dizer que o preço depende do trabalho e não do
+veículo. `extrairPrecosAlternativos` apanha as chaves numéricas que não são
+escalões configurados e o painel mostra-as como opções, em vez de cair no preço
+base sem explicação. Chaves que não dão número são ignoradas.
+
 Medição de arranque (15/10/2026, preço base, sem custo de produto): a receita
 por hora do Martim vai de 40,00 EUR (Clareamento de Faróis, 30 EUR em 45 min) a
 13,89 EUR (Polimento Técnico, 500 EUR em 36 h). O serviço de bandeira é o pior

@@ -328,13 +328,40 @@ export function ServicosPanel({
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
                       {servico.precoEstimado
-                        ? "sem preço definido para este escalão — mostra o base"
+                        ? servico.precosAlternativos.length > 0
+                          ? "não é cobrado por escalão — mostra o base"
+                          : "sem preço definido para este escalão — mostra o base"
                         : painel.escalaoActivo === escalaoBase
                           ? "preço base"
                           : "preço deste escalão"}
                     </p>
                   </div>
                 </div>
+
+                {servico.precosAlternativos.length > 0 ? (
+                  <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2.5">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+                      Preços deste serviço
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Não variam com a viatura, variam com o trabalho. A margem
+                      abaixo é calculada sobre o preço base.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {servico.precosAlternativos.map((opcao) => (
+                        <span
+                          className="inline-flex items-baseline gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs"
+                          key={opcao.label}
+                        >
+                          <span className="text-zinc-600">{opcao.label}</span>
+                          <span className="font-semibold text-zinc-950">
+                            {formatMoney(opcao.valor, painel.moeda)}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {servico.agendamentoId === null ? (
                   <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
