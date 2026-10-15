@@ -1,0 +1,284 @@
+import type { ReactNode } from "react";
+
+import {
+  AjusteForm,
+  CompraForm,
+  CriarProdutoForm,
+  type ProdutoAction,
+} from "@/app/components/produtos-forms";
+import type { MovimentoLinha, ProdutoLinha } from "@/lib/produtos/read";
+
+/**
+ * Corpo da página de produtos, partilhado pelo ecrã do cliente
+ * (`/app/produtos`) e pelo do administrador (`/admin/produtos`).
+ *
+ * O que este ecrã responde, por ordem de importância para o dono: quanto tenho,
+ * quanto tempo dura, quanto me custa a unidade, e o que aconteceu a este
+ * produto ultimamente.
+ */
+
+function formatMoney(valor: number, moeda: string, casas = 2) {
+  return new Intl.NumberFormat("pt-PT", {
+    currency: moeda,
+    maximumFractionDigits: casas,
+    minimumFractionDigits: casas,
+    style: "currency",
+  }).format(valor);
+}
+
+function formatQuantidade(valor: number) {
+  return new Intl.NumberFormat("pt-PT", {
+    maximumFractionDigits: 3,
+  }).format(valor);
+}
+
+function formatData(iso: string) {
+  return new Intl.DateTimeFormat("pt-PT", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+/**
+ * Previsão de duração em texto.
+ *
+ * Com menos de duas saídas registadas não há previsão nenhuma — uma amostra de
+ * um não é um ritmo, e um número aqui seria lido como se fosse. Dizer quantas
+ * execuções faltam é mais honesto e diz-lhe o que fazer.
+ */
+function legendaDaDuracao(produto: ProdutoLinha) {
+  if (produto.saidasRegistadas < 2) {
+    return produto.saidasRegistadas === 0
+      ? "Ainda não registaste nenhum serviço com este produto."
+      : "Falta mais uma execução registada para haver ritmo de consumo.";
+  }
+
+  if (produto.diasRestantes === null) {
+    return "Sem consumo medido.";
+  }
+
+  if (produto.stock <= 0) {
+    return "Acabou. O stock está a zero ou negativo.";
+  }
+
+  return `Ao ritmo de ${formatQuantidade(produto.consumoPorDia ?? 0)} ${
+    produto.unidade
+  } por dia, medido desde a primeira saída.`;
+}
+
+function MovimentoItem({
+  moeda,
+  movimento,
+  unidade,
+}: {
+  moeda: string;
+  movimento: MovimentoLinha;
+  unidade: string;
+}) {
+  const etiqueta =
+    movimento.tipo === "compra"
+      ? "Compra"
+      : movimento.tipo === "consumo"
+        ? (movimento.servicoNome ?? "Consumo")
+        : "Ajuste";
+
+  return (
+    <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 py-1.5 last:border-b-0">
+      <span className="text-xs text-zinc-500">
+        {formatData(movimento.ocorridoEm)}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-xs text-zinc-700">
+        {etiqueta}
+        {movimento.nota ? ` — ${movimento.nota}` : ""}
+      </span>
+      <span
+        className={`text-xs font-semibold ${
+          movimento.quantidade < 0 ? "text-red-700" : "text-emerald-700"
+        }`}
+      >
+        {movimento.quantidade > 0 ? "+" : ""}
+        {formatQuantidade(movimento.quantidade)} {unidade}
+        {movimento.custoTotal === null
+          ? ""
+          : ` · ${formatMoney(movimento.custoTotal, moeda)}`}
+      </span>
+    </li>
+  );
+}
+
+export function ProdutosPanel({
+  actionAjuste,
+  actionCompra,
+  actionCriar,
+  clienteSlug,
+  leading,
+  moeda,
+  podeEditar,
+  produtos,
+}: {
+  actionAjuste: ProdutoAction;
+  actionCompra: ProdutoAction;
+  actionCriar: ProdutoAction;
+  /** Só o admin o envia: as acções dele leem o slug do formulário. */
+  clienteSlug?: string;
+  /** Selector de cliente; só o admin o usa. */
+  leading?: ReactNode;
+  moeda: string;
+  podeEditar: boolean;
+  produtos: ProdutoLinha[];
+}) {
+  // O que está a acabar primeiro aparece primeiro: é a única ordem que faz
+  // este ecrã valer uma visita de manhã. Sem previsão vai para o fim, por
+  // nome, em vez de se fingir que dura para sempre.
+  const ordenados = [...produtos].sort((a, b) => {
+    if (a.diasRestantes === null && b.diasRestantes === null) {
+      return a.nome.localeCompare(b.nome, "pt");
+    }
+
+    if (a.diasRestantes === null) {
+      return 1;
+    }
+
+    if (b.diasRestantes === null) {
+      return -1;
+    }
+
+    return a.diasRestantes - b.diasRestantes;
+  });
+
+  return (
+    <>
+      {leading}
+
+      {podeEditar ? (
+        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
+            Novo produto
+          </p>
+          <div className="mt-3">
+            <CriarProdutoForm action={actionCriar} clienteSlug={clienteSlug} />
+          </div>
+        </div>
+      ) : null}
+
+      {ordenados.length === 0 ? (
+        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+          <p className="text-sm text-zinc-600">
+            Ainda não há produtos. Cria o primeiro acima, registra o que
+            compraste e depois, na página Serviços, diz quanto cada serviço
+            gasta dele.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {ordenados.map((produto) => (
+            <div
+              className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]"
+              key={produto.id}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold tracking-tight text-zinc-950">
+                    {produto.nome}
+                  </h2>
+                  {produto.notas ? (
+                    <p className="mt-1 text-xs text-zinc-500">{produto.notas}</p>
+                  ) : null}
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <p
+                    className={`text-2xl font-semibold tracking-tight ${
+                      produto.stock <= 0 ? "text-red-700" : "text-zinc-950"
+                    }`}
+                  >
+                    {formatQuantidade(produto.stock)} {produto.unidade}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">em stock</p>
+                </div>
+              </div>
+
+              <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
+                <div>
+                  <dt className="text-zinc-500">Custo por {produto.unidade}</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+                    {produto.custoUnitario === null
+                      ? "—"
+                      : formatMoney(produto.custoUnitario, moeda, 4)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Valor do stock</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+                    {produto.custoUnitario === null
+                      ? "—"
+                      : formatMoney(produto.custoUnitario * produto.stock, moeda)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-500">Dura mais</dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+                    {produto.diasRestantes === null
+                      ? "—"
+                      : `${produto.diasRestantes} ${
+                          produto.diasRestantes === 1 ? "dia" : "dias"
+                        }`}
+                  </dd>
+                </div>
+              </dl>
+
+              <p className="mt-2 text-xs text-zinc-500">
+                {legendaDaDuracao(produto)}
+              </p>
+
+              {produto.custoUnitario === null ? (
+                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  Sem compra registada, este produto não tem preço, e os
+                  serviços que o usam ficam sem custo e sem margem. Registra em
+                  baixo quanto pagaste pela última vez que o compraste.
+                </p>
+              ) : null}
+
+              {podeEditar ? (
+                <div className="mt-4 grid gap-4 border-t border-zinc-200 pt-4 lg:grid-cols-2">
+                  <CompraForm
+                    action={actionCompra}
+                    clienteSlug={clienteSlug}
+                    moeda={moeda}
+                    produtoId={produto.id}
+                    unidade={produto.unidade}
+                  />
+                  <AjusteForm
+                    action={actionAjuste}
+                    clienteSlug={clienteSlug}
+                    produtoId={produto.id}
+                    unidade={produto.unidade}
+                  />
+                </div>
+              ) : null}
+
+              {produto.movimentos.length > 0 ? (
+                <div className="mt-4 border-t border-zinc-200 pt-4">
+                  <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+                    Últimos movimentos
+                  </p>
+                  <ul className="mt-2">
+                    {produto.movimentos.map((movimento) => (
+                      <MovimentoItem
+                        key={movimento.id}
+                        moeda={moeda}
+                        movimento={movimento}
+                        unidade={produto.unidade}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}

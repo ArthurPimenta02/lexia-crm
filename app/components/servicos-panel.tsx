@@ -1,8 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ServicosCustoHoraForm } from "@/app/components/servicos-custo-hora-form";
+import { ServicosExecucaoForm } from "@/app/components/servicos-execucao-form";
 import { ServicosLinhaForm } from "@/app/components/servicos-linha-form";
+import { ServicosReceitaForm } from "@/app/components/servicos-receita-form";
+import type { GravarProdutoResultado } from "@/lib/produtos/write";
 import { escalaoBase, type PainelServicos, type ServicoLinha } from "@/lib/servicos/read";
 import type { GravarServicoResultado } from "@/lib/servicos/write";
 
@@ -20,6 +22,11 @@ type GravarAction = (
   estado: GravarServicoResultado | null,
   formData: FormData,
 ) => Promise<GravarServicoResultado>;
+
+type ProdutoAction = (
+  estado: GravarProdutoResultado | null,
+  formData: FormData,
+) => Promise<GravarProdutoResultado>;
 
 function formatMoney(value: number, moeda: string) {
   return new Intl.NumberFormat("pt-PT", {
@@ -107,8 +114,6 @@ function ExecutorLinhaResumo({
     );
   }
 
-  const margemPositiva = linha.margem !== null && linha.margem >= 0;
-
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2.5">
       <div className="flex items-baseline justify-between gap-2">
@@ -118,51 +123,73 @@ function ExecutorLinhaResumo({
         </p>
       </div>
 
-      <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
-        <div>
-          <dt className="text-zinc-500">Receita/hora</dt>
-          <dd className="mt-0.5 font-semibold text-zinc-900">
-            {linha.euroPorHora === null
-              ? "—"
-              : formatMoney(linha.euroPorHora, moeda)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500">Mão-de-obra</dt>
-          <dd className="mt-0.5 font-semibold text-zinc-900">
-            {linha.custoMaoDeObra === null
-              ? "—"
-              : formatMoney(linha.custoMaoDeObra, moeda)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500">Margem</dt>
-          <dd
-            className={`mt-0.5 font-semibold ${
-              linha.margem === null
-                ? "text-zinc-400"
-                : margemPositiva
-                  ? "text-emerald-700"
-                  : "text-red-700"
-            }`}
-          >
-            {linha.margem === null
-              ? "—"
-              : `${formatMoney(linha.margem, moeda)}${
-                  linha.margemPercent === null
-                    ? ""
-                    : ` (${linha.margemPercent.toFixed(0)}%)`
-                }`}
-          </dd>
-        </div>
-      </dl>
+      <p className="mt-1.5 text-xs text-zinc-500">
+        Rende{" "}
+        <span className="font-semibold text-zinc-900">
+          {linha.euroPorHora === null
+            ? "—"
+            : formatMoney(linha.euroPorHora, moeda)}
+        </span>{" "}
+        por hora ocupada.
+      </p>
     </div>
+  );
+}
+
+/** Custo de produto e margem do serviço, já com a receita somada. */
+function MargemDoServico({
+  moeda,
+  servico,
+}: {
+  moeda: string;
+  servico: ServicoLinha;
+}) {
+  const margemPositiva = servico.margem !== null && servico.margem >= 0;
+
+  return (
+    <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
+      <div>
+        <dt className="text-zinc-500">Custo de produto</dt>
+        <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          {servico.custoProduto === null
+            ? "—"
+            : formatMoney(servico.custoProduto, moeda)}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-zinc-500">Margem</dt>
+        <dd
+          className={`mt-0.5 text-sm font-semibold ${
+            servico.margem === null
+              ? "text-zinc-400"
+              : margemPositiva
+                ? "text-emerald-700"
+                : "text-red-700"
+          }`}
+        >
+          {servico.margem === null
+            ? "—"
+            : `${formatMoney(servico.margem, moeda)}${
+                servico.margemPercent === null
+                  ? ""
+                  : ` (${servico.margemPercent.toFixed(0)}%)`
+              }`}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-zinc-500">Produtos na receita</dt>
+        <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          {servico.receita.length}
+        </dd>
+      </div>
+    </dl>
   );
 }
 
 export function ServicosPanel({
   action,
-  actionCustoHora,
+  actionExecucao,
+  actionReceita,
   basePath,
   clienteSlug,
   leading,
@@ -171,7 +198,8 @@ export function ServicosPanel({
   podeEditar,
 }: {
   action: GravarAction;
-  actionCustoHora: GravarAction;
+  actionExecucao: ProdutoAction;
+  actionReceita: ProdutoAction;
   basePath: string;
   /** Só o admin o envia: as acções dele leem o slug do formulário. */
   clienteSlug?: string;
@@ -194,10 +222,6 @@ export function ServicosPanel({
     ...painel.escaloes,
   ];
 
-  const executoresComCusto = painel.executores.filter(
-    (executor) => executor.custoHora !== null,
-  );
-
   const principal = painel.executorPrincipal;
   const euroHoraPrincipal = painel.servicos
     .map((servico) => ({
@@ -212,8 +236,9 @@ export function ServicosPanel({
   const melhor = euroHoraPrincipal[0] ?? null;
   const pior = euroHoraPrincipal[euroHoraPrincipal.length - 1] ?? null;
   const nomePrincipal =
-    painel.executores.find((executor) => executor.chave === principal)?.nome ??
-    "executor";
+    painel.servicos
+      .flatMap((servico) => servico.executores)
+      .find((linha) => linha.chave === principal)?.nome ?? "executor";
 
   return (
     <>
@@ -259,24 +284,6 @@ export function ServicosPanel({
             </div>
           ) : null}
         </div>
-
-        {painel.executores.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-6 border-t border-zinc-200 pt-5">
-            {painel.executores.map((executor) => (
-              <ServicosCustoHoraForm
-                action={actionCustoHora}
-                actualizadoEm={executor.actualizadoEm}
-                clienteSlug={clienteSlug}
-                custoHora={executor.custoHora}
-                executor={executor.chave}
-                key={executor.chave}
-                moeda={painel.moeda}
-                nome={executor.nome}
-                podeEditar={podeEditar}
-              />
-            ))}
-          </div>
-        ) : null}
       </div>
 
       {painel.vazioMotivo ? (
@@ -288,9 +295,9 @@ export function ServicosPanel({
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <MetricCard
               description={
-                painel.semCusto === 0
-                  ? "Todos os serviços têm custo de produto preenchido."
-                  : `${painel.semCusto} ainda sem custo de produto — a margem desses aparece vazia.`
+                painel.semReceita === 0
+                  ? "Todos os serviços já têm produtos associados."
+                  : `${painel.semReceita} ainda sem produtos associados — marcar esses como realizados não desconta nada.`
               }
               label="Serviços activos"
               value={String(painel.servicos.length)}
@@ -298,8 +305,8 @@ export function ServicosPanel({
             <MetricCard
               description={
                 melhor
-                  ? `${melhor.nome} — o que mais rende por hora de trabalho do ${nomePrincipal}.`
-                  : `Preenche o custo/hora do ${nomePrincipal} para ver este número.`
+                  ? `${melhor.nome} — o que mais rende por hora ocupada do ${nomePrincipal}.`
+                  : "Faltam durações ou preços para comparar."
               }
               label="Melhor receita/hora"
               value={melhor ? formatMoney(melhor.valor, painel.moeda) : "—"}
@@ -315,15 +322,16 @@ export function ServicosPanel({
             />
           </div>
 
-          {executoresComCusto.length === 0 ? (
+          {painel.produtos.length === 0 ? (
             <div className="rounded-[22px] border border-amber-200 bg-amber-50/70 p-5">
               <p className="text-sm font-semibold text-amber-900">
-                Falta o custo por hora.
+                Ainda não há produtos registados.
               </p>
               <p className="mt-1 text-sm text-amber-800">
-                A receita por hora já aparece em baixo, mas a margem só é
-                calculada depois de preencheres quanto custa uma hora de cada
-                executor no topo deste ecrã.
+                O custo de produto de cada serviço sai da lista de produtos que
+                ele gasta. Começa por registar os produtos e as compras na
+                página <span className="font-semibold">Produtos</span>; depois
+                voltas aqui e dizes quanto cada serviço gasta de cada um.
               </p>
             </div>
           ) : null}
@@ -399,8 +407,8 @@ export function ServicosPanel({
                 {servico.agendamentoId === null ? (
                   <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
                     Este serviço existe no catálogo de venda mas não tem linha
-                    de agendamento, logo não tem duração nem margem. Confirma se
-                    é intencional.
+                    de agendamento, logo não tem duração. Confirma se é
+                    intencional.
                   </p>
                 ) : null}
 
@@ -430,10 +438,49 @@ export function ServicosPanel({
                 </div>
 
                 <div className="mt-4 border-t border-zinc-200 pt-4">
+                  <MargemDoServico moeda={painel.moeda} servico={servico} />
+
+                  {servico.custoProdutoIncompleto ? (
+                    <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      Há produtos nesta receita sem compra registada, por isso
+                      ainda não têm preço. O custo e a margem ficam vazios até
+                      registares quanto pagaste por eles na página Produtos —
+                      somar só os que têm preço dava uma margem melhor do que a
+                      real.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="mt-4 border-t border-zinc-200 pt-4">
+                  <ServicosReceitaForm
+                    actionReceita={actionReceita}
+                    clienteSlug={clienteSlug}
+                    moeda={painel.moeda}
+                    podeEditar={podeEditar}
+                    produtosDisponiveis={painel.produtos.filter(
+                      (produto) =>
+                        !servico.receita.some(
+                          (item) => item.produtoId === produto.id,
+                        ),
+                    )}
+                    receita={servico.receita}
+                    servicoId={servico.id}
+                  />
+                </div>
+
+                <div className="mt-4 flex flex-col gap-4 border-t border-zinc-200 pt-4">
+                  {podeEditar ? (
+                    <ServicosExecucaoForm
+                      action={actionExecucao}
+                      clienteSlug={clienteSlug}
+                      produtosNaReceita={servico.receita.length}
+                      servicoId={servico.id}
+                    />
+                  ) : null}
+
                   <ServicosLinhaForm
                     action={action}
                     clienteSlug={clienteSlug}
-                    custoProduto={servico.custoProduto}
                     moeda={painel.moeda}
                     notas={servico.notas}
                     podeEditar={podeEditar}

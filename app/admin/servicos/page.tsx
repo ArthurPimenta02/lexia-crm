@@ -9,8 +9,9 @@ import { getPainelServicos } from "@/lib/servicos/read";
 import { createClient } from "@/lib/supabase/server";
 
 import {
-  gravarCustoHoraAdminAction,
+  definirReceitaAdminAction,
   gravarServicoAdminAction,
+  registarExecucaoAdminAction,
 } from "./actions";
 
 type AdminCliente = {
@@ -80,8 +81,9 @@ export default async function AdminServicosPage({
         Custo e margem por serviço
       </h1>
       <p className="mt-2 max-w-2xl text-zinc-600">
-        Preço e duração vêm da base de dados do cliente. O custo de produto e o
-        custo por hora são da Lexia e o cliente não os vê em mais nenhum sítio.
+        Preço e duração vêm da base de dados do cliente. A receita de produtos
+        de cada serviço vive na Lexia, e é dela que sai o custo de produto e a
+        margem.
       </p>
     </div>
   );
@@ -153,7 +155,8 @@ export default async function AdminServicosPage({
 
       <ServicosPanel
         action={gravarServicoAdminAction}
-        actionCustoHora={gravarCustoHoraAdminAction}
+        actionExecucao={registarExecucaoAdminAction}
+        actionReceita={definirReceitaAdminAction}
         basePath="/admin/servicos"
         clienteSlug={clienteSlug}
         leading={selectorDeCliente}

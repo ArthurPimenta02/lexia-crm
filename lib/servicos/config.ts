@@ -18,7 +18,7 @@ export type EscalaoConfig = {
 
 export type ExecutorConfig = {
   /**
-   * Tem de casar com `lexia_executores_custo.executor` na base central.
+   * Identificador estável do executor, usado para marcar qual é o principal.
    */
   chave: string;
   /**
