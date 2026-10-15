@@ -7,6 +7,7 @@ const adminNavigation = [
   { label: "Dashboard", href: "/admin" },
   { label: "Analista Lexia", href: "/admin/analista" },
   { label: "Campanhas", href: "/admin/campanhas" },
+  { label: "Serviços", href: "/admin/servicos" },
   { label: "Área de Testes", href: "/admin/area-testes" },
   { label: "Conversas", href: "/admin/conversas" },
   { label: "Handoffs", href: "/admin/handoffs" },

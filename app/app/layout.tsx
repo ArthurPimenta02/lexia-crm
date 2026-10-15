@@ -7,6 +7,7 @@ const clientNavigation = [
   { label: "Dashboard", href: "/app" },
   { label: "Analista Lexia", href: "/app/analista" },
   { label: "Campanhas", href: "/app/campanhas" },
+  { label: "Serviços", href: "/app/servicos" },
   { label: "Conversas", href: "/app/conversas" },
   { label: "Área de Testes", href: "/app/area-testes" },
   { label: "Handoffs", href: "/app/handoffs" },
