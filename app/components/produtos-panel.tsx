@@ -4,9 +4,18 @@ import {
   AjusteForm,
   CompraForm,
   CriarProdutoForm,
+  ExcluirProdutoForm,
   type ProdutoAction,
+  ReporProdutoForm,
+  ServicosDoProdutoForm,
 } from "@/app/components/produtos-forms";
-import type { MovimentoLinha, ProdutoLinha } from "@/lib/produtos/read";
+import type {
+  MovimentoLinha,
+  ProdutoExcluido,
+  ProdutoLinha,
+  ServicosPorProduto,
+} from "@/lib/produtos/read";
+import type { ServicoSimples } from "@/lib/servicos/read";
 
 /**
  * Corpo da página de produtos, partilhado pelo ecrã do cliente
@@ -111,22 +120,36 @@ export function ProdutosPanel({
   actionAjuste,
   actionCompra,
   actionCriar,
+  actionExcluir,
+  actionReceita,
+  actionRepor,
   clienteSlug,
+  excluidos,
   leading,
   moeda,
   podeEditar,
   produtos,
+  servicos,
+  servicosPorProduto,
 }: {
   actionAjuste: ProdutoAction;
   actionCompra: ProdutoAction;
   actionCriar: ProdutoAction;
+  actionExcluir: ProdutoAction;
+  actionReceita: ProdutoAction;
+  actionRepor: ProdutoAction;
   /** Só o admin o envia: as acções dele leem o slug do formulário. */
   clienteSlug?: string;
+  /** Produtos com `activo = false`, para poderem ser repostos. */
+  excluidos: ProdutoExcluido[];
   /** Selector de cliente; só o admin o usa. */
   leading?: ReactNode;
   moeda: string;
   podeEditar: boolean;
   produtos: ProdutoLinha[];
+  /** Catálogo vivo, para o selector de "ligar serviço". */
+  servicos: ServicoSimples[];
+  servicosPorProduto: ServicosPorProduto;
 }) {
   // O que está a acabar primeiro aparece primeiro: é a única ordem que faz
   // este ecrã valer uma visita de manhã. Sem previsão vai para o fim, por
@@ -172,7 +195,13 @@ export function ProdutosPanel({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {ordenados.map((produto) => (
+          {ordenados.map((produto) => {
+            const servicosDoProduto = servicosPorProduto.get(produto.id) ?? [];
+            const jaLigados = new Set(
+              servicosDoProduto.map((item) => item.servicoId),
+            );
+
+            return (
             <div
               className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]"
               key={produto.id}
@@ -258,6 +287,21 @@ export function ProdutosPanel({
                 </div>
               ) : null}
 
+              <div className="mt-4 border-t border-zinc-200 pt-4">
+                <ServicosDoProdutoForm
+                  actionReceita={actionReceita}
+                  clienteSlug={clienteSlug}
+                  moeda={moeda}
+                  podeEditar={podeEditar}
+                  produtoId={produto.id}
+                  servicos={servicosDoProduto}
+                  servicosDisponiveis={servicos.filter(
+                    (servico) => !jaLigados.has(servico.id),
+                  )}
+                  unidade={produto.unidade}
+                />
+              </div>
+
               {produto.movimentos.length > 0 ? (
                 <div className="mt-4 border-t border-zinc-200 pt-4">
                   <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
@@ -275,10 +319,55 @@ export function ProdutosPanel({
                   </ul>
                 </div>
               ) : null}
+
+              {podeEditar ? (
+                <div className="mt-4 border-t border-zinc-200 pt-3">
+                  <ExcluirProdutoForm
+                    action={actionExcluir}
+                    clienteSlug={clienteSlug}
+                    nome={produto.nome}
+                    produtoId={produto.id}
+                    servicosAfectados={servicosDoProduto.length}
+                  />
+                </div>
+              ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {podeEditar && excluidos.length > 0 ? (
+        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
+            Excluídos
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            O stock e as compras destes produtos continuam guardados. Repor
+            traz o produto de volta, mas não as quantidades por serviço.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {excluidos.map((produto) => (
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0"
+                key={produto.id}
+              >
+                <span className="text-sm text-zinc-800">
+                  {produto.nome}{" "}
+                  <span className="text-xs text-zinc-500">
+                    ({produto.unidade})
+                  </span>
+                </span>
+                <ReporProdutoForm
+                  action={actionRepor}
+                  clienteSlug={clienteSlug}
+                  produtoId={produto.id}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </>
   );
 }

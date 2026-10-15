@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import {
+  ExcluirServicoForm,
+  ReporServicoForm,
+} from "@/app/components/servicos-estado-forms";
 import { ServicosExecucaoForm } from "@/app/components/servicos-execucao-form";
 import { ServicosLinhaForm } from "@/app/components/servicos-linha-form";
 import { ServicosReceitaForm } from "@/app/components/servicos-receita-form";
@@ -188,8 +192,10 @@ function MargemDoServico({
 
 export function ServicosPanel({
   action,
+  actionExcluir,
   actionExecucao,
   actionReceita,
+  actionRepor,
   basePath,
   clienteSlug,
   leading,
@@ -198,8 +204,10 @@ export function ServicosPanel({
   podeEditar,
 }: {
   action: GravarAction;
+  actionExcluir: GravarAction;
   actionExecucao: ProdutoAction;
   actionReceita: ProdutoAction;
+  actionRepor: GravarAction;
   basePath: string;
   /** Só o admin o envia: as acções dele leem o slug do formulário. */
   clienteSlug?: string;
@@ -489,11 +497,50 @@ export function ServicosPanel({
                     servicoId={servico.id}
                   />
                 </div>
+
+                {podeEditar ? (
+                  <div className="mt-4 border-t border-zinc-200 pt-3">
+                    <ExcluirServicoForm
+                      action={actionExcluir}
+                      clienteSlug={clienteSlug}
+                      nome={servico.nome}
+                      servicoId={servico.id}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
         </>
       )}
+
+      {podeEditar && painel.excluidos.length > 0 ? (
+        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
+            Excluídos
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Estes serviços continuam na base de dados com tudo o que tinham:
+            preço, notas, receita e histórico. O agente é que deixou de os
+            vender.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {painel.excluidos.map((servico) => (
+              <li
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0"
+                key={servico.id}
+              >
+                <span className="text-sm text-zinc-800">{servico.nome}</span>
+                <ReporServicoForm
+                  action={actionRepor}
+                  clienteSlug={clienteSlug}
+                  servicoId={servico.id}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </>
   );
 }

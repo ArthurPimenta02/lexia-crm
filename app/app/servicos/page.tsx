@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 
 import {
   definirReceitaAction,
+  excluirServicoAction,
   gravarServicoAction,
   registarExecucaoAction,
+  reporServicoAction,
 } from "@/app/app/servicos/actions";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -65,8 +67,10 @@ export default async function ServicosPage({
 
       <ServicosPanel
         action={gravarServicoAction}
+        actionExcluir={excluirServicoAction}
         actionExecucao={registarExecucaoAction}
         actionReceita={definirReceitaAction}
+        actionRepor={reporServicoAction}
         basePath="/app/servicos"
         painel={painel}
         podeEditar={profile.role === "cliente_admin"}

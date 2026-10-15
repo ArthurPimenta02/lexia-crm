@@ -1,17 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import type { ServicoQueGasta } from "@/lib/produtos/read";
 import type { GravarProdutoResultado } from "@/lib/produtos/write";
+import type { ServicoSimples } from "@/lib/servicos/read";
 
 /**
- * Formulários da página de produtos: criar produto, registar compra e ajustar
- * stock.
+ * Formulários da página de produtos: criar produto, registar compra, ajustar
+ * stock, ligar serviços ao produto e excluir/repor.
  *
- * São três formulários separados porque são três decisões separadas. O dono
- * cria um produto uma vez e registra compras muitas; juntá-los obrigava-o a
- * reescrever o nome e a unidade em cada frasco que compra.
+ * São formulários separados porque são decisões separadas. O dono cria um
+ * produto uma vez e registra compras muitas; juntá-los obrigava-o a reescrever
+ * o nome e a unidade em cada frasco que compra.
  */
 
 export type ProdutoAction = (
@@ -261,6 +263,343 @@ export function AjusteForm({
           Ajustar
         </FormSubmitButton>
       </div>
+
+      <Mensagem resultado={resultado} />
+    </form>
+  );
+}
+
+const inputPequeno =
+  "h-9 rounded-md border border-zinc-300 bg-white px-2.5 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+
+function LinhaDeServico({
+  action,
+  clienteSlug,
+  item,
+  moeda,
+  produtoId,
+  unidade,
+}: {
+  action: ProdutoAction;
+  clienteSlug?: string;
+  item: ServicoQueGasta;
+  moeda: string;
+  produtoId: string;
+  unidade: string;
+}) {
+  const [resultado, formAction] = useActionState<
+    GravarProdutoResultado | null,
+    FormData
+  >(action, null);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1.5">
+      {clienteSlug ? (
+        <input name="cliente_slug" type="hidden" value={clienteSlug} />
+      ) : null}
+      <input name="produto_id" type="hidden" value={produtoId} />
+      <input name="servico_id" type="hidden" value={item.servicoId} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-36 flex-1 truncate text-sm text-zinc-800">
+          {item.servicoNome}
+        </span>
+
+        <label
+          className="sr-only"
+          htmlFor={`uso-${produtoId}-${item.servicoId}`}
+        >
+          Quantidade gasta em {item.servicoNome}
+        </label>
+        <input
+          className={`${inputPequeno} w-24`}
+          defaultValue={String(item.quantidade)}
+          id={`uso-${produtoId}-${item.servicoId}`}
+          inputMode="decimal"
+          min="0"
+          name="quantidade"
+          step="0.001"
+          type="number"
+        />
+        <span className="w-10 text-xs text-zinc-500">{unidade}</span>
+
+        <span className="w-24 text-right text-sm font-semibold text-zinc-900">
+          {item.custo === null
+            ? "sem preço"
+            : new Intl.NumberFormat("pt-PT", {
+                currency: moeda,
+                maximumFractionDigits: 2,
+                minimumFractionDigits: 2,
+                style: "currency",
+              }).format(item.custo)}
+        </span>
+
+        <FormSubmitButton
+          className="inline-flex min-h-9 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+          pendingLabel="..."
+        >
+          Gravar
+        </FormSubmitButton>
+      </div>
+
+      <Mensagem resultado={resultado} />
+    </form>
+  );
+}
+
+function LigarServico({
+  action,
+  clienteSlug,
+  produtoId,
+  servicos,
+  unidade,
+}: {
+  action: ProdutoAction;
+  clienteSlug?: string;
+  produtoId: string;
+  servicos: ServicoSimples[];
+  unidade: string;
+}) {
+  const [resultado, formAction] = useActionState<
+    GravarProdutoResultado | null,
+    FormData
+  >(action, null);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1.5">
+      {clienteSlug ? (
+        <input name="cliente_slug" type="hidden" value={clienteSlug} />
+      ) : null}
+      <input name="produto_id" type="hidden" value={produtoId} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="sr-only" htmlFor={`ligar-${produtoId}`}>
+          Serviço a ligar
+        </label>
+        <select
+          className={`${inputPequeno} min-w-36 flex-1`}
+          defaultValue={servicos[0]?.id}
+          id={`ligar-${produtoId}`}
+          name="servico_id"
+        >
+          {servicos.map((servico) => (
+            <option key={servico.id} value={servico.id}>
+              {servico.nome}
+            </option>
+          ))}
+        </select>
+
+        <label className="sr-only" htmlFor={`ligar-qtd-${produtoId}`}>
+          Quantidade gasta por execução
+        </label>
+        <input
+          className={`${inputPequeno} w-24`}
+          id={`ligar-qtd-${produtoId}`}
+          inputMode="decimal"
+          min="0"
+          name="quantidade"
+          placeholder={unidade}
+          step="0.001"
+          type="number"
+        />
+
+        <FormSubmitButton
+          className="inline-flex min-h-9 items-center rounded-full bg-zinc-950 px-4 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          pendingLabel="A ligar..."
+        >
+          Ligar serviço
+        </FormSubmitButton>
+      </div>
+
+      <Mensagem resultado={resultado} />
+    </form>
+  );
+}
+
+/**
+ * Que serviços gastam este produto, editável aqui mesmo.
+ *
+ * É a mesma tabela que a receita do lado dos Serviços — a diferença é por onde
+ * o dono entra. Quando acaba o champô, a pergunta que ele tem na cabeça é
+ * "onde é que isto se está a gastar", e essa não se responde abrindo os quinze
+ * serviços um a um.
+ */
+export function ServicosDoProdutoForm({
+  actionReceita,
+  clienteSlug,
+  moeda,
+  podeEditar,
+  produtoId,
+  servicos,
+  servicosDisponiveis,
+  unidade,
+}: {
+  actionReceita: ProdutoAction;
+  clienteSlug?: string;
+  moeda: string;
+  podeEditar: boolean;
+  produtoId: string;
+  servicos: ServicoQueGasta[];
+  /** Serviços do catálogo que ainda não gastam este produto. */
+  servicosDisponiveis: ServicoSimples[];
+  unidade: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+        Serviços que gastam este produto
+      </p>
+
+      {servicos.length === 0 ? (
+        <p className="text-xs text-zinc-500">
+          Nenhum. Enquanto nenhum serviço gastar este produto, o stock só muda
+          quando registas compras ou ajustes à mão.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {servicos.map((item) =>
+            podeEditar ? (
+              <LinhaDeServico
+                action={actionReceita}
+                clienteSlug={clienteSlug}
+                item={item}
+                key={item.servicoId}
+                moeda={moeda}
+                produtoId={produtoId}
+                unidade={unidade}
+              />
+            ) : (
+              <p className="text-sm text-zinc-800" key={item.servicoId}>
+                {item.servicoNome} — {item.quantidade} {unidade}
+              </p>
+            ),
+          )}
+        </div>
+      )}
+
+      {podeEditar && servicosDisponiveis.length > 0 ? (
+        <LigarServico
+          action={actionReceita}
+          clienteSlug={clienteSlug}
+          produtoId={produtoId}
+          servicos={servicosDisponiveis}
+          unidade={unidade}
+        />
+      ) : null}
+
+      {podeEditar && servicos.length > 0 ? (
+        <p className="text-xs text-zinc-500">
+          Pôr a quantidade a zero tira o serviço desta lista.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Excluir um produto, em dois passos.
+ *
+ * O segundo passo existe porque excluir também o tira da receita de todos os
+ * serviços, e essas quantidades não voltam ao repor. O stock e o histórico de
+ * compras ficam — é só o produto que deixa de aparecer.
+ */
+export function ExcluirProdutoForm({
+  action,
+  clienteSlug,
+  nome,
+  produtoId,
+  servicosAfectados,
+}: {
+  action: ProdutoAction;
+  clienteSlug?: string;
+  nome: string;
+  produtoId: string;
+  servicosAfectados: number;
+}) {
+  const [resultado, formAction] = useActionState<
+    GravarProdutoResultado | null,
+    FormData
+  >(action, null);
+  const [aConfirmar, setAConfirmar] = useState(false);
+
+  if (!aConfirmar) {
+    return (
+      <div className="flex flex-col items-end gap-1.5">
+        <button
+          className="text-xs font-semibold text-zinc-500 underline decoration-dotted transition hover:text-red-700"
+          onClick={() => setAConfirmar(true)}
+          type="button"
+        >
+          Excluir produto
+        </button>
+        <Mensagem resultado={resultado} />
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="flex flex-col items-end gap-1.5">
+      {clienteSlug ? (
+        <input name="cliente_slug" type="hidden" value={clienteSlug} />
+      ) : null}
+      <input name="produto_id" type="hidden" value={produtoId} />
+
+      <p className="max-w-sm text-right text-xs text-amber-900">
+        {servicosAfectados === 0
+          ? `Excluir "${nome}"? O stock e o histórico ficam guardados e podes repô-lo.`
+          : `Excluir "${nome}"? Sai também da receita de ${servicosAfectados} ${
+              servicosAfectados === 1 ? "serviço" : "serviços"
+            }, e essas quantidades não voltam se o repuseres.`}
+      </p>
+
+      <div className="flex items-center gap-2">
+        <button
+          className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-900"
+          onClick={() => setAConfirmar(false)}
+          type="button"
+        >
+          Cancelar
+        </button>
+        <FormSubmitButton
+          className="inline-flex min-h-8 items-center rounded-full bg-red-700 px-4 text-xs font-semibold text-white transition hover:bg-red-800 disabled:opacity-60"
+          pendingLabel="A excluir..."
+        >
+          Sim, excluir
+        </FormSubmitButton>
+      </div>
+
+      <Mensagem resultado={resultado} />
+    </form>
+  );
+}
+
+export function ReporProdutoForm({
+  action,
+  clienteSlug,
+  produtoId,
+}: {
+  action: ProdutoAction;
+  clienteSlug?: string;
+  produtoId: string;
+}) {
+  const [resultado, formAction] = useActionState<
+    GravarProdutoResultado | null,
+    FormData
+  >(action, null);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1">
+      {clienteSlug ? (
+        <input name="cliente_slug" type="hidden" value={clienteSlug} />
+      ) : null}
+      <input name="produto_id" type="hidden" value={produtoId} />
+
+      <FormSubmitButton
+        className="inline-flex min-h-8 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+        pendingLabel="A repor..."
+      >
+        Repor
+      </FormSubmitButton>
 
       <Mensagem resultado={resultado} />
     </form>

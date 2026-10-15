@@ -502,6 +502,47 @@ o `servicoId` que vem do formulário é a leitura do catálogo do cliente
 Na receita, **quantidade zero apaga a linha**. É o mesmo campo e o mesmo botão,
 em vez de um segundo botão que tinha de ser explicado.
 
+### Excluir produtos e serviços (Fase 11)
+
+Nada é apagado: excluir é `activo = false`, e há sempre o caminho de volta
+(`getProdutosExcluidos` / `getServicosExcluidos`, com o bloco "Excluídos" no fim
+de cada ecrã). Um `delete` real era irreversível por desenho: as FKs
+`lexia_produto_movimentos.produto_id` e `lexia_servico_produtos.produto_id` têm
+`on delete cascade`, logo levavam o histórico de stock e o custo unitário que
+alimenta a margem de serviços **já vendidos**.
+
+**Excluir um produto apaga as linhas da receita dele — essas sim, a sério.** Se
+ficassem, `registarExecucao` continuava a descontar stock de um produto que já
+não aparece em sítio nenhum: stock a desaparecer sem o dono ter onde o ver. Por
+isso repor um produto não repõe as quantidades por serviço, e a confirmação di-lo
+antes de excluir. `definirReceita` recusa produtos excluídos: o ecrã não os
+oferece, mas o `produto_id` vem do formulário e um separador aberto antes da
+exclusão voltava a ligá-lo.
+
+**Excluir um serviço escreve `activo = false` nas duas tabelas do cliente, por
+esta ordem: catálogo primeiro, agendamento depois.** Medido a 15/10/2026 contra
+os 139 workflows do n8n via API: só três workflows activos leem estas tabelas
+(`Cérebro — Detail By Cordeiro V2`, `verificar_disponibilidade` e
+`criar_marcacao`) e **os três filtram `activo = true`** — ou seja, `activo =
+false` basta para o agente deixar de vender e o agendamento deixar de aceitar.
+A ordem não é arbitrária e **nada é revertido se a segunda escrita falhar**:
+catálogo-off com agendamento-on é inofensivo (ninguém chega ao agendamento sem
+passar pela venda), o inverso fazia o agente vender o que não se pode marcar e o
+cliente ouvia "sim" sem ficar com marcação. Nesse caso a mensagem é honesta e
+nomeia a tabela que ficou por mudar.
+
+Risco latente, não corrigido: 15 nós em workflows **inactivos** leem estas
+tabelas sem filtro nenhum. Se algum for reactivado, serviços excluídos voltam ao
+agente.
+
+**Ligar serviços a um produto também se faz na página Produtos.** É a mesma
+tabela `lexia_servico_produtos` e a mesma escrita (`definirReceita`); muda só a
+direcção da leitura (`getServicosPorProduto`). Quando acaba o champô, a pergunta
+que o dono tem na cabeça é "onde é que isto se está a gastar", e essa não se
+responde abrindo os quinze serviços um a um. Quando o nome do serviço vivo e o
+`servico_nome` guardado divergem, ganha o vivo — o guardado serve para a linha
+continuar legível, não para competir com a fonte da verdade.
+
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 
 Rotas fora da navegação devem ser preservadas. A ausência no menu não significa que estejam obsoletas.

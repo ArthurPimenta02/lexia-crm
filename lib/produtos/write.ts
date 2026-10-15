@@ -265,6 +265,129 @@ export async function registarAjuste({
 }
 
 /**
+ * Excluir um produto: sai do ecrã e de todas as receitas, mas a linha fica.
+ *
+ * Nunca é um `delete`. Os movimentos são o próprio livro de stock e estão
+ * ligados ao produto com `on delete cascade`: apagar a linha levava com ela o
+ * histórico de compras e de consumos, e com ele o custo unitário que alimenta
+ * a margem de serviços que já foram vendidos. `activo = false` esconde o
+ * produto e deixa a conta de pé.
+ *
+ * As linhas da receita, ao contrário, são apagadas de verdade. Se ficassem, o
+ * `registarExecucao` continuava a descontar um produto que já não aparece em
+ * ecrã nenhum — stock a desaparecer sem o dono ter onde o ver.
+ */
+export async function excluirProduto({
+  caminhoParaRevalidar,
+  clienteSlug,
+  produtoId,
+  userId,
+}: {
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  produtoId: string;
+  userId: string;
+}): Promise<GravarProdutoResultado> {
+  const admin = createAdminClient();
+  const produto = await lerProdutoDoCliente(admin, clienteSlug, produtoId);
+
+  if (!produto) {
+    return { mensagem: "Produto desconhecido.", ok: false };
+  }
+
+  const { data: receitas, error: erroReceita } = await admin
+    .from("lexia_servico_produtos")
+    .delete()
+    .eq("cliente_slug", clienteSlug)
+    .eq("produto_id", produtoId)
+    .select("servico_id");
+
+  if (erroReceita) {
+    console.error("[produtos] falha a limpar as receitas do produto", erroReceita);
+
+    return {
+      mensagem: "Não foi possível tirar o produto das receitas dos serviços.",
+      ok: false,
+    };
+  }
+
+  const { error } = await admin
+    .from("lexia_produtos")
+    .update({
+      activo: false,
+      actualizado_em: new Date().toISOString(),
+      actualizado_por: userId,
+    })
+    .eq("cliente_slug", clienteSlug)
+    .eq("id", produtoId);
+
+  if (error) {
+    console.error("[produtos] falha a excluir o produto", error);
+
+    return { mensagem: "Não foi possível excluir o produto.", ok: false };
+  }
+
+  revalidatePath(caminhoParaRevalidar);
+
+  const afectados = receitas?.length ?? 0;
+
+  return {
+    mensagem:
+      afectados === 0
+        ? `"${produto.nome}" excluído. O histórico fica guardado e podes repô-lo em baixo.`
+        : `"${produto.nome}" excluído e tirado de ${afectados} ${afectados === 1 ? "serviço" : "serviços"}. Se o repuseres, a quantidade em cada serviço tem de ser outra vez definida.`,
+    ok: true,
+  };
+}
+
+/**
+ * Repor um produto excluído. O stock e o histórico voltam intactos; a receita
+ * dos serviços não, porque foi apagada ao excluir.
+ */
+export async function reporProduto({
+  caminhoParaRevalidar,
+  clienteSlug,
+  produtoId,
+  userId,
+}: {
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  produtoId: string;
+  userId: string;
+}): Promise<GravarProdutoResultado> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("lexia_produtos")
+    .update({
+      activo: true,
+      actualizado_em: new Date().toISOString(),
+      actualizado_por: userId,
+    })
+    .eq("cliente_slug", clienteSlug)
+    .eq("id", produtoId)
+    .select("nome")
+    .maybeSingle();
+
+  if (error) {
+    console.error("[produtos] falha a repor o produto", error);
+
+    return { mensagem: "Não foi possível repor o produto.", ok: false };
+  }
+
+  if (!data) {
+    return { mensagem: "Produto desconhecido.", ok: false };
+  }
+
+  revalidatePath(caminhoParaRevalidar);
+
+  return {
+    mensagem: `"${String(data.nome)}" reposto. Volta a dizer quanto cada serviço gasta dele.`,
+    ok: true,
+  };
+}
+
+/**
  * Receita: quanto de um produto entra num serviço.
  *
  * Quantidade zero apaga a linha. É a forma mais directa de tirar um produto da
@@ -296,6 +419,16 @@ export async function definirReceita({
 
   if (!produto) {
     return { mensagem: "Produto desconhecido.", ok: false };
+  }
+
+  // Um produto excluído não volta à receita por aqui. O ecrã não o oferece,
+  // mas o id vem do formulário: sem esta recusa, um separador aberto antes da
+  // exclusão punha de novo a descontar stock de um produto invisível.
+  if (!produto.activo) {
+    return {
+      mensagem: `"${produto.nome}" está excluído. Repõe-no na página Produtos antes de o usar num serviço.`,
+      ok: false,
+    };
   }
 
   const normalizado = quantidadeBruta.trim().replace(",", ".");
@@ -440,7 +573,7 @@ async function lerProdutoDoCliente(
 ) {
   const { data, error } = await admin
     .from("lexia_produtos")
-    .select("id, nome, unidade")
+    .select("id, nome, unidade, activo")
     .eq("cliente_slug", clienteSlug)
     .eq("id", produtoId)
     .maybeSingle();
@@ -451,5 +584,11 @@ async function lerProdutoDoCliente(
     return null;
   }
 
-  return data ? { nome: String(data.nome), unidade: String(data.unidade) } : null;
+  return data
+    ? {
+        activo: data.activo === true,
+        nome: String(data.nome),
+        unidade: String(data.unidade),
+      }
+    : null;
 }

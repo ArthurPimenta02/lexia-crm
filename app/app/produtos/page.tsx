@@ -2,13 +2,21 @@ import { redirect } from "next/navigation";
 
 import {
   criarProdutoAction,
+  definirReceitaDoProdutoAction,
+  excluirProdutoAction,
   registarAjusteAction,
   registarCompraAction,
+  reporProdutoAction,
 } from "@/app/app/produtos/actions";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import { getProdutos } from "@/lib/produtos/read";
+import {
+  getProdutos,
+  getProdutosExcluidos,
+  getServicosPorProduto,
+} from "@/lib/produtos/read";
 import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosSimples } from "@/lib/servicos/read";
 
 export const metadata = {
   title: "Produtos e stock",
@@ -29,7 +37,20 @@ export default async function ProdutosPage() {
     redirect("/app");
   }
 
-  const produtos = await getProdutos(profile.cliente_slug);
+  const [produtos, servicos, excluidos] = await Promise.all([
+    getProdutos(profile.cliente_slug),
+    getServicosSimples(profile.cliente_slug),
+    getProdutosExcluidos(profile.cliente_slug),
+  ]);
+
+  // O nome vivo do catálogo ganha ao nome guardado na linha da receita: aquele
+  // é a fonte da verdade, este serve só para a linha não ficar ilegível.
+  const servicosPorProduto = await getServicosPorProduto(
+    profile.cliente_slug,
+    produtos,
+    new Map(servicos.map((servico) => [servico.id, servico.nome])),
+  );
+
   const moeda = getServicosConfig(profile.cliente_slug)?.moeda ?? "EUR";
 
   return (
@@ -58,9 +79,15 @@ export default async function ProdutosPage() {
         actionAjuste={registarAjusteAction}
         actionCompra={registarCompraAction}
         actionCriar={criarProdutoAction}
+        actionExcluir={excluirProdutoAction}
+        actionReceita={definirReceitaDoProdutoAction}
+        actionRepor={reporProdutoAction}
+        excluidos={excluidos}
         moeda={moeda}
         podeEditar={profile.role === "cliente_admin"}
         produtos={produtos}
+        servicos={servicos}
+        servicosPorProduto={servicosPorProduto}
       />
     </div>
   );

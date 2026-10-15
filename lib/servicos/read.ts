@@ -67,10 +67,18 @@ export type ServicoLinha = {
   tipoPreco: string | null;
 };
 
+/** Serviço do catálogo, sem o resto do painel. */
+export type ServicoSimples = {
+  id: string;
+  nome: string;
+};
+
 export type PainelServicos = {
   configurado: boolean;
   escalaoActivo: string;
   escaloes: EscalaoConfig[];
+  /** Serviços com `activo = false`, para poderem ser repostos. */
+  excluidos: ServicoSimples[];
   executorPrincipal: string | null;
   moeda: string;
   /** Produtos activos do cliente, para montar a receita de cada serviço. */
@@ -104,6 +112,7 @@ function painelVazio(motivo: string | null, config?: ServicosClientConfig | null
     configurado: Boolean(config),
     escalaoActivo: escalaoBase,
     escaloes: config?.escaloes ?? [],
+    excluidos: [],
     executorPrincipal: config?.executores[0]?.chave ?? null,
     moeda: config?.moeda ?? "EUR",
     produtos: [],
@@ -320,7 +329,7 @@ export async function getPainelServicos({
     ]),
   ).join(", ");
 
-  const [catalogo, agendamento, custos, produtos] = await Promise.all([
+  const [catalogo, agendamento, custos, produtos, excluidos] = await Promise.all([
     externo
       .from(config.catalogoTable)
       .select(
@@ -334,6 +343,7 @@ export async function getPainelServicos({
       .select("servico_id, notas, actualizado_em")
       .eq("cliente_slug", clienteSlug),
     getProdutos(clienteSlug),
+    getServicosExcluidos(clienteSlug),
   ]);
 
   // Depende dos produtos: o custo de cada linha da receita é o custo unitário
@@ -482,6 +492,7 @@ export async function getPainelServicos({
     configurado: true,
     escalaoActivo,
     escaloes: config.escaloes,
+    excluidos,
     executorPrincipal: config.executores[0]?.chave ?? null,
     moeda: config.moeda,
     produtos,
@@ -489,4 +500,65 @@ export async function getPainelServicos({
     servicos,
     vazioMotivo: servicos.length === 0 ? "Sem serviços activos no catálogo." : null,
   };
+}
+
+/**
+ * Catálogo do cliente reduzido a id e nome.
+ *
+ * Existe para a página de Produtos poder oferecer a lista de serviços a ligar
+ * sem arrastar o painel inteiro — que lê duas tabelas do cliente, calcula
+ * margens e monta receitas. Para encher um `<select>` nada disso é preciso.
+ */
+export async function getServicosSimples(
+  clienteSlug: string,
+): Promise<ServicoSimples[]> {
+  return await lerCatalogoPorEstado(clienteSlug, true);
+}
+
+/**
+ * Serviços excluídos (`activo = false`), para poderem ser repostos.
+ *
+ * Sem esta lista, excluir um serviço era uma porta que só abria num sentido: o
+ * painel só mostra os activos, e o dono ficava sem caminho de volta a não ser
+ * mexer na Supabase à mão.
+ */
+export async function getServicosExcluidos(
+  clienteSlug: string,
+): Promise<ServicoSimples[]> {
+  return await lerCatalogoPorEstado(clienteSlug, false);
+}
+
+async function lerCatalogoPorEstado(
+  clienteSlug: string,
+  activo: boolean,
+): Promise<ServicoSimples[]> {
+  const config = getServicosConfig(clienteSlug);
+
+  if (!config) {
+    return [];
+  }
+
+  const externo = createServicosClient(config);
+
+  if (!externo) {
+    return [];
+  }
+
+  const { data, error } = await externo
+    .from(config.catalogoTable)
+    .select("id, nome")
+    .eq("activo", activo)
+    .order("ordem", { ascending: true });
+
+  if (error) {
+    console.error("[servicos] falha a ler o catálogo reduzido", error);
+
+    return [];
+  }
+
+  return (data ?? [])
+    .filter((linha): linha is { id: string; nome: string } =>
+      Boolean(linha.id && typeof linha.nome === "string" && linha.nome.trim()),
+    )
+    .map((linha) => ({ id: linha.id, nome: linha.nome.trim() }));
 }
