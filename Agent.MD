@@ -128,7 +128,7 @@ Next.js na Vercel (este repositório)
 
 Cada cliente tem o seu próprio Redis no Upstash, usado pelo n8n para buffer, contexto e travas do agente. Desde 19/09/2026 o painel acede diretamente a esse Redis, apenas no servidor e pela API REST do Upstash, para uma única finalidade: ler as travas do agente e gravar ou remover a pausa manual e a pausa pós-agendamento. O painel não lê buffer, contexto nem eco. O contrato das chaves está na secção 12 e o código em `lib/redis/agent-locks.ts`. Não há dependência npm de Redis; o acesso é feito com `fetch`.
 
-Clientes com a integração ativa: `miranda_skin_experts`. Para os demais, as telas simplesmente não mostram a secção de pausas.
+Clientes com a integração ativa: `miranda_skin_experts` e `detail_by_cordeiro`. Para os demais, as telas simplesmente não mostram a secção de pausas — e o mesmo acontecia ao Detail até 15/10/2026, nos **dois** ecrãs, por lhe faltar a entrada em `clientConfigs`.
 
 ## 5. Stack e Convenções
 
@@ -979,7 +979,14 @@ Contrato mínimo de mensagem:
 
 ### Travas do agente no Redis
 
-Contrato partilhado entre o painel e os workflows da Miranda. O namespace é `lexia:novo_cliente:{canal}:v1` e o `identificador_conversa` tem o formato `{canal}:{dígitos}`, igual ao de `lexia_contactos`.
+Contrato partilhado entre o painel e os workflows do cliente. O `identificador_conversa` tem o formato `{canal}:{dígitos}`, igual ao de `lexia_contactos`. O namespace é por cliente:
+
+| Cliente | Namespace | `pausa_eterna` |
+| --- | --- | --- |
+| `miranda_skin_experts` | `lexia:novo_cliente:{canal}:v1` | sim, só WhatsApp |
+| `detail_by_cordeiro` | `lexia:detail_by_cordeiro:{canal}:v1` | não — nenhum workflow a escreve |
+
+O Detail foi ligado a 15/10/2026. A integração já existia inteira (acções, componentes, autorização para roles de cliente) e os workflows dele já liam estas chaves — faltava só a entrada em `clientConfigs`, e sem ela `hasAgentLocksIntegration` devolvia `false` e `ConversationAgentStatus` devolvia `null` nos dois ecrãs. Antes de ligar, verificado contra dados reais: as 10 chaves `status` no Redis do Detail são reproduzidas **byte a byte** por `buildKey`, 9 das 10 conversas existem em `lexia_contactos` (a décima não passaria o `conversationExists` do `pauseAgentForConversation`), e 916 dos 997 contactos do Detail têm identificador no formato aceite — os 81 restantes são `teste:%`, que a acção exclui de propósito.
 
 | Trava | Chave | Valor | Validade | Quem grava | Painel |
 | --- | --- | --- | --- | --- | --- |
@@ -989,7 +996,8 @@ Contrato partilhado entre o painel e os workflows da Miranda. O namespace é `le
 
 Regras:
 
-- O omnichannel lê `pausa_manual` antes de `Agente desativado?` e antes de `Samuel Continuou?`. Qualquer valor não vazio pausa; `DEL` despausa.
+- O omnichannel lê `pausa_manual` antes de `Agente desativado?` e antes de `Samuel Continuou?`. Qualquer valor não vazio pausa; `DEL` despausa. No Detail é o nó `Ver Pausa Manual` do omnichannel activo, que monta `redis_namespace + ':pausa_manual:' + identificador_conversa`; o follow-up V2 lê a mesma chave e, se estiver pausado, empurra o envio 2 h em vez de o perder.
+- No `lexia_followups` do Detail o `identificador` traz o slug à frente (`detail_by_cordeiro:whatsapp:351…`), ao contrário da Miranda. O painel não toca nessa tabela, mas quem montar chaves a partir dela tem de tirar o prefixo — senão lê uma chave que nunca existe e falha em silêncio.
 - Intervenção humana e handoff partilham a mesma chave e o mesmo valor, por isso o painel não os distingue.
 - Os detalhes do handoff (motivo, resumo, prioridade) não ficam no Redis nem em `lexia_handoffs`; hoje só vão na notificação de WhatsApp para a equipa.
 - Mudar o formato de qualquer chave exige alterar `lib/redis/agent-locks.ts` e este documento no mesmo commit.

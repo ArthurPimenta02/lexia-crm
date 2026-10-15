@@ -33,6 +33,21 @@ type AgentLocksClientConfig = {
 };
 
 const clientConfigs: Record<string, AgentLocksClientConfig> = {
+  // Verificado a 15/10/2026 contra o Redis e os workflows reais: as 10 chaves
+  // `status` existentes batem byte a byte com o que `buildKey` monta, e o nó
+  // `Ver Pausa Manual` do omnichannel activo lê
+  // `redis_namespace + ':pausa_manual:' + identificador_conversa`, com
+  // `redis_namespace` = `lexia:detail_by_cordeiro:<canal>:v1`.
+  //
+  // `eternalPauseChannels` fica vazio porque nenhum workflow do Detail escreve
+  // `pausa_eterna` — oferecer o botão era prometer retomar uma trava que não
+  // existe.
+  detail_by_cordeiro: {
+    envPrefix: "DETAIL",
+    eternalPauseChannels: [],
+    namespacePrefix: "lexia:detail_by_cordeiro:",
+    namespaceSuffix: ":v1",
+  },
   miranda_skin_experts: {
     envPrefix: "MIRANDA",
     eternalPauseChannels: ["whatsapp"],
