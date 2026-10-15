@@ -67,6 +67,15 @@ function envPrefix(clienteSlug: string) {
 }
 
 /**
+ * Nome exacto da variável de ambiente que liga este cliente a uma conta de
+ * anúncios. O painel do admin mostra-a quando falta, para não obrigar a
+ * adivinhar a convenção do nome.
+ */
+export function getMetaAdsAccountEnvName(clienteSlug: string) {
+  return `${envPrefix(clienteSlug)}_META_ADS_ACCOUNT_ID`;
+}
+
+/**
  * Devolve `null` — e não um erro — quando o cliente não tem conta de anúncios
  * configurada. Um cliente sem Meta Ads não é uma avaria; é o caso normal de
  * quem ainda não anuncia, e o painel tem de saber mostrar "sem dados".
@@ -74,7 +83,7 @@ function envPrefix(clienteSlug: string) {
 export function getMetaAdsConfig(clienteSlug: string): MetaAdsConfig | null {
   const token = process.env.META_ADS_TOKEN?.trim();
   const accountIdRaw =
-    process.env[`${envPrefix(clienteSlug)}_META_ADS_ACCOUNT_ID`]?.trim();
+    process.env[getMetaAdsAccountEnvName(clienteSlug)]?.trim();
 
   if (!token || !accountIdRaw) {
     return null;

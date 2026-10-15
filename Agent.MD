@@ -230,6 +230,7 @@ Arquivos de referência:
 | --- | --- | --- |
 | `/app` | Dashboard do cliente. | Sim |
 | `/app/analista` | Chat analítico isolado do próprio cliente. | Sim |
+| `/app/campanhas` | Gasto e entrega das campanhas da Meta do próprio cliente. | Sim |
 | `/app/conversas` | Conversas reais. | Sim |
 | `/app/area-testes` | Simulação do agente. | Sim |
 | `/app/handoffs` | Handoffs reais e simulados. | Sim |
@@ -243,6 +244,7 @@ Arquivos de referência:
 | --- | --- | --- |
 | `/admin` | Dashboard agregado. | Sim |
 | `/admin/analista` | Chat analítico com seleção explícita de cliente. | Sim |
+| `/admin/campanhas` | Campanhas da Meta com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
@@ -311,6 +313,48 @@ duas regras.
 orçamento se esgotava sempre nos primeiros e `miranda_skin_experts`, por ser o
 último, nunca era classificado. O embaralhamento distribui as vagas ao longo
 das execuções sem precisar guardar de quem foi a vez anterior.
+
+### API de campanhas (Fase 8)
+
+| Rota | Método | Função |
+| --- | --- | --- |
+| `/api/campanhas/sincronizar` | `POST` | Sincroniza um cliente. Autoriza por `Authorization: Bearer LEXIA_CRON_SECRET` (o mesmo da classificação, reutilizado de propósito). Corpo: `cliente_slug` obrigatório, `dias` opcional. |
+| `/api/campanhas/cron` | `GET` | Agendamento diário. Autoriza por `Authorization: Bearer CRON_SECRET`, que o Vercel Cron injeta sozinho. Percorre todos os `lexia_clientes` ativos com conta de anúncios configurada, um por vez. |
+
+O agendamento está no `vercel.json`: `0 6 * * *` (UTC), ou seja de manhã em
+Lisboa, antes de o dono abrir o painel. É Vercel Cron e não n8n de propósito —
+a rota vive na mesma aplicação, e um agendamento a menos no n8n é uma peça a
+menos a poder falhar em silêncio. O `CRON_SECRET` existe só em Production,
+então o cron **não funciona em Preview**, e `vercel env pull` devolve
+`[REDACTED]` para ele: não é possível testar a rota autenticada a partir da
+máquina local.
+
+A escrita é **upsert** com janela padrão de 28 dias (`lexia_campanha_custos`
+tem chave única `(campanha_id, dia)`). A Meta reafirma os números de dias já
+passados enquanto as janelas de atribuição fecham, por isso sincronizar duas
+vezes tem de dar o mesmo resultado — nunca acrescentar linhas. `dias` acima de
+28 só serve para backfill.
+
+A dimensão `lexia_campanhas` é construída de **duas fontes**: `/campaigns` e os
+próprios insights. `/campaigns` não lista campanhas apagadas na Meta, mas o
+gasto delas continua a vir nos insights; sem a segunda fonte perdiam-se 342 EUR
+de histórico do `detail_by_cordeiro`. O `objective` também é lido dos insights,
+porque é a única via para o objectivo de uma campanha já apagada.
+
+**Não existe coluna de "mensagens iniciadas"** e não é um esquecimento: a conta
+do Detail não produz esse número. O objectivo da campanha activa é
+`OUTCOME_ENGAGEMENT`, o único conjunto com destino WhatsApp optimiza
+`LINK_CLICKS` (a Meta nunca registra conversa), e os três conjuntos que
+optimizam `CONVERSATIONS` mandam para `MESSAGING_INSTAGRAM_DIRECT_MESSENGER` —
+135 de 177 EUR em 14 dias — e o Instagram não devolve atribuição. Em v26 não há
+campo alternativo: `conversations`, `cost_per_conversation` e
+`total_messaging_connection` são recusados com `(#100)`. Por isso o "custo por
+contacto" do painel divide o gasto por **todos** os contactos novos e é um
+limite superior, dito ao utilizador no próprio ecrã.
+
+CPM e CTR de um período são recalculados dos totais
+(`gasto/impressoes*1000`, `cliques/impressoes*100`), nunca da média das médias
+diárias: cada dia tem peso diferente.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 
@@ -397,6 +441,27 @@ MIRANDA_UPSTASH_REDIS_REST_TOKEN
 ```
 
 O prefixo segue o `envPrefix` de `lib/redis/agent-locks.ts`. O token dá leitura e escrita no Redis de produção do cliente: é segredo de servidor e nunca pode ser `NEXT_PUBLIC_*`. Sem estas variáveis a secção de pausas não aparece.
+
+### Meta Marketing API (campanhas e custos)
+
+```text
+META_API_VERSION
+META_ADS_TOKEN
+DETAIL_BY_CORDEIRO_META_ADS_ACCOUNT_ID
+CRON_SECRET
+```
+
+`META_ADS_TOKEN` é um token de system user, partilhado por todos os clientes;
+o que muda por cliente é `${SLUG}_META_ADS_ACCOUNT_ID`, na mesma convenção de
+prefixo do resto do repo. `getMetaAdsConfig` devolve `null` — e não um erro —
+quando a conta não está configurada: um cliente que ainda não anuncia não é uma
+avaria, e `/admin/campanhas` mostra "(sem conta ligada)" no selector e diz qual
+variável falta. `META_API_VERSION` tem de ser mantida à frente da depreciação
+(a v24.0 expirou em 06/10/2026); o padrão no código é `v26.0`.
+
+`CRON_SECRET` é usada **apenas** pelo Vercel Cron de `/api/campanhas/cron`, que
+a injeta no `Authorization` sozinho. Não confundir com `LEXIA_CRON_SECRET`, que
+autoriza as rotas chamadas pelo n8n.
 
 ### Analista Lexia (n8n ativo)
 

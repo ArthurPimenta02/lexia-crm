@@ -3,21 +3,38 @@
 import { useActionState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import type { AtualizarCampanhasResultado } from "@/lib/campaigns/refresh";
 
-import {
-  atualizarCampanhasAction,
-  type AtualizarCampanhasResultado,
-} from "./actions";
-
-export function RefreshButton({ atualizadoEm }: { atualizadoEm: string | null }) {
+/**
+ * Botão "Atualizar dados" do painel de campanhas.
+ *
+ * A action entra por propriedade porque o ecrã do cliente e o do admin usam
+ * duas diferentes: a do cliente ignora o formulário e tira o slug do perfil, a
+ * do admin lê o slug do selector. O `clienteSlug` só é enviado no segundo caso.
+ */
+export function CampaignsRefreshButton({
+  action,
+  atualizadoEm,
+  clienteSlug,
+}: {
+  action: (
+    estado: AtualizarCampanhasResultado | null,
+    formData: FormData,
+  ) => Promise<AtualizarCampanhasResultado>;
+  atualizadoEm: string | null;
+  clienteSlug?: string;
+}) {
   const [resultado, formAction] = useActionState<
     AtualizarCampanhasResultado | null,
     FormData
-  >(atualizarCampanhasAction, null);
+  >(action, null);
 
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       <form action={formAction}>
+        {clienteSlug ? (
+          <input name="cliente_slug" type="hidden" value={clienteSlug} />
+        ) : null}
         <FormSubmitButton
           className="inline-flex items-center rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
           pendingLabel="A puxar da Meta..."
