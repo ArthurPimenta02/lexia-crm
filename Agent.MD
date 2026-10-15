@@ -231,6 +231,7 @@ Arquivos de referência:
 | `/app` | Dashboard do cliente. | Sim |
 | `/app/analista` | Chat analítico isolado do próprio cliente. | Sim |
 | `/app/campanhas` | Gasto e entrega das campanhas da Meta do próprio cliente. | Sim |
+| `/app/servicos` | Custo, preço e margem por serviço. Edição apenas para `cliente_admin`. | Sim |
 | `/app/conversas` | Conversas reais. | Sim |
 | `/app/area-testes` | Simulação do agente. | Sim |
 | `/app/handoffs` | Handoffs reais e simulados. | Sim |
@@ -245,6 +246,7 @@ Arquivos de referência:
 | `/admin` | Dashboard agregado. | Sim |
 | `/admin/analista` | Chat analítico com seleção explícita de cliente. | Sim |
 | `/admin/campanhas` | Campanhas da Meta com seleção explícita de cliente. | Sim |
+| `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
@@ -355,6 +357,92 @@ limite superior, dito ao utilizador no próprio ecrã.
 CPM e CTR de um período são recalculados dos totais
 (`gasto/impressoes*1000`, `cliques/impressoes*100`), nunca da média das médias
 diárias: cada dia tem peso diferente.
+
+### Serviços e margem (Fase 9)
+
+Não há rota de API: tudo passa por server actions (`app/app/servicos/actions.ts`
+e `app/admin/servicos/actions.ts`). A lógica partilhada está em
+`lib/servicos/{config,read,write}.ts` e o painel em
+`app/components/servicos-panel.tsx`.
+
+**Os dados vivem em duas bases de dados de propósito.** Preço e duração ficam na
+Supabase **do cliente**, nas duas tabelas que já existem — `agendamento_servicos`
+(operacional, com duração por executor) e `servicos_detail_by_cordeiro` (mestre
+de venda, que alimenta o RAG do agente). Custo de produto e custo por hora ficam
+na Supabase **central**, em `lexia_servico_custos` e `lexia_executores_custo`.
+
+O custo não desce para a base do cliente por um motivo concreto: essa é a base
+que o agente de vendas lê. A margem do dono não é para poder aparecer numa
+resposta ao cliente dele.
+
+O catálogo não sobe para a central porque passaria a existir uma quarta
+representação dos serviços — e seria a única que o agente não lê. Duas semanas
+depois o painel mostrava um preço e o agente vendia outro.
+
+**A margem nunca é guardada.** É calculada na leitura:
+`preço − custo_produto − (duração_do_executor / 60 × custo_hora)`. Um valor
+gravado envelheceria em silêncio a cada alteração de preço do outro lado.
+
+**Gravar o preço escreve nas duas tabelas do cliente.** Em 15/10/2026 os 14
+serviços que casam têm preço idêntico nas duas, e não há transacção possível
+entre duas chamadas PostgREST: se a segunda escrita falhar, a primeira é
+revertida e a acção responde que o preço não mudou. Se o serviço não tiver linha
+em `agendamento_servicos`, a escrita de preço é recusada por inteiro. O painel
+tem ainda um aviso `precoDivergente` para apanhar quem escreva direito na
+Supabase, fora deste ecrã.
+
+**A ligação entre as duas tabelas do cliente é o nome**, porque não há chave
+comum. `normalizarNomeServico` tira acentos, caixa e espaços repetidos. Casam 14
+de 16: ficam de fora o "Pacote de Manutenção" (inactivo e sem linha operacional)
+e o "Plano de Manutenção" (vendável, 45 EUR/mês, sem linha operacional).
+
+`lexia_servico_custos.servico_id` aponta para um `id` **noutra base de dados**,
+logo não tem chave estrangeira. Linhas órfãs são inofensivas: a leitura parte
+sempre do catálogo do cliente e faz join para a central.
+
+Escrita só por `service_role`, através das acções que validam o perfil. A acção
+do cliente tira o `cliente_slug` do perfil; a do admin lê-o do selector e
+confirma-o contra `lexia_clientes` antes de o usar. Leitura por `authenticated`
+com RLS `lexia_user_can_access_cliente` e `grant select` coluna a coluna.
+
+Que clientes têm painel: os que estiverem em `clientConfigs` de
+`lib/servicos/config.ts` — hoje só `detail_by_cordeiro`. O esquema de detailing
+(escalões de viatura, duração por executor) não generaliza para a Miranda, e um
+cliente sem entrada vê uma mensagem em vez de um ecrã meio preenchido.
+
+Escalões do Detail: `citadino`, `utilitario`, `sedan_mini_suv`,
+`berlina_suv_jipe`, lidos do jsonb `precos_por_categoria`. O selector de escalão
+é só de leitura — o preço só se edita no escalão base, porque reescrever o jsonb
+exigiria decidir o que fazer com os escalões que o serviço não tem.
+
+Formato do `precos_por_categoria` medido a 15/10/2026 nos 15 serviços activos
+que o têm preenchido: objecto plano, `{"citadino": 30, "utilitario": 35, ...}`.
+**Mas são quatro padrões, não um** — e o painel tem de os ler de maneira
+diferente, senão mente:
+
+| Padrão | Serviços | Como o painel o mostra |
+| --- | --- | --- |
+| 4 escalões de viatura | 7 (o Polimento Técnico tem ainda `nota_ceramica`) | "preço deste escalão" |
+| `preco_unico` | 6 | "preço único — não varia com a viatura" |
+| Tipo de trabalho | 1 (Impermeabilização: `capota_parcial` 60, `capota_completa` 80, `bancos_tecido` 100, `carpetes_tapetes` 150) | Chips em "Outros preços deste serviço" |
+| Plano | 1 (Plano de Manutenção: mensal, anual, equivalente mensal) | Chips em "Outros preços deste serviço" |
+
+`extrairPrecosAlternativos` apanha as chaves numéricas que não são escalões,
+descartando `preco_unico` e qualquer valor igual ao preço base — repetir o preço
+base como "alternativa" era ruído. Dizer "sem preço definido para este escalão"
+num serviço de preço único dava a entender que faltava informação quando não
+falta nada; é para isso que existe `legendaDoPreco`.
+
+**Todos os 15 têm uma chave de texto (`nota` ou `nota_ceramica`) e ela aparece
+no ecrã.** A do Polimento Técnico fala do cerâmico, que é justamente o custo que
+faz do serviço de 500 EUR o pior euro-por-hora da casa. A explicação tem de
+estar ao lado do número.
+
+Medição de arranque (15/10/2026, preço base, sem custo de produto): a receita
+por hora do Martim vai de 40,00 EUR (Clareamento de Faróis, 30 EUR em 45 min) a
+13,89 EUR (Polimento Técnico, 500 EUR em 36 h). O serviço de bandeira é o pior
+de todos, e isso antes de descontar o cerâmico. O Roberto é 20–65% mais lento no
+mesmo serviço.
 
 As rotas do navegador resolvem novamente usuário, role, status e tenant no servidor. As rotas do n8n validam o Bearer e reconstroem esse mesmo escopo a partir da execução persistida. Para roles de cliente, qualquer `clienteSlug` enviado pelo navegador é ignorado.
 

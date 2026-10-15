@@ -1,0 +1,512 @@
+import {
+  createServicosClient,
+  getServicosConfig,
+  normalizarNomeServico,
+  toNumber,
+  type EscalaoConfig,
+  type ServicosClientConfig,
+} from "@/lib/servicos/config";
+import { createClient } from "@/lib/supabase/server";
+
+/**
+ * Leitura do painel de serviços: junta o catálogo e o operacional da Supabase
+ * DO CLIENTE com os custos da Supabase CENTRAL e calcula a margem.
+ *
+ * A margem nunca é guardada. Preço e duração vivem na base do cliente e mudam
+ * lá; um valor gravado aqui ficava velho em silêncio.
+ */
+
+export const escalaoBase = "base";
+
+export type ExecutorLinha = {
+  chave: string;
+  custoHora: number | null;
+  custoMaoDeObra: number | null;
+  duracaoMinutos: number | null;
+  euroPorHora: number | null;
+  executa: boolean;
+  margem: number | null;
+  margemPercent: number | null;
+  nome: string;
+};
+
+export type ServicoLinha = {
+  agendamentoId: string | null;
+  categoria: string | null;
+  custoActualizadoEm: string | null;
+  custoProduto: number | null;
+  descricaoCurta: string | null;
+  executores: ExecutorLinha[];
+  id: string;
+  moeda: string;
+  nome: string;
+  notas: string | null;
+  /** Texto que o catálogo guarda dentro do campo de preços. */
+  notasCatalogo: string[];
+  ordem: number;
+  preco: number | null;
+  precoBaseAgendamento: number | null;
+  precoDivergente: boolean;
+  precoEstimado: boolean;
+  /** O preço não varia com nada: o catálogo tem `preco_unico`. */
+  precoUnico: boolean;
+  /**
+   * Preços que estão no jsonb mas não correspondem a escalões de viatura.
+   * Ver `extrairPrecosAlternativos`.
+   */
+  precosAlternativos: { label: string; valor: number }[];
+  tipoPreco: string | null;
+};
+
+export type ExecutorCusto = {
+  actualizadoEm: string | null;
+  chave: string;
+  custoHora: number | null;
+  nome: string;
+};
+
+export type PainelServicos = {
+  configurado: boolean;
+  escalaoActivo: string;
+  escaloes: EscalaoConfig[];
+  executorPrincipal: string | null;
+  executores: ExecutorCusto[];
+  moeda: string;
+  semCusto: number;
+  servicos: ServicoLinha[];
+  vazioMotivo: string | null;
+};
+
+type CatalogoRow = {
+  activo: boolean | null;
+  categoria: string | null;
+  descricao_curta: string | null;
+  id: string;
+  nome: string | null;
+  ordem: number | null;
+  precos_por_categoria: unknown;
+  tipo_preco: string | null;
+  valor: number | string | null;
+};
+
+type AgendamentoRow = {
+  activo: boolean | null;
+  id: string;
+  nome: string | null;
+  preco_base: number | string | null;
+} & Record<string, unknown>;
+
+function painelVazio(motivo: string | null, config?: ServicosClientConfig | null): PainelServicos {
+  return {
+    configurado: Boolean(config),
+    escalaoActivo: escalaoBase,
+    escaloes: config?.escaloes ?? [],
+    executorPrincipal: config?.executores[0]?.chave ?? null,
+    executores: [],
+    moeda: config?.moeda ?? "EUR",
+    semCusto: 0,
+    servicos: [],
+    vazioMotivo: motivo,
+  };
+}
+
+/**
+ * Extrai o preço de um escalão do jsonb `precos_por_categoria`.
+ *
+ * Aceita várias formas de propósito: a coluna é jsonb livre e foi preenchida à
+ * mão serviço a serviço. Se não encontrar um número para o escalão pedido,
+ * devolve null e quem chama usa o `valor` base — melhor mostrar o preço base
+ * assinalado como estimado do que inventar um número por escalão.
+ */
+function extrairPrecoDoEscalao(precos: unknown, chave: string): number | null {
+  if (!precos || typeof precos !== "object") {
+    return null;
+  }
+
+  if (Array.isArray(precos)) {
+    for (const item of precos) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const registo = item as Record<string, unknown>;
+      const nome = registo.categoria ?? registo.escalao ?? registo.chave;
+
+      if (typeof nome === "string" && normalizarNomeServico(nome) === chave) {
+        return lerNumero(registo.valor ?? registo.preco ?? registo.min);
+      }
+    }
+
+    return null;
+  }
+
+  const registo = precos as Record<string, unknown>;
+  const bruto = registo[chave];
+
+  if (bruto === undefined || bruto === null) {
+    return null;
+  }
+
+  if (typeof bruto === "object" && !Array.isArray(bruto)) {
+    const interno = bruto as Record<string, unknown>;
+
+    return lerNumero(interno.valor ?? interno.preco ?? interno.min);
+  }
+
+  return lerNumero(bruto);
+}
+
+const chavePrecoUnico = "preco_unico";
+
+/**
+ * Preços que existem no jsonb mas não são escalões de viatura.
+ *
+ * Medido a 15/10/2026 nos 15 serviços activos do Detail que têm este campo
+ * preenchido, e são três padrões diferentes, não um:
+ *
+ *   - 7 por escalão de viatura (as 4 chaves conhecidas). O Polimento Técnico
+ *     tem as 4 mais uma `nota_ceramica` em texto.
+ *   - 6 com `preco_unico`: o preço não varia com nada. Vão por `precoUnico`,
+ *     não por aqui, senão o painel repetia o preço base como se fosse uma
+ *     alternativa.
+ *   - 1 por tipo de trabalho (Impermeabilização: `capota_parcial` 60,
+ *     `capota_completa` 80, `bancos_tecido` 100, `carpetes_tapetes` 150).
+ *   - 1 por plano (Plano de Manutenção: mensal, anual, equivalente mensal).
+ *
+ * Os dois últimos são o motivo desta função: sem ela, o painel mostrava só o
+ * preço base e escondia preços reais que vão de 60 a 150 EUR.
+ *
+ * Ignora chaves que não dão número (todas as `nota*`, tratadas em
+ * `extrairNotasDoCatalogo`) e valores iguais ao preço base, que não são
+ * alternativa nenhuma.
+ */
+function extrairPrecosAlternativos(
+  precos: unknown,
+  escaloesConhecidos: Set<string>,
+  precoBase: number | null,
+) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return [];
+  }
+
+  const alternativos: { label: string; valor: number }[] = [];
+
+  for (const [chave, bruto] of Object.entries(precos as Record<string, unknown>)) {
+    if (escaloesConhecidos.has(chave) || chave === chavePrecoUnico) {
+      continue;
+    }
+
+    const valor = lerNumero(bruto);
+
+    if (valor === null) {
+      continue;
+    }
+
+    if (precoBase !== null && arredondar(valor) === arredondar(precoBase)) {
+      continue;
+    }
+
+    const label = chave.replace(/_/g, " ");
+
+    alternativos.push({
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      valor,
+    });
+  }
+
+  return alternativos.sort((a, b) => a.valor - b.valor);
+}
+
+function temPrecoUnico(precos: unknown) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return false;
+  }
+
+  return (
+    lerNumero((precos as Record<string, unknown>)[chavePrecoUnico]) !== null
+  );
+}
+
+/**
+ * Texto que o catálogo guarda dentro do próprio campo de preços.
+ *
+ * Todos os 15 serviços têm uma chave `nota` ou `nota_ceramica` em texto, e não
+ * é decoração: a do Polimento Técnico fala do cerâmico, que é exactamente o
+ * custo que faz do serviço de 500 EUR o pior euro-por-hora da casa. Esconder
+ * isto do ecrã de margem seria esconder a explicação ao lado do número.
+ */
+function extrairNotasDoCatalogo(precos: unknown) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return [];
+  }
+
+  const notas: string[] = [];
+
+  for (const bruto of Object.values(precos as Record<string, unknown>)) {
+    if (typeof bruto !== "string") {
+      continue;
+    }
+
+    const texto = bruto.trim();
+
+    if (texto !== "") {
+      notas.push(texto);
+    }
+  }
+
+  return notas;
+}
+
+function lerNumero(valor: unknown): number | null {
+  if (typeof valor === "number" || typeof valor === "string") {
+    return toNumber(valor);
+  }
+
+  return null;
+}
+
+function arredondar(valor: number) {
+  return Math.round(valor * 100) / 100;
+}
+
+export async function getPainelServicos({
+  clienteSlug,
+  escalao,
+}: {
+  clienteSlug: string;
+  escalao?: string;
+}): Promise<PainelServicos> {
+  const config = getServicosConfig(clienteSlug);
+
+  if (!config) {
+    return painelVazio(
+      "Este cliente ainda não tem catálogo de serviços ligado ao painel.",
+      null,
+    );
+  }
+
+  const escalaoActivo =
+    escalao && config.escaloes.some((item) => item.chave === escalao)
+      ? escalao
+      : escalaoBase;
+
+  const externo = createServicosClient(config);
+
+  if (!externo) {
+    return {
+      ...painelVazio(
+        "Credenciais da base de dados do cliente não configuradas no servidor.",
+        config,
+      ),
+      escalaoActivo,
+    };
+  }
+
+  const central = await createClient();
+
+  const colunasAgendamento = Array.from(
+    new Set([
+      "id",
+      "nome",
+      "preco_base",
+      "activo",
+      ...config.executores.flatMap((executor) => [
+        executor.duracaoColumn,
+        executor.executaColumn,
+      ]),
+    ]),
+  ).join(", ");
+
+  const [catalogo, agendamento, custos, executoresCusto] = await Promise.all([
+    externo
+      .from(config.catalogoTable)
+      .select(
+        "id, nome, ordem, categoria, tipo_preco, valor, precos_por_categoria, descricao_curta, activo",
+      )
+      .eq("activo", true)
+      .order("ordem", { ascending: true }),
+    externo.from(config.agendamentoTable).select(colunasAgendamento),
+    central
+      .from("lexia_servico_custos")
+      .select("servico_id, custo_produto, notas, actualizado_em")
+      .eq("cliente_slug", clienteSlug),
+    central
+      .from("lexia_executores_custo")
+      .select("executor, nome, custo_hora, actualizado_em")
+      .eq("cliente_slug", clienteSlug),
+  ]);
+
+  if (catalogo.error) {
+    console.error("[servicos] falha a ler o catálogo do cliente", catalogo.error);
+
+    return {
+      ...painelVazio("Não foi possível ler o catálogo de serviços.", config),
+      escalaoActivo,
+    };
+  }
+
+  if (agendamento.error) {
+    console.error(
+      "[servicos] falha a ler as durações do cliente",
+      agendamento.error,
+    );
+  }
+
+  if (custos.error) {
+    console.error("[servicos] falha a ler os custos centrais", custos.error);
+  }
+
+  if (executoresCusto.error) {
+    console.error(
+      "[servicos] falha a ler o custo por hora",
+      executoresCusto.error,
+    );
+  }
+
+  const custoPorHora = new Map<string, { actualizadoEm: string | null; custoHora: number | null }>();
+
+  for (const linha of executoresCusto.data ?? []) {
+    custoPorHora.set(String(linha.executor), {
+      actualizadoEm: linha.actualizado_em ?? null,
+      custoHora: toNumber(linha.custo_hora),
+    });
+  }
+
+  const custoPorServico = new Map<
+    string,
+    { actualizadoEm: string | null; custoProduto: number | null; notas: string | null }
+  >();
+
+  for (const linha of custos.data ?? []) {
+    custoPorServico.set(String(linha.servico_id), {
+      actualizadoEm: linha.actualizado_em ?? null,
+      custoProduto: toNumber(linha.custo_produto),
+      notas: linha.notas ?? null,
+    });
+  }
+
+  const agendamentoPorNome = new Map<string, AgendamentoRow>();
+
+  for (const linha of (agendamento.data ?? []) as unknown as AgendamentoRow[]) {
+    if (!linha.nome) {
+      continue;
+    }
+
+    agendamentoPorNome.set(normalizarNomeServico(linha.nome), linha);
+  }
+
+  const servicos: ServicoLinha[] = [];
+  const escaloesConhecidos = new Set(
+    config.escaloes.map((escalao) => escalao.chave),
+  );
+
+  for (const linha of (catalogo.data ?? []) as unknown as CatalogoRow[]) {
+    const nome = linha.nome?.trim();
+
+    if (!nome) {
+      continue;
+    }
+
+    const operacional = agendamentoPorNome.get(normalizarNomeServico(nome)) ?? null;
+    const valorBase = toNumber(linha.valor);
+    const precoDoEscalao =
+      escalaoActivo === escalaoBase
+        ? null
+        : extrairPrecoDoEscalao(linha.precos_por_categoria, escalaoActivo);
+    const preco = precoDoEscalao ?? valorBase;
+    const precoBaseAgendamento = operacional
+      ? toNumber(operacional.preco_base)
+      : null;
+    const custo = custoPorServico.get(linha.id) ?? null;
+    const custoProduto = custo?.custoProduto ?? null;
+
+    const executores = config.executores.map<ExecutorLinha>((executor) => {
+      const executa = operacional
+        ? operacional[executor.executaColumn] === true
+        : false;
+      const duracaoMinutos = operacional
+        ? toNumber(operacional[executor.duracaoColumn] as number | string | null)
+        : null;
+      const custoHora = custoPorHora.get(executor.chave)?.custoHora ?? null;
+      const horas = duracaoMinutos !== null ? duracaoMinutos / 60 : null;
+
+      const custoMaoDeObra =
+        horas !== null && custoHora !== null ? arredondar(horas * custoHora) : null;
+      const euroPorHora =
+        preco !== null && horas !== null && horas > 0
+          ? arredondar(preco / horas)
+          : null;
+      const margem =
+        preco !== null && custoProduto !== null && custoMaoDeObra !== null
+          ? arredondar(preco - custoProduto - custoMaoDeObra)
+          : null;
+      const margemPercent =
+        margem !== null && preco !== null && preco > 0
+          ? arredondar((margem / preco) * 100)
+          : null;
+
+      return {
+        chave: executor.chave,
+        custoHora,
+        custoMaoDeObra,
+        duracaoMinutos,
+        euroPorHora,
+        executa,
+        margem,
+        margemPercent,
+        nome: executor.nome,
+      };
+    });
+
+    servicos.push({
+      agendamentoId: operacional?.id ?? null,
+      categoria: linha.categoria ?? null,
+      custoActualizadoEm: custo?.actualizadoEm ?? null,
+      custoProduto,
+      descricaoCurta: linha.descricao_curta ?? null,
+      executores,
+      id: linha.id,
+      moeda: config.moeda,
+      nome,
+      notas: custo?.notas ?? null,
+      notasCatalogo: extrairNotasDoCatalogo(linha.precos_por_categoria),
+      ordem: linha.ordem ?? 0,
+      preco,
+      precoBaseAgendamento,
+      // Hoje não há divergência nenhuma (medido a 15/10/2026, 14 de 14 iguais).
+      // Este sinal existe para apanhar o dia em que alguém escrever só numa
+      // das tabelas -- por exemplo direito na Supabase, fora deste painel.
+      precoDivergente:
+        valorBase !== null &&
+        precoBaseAgendamento !== null &&
+        arredondar(valorBase) !== arredondar(precoBaseAgendamento),
+      precoEstimado: escalaoActivo !== escalaoBase && precoDoEscalao === null,
+      precoUnico: temPrecoUnico(linha.precos_por_categoria),
+      precosAlternativos: extrairPrecosAlternativos(
+        linha.precos_por_categoria,
+        escaloesConhecidos,
+        valorBase,
+      ),
+      tipoPreco: linha.tipo_preco ?? null,
+    });
+  }
+
+  servicos.sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt"));
+
+  return {
+    configurado: true,
+    escalaoActivo,
+    escaloes: config.escaloes,
+    executorPrincipal: config.executores[0]?.chave ?? null,
+    executores: config.executores.map((executor) => ({
+      actualizadoEm: custoPorHora.get(executor.chave)?.actualizadoEm ?? null,
+      chave: executor.chave,
+      custoHora: custoPorHora.get(executor.chave)?.custoHora ?? null,
+      nome: executor.nome,
+    })),
+    moeda: config.moeda,
+    semCusto: servicos.filter((servico) => servico.custoProduto === null).length,
+    servicos,
+    vazioMotivo: servicos.length === 0 ? "Sem serviços activos no catálogo." : null,
+  };
+}
