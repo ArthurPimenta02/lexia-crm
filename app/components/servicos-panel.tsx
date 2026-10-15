@@ -45,6 +45,32 @@ function formatDuracao(minutos: number | null) {
   return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, "0")}`;
 }
 
+/**
+ * Legenda do preço mostrado. São quatro casos reais, medidos no catálogo do
+ * Detail a 15/10/2026, e cada um tem de ler-se diferente: dizer "sem preço
+ * definido para este escalão" num serviço de preço único seria dar a entender
+ * que falta informação quando não falta nada.
+ */
+function legendaDoPreco(servico: ServicoLinha, escalaoActivo: string) {
+  if (escalaoActivo === escalaoBase) {
+    return servico.precoUnico ? "preço único" : "preço base";
+  }
+
+  if (!servico.precoEstimado) {
+    return "preço deste escalão";
+  }
+
+  if (servico.precoUnico) {
+    return "preço único — não varia com a viatura";
+  }
+
+  if (servico.precosAlternativos.length > 0) {
+    return "não é cobrado por escalão — mostra o base";
+  }
+
+  return "sem preço definido para este escalão — mostra o base";
+}
+
 function MetricCard({
   description,
   label,
@@ -327,13 +353,7 @@ export function ServicosPanel({
                         : formatMoney(servico.preco, painel.moeda)}
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      {servico.precoEstimado
-                        ? servico.precosAlternativos.length > 0
-                          ? "não é cobrado por escalão — mostra o base"
-                          : "sem preço definido para este escalão — mostra o base"
-                        : painel.escalaoActivo === escalaoBase
-                          ? "preço base"
-                          : "preço deste escalão"}
+                      {legendaDoPreco(servico, painel.escalaoActivo)}
                     </p>
                   </div>
                 </div>
@@ -341,11 +361,11 @@ export function ServicosPanel({
                 {servico.precosAlternativos.length > 0 ? (
                   <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2.5">
                     <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
-                      Preços deste serviço
+                      Outros preços deste serviço
                     </p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      Não variam com a viatura, variam com o trabalho. A margem
-                      abaixo é calculada sobre o preço base.
+                      Não variam com a viatura. A margem abaixo é calculada
+                      sobre o preço base.
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {servico.precosAlternativos.map((opcao) => (
@@ -360,6 +380,19 @@ export function ServicosPanel({
                         </span>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+
+                {servico.notasCatalogo.length > 0 ? (
+                  <div className="mt-3 rounded-xl bg-zinc-100/80 px-3 py-2.5">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+                      Nota do catálogo
+                    </p>
+                    {servico.notasCatalogo.map((nota) => (
+                      <p className="mt-1 text-xs leading-5 text-zinc-700" key={nota}>
+                        {nota}
+                      </p>
+                    ))}
                   </div>
                 ) : null}
 

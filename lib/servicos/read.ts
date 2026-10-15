@@ -41,11 +41,15 @@ export type ServicoLinha = {
   moeda: string;
   nome: string;
   notas: string | null;
+  /** Texto que o catálogo guarda dentro do campo de preços. */
+  notasCatalogo: string[];
   ordem: number;
   preco: number | null;
   precoBaseAgendamento: number | null;
   precoDivergente: boolean;
   precoEstimado: boolean;
+  /** O preço não varia com nada: o catálogo tem `preco_unico`. */
+  precoUnico: boolean;
   /**
    * Preços que estão no jsonb mas não correspondem a escalões de viatura.
    * Ver `extrairPrecosAlternativos`.
@@ -152,21 +156,34 @@ function extrairPrecoDoEscalao(precos: unknown, chave: string): number | null {
   return lerNumero(bruto);
 }
 
+const chavePrecoUnico = "preco_unico";
+
 /**
  * Preços que existem no jsonb mas não são escalões de viatura.
  *
- * Medido a 15/10/2026: a maioria dos serviços do Detail tem exactamente as
- * quatro chaves de escalão, mas a "Impermeabilização de Capota e Tecidos" tem
- * `capota_parcial`, `capota_completa`, `bancos_tecido` e `carpetes_tapetes` —
- * de 60 a 150 EUR — e uma chave `nota` a dizer que o preço depende do trabalho
- * e não da viatura. Sem isto, o painel mostrava só o preço base e escondia que
- * o serviço tem quatro preços reais.
+ * Medido a 15/10/2026 nos 15 serviços activos do Detail que têm este campo
+ * preenchido, e são três padrões diferentes, não um:
  *
- * Chaves que não dão número (como a `nota`) são ignoradas.
+ *   - 7 por escalão de viatura (as 4 chaves conhecidas). O Polimento Técnico
+ *     tem as 4 mais uma `nota_ceramica` em texto.
+ *   - 6 com `preco_unico`: o preço não varia com nada. Vão por `precoUnico`,
+ *     não por aqui, senão o painel repetia o preço base como se fosse uma
+ *     alternativa.
+ *   - 1 por tipo de trabalho (Impermeabilização: `capota_parcial` 60,
+ *     `capota_completa` 80, `bancos_tecido` 100, `carpetes_tapetes` 150).
+ *   - 1 por plano (Plano de Manutenção: mensal, anual, equivalente mensal).
+ *
+ * Os dois últimos são o motivo desta função: sem ela, o painel mostrava só o
+ * preço base e escondia preços reais que vão de 60 a 150 EUR.
+ *
+ * Ignora chaves que não dão número (todas as `nota*`, tratadas em
+ * `extrairNotasDoCatalogo`) e valores iguais ao preço base, que não são
+ * alternativa nenhuma.
  */
 function extrairPrecosAlternativos(
   precos: unknown,
   escaloesConhecidos: Set<string>,
+  precoBase: number | null,
 ) {
   if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
     return [];
@@ -175,13 +192,17 @@ function extrairPrecosAlternativos(
   const alternativos: { label: string; valor: number }[] = [];
 
   for (const [chave, bruto] of Object.entries(precos as Record<string, unknown>)) {
-    if (escaloesConhecidos.has(chave)) {
+    if (escaloesConhecidos.has(chave) || chave === chavePrecoUnico) {
       continue;
     }
 
     const valor = lerNumero(bruto);
 
     if (valor === null) {
+      continue;
+    }
+
+    if (precoBase !== null && arredondar(valor) === arredondar(precoBase)) {
       continue;
     }
 
@@ -194,6 +215,46 @@ function extrairPrecosAlternativos(
   }
 
   return alternativos.sort((a, b) => a.valor - b.valor);
+}
+
+function temPrecoUnico(precos: unknown) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return false;
+  }
+
+  return (
+    lerNumero((precos as Record<string, unknown>)[chavePrecoUnico]) !== null
+  );
+}
+
+/**
+ * Texto que o catálogo guarda dentro do próprio campo de preços.
+ *
+ * Todos os 15 serviços têm uma chave `nota` ou `nota_ceramica` em texto, e não
+ * é decoração: a do Polimento Técnico fala do cerâmico, que é exactamente o
+ * custo que faz do serviço de 500 EUR o pior euro-por-hora da casa. Esconder
+ * isto do ecrã de margem seria esconder a explicação ao lado do número.
+ */
+function extrairNotasDoCatalogo(precos: unknown) {
+  if (!precos || typeof precos !== "object" || Array.isArray(precos)) {
+    return [];
+  }
+
+  const notas: string[] = [];
+
+  for (const bruto of Object.values(precos as Record<string, unknown>)) {
+    if (typeof bruto !== "string") {
+      continue;
+    }
+
+    const texto = bruto.trim();
+
+    if (texto !== "") {
+      notas.push(texto);
+    }
+  }
+
+  return notas;
 }
 
 function lerNumero(valor: unknown): number | null {
@@ -408,6 +469,7 @@ export async function getPainelServicos({
       moeda: config.moeda,
       nome,
       notas: custo?.notas ?? null,
+      notasCatalogo: extrairNotasDoCatalogo(linha.precos_por_categoria),
       ordem: linha.ordem ?? 0,
       preco,
       precoBaseAgendamento,
@@ -419,9 +481,11 @@ export async function getPainelServicos({
         precoBaseAgendamento !== null &&
         arredondar(valorBase) !== arredondar(precoBaseAgendamento),
       precoEstimado: escalaoActivo !== escalaoBase && precoDoEscalao === null,
+      precoUnico: temPrecoUnico(linha.precos_por_categoria),
       precosAlternativos: extrairPrecosAlternativos(
         linha.precos_por_categoria,
         escaloesConhecidos,
+        valorBase,
       ),
       tipoPreco: linha.tipo_preco ?? null,
     });

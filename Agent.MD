@@ -415,14 +415,28 @@ Escalões do Detail: `citadino`, `utilitario`, `sedan_mini_suv`,
 é só de leitura — o preço só se edita no escalão base, porque reescrever o jsonb
 exigiria decidir o que fazer com os escalões que o serviço não tem.
 
-Formato do `precos_por_categoria` medido a 15/10/2026: objecto plano,
-`{"citadino": 30, "utilitario": 35, ...}`. **Nem todos os serviços usam escalões
-de viatura.** A "Impermeabilização de Capota e Tecidos" tem `capota_parcial`
-(60), `capota_completa` (80), `bancos_tecido` (100) e `carpetes_tapetes` (150),
-mais uma chave `nota` em texto a dizer que o preço depende do trabalho e não do
-veículo. `extrairPrecosAlternativos` apanha as chaves numéricas que não são
-escalões configurados e o painel mostra-as como opções, em vez de cair no preço
-base sem explicação. Chaves que não dão número são ignoradas.
+Formato do `precos_por_categoria` medido a 15/10/2026 nos 15 serviços activos
+que o têm preenchido: objecto plano, `{"citadino": 30, "utilitario": 35, ...}`.
+**Mas são quatro padrões, não um** — e o painel tem de os ler de maneira
+diferente, senão mente:
+
+| Padrão | Serviços | Como o painel o mostra |
+| --- | --- | --- |
+| 4 escalões de viatura | 7 (o Polimento Técnico tem ainda `nota_ceramica`) | "preço deste escalão" |
+| `preco_unico` | 6 | "preço único — não varia com a viatura" |
+| Tipo de trabalho | 1 (Impermeabilização: `capota_parcial` 60, `capota_completa` 80, `bancos_tecido` 100, `carpetes_tapetes` 150) | Chips em "Outros preços deste serviço" |
+| Plano | 1 (Plano de Manutenção: mensal, anual, equivalente mensal) | Chips em "Outros preços deste serviço" |
+
+`extrairPrecosAlternativos` apanha as chaves numéricas que não são escalões,
+descartando `preco_unico` e qualquer valor igual ao preço base — repetir o preço
+base como "alternativa" era ruído. Dizer "sem preço definido para este escalão"
+num serviço de preço único dava a entender que faltava informação quando não
+falta nada; é para isso que existe `legendaDoPreco`.
+
+**Todos os 15 têm uma chave de texto (`nota` ou `nota_ceramica`) e ela aparece
+no ecrã.** A do Polimento Técnico fala do cerâmico, que é justamente o custo que
+faz do serviço de 500 EUR o pior euro-por-hora da casa. A explicação tem de
+estar ao lado do número.
 
 Medição de arranque (15/10/2026, preço base, sem custo de produto): a receita
 por hora do Martim vai de 40,00 EUR (Clareamento de Faróis, 30 EUR em 45 min) a
