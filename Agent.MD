@@ -34,15 +34,14 @@ Regras inegociáveis:
 
 ### Situação do código-fonte
 
-Este é o maior risco atual do projeto:
+Resolvido. Esta secção descrevia o maior risco do projeto — a aplicação estar fora do Git — e ficou desactualizada; o estado real a 15/10/2026 é:
 
-- Branch local: `main`.
-- Histórico: apenas o commit inicial `4f3c258` do Create Next App.
-- Remote Git: nenhum configurado.
-- Quase toda a aplicação real está sem rastreamento no Git.
-- Arquivos centrais modificados também não foram consolidados em commit.
+- Branch de produção: `main`, protegido por ruleset (id `23847135`) com um único check obrigatório, `Lint, typecheck e build`. Só entra por PR com check verde.
+- Remote: `origin` em `https://github.com/ArthurPimenta02/lexia-crm.git`.
+- Histórico: 30 commits em `main`, com a aplicação inteira versionada. Produção corre `db58e4e`.
+- Branches de trabalho ficam no remote (`feat/*`, `wip/*`, `codex/*`); nunca se deploya um branch de trabalho.
 
-Consequência: o deploy pode estar funcional, mas não existe hoje uma trilha confiável para reconstruir, revisar ou reverter a aplicação. A primeira atividade de `PLAN.MD` é preservar e versionar o estado atual.
+O que continua verdadeiro do aviso original: o schema e as políticas de RLS **não** estão versionados aqui, e não há testes automatizados. Isso está listado nos riscos como item próprio, não como "código fora do Git".
 
 ### Segurança conhecida
 
@@ -986,6 +985,8 @@ Contrato partilhado entre o painel e os workflows do cliente. O `identificador_c
 | `miranda_skin_experts` | `lexia:novo_cliente:{canal}:v1` | sim, só WhatsApp |
 | `detail_by_cordeiro` | `lexia:detail_by_cordeiro:{canal}:v1` | não — nenhum workflow a escreve |
 
+O `novo_cliente` da Miranda é dívida de nome do primeiro cliente e **fica como está**: renomear obriga a mexer no Redis e em todos os workflows dela ao mesmo tempo, e um namespace errado durante a troca significa o agente a responder onde devia estar pausado. Para **clientes novos**, o namespace usa sempre o slug do próprio cliente (`lexia:{slug}:{canal}:v1`), como no Detail.
+
 O Detail foi ligado a 15/10/2026. A integração já existia inteira (acções, componentes, autorização para roles de cliente) e os workflows dele já liam estas chaves — faltava só a entrada em `clientConfigs`, e sem ela `hasAgentLocksIntegration` devolvia `false` e `ConversationAgentStatus` devolvia `null` nos dois ecrãs. Antes de ligar, verificado contra dados reais: as 10 chaves `status` no Redis do Detail são reproduzidas **byte a byte** por `buildKey`, 9 das 10 conversas existem em `lexia_contactos` (a décima não passaria o `conversationExists` do `pauseAgentForConversation`), e 916 dos 997 contactos do Detail têm identificador no formato aceite — os 81 restantes são `teste:%`, que a acção exclui de propósito.
 
 | Trava | Chave | Valor | Validade | Quem grava | Painel |
@@ -1553,7 +1554,6 @@ Verificar:
 
 ### P0
 
-- Aplicação praticamente inteira fora do Git e sem remote.
 - Service roles previamente expostas e ainda não confirmadas como rotacionadas.
 - Vulnerabilidade crítica no conjunto de dependências atual.
 - Schema, constraints e RLS não versionados.
