@@ -1,5 +1,15 @@
 import { revalidatePath } from "next/cache";
 
+import {
+  type CanalDeAquisicao,
+  canalQuePedeNota,
+  isCanalDeAquisicao,
+} from "@/lib/clientes/ficha";
+import {
+  type CamposDoServico,
+  escreverMarcacao,
+  prepararServico,
+} from "@/lib/clientes/marcacao";
 import { procurarPorTelefone } from "@/lib/clientes/read";
 import { montarTelefone } from "@/lib/clientes/telefone";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -44,6 +54,112 @@ function validarNome(bruto: string) {
   return { erro: null, nome };
 }
 
+/** Os campos da ficha que o dono escreve, iguais a criar e a editar. */
+export type CamposDaFicha = {
+  emailBruto: string;
+  idadeBruto: string;
+  moradaBruto: string;
+  notasBruto: string;
+  origemManualBruto: string;
+  origemManualNotaBruto: string;
+  viaturaBruto: string;
+};
+
+type FichaValidada = {
+  email: string | null;
+  idade: number | null;
+  morada: string | null;
+  notas: string | null;
+  origem_manual: CanalDeAquisicao | null;
+  origem_manual_nota: string | null;
+  viatura: string | null;
+};
+
+function limitar(bruto: string, maximo: number, nomeDoCampo: string) {
+  const valor = bruto.trim();
+
+  if (valor.length > maximo) {
+    return { erro: `${nomeDoCampo} é demasiado comprido.`, valor: null };
+  }
+
+  return { erro: null, valor: valor === "" ? null : valor };
+}
+
+/**
+ * Valida os campos da ficha e devolve-os já na forma da base.
+ *
+ * Os limites são os mesmos das restrições da tabela, de propósito: o Postgres
+ * é quem decide, isto só evita que o dono descubra o limite por uma mensagem
+ * de erro de base de dados. A lista de canais vem de um sítio só, e um valor
+ * fora dela é recusado aqui antes de bater na restrição.
+ */
+function validarFicha(campos: CamposDaFicha): {
+  erro: string | null;
+  ficha: FichaValidada | null;
+} {
+  const email = limitar(campos.emailBruto, 320, "O email");
+  const morada = limitar(campos.moradaBruto, 512, "A morada");
+  const viatura = limitar(campos.viaturaBruto, 160, "O carro");
+  const notas = limitar(campos.notasBruto, 4000, "As notas");
+  const origemNota = limitar(
+    campos.origemManualNotaBruto,
+    200,
+    "A explicação do canal",
+  );
+
+  for (const campo of [email, morada, viatura, notas, origemNota]) {
+    if (campo.erro) {
+      return { erro: campo.erro, ficha: null };
+    }
+  }
+
+  const idadeBruta = campos.idadeBruto.trim();
+  let idade: number | null = null;
+
+  if (idadeBruta !== "") {
+    const numero = Number(idadeBruta);
+
+    if (!Number.isInteger(numero) || numero < 1 || numero > 120) {
+      return { erro: "A idade tem de ser um número entre 1 e 120.", ficha: null };
+    }
+
+    idade = numero;
+  }
+
+  const origemBruta = campos.origemManualBruto.trim();
+  let origemManual: CanalDeAquisicao | null = null;
+
+  if (origemBruta !== "") {
+    if (!isCanalDeAquisicao(origemBruta)) {
+      return { erro: "Esse canal de aquisição não existe.", ficha: null };
+    }
+
+    origemManual = origemBruta;
+  }
+
+  // A restrição `origem_manual_outro_tem_nota` recusa estes dois casos na base.
+  // Apanhá-los aqui é o que faz a diferença entre uma frase que o dono percebe
+  // e um erro de Postgres no ecrã.
+  if (origemManual === canalQuePedeNota && !origemNota.valor) {
+    return { erro: "Escolheste 'Outro': escreve de onde veio.", ficha: null };
+  }
+
+  return {
+    erro: null,
+    ficha: {
+      email: email.valor,
+      idade,
+      morada: morada.valor,
+      notas: notas.valor,
+      origem_manual: origemManual,
+      // Uma explicação sem 'Outro' é lixo de uma escolha trocada: cai aqui.
+      origem_manual_nota:
+        origemManual === canalQuePedeNota ? origemNota.valor : null,
+      viatura: viatura.valor,
+    },
+  };
+}
+
 /**
  * Cria um cliente à mão, no WhatsApp.
  *
@@ -64,20 +180,22 @@ function validarNome(bruto: string) {
  */
 export async function criarCliente({
   caminhoParaRevalidar,
+  campos,
   clienteSlug,
   confirmado,
   indicativoBruto,
   nomeBruto,
-  notasBruto,
+  servico: camposDoServico,
   telefoneBruto,
   userId,
 }: {
   caminhoParaRevalidar: string;
+  campos: CamposDaFicha;
   clienteSlug: string;
   confirmado: boolean;
   indicativoBruto: string;
   nomeBruto: string;
-  notasBruto: string;
+  servico: CamposDoServico;
   telefoneBruto: string;
   userId: string;
 }): Promise<GravarClienteResultado> {
@@ -100,10 +218,10 @@ export async function criarCliente({
   // o agente grava. Guardar o texto como foi escrito reintroduziria os
   // formatos diferentes que deram origem aos duplicados.
   const telefone = digitos;
-  const notas = notasBruto.trim();
+  const { erro: erroFicha, ficha } = validarFicha(campos);
 
-  if (notas.length > 4000) {
-    return { mensagem: "As notas são demasiado compridas.", ok: false };
+  if (erroFicha || !ficha) {
+    return { mensagem: erroFicha ?? "Campos inválidos.", ok: false };
   }
 
   const existentes = await procurarPorTelefone(clienteSlug, telefone);
@@ -140,17 +258,34 @@ export async function criarCliente({
     };
   }
 
+  // O serviço é confirmado contra o catálogo do cliente ANTES de o contacto
+  // existir. São duas bases de dados sem transacção entre elas: tudo o que
+  // possa ser recusado tem de o ser enquanto ainda não há nada escrito.
+  const { erro: erroServico, servico } = await prepararServico({
+    campos: camposDoServico,
+    clienteSlug,
+  });
+
+  if (erroServico) {
+    return { mensagem: erroServico, ok: false };
+  }
+
   const admin = createAdminClient();
   const agora = new Date().toISOString();
   const { error } = await admin.from("lexia_contactos").insert({
+    ...ficha,
     actualizado_por: userId,
     atualizado_em: agora,
     canal: "whatsapp",
     cliente_slug: clienteSlug,
     criado_em: agora,
+    // Datar a idade e o canal: daqui a dois anos é isto que diz se "34" e
+    // "veio do Google" ainda valem alguma coisa.
+    idade_registada_em: ficha.idade === null ? null : agora,
     identificador_conversa: identificador,
     nome,
-    notas: notas === "" ? null : notas,
+    origem_manual_em: ficha.origem_manual === null ? null : agora,
+    origem_manual_por: ficha.origem_manual === null ? null : userId,
     telefone,
   });
 
@@ -167,45 +302,89 @@ export async function criarCliente({
     return { mensagem: "Não foi possível criar o cliente.", ok: false };
   }
 
+  if (!servico) {
+    revalidatePath(caminhoParaRevalidar);
+
+    return { mensagem: `${nome} ficou no painel.`, ok: true };
+  }
+
+  const { erro: erroEscrita } = await escreverMarcacao({
+    clienteSlug,
+    nomeCliente: nome,
+    servico,
+    telefone,
+    viatura: ficha.viatura,
+  });
+
   revalidatePath(caminhoParaRevalidar);
 
-  return { mensagem: `${nome} ficou no painel.`, ok: true };
+  // O contacto já existe e não se desfaz: apagá-lo para "limpar" perdia o
+  // email, a morada e o canal de aquisição que o dono acabou de escrever, por
+  // causa de uma segunda escrita noutra base. Diz-se o que ficou e o que não.
+  if (erroEscrita) {
+    return {
+      mensagem: `${nome} ficou no painel, mas o serviço não foi registado: ${erroEscrita}. O contacto está criado — não o cries outra vez.`,
+      ok: false,
+    };
+  }
+
+  return {
+    mensagem: `${nome} ficou no painel, com "${servico.nome}" no histórico.`,
+    ok: true,
+  };
 }
 
-export async function gravarNotasDoCliente({
+/**
+ * Grava a ficha de um contacto que já existe.
+ *
+ * Isto era só as notas. Passou a ser a ficha toda porque os campos novos sem
+ * edição não serviam para nada: medido a 2026-10-16, o Detail tem 1001
+ * contactos e a Miranda 573, todos já criados. Um formulário que só preenche
+ * o canal de aquisição de quem for registado a partir de hoje deixava 97% da
+ * base sem resposta — que é exactamente o buraco que se queria tapar.
+ *
+ * O nome e o telefone continuam de fora. O telefone é a chave por onde o
+ * histórico de marcações se liga à outra base e por onde os duplicados se
+ * encontram; mudá-lo num campo de texto partia as duas coisas em silêncio.
+ */
+export async function gravarFichaDoCliente({
   caminhoParaRevalidar,
+  campos,
   clienteSlug,
   contactoId,
-  notasBruto,
   userId,
 }: {
   caminhoParaRevalidar: string;
+  campos: CamposDaFicha;
   clienteSlug: string;
   contactoId: string;
-  notasBruto: string;
   userId: string;
 }): Promise<GravarClienteResultado> {
-  const notas = notasBruto.trim();
+  const { erro: erroFicha, ficha } = validarFicha(campos);
 
-  if (notas.length > 4000) {
-    return { mensagem: "As notas são demasiado compridas.", ok: false };
+  if (erroFicha || !ficha) {
+    return { mensagem: erroFicha ?? "Campos inválidos.", ok: false };
   }
 
   const admin = createAdminClient();
+  const agora = new Date().toISOString();
   const { data, error } = await admin
     .from("lexia_contactos")
     .update({
+      ...ficha,
       actualizado_por: userId,
-      notas: notas === "" ? null : notas,
+      idade_registada_em: ficha.idade === null ? null : agora,
+      origem_manual_em: ficha.origem_manual === null ? null : agora,
+      origem_manual_por: ficha.origem_manual === null ? null : userId,
     })
     .eq("cliente_slug", clienteSlug)
     .eq("id", contactoId)
     .select("id");
 
   if (error) {
-    console.error("[clientes] falha a gravar as notas", error);
+    console.error("[clientes] falha a gravar a ficha", error);
 
-    return { mensagem: "Não foi possível gravar as notas.", ok: false };
+    return { mensagem: "Não foi possível gravar a ficha.", ok: false };
   }
 
   // Sem linhas afectadas o id não é deste cliente. O update não falhou — não
@@ -216,7 +395,7 @@ export async function gravarNotasDoCliente({
 
   revalidatePath(caminhoParaRevalidar);
 
-  return { mensagem: "Notas gravadas.", ok: true };
+  return { mensagem: "Ficha gravada.", ok: true };
 }
 
 /**

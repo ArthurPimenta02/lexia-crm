@@ -2,15 +2,17 @@ import { redirect } from "next/navigation";
 
 import {
   criarClienteAction,
-  gravarNotasAction,
+  gravarFichaAction,
   juntarClientesAction,
   separarClientesAction,
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosSimples } from "@/lib/servicos/read";
 
 export const metadata = {
   title: "Clientes",
@@ -31,10 +33,12 @@ export default async function ClientesPage() {
     redirect("/app");
   }
 
-  const { clientes, deFora, historicoLigado } = await getClientes(
-    profile.cliente_slug,
-  );
-  const moeda = getServicosConfig(profile.cliente_slug)?.moeda ?? "EUR";
+  const [{ clientes, deFora, historicoLigado }, servicos] = await Promise.all([
+    getClientes(profile.cliente_slug),
+    getServicosSimples(profile.cliente_slug),
+  ]);
+  const config = getServicosConfig(profile.cliente_slug);
+  const moeda = config?.moeda ?? "EUR";
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -52,21 +56,27 @@ export default async function ClientesPage() {
           elas.
         </p>
         <p className="mt-2 max-w-2xl text-zinc-600">
-          O histórico de marcações e o total gasto vêm das marcações que o
-          agente criou, ligadas à ficha pelo número de telefone.
+          O histórico de marcações e o total gasto vêm das marcações — as que o
+          agente criou e as que registaste à mão —, ligadas à ficha pelo número
+          de telefone.
         </p>
       </div>
 
       <ClientesPanel
         actionCriar={criarClienteAction}
         actionJuntar={juntarClientesAction}
-        actionNotas={gravarNotasAction}
+        actionFicha={gravarFichaAction}
         actionSeparar={separarClientesAction}
         clientes={clientes}
         deFora={deFora}
         historicoLigado={historicoLigado}
         moeda={moeda}
+        mostrarViatura={mostraViatura(profile.cliente_slug)}
         podeEditar={profile.role === "cliente_admin"}
+        // Sem catálogo não há bloco de serviço: a Miranda não tem base ligada,
+        // e um `<select>` vazio é um campo que parece partido.
+        executores={config?.executores.map(({ chave, nome }) => ({ chave, nome })) ?? []}
+        servicos={servicos}
         timeZone={getClientTimezone(profile.cliente_slug)}
       />
     </div>

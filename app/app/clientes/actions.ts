@@ -1,11 +1,13 @@
 "use server";
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import type { CamposDoServico } from "@/lib/clientes/marcacao";
 import {
   criarCliente,
-  gravarNotasDoCliente,
+  gravarFichaDoCliente,
   juntarClientes,
   separarClientes,
+  type CamposDaFicha,
   type GravarClienteResultado,
 } from "@/lib/clientes/write";
 
@@ -23,6 +25,39 @@ const semPermissao: GravarClienteResultado = {
   mensagem: "Sessão sem permissão para editar clientes.",
   ok: false,
 };
+
+/**
+ * Os campos da ficha, lidos do formulário.
+ *
+ * Um só sítio a ler os nomes dos campos: criar e editar partilham o mesmo
+ * formulário, e um nome trocado num dos lados gravava silenciosamente vazio.
+ */
+function camposDaFicha(formData: FormData): CamposDaFicha {
+  return {
+    emailBruto: String(formData.get("email") ?? ""),
+    idadeBruto: String(formData.get("idade") ?? ""),
+    moradaBruto: String(formData.get("morada") ?? ""),
+    notasBruto: String(formData.get("notas") ?? ""),
+    origemManualBruto: String(formData.get("origem_manual") ?? ""),
+    origemManualNotaBruto: String(formData.get("origem_manual_nota") ?? ""),
+    viaturaBruto: String(formData.get("viatura") ?? ""),
+  };
+}
+
+/**
+ * O serviço já feito, lido do formulário de criar.
+ *
+ * Vai para `marcacoes`, na base do próprio cliente, e não para a ficha: é uma
+ * venda, e as vendas já são o que alimenta o histórico e o total gasto.
+ */
+function camposDoServico(formData: FormData): CamposDoServico {
+  return {
+    dataBruto: String(formData.get("servico_data") ?? ""),
+    executorBruto: String(formData.get("servico_executor") ?? ""),
+    servicoIdBruto: String(formData.get("servico_id") ?? ""),
+    valorBruto: String(formData.get("servico_valor") ?? ""),
+  };
+}
 
 async function perfilDoCliente() {
   const { profile, user } = await getLoggedInUserProfile();
@@ -50,18 +85,19 @@ export async function criarClienteAction(
 
   return criarCliente({
     caminhoParaRevalidar: caminho,
+    campos: camposDaFicha(formData),
     clienteSlug: perfil.clienteSlug,
     // O dono só pode confirmar depois de o aviso lhe ter sido mostrado.
     confirmado: String(formData.get("confirmado") ?? "") === "sim",
     indicativoBruto: String(formData.get("indicativo") ?? ""),
     nomeBruto: String(formData.get("nome") ?? ""),
-    notasBruto: String(formData.get("notas") ?? ""),
+    servico: camposDoServico(formData),
     telefoneBruto: String(formData.get("telefone") ?? ""),
     userId: perfil.userId,
   });
 }
 
-export async function gravarNotasAction(
+export async function gravarFichaAction(
   _anterior: GravarClienteResultado | null,
   formData: FormData,
 ): Promise<GravarClienteResultado> {
@@ -77,11 +113,11 @@ export async function gravarNotasAction(
     return { mensagem: "Cliente não identificado.", ok: false };
   }
 
-  return gravarNotasDoCliente({
+  return gravarFichaDoCliente({
     caminhoParaRevalidar: caminho,
+    campos: camposDaFicha(formData),
     clienteSlug: perfil.clienteSlug,
     contactoId,
-    notasBruto: String(formData.get("notas") ?? ""),
     userId: perfil.userId,
   });
 }
