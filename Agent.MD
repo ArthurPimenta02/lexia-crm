@@ -41,14 +41,14 @@ Resolvido. Esta secção descrevia o maior risco do projeto — a aplicação es
 - Histórico: 30 commits em `main`, com a aplicação inteira versionada. Produção corre `db58e4e`.
 - Branches de trabalho ficam no remote (`feat/*`, `wip/*`, `codex/*`); nunca se deploya um branch de trabalho.
 
-O que continua verdadeiro do aviso original: o schema e as políticas de RLS **não** estão versionados aqui, e não há testes automatizados. Isso está listado nos riscos como item próprio, não como "código fora do Git".
+O que continua verdadeiro do aviso original: o schema e as políticas de RLS **não** estão versionados aqui. Isso está listado nos riscos como item próprio, não como "código fora do Git".
 
 ### Segurança conhecida
 
 - Chaves `service_role` foram compartilhadas anteriormente em mensagens e capturas de tela. Elas devem ser consideradas expostas e rotacionadas.
 - `npm audit` em 22/09/2026 encontrou 9 vulnerabilidades: 2 moderadas, 6 altas e 1 crítica.
 - O pacote `next` está em `16.2.9`; o audit indicou correção disponível em `16.3.6`.
-- Existe uma migration isolada para o Analista Lexia, mas ainda não há baseline completo do schema/RLS, testes automatizados ou CI no repositório.
+- Existe uma migration isolada para o Analista Lexia, mas ainda não há baseline completo do schema/RLS no repositório. Há CI e testes desde 15/10/2026 — ver a secção 5.
 - Não há `proxy.ts`. O cliente SSR menciona um middleware para renovação de cookies, mas Next.js 16 usa a convenção `proxy.ts`. O fluxo de renovação de sessão precisa ser auditado antes de ser considerado robusto.
 
 ## 3. O Que a Plataforma Faz
@@ -153,9 +153,25 @@ npm run dev
 npm run build
 npm run start
 npm run lint
+npm run typecheck
+npm test
 ```
 
-Não existem scripts de teste, typecheck isolado, seed, migration ou geração de tipos.
+Não existem scripts de seed, migration ou geração de tipos.
+
+### Testes
+
+`npm test` corre a suíte de `tests/` com o runner do Node através do `tsx`. Os três ficheiros existem todos pela mesma razão: as escritas do painel passam pelo `createAdminClient()`, que é a `service_role` e **ignora o RLS**. A única coisa que impede uma empresa de mexer nos dados da outra é cada consulta levar o seu `.eq("cliente_slug", …)`. É um invariante que vive só no código.
+
+- `isolamento-produtos.test.mts` — exercita `lib/produtos/write.ts` contra um duplo em memória da Supabase que aplica os filtros a sério. Além de verificar cada acção, percorre o registo de **todas** as consultas que correram e falha se alguma tocou numa tabela de cliente sem amarrar o slug.
+- `autorizacao-pausas.test.mts` — garante que `pauseAgentForConversation` e `resumeAgentForConversation` ignoram o slug que vem do navegador quando quem pede é um utilizador de cliente, e só o respeitam para o `lexia_admin`.
+- `contrato-autorizacao.test.mts` — não exercita nada; lê os 18 ficheiros de acções e afirma a forma que todos têm de ter. Cobre o ficheiro que ainda não existe: uma acção nova que leia `cliente_slug` do formulário no painel do cliente faz falhar a suíte.
+
+Cada teste foi validado por mutação: desligar a guarda que ele diz proteger tem de o fazer falhar. Um teste que passa com a guarda removida não está a guardar nada e não vale a pena manter.
+
+Os ficheiros são `.mts` por obrigação: o `package.json` não declara `"type": "module"`, por isso um `.ts` é compilado como CommonJS e rejeita o `await` de topo que a mockagem de módulos exige. O `tsconfig.json` já inclui `**/*.mts`, logo o `npm run typecheck` também os cobre. Em ESM os imports relativos precisam de extensão: dentro de um `.mts`, importa-se `./helpers/fake-supabase.mjs`.
+
+O `npm test` corre dentro do job `Lint, typecheck e build` do CI, e não num job próprio, porque o ruleset do `main` exige exactamente esse check. Um job novo não ficaria obrigatório.
 
 ## 6. Mapa de Diretórios
 
