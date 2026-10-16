@@ -1,3 +1,4 @@
+import { normalizarTelefone, pareceTelefone } from "@/lib/clientes/telefone";
 import { getServicosConfig, createServicosClient } from "@/lib/servicos/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
@@ -31,19 +32,6 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
  *    marcações, não pelo lado do contacto.
  */
 
-/** A forma de um telefone a sério, e a mesma que o `criar_marcacao` exige. */
-const digitosMinimos = 9;
-const digitosMaximos = 14;
-
-export function normalizarTelefone(bruto: string | null | undefined) {
-  return (bruto ?? "").replace(/\D/g, "");
-}
-
-export function pareceTelefone(bruto: string | null | undefined) {
-  const digitos = normalizarTelefone(bruto);
-
-  return digitos.length >= digitosMinimos && digitos.length <= digitosMaximos;
-}
 
 /** Uma marcação, vista da ficha: o que o cliente comprou e quando. */
 export type MarcacaoDoCliente = {

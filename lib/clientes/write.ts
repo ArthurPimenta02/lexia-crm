@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 
-import { normalizarTelefone, procurarPorTelefone } from "@/lib/clientes/read";
+import { procurarPorTelefone } from "@/lib/clientes/read";
+import { montarTelefone } from "@/lib/clientes/telefone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -29,9 +30,6 @@ export type GravarClienteResultado = {
   ok: boolean;
 };
 
-const digitosMinimos = 9;
-const digitosMaximos = 14;
-
 function validarNome(bruto: string) {
   const nome = bruto.trim();
 
@@ -47,34 +45,6 @@ function validarNome(bruto: string) {
 }
 
 /**
- * Valida o telefone com a mesma régua do agente.
- *
- * O `criar_marcacao` no n8n recusa um número fora de 8 a 15 dígitos com a
- * mensagem "NUNCA uses o ID do contacto". Aqui a janela é mais estreita, 9 a
- * 14, porque medido a 2026-10-16 há PSIDs de Instagram com exactamente 15
- * dígitos: dois deles passariam a régua do agente e entrariam na lista como
- * se fossem telemóveis.
- */
-function validarTelefone(bruto: string) {
-  const texto = bruto.trim();
-  const digitos = normalizarTelefone(texto);
-
-  if (digitos === "") {
-    return { digitos: null, erro: "Escreve o telefone do cliente.", texto: null };
-  }
-
-  if (digitos.length < digitosMinimos || digitos.length > digitosMaximos) {
-    return {
-      digitos: null,
-      erro: "Isso não parece um número de telefone. Escreve-o com o indicativo do país, por exemplo 351912345678.",
-      texto: null,
-    };
-  }
-
-  return { digitos, erro: null, texto };
-}
-
-/**
  * Cria um cliente à mão, no WhatsApp.
  *
  * Porque é que o canal é sempre WhatsApp: o `identificador_conversa` é
@@ -87,11 +57,16 @@ function validarTelefone(bruto: string) {
  * O aviso de duplicado é um passo e não um bloqueio, como o Arthur escolheu:
  * a primeira tentativa devolve `ok: false` com a lista, e a segunda — com
  * `confirmado` — grava. Não se decide pelo dono que são a mesma pessoa.
+ *
+ * O número é sempre montado com o indicativo antes de chegar à base. Um
+ * contacto gravado sem indicativo é um contacto que o aviso de duplicado nunca
+ * mais apanha, porque `968662120` e `351968662120` comparam como diferentes.
  */
 export async function criarCliente({
   caminhoParaRevalidar,
   clienteSlug,
   confirmado,
+  indicativoBruto,
   nomeBruto,
   notasBruto,
   telefoneBruto,
@@ -100,6 +75,7 @@ export async function criarCliente({
   caminhoParaRevalidar: string;
   clienteSlug: string;
   confirmado: boolean;
+  indicativoBruto: string;
   nomeBruto: string;
   notasBruto: string;
   telefoneBruto: string;
@@ -111,14 +87,19 @@ export async function criarCliente({
     return { mensagem: erroNome ?? "Nome inválido.", ok: false };
   }
 
-  const { digitos, erro: erroTelefone, texto: telefone } = validarTelefone(
+  const { digitos, erro: erroTelefone } = montarTelefone(
+    indicativoBruto,
     telefoneBruto,
   );
 
-  if (erroTelefone || !digitos || !telefone) {
+  if (erroTelefone || !digitos) {
     return { mensagem: erroTelefone ?? "Telefone inválido.", ok: false };
   }
 
+  // O que fica gravado é o número completo, só dígitos — a mesma forma em que
+  // o agente grava. Guardar o texto como foi escrito reintroduziria os
+  // formatos diferentes que deram origem aos duplicados.
+  const telefone = digitos;
   const notas = notasBruto.trim();
 
   if (notas.length > 4000) {

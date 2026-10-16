@@ -53,6 +53,7 @@ export async function criarClienteAction(
     clienteSlug: perfil.clienteSlug,
     // O dono só pode confirmar depois de o aviso lhe ter sido mostrado.
     confirmado: String(formData.get("confirmado") ?? "") === "sim",
+    indicativoBruto: String(formData.get("indicativo") ?? ""),
     nomeBruto: String(formData.get("nome") ?? ""),
     notasBruto: String(formData.get("notas") ?? ""),
     telefoneBruto: String(formData.get("telefone") ?? ""),

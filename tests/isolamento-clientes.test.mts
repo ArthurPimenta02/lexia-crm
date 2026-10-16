@@ -136,6 +136,9 @@ function assertTudoFiltradoPorCliente(slug: string) {
 
 const comum = {
   caminhoParaRevalidar: "/app/clientes",
+  // Portugal é o que o formulário traz pré-escolhido, e é o que 320 dos 347
+  // contactos reais do Detail usam.
+  indicativoBruto: "351",
   userId: "utilizador-1",
 };
 
@@ -207,6 +210,125 @@ test("confirmado, cria mesmo assim, e só na própria empresa", async () => {
   assert.equal(novos[0].cliente_slug, A);
   assert.equal(novos[0].canal, "whatsapp");
   assert.equal(novos[0].identificador_conversa, "whatsapp:351912345679");
+  // Fica gravado só em dígitos, e não como foi escrito. Guardar "351 91234-5679"
+  // reintroduzia exactamente os formatos diferentes que deram origem aos cinco
+  // duplicados reais.
+  assert.equal(novos[0].telefone, "351912345679");
+  assertTudoFiltradoPorCliente(A);
+});
+
+/**
+ * Os testes do indicativo.
+ *
+ * Isto não é cosmética de formulário. Medido a 2026-10-16, havia um contacto
+ * gravado como `968662120` entre 347 — criado à mão no painel, sem indicativo.
+ * Um número assim é invisível para o aviso de duplicado: nunca mais compara
+ * igual ao `351968662120` da mesma pessoa. O buraco era o formulário aceitar
+ * um número nacional e gravá-lo tal e qual.
+ */
+test("um número nacional sai com o indicativo do país escolhido", async () => {
+  reiniciar();
+
+  const resultado = await write.criarCliente({
+    ...comum,
+    clienteSlug: A,
+    confirmado: true,
+    nomeBruto: "Sem Indicativo",
+    notasBruto: "",
+    telefoneBruto: "961112233",
+  });
+
+  assert.equal(resultado.ok, true);
+
+  const novo = contactos().find((linha) => linha.nome === "Sem Indicativo");
+  assert.equal(novo?.telefone, "351961112233");
+  assert.equal(novo?.identificador_conversa, "whatsapp:351961112233");
+});
+
+test("o indicativo não é sempre Portugal", async () => {
+  reiniciar();
+
+  // 13 dos contactos reais do Detail são brasileiros. Carimbar-lhes 351
+  // estragava-lhes o número.
+  const resultado = await write.criarCliente({
+    ...comum,
+    clienteSlug: A,
+    confirmado: true,
+    indicativoBruto: "55",
+    nomeBruto: "Cliente do Brasil",
+    notasBruto: "",
+    telefoneBruto: "11968662120",
+  });
+
+  assert.equal(resultado.ok, true);
+  assert.equal(
+    contactos().find((linha) => linha.nome === "Cliente do Brasil")?.telefone,
+    "5511968662120",
+  );
+});
+
+test("um número colado já com indicativo não o leva duas vezes", async () => {
+  reiniciar();
+
+  const resultado = await write.criarCliente({
+    ...comum,
+    clienteSlug: A,
+    confirmado: true,
+    nomeBruto: "Colado Completo",
+    notasBruto: "",
+    telefoneBruto: "351 961 112 244",
+  });
+
+  assert.equal(resultado.ok, true);
+  assert.equal(
+    contactos().find((linha) => linha.nome === "Colado Completo")?.telefone,
+    "351961112244",
+  );
+});
+
+test("um número com + ignora o selector do país", async () => {
+  reiniciar();
+
+  // A saída para os países que não estão na lista: 4 contactos do Detail são
+  // do Reino Unido. O selector diz Portugal e o número manda.
+  const resultado = await write.criarCliente({
+    ...comum,
+    clienteSlug: A,
+    confirmado: true,
+    nomeBruto: "Cliente de Fora",
+    notasBruto: "",
+    telefoneBruto: "+44 7911 123456",
+  });
+
+  assert.equal(resultado.ok, true);
+  assert.equal(
+    contactos().find((linha) => linha.nome === "Cliente de Fora")?.telefone,
+    "447911123456",
+  );
+});
+
+/**
+ * O teste que liga as duas coisas: sem o indicativo montado, o aviso de
+ * duplicado não dispara. `912345678` e `351912345678` são a mesma pessoa.
+ */
+test("um número nacional é apanhado pelo aviso de duplicado", async () => {
+  reiniciar();
+
+  const resultado = await write.criarCliente({
+    ...comum,
+    clienteSlug: A,
+    confirmado: false,
+    nomeBruto: "Nome Novo",
+    notasBruto: "",
+    // O CONTACTO_A1 é o 351912345678, escrito com hífen. Isto é o mesmo
+    // número sem o indicativo.
+    telefoneBruto: "912345678",
+  });
+
+  assert.equal(resultado.ok, false);
+  assert.equal(resultado.duplicados?.length, 1);
+  assert.equal(resultado.duplicados?.[0].id, CONTACTO_A1);
+  assert.equal(contactos().length, 3);
   assertTudoFiltradoPorCliente(A);
 });
 
