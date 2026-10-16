@@ -48,6 +48,9 @@ export type ClienteAction = (
   formData: FormData,
 ) => Promise<GravarClienteResultado>;
 
+export type ServicoOpcao = { id: string; nome: string };
+export type ExecutorOpcao = { chave: string; nome: string };
+
 type Filtro = "duplicados" | "parados" | "semNotas" | "todos";
 
 /** Sem falar há mais do que isto, para o filtro dos parados. */
@@ -309,6 +312,97 @@ function CamposDaPessoa({
 }
 
 /**
+ * O serviço que a pessoa já fez, no momento em que entra no painel.
+ *
+ * Isto não grava na ficha: grava em `marcacoes`, na base do próprio cliente,
+ * que é de onde o histórico e o total gasto já vêm. Um campo "ticket" na ficha
+ * era um segundo total a discordar do primeiro.
+ *
+ * Só aparece onde há catálogo. A Miranda não tem base de serviços ligada, e um
+ * `<select>` sem opções parece um campo avariado.
+ *
+ * A data é do dia em que o serviço foi feito e não aceita futuro — isso é
+ * recusado no servidor, com a razão. Uma marcação futura escrita aqui punha o
+ * cliente a receber o lembrete automático de 24h antes para uma hora que não
+ * está na agenda de ninguém.
+ */
+function CamposDoServico({
+  executores,
+  moeda,
+  servicos,
+}: {
+  executores: ExecutorOpcao[];
+  moeda: string;
+  servicos: ServicoOpcao[];
+}) {
+  if (servicos.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex w-full flex-wrap items-start gap-3 rounded-xl bg-zinc-50 px-3 py-3">
+      <p className="w-full text-xs text-zinc-500">
+        Serviço já feito <span className="text-zinc-400">— opcional</span>
+      </p>
+
+      <label className={`${labelClass} min-w-48 flex-1`} htmlFor="servico-id">
+        Serviço
+        <select className={`${inputClass} w-full`} id="servico-id" name="servico_id">
+          <option value="">Nenhum</option>
+          {servicos.map((servico) => (
+            <option key={servico.id} value={servico.id}>
+              {servico.nome}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className={`${labelClass} w-40`} htmlFor="servico-data">
+        Data
+        <input
+          className={`${inputClass} w-full`}
+          id="servico-data"
+          name="servico_data"
+          type="date"
+        />
+      </label>
+
+      <label className={`${labelClass} w-32`} htmlFor="servico-valor">
+        Ticket ({moeda})
+        <input
+          className={`${inputClass} w-full`}
+          id="servico-valor"
+          inputMode="decimal"
+          min={0}
+          name="servico_valor"
+          placeholder="opcional"
+          step="0.01"
+          type="number"
+        />
+      </label>
+
+      {executores.length > 0 ? (
+        <label className={`${labelClass} w-36`} htmlFor="servico-executor">
+          Quem fez
+          <select
+            className={`${inputClass} w-full`}
+            id="servico-executor"
+            name="servico_executor"
+          >
+            <option value="">Não sei</option>
+            {executores.map((executor) => (
+              <option key={executor.chave} value={executor.chave}>
+                {executor.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Criar um cliente à mão.
  *
  * O aviso de duplicado é um segundo passo e não um bloqueio: a primeira
@@ -318,10 +412,16 @@ function CamposDaPessoa({
  */
 function CriarClienteForm({
   action,
+  executores,
+  moeda,
   mostrarViatura,
+  servicos,
 }: {
   action: ClienteAction;
+  executores: ExecutorOpcao[];
+  moeda: string;
   mostrarViatura: boolean;
+  servicos: ServicoOpcao[];
 }) {
   const [resultado, formAction] = useActionState<
     GravarClienteResultado | null,
@@ -367,6 +467,12 @@ function CriarClienteForm({
         >
           Criar cliente
         </FormSubmitButton>
+
+        <CamposDoServico
+          executores={executores}
+          moeda={moeda}
+          servicos={servicos}
+        />
       </div>
 
       <Mensagem resultado={resultado} />
@@ -1044,10 +1150,12 @@ export function ClientesPanel({
   actionSeparar,
   clientes,
   deFora,
+  executores,
   historicoLigado,
   moeda,
   mostrarViatura,
   podeEditar,
+  servicos,
   timeZone,
 }: {
   actionCriar: ClienteAction;
@@ -1056,11 +1164,18 @@ export function ClientesPanel({
   actionSeparar: ClienteAction;
   clientes: ClienteLinha[];
   deFora: ClientesDeFora;
+  /** Quem executa, para dizer quem fez o serviço registado à mão. */
+  executores: ExecutorOpcao[];
   historicoLigado: boolean;
   moeda: string;
   /** O campo "Carro" só faz sentido onde se tratam carros. */
   mostrarViatura: boolean;
   podeEditar: boolean;
+  /**
+   * O catálogo do cliente. Vazio esconde o bloco do serviço — é o caso da
+   * Miranda, que não tem base de serviços ligada.
+   */
+  servicos: ServicoOpcao[];
   /**
    * O fuso do cliente. É obrigatório porque isto corre nos dois lados: o
    * servidor da Vercel está em UTC e o browser do dono não, e uma data
@@ -1186,7 +1301,10 @@ export function ClientesPanel({
               <div className="mt-3">
                 <CriarClienteForm
                   action={actionCriar}
+                  executores={executores}
+                  moeda={moeda}
                   mostrarViatura={mostrarViatura}
+                  servicos={servicos}
                 />
               </div>
             </>

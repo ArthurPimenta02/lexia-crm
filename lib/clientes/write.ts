@@ -5,6 +5,11 @@ import {
   canalQuePedeNota,
   isCanalDeAquisicao,
 } from "@/lib/clientes/ficha";
+import {
+  type CamposDoServico,
+  escreverMarcacao,
+  prepararServico,
+} from "@/lib/clientes/marcacao";
 import { procurarPorTelefone } from "@/lib/clientes/read";
 import { montarTelefone } from "@/lib/clientes/telefone";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -180,6 +185,7 @@ export async function criarCliente({
   confirmado,
   indicativoBruto,
   nomeBruto,
+  servico: camposDoServico,
   telefoneBruto,
   userId,
 }: {
@@ -189,6 +195,7 @@ export async function criarCliente({
   confirmado: boolean;
   indicativoBruto: string;
   nomeBruto: string;
+  servico: CamposDoServico;
   telefoneBruto: string;
   userId: string;
 }): Promise<GravarClienteResultado> {
@@ -251,6 +258,18 @@ export async function criarCliente({
     };
   }
 
+  // O serviço é confirmado contra o catálogo do cliente ANTES de o contacto
+  // existir. São duas bases de dados sem transacção entre elas: tudo o que
+  // possa ser recusado tem de o ser enquanto ainda não há nada escrito.
+  const { erro: erroServico, servico } = await prepararServico({
+    campos: camposDoServico,
+    clienteSlug,
+  });
+
+  if (erroServico) {
+    return { mensagem: erroServico, ok: false };
+  }
+
   const admin = createAdminClient();
   const agora = new Date().toISOString();
   const { error } = await admin.from("lexia_contactos").insert({
@@ -283,9 +302,36 @@ export async function criarCliente({
     return { mensagem: "Não foi possível criar o cliente.", ok: false };
   }
 
+  if (!servico) {
+    revalidatePath(caminhoParaRevalidar);
+
+    return { mensagem: `${nome} ficou no painel.`, ok: true };
+  }
+
+  const { erro: erroEscrita } = await escreverMarcacao({
+    clienteSlug,
+    nomeCliente: nome,
+    servico,
+    telefone,
+    viatura: ficha.viatura,
+  });
+
   revalidatePath(caminhoParaRevalidar);
 
-  return { mensagem: `${nome} ficou no painel.`, ok: true };
+  // O contacto já existe e não se desfaz: apagá-lo para "limpar" perdia o
+  // email, a morada e o canal de aquisição que o dono acabou de escrever, por
+  // causa de uma segunda escrita noutra base. Diz-se o que ficou e o que não.
+  if (erroEscrita) {
+    return {
+      mensagem: `${nome} ficou no painel, mas o serviço não foi registado: ${erroEscrita}. O contacto está criado — não o cries outra vez.`,
+      ok: false,
+    };
+  }
+
+  return {
+    mensagem: `${nome} ficou no painel, com "${servico.nome}" no histórico.`,
+    ok: true,
+  };
 }
 
 /**

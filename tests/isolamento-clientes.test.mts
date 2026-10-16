@@ -145,12 +145,21 @@ const fichaVazia = {
   viaturaBruto: "",
 };
 
+/** Sem serviço: estes testes são sobre o isolamento, não sobre a venda. */
+const semServico = {
+  dataBruto: "",
+  executorBruto: "",
+  servicoIdBruto: "",
+  valorBruto: "",
+};
+
 const comum = {
   caminhoParaRevalidar: "/app/clientes",
   campos: fichaVazia,
   // Portugal é o que o formulário traz pré-escolhido, e é o que 320 dos 347
   // contactos reais do Detail usam.
   indicativoBruto: "351",
+  servico: semServico,
   userId: "utilizador-1",
 };
 

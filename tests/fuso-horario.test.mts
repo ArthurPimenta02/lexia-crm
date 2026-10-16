@@ -24,9 +24,66 @@ import {
   formatDayInTimezone,
   getClientTimezone,
   getSelectedTimezone,
+  instanteAoMeioDiaNoFuso,
 } from "@/lib/clientes/timezone";
 
 const raiz = new URL("..", import.meta.url).pathname;
+
+/** O dia e a hora que um instante mostra quando lido naquele fuso. */
+function lidoNoFuso(instante: string, timeZone: string) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    month: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(new Date(instante));
+
+  const valor = (tipo: string) =>
+    partes.find((parte) => parte.type === tipo)?.value ?? "";
+
+  return {
+    dia: `${valor("year")}-${valor("month")}-${valor("day")}`,
+    hora: valor("hour"),
+  };
+}
+
+test("um dia escolhido à mão fica ao meio-dia desse fuso, e não noutro", () => {
+  // Duas coisas de uma vez, e as duas são precisas. Que o dia leia de volta
+  // igual é o mínimo — é a família de defeito que pôs 16,4% das mensagens da
+  // Miranda no dia errado. Que a hora seja mesmo meio-dia LOCAL é o que dá as
+  // doze horas de folga de cada lado: um instante encostado à meia-noite
+  // escorrega para a véspera ao menor desvio, e um meio-dia só em UTC são sete
+  // da manhã em Boston e a madrugada seguinte no Pacífico.
+  for (const timeZone of [
+    "America/New_York",
+    "America/Sao_Paulo",
+    "Europe/Lisbon",
+    "Pacific/Kiritimati",
+  ]) {
+    for (const dia of ["2026-01-15", "2026-07-15"]) {
+      const instante = instanteAoMeioDiaNoFuso(dia, timeZone);
+
+      assert.ok(instante, `${dia} em ${timeZone} não deu instante nenhum`);
+
+      const lido = lidoNoFuso(instante, timeZone);
+
+      assert.equal(lido.dia, dia, `${dia} em ${timeZone} foi lido noutro dia`);
+      assert.equal(
+        lido.hora,
+        "12",
+        `${dia} em ${timeZone} não ficou ao meio-dia local`,
+      );
+    }
+  }
+});
+
+test("o dia só conta se vier escrito como a base o escreve", () => {
+  assert.equal(instanteAoMeioDiaNoFuso("15/01/2026", "Europe/Lisbon"), null);
+  assert.equal(instanteAoMeioDiaNoFuso("", "Europe/Lisbon"), null);
+  assert.equal(instanteAoMeioDiaNoFuso("2026-13-45", "Europe/Lisbon"), null);
+});
 
 test("cada cliente tem o seu fuso e os de fora do mapa caem no de reserva", () => {
   assert.equal(getClientTimezone("detail_by_cordeiro"), "Europe/Lisbon");

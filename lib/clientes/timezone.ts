@@ -100,6 +100,84 @@ export function getSelectedTimezone(
   );
 }
 
+/**
+ * Quantos minutos é que este fuso está à frente do UTC, naquele instante.
+ *
+ * Formata o instante no fuso pedido, volta a lê-lo como se fosse UTC, e a
+ * diferença é o desvio. É a forma de o fazer sem biblioteca de datas, e tem de
+ * ser por instante e não por fuso: `Europe/Lisbon` é +00:00 em Janeiro e
+ * +01:00 em Julho.
+ */
+function desvioEmMinutos(instante: Date, timeZone: string) {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    month: "2-digit",
+    second: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).formatToParts(instante);
+
+  const valor = (tipo: string) =>
+    Number(partes.find((parte) => parte.type === tipo)?.value ?? "0");
+
+  const comoSeFosseUtc = Date.UTC(
+    valor("year"),
+    valor("month") - 1,
+    valor("day"),
+    // Meia-noite sai como "24" em algumas plataformas.
+    valor("hour") % 24,
+    valor("minute"),
+    valor("second"),
+  );
+
+  return (comoSeFosseUtc - instante.getTime()) / 60_000;
+}
+
+/**
+ * O instante do meio-dia de um dia escrito como `2026-10-14`, no fuso do
+ * cliente.
+ *
+ * Meio-dia e não meia-noite de propósito. A base guarda um instante e o painel
+ * volta a mostrá-lo com `formatDayInTimezone`; se o instante ficasse encostado
+ * à meia-noite, qualquer desvio punha o serviço a aparecer no dia anterior.
+ * Com o meio-dia há doze horas de folga de cada lado.
+ *
+ * Devolve `null` se o dia não tiver a forma esperada.
+ */
+export function instanteAoMeioDiaNoFuso(dia: string, timeZone: string) {
+  const partido = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia.trim());
+
+  if (!partido) {
+    return null;
+  }
+
+  const [, ano, mes, diaDoMes] = partido.map(Number);
+  const provisorio = Date.UTC(ano, mes - 1, diaDoMes, 12, 0, 0);
+  const confirmacao = new Date(provisorio);
+
+  // `Date.UTC` transborda em silêncio: o mês 13 vira Janeiro do ano seguinte e
+  // o dia 45 passa para o mês a seguir. Sem esta confirmação, uma data
+  // impossível gravava um serviço num dia que ninguém escolheu.
+  if (
+    confirmacao.getUTCFullYear() !== ano ||
+    confirmacao.getUTCMonth() !== mes - 1 ||
+    confirmacao.getUTCDate() !== diaDoMes
+  ) {
+    return null;
+  }
+
+  // Uma passagem chega: as mudanças de hora acontecem de madrugada, longe do
+  // meio-dia, por isso o desvio medido no instante provisório é o mesmo do
+  // instante final.
+  const desvio = desvioEmMinutos(new Date(provisorio), timeZone);
+  const instante = new Date(provisorio - desvio * 60_000);
+
+  return Number.isNaN(instante.getTime()) ? null : instante.toISOString();
+}
+
 export function formatDateInTimezone(
   date: string | null,
   timeZone: string,
