@@ -12,10 +12,8 @@ import {
   ConversationPeriodFilter,
   type ConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
-import {
-  getSelectedTimezone,
-  TimezoneSwitcher,
-} from "@/app/components/conversation-timezone";
+import { TimezoneSwitcher } from "@/app/components/conversation-timezone";
+import { getSelectedTimezone } from "@/lib/clientes/timezone";
 import { conversationPeriodOptions } from "@/lib/conversations/date-range";
 
 const channelFilters = [

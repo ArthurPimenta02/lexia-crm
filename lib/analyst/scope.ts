@@ -2,7 +2,7 @@ import "server-only";
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getDateRange } from "@/lib/dashboard/date-range";
-import { getClientTimezone } from "@/lib/metrics/external-client-metrics";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {

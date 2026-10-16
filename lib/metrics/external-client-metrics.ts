@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 
 export type ExternalClientMetrics = {
@@ -88,18 +89,6 @@ function createExternalClient(config: ExternalClientConfig) {
       persistSession: false,
     },
   });
-}
-
-export function getClientTimezone(clienteSlug: string) {
-  if (clienteSlug === "miranda_skin_experts") {
-    return "America/New_York";
-  }
-
-  if (clienteSlug === "detail_by_cordeiro") {
-    return "Europe/Lisbon";
-  }
-
-  return "America/Sao_Paulo";
 }
 
 async function listAppointments(

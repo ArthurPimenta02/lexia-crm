@@ -11,6 +11,10 @@ import { ExpandableText } from "@/app/components/expandable-text";
 import { parseFeedbackComentario } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminAdjustmentsPageProps = {
@@ -63,17 +67,6 @@ const allowedModules = moduleFilters.map((item) => item.value).filter(Boolean);
 
 function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
 }
 
 function formatLabel(value: string | null) {
@@ -518,9 +511,19 @@ export default async function AdminAdjustmentsPage({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-4 text-xs text-zinc-400">
-                  <span>Criado em {formatDate(adjustment.criado_em)}</span>
                   <span>
-                    Actualizado em {formatDate(adjustment.atualizado_em)}
+                    Criado em{" "}
+                    {formatDateInTimezone(
+                      adjustment.criado_em,
+                      getClientTimezone(adjustment.cliente_slug),
+                    )}
+                  </span>
+                  <span>
+                    Actualizado em{" "}
+                    {formatDateInTimezone(
+                      adjustment.atualizado_em,
+                      getClientTimezone(adjustment.cliente_slug),
+                    )}
                   </span>
                   {adjustment.origem_feedback_id ? (
                     <span>Feedback: {adjustment.origem_feedback_id}</span>

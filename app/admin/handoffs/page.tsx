@@ -15,6 +15,7 @@ import {
   handoffGridClass,
 } from "@/app/components/handoff-cards";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getAgentLocksClientSlugs } from "@/lib/redis/agent-locks";
 import { createClient } from "@/lib/supabase/server";
 
@@ -196,6 +197,7 @@ export default async function AdminHandoffsPage() {
                 resumo={handoff.resumo}
                 status={handoff.status}
                 telefone={handoff.telefone}
+                timeZone={getClientTimezone(handoff.cliente_slug)}
               />
             ))}
           </div>
@@ -243,6 +245,7 @@ export default async function AdminHandoffsPage() {
                   key={handoff.id}
                   mensagem={handoff.mensagem_teste}
                   resposta={getAgentResponseText(handoff)}
+                  timeZone={getClientTimezone(handoff.cliente_slug)}
                 />
               ))}
             </div>

@@ -8,6 +8,7 @@ import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
 import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import type { ClienteLinha, ClientesDeFora } from "@/lib/clientes/read";
+import { formatDayInTimezone } from "@/lib/clientes/timezone";
 import {
   indicativoPorOmissao,
   indicativosTelefone,
@@ -63,18 +64,6 @@ const botaoDiscreto =
 
 const cartao =
   "rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]";
-
-function formatData(iso: string | null) {
-  if (!iso) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(iso));
-}
 
 function formatMoeda(valor: number, moeda: string) {
   return new Intl.NumberFormat("pt-PT", {
@@ -525,12 +514,14 @@ function LinhaDoCliente({
   cliente,
   marcada,
   moeda,
+  timeZone,
 }: {
   aberto: boolean;
   aoAlternar: () => void;
   cliente: ClienteLinha;
   marcada: boolean;
   moeda: string;
+  timeZone: string;
 }) {
   const dias = diasDesde(cliente.mensagemUltima);
 
@@ -560,7 +551,7 @@ function LinhaDoCliente({
           ) : null}
         </span>
         <span className="mt-0.5 block truncate text-xs text-zinc-500 sm:hidden">
-          {cliente.telefone} · {formatData(cliente.mensagemUltima)}
+          {cliente.telefone} · {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
         </span>
       </span>
 
@@ -617,6 +608,7 @@ function FichaDoCliente({
   moeda,
   outros,
   podeEditar,
+  timeZone,
 }: {
   actionJuntar: ClienteAction;
   actionNotas: ClienteAction;
@@ -626,6 +618,7 @@ function FichaDoCliente({
   moeda: string;
   outros: ClienteLinha[];
   podeEditar: boolean;
+  timeZone: string;
 }) {
   return (
     <div className="flex flex-col gap-4 border-t border-zinc-200 bg-zinc-50/60 px-4 py-4">
@@ -662,7 +655,7 @@ function FichaDoCliente({
         <div>
           <dt className="text-zinc-500">Última mensagem</dt>
           <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
-            {formatData(cliente.mensagemUltima)}
+            {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
           </dd>
         </div>
         <div>
@@ -674,7 +667,7 @@ function FichaDoCliente({
         <div>
           <dt className="text-zinc-500">Primeiro contacto</dt>
           <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
-            {formatData(cliente.primeiroContactoEm)}
+            {formatDayInTimezone(cliente.primeiroContactoEm, timeZone)}
           </dd>
         </div>
         <div>
@@ -715,7 +708,7 @@ function FichaDoCliente({
                 key={linha.id}
               >
                 <span className="text-xs text-zinc-500">
-                  {formatData(linha.dataInicio)}
+                  {formatDayInTimezone(linha.dataInicio, timeZone)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs text-zinc-700">
                   {linha.servico ?? "serviço não registado"}
@@ -803,6 +796,7 @@ export function ClientesPanel({
   historicoLigado,
   moeda,
   podeEditar,
+  timeZone,
 }: {
   actionCriar: ClienteAction;
   actionJuntar: ClienteAction;
@@ -813,6 +807,13 @@ export function ClientesPanel({
   historicoLigado: boolean;
   moeda: string;
   podeEditar: boolean;
+  /**
+   * O fuso do cliente. É obrigatório porque isto corre nos dois lados: o
+   * servidor da Vercel está em UTC e o browser do dono não, e uma data
+   * formatada sem fuso saía diferente em cada um — a hidratação queixava-se e
+   * o dia mostrado podia estar errado.
+   */
+  timeZone: string;
 }) {
   const [procura, setProcura] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -1032,6 +1033,7 @@ export function ClientesPanel({
                   cliente={cliente}
                   marcada={duplicados.has(cliente.id)}
                   moeda={moeda}
+                  timeZone={timeZone}
                 />
 
                 {aberto === cliente.id ? (
@@ -1044,6 +1046,7 @@ export function ClientesPanel({
                     moeda={moeda}
                     outros={clientes.filter((outro) => outro.id !== cliente.id)}
                     podeEditar={podeEditar}
+                    timeZone={timeZone}
                   />
                 ) : null}
               </li>

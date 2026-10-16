@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import type { CampanhaResumo, PainelCampanhas } from "@/lib/campaigns/read";
+import { getTimezoneLabel } from "@/lib/clientes/timezone";
 import { dashboardPeriodOptions } from "@/lib/dashboard/date-range";
 
 /**
@@ -27,18 +28,6 @@ export function formatCampanhasMoney(value: number, moeda: string) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("pt-PT").format(value);
-}
-
-function getTimezoneLabel(timeZone: string) {
-  if (timeZone === "America/New_York") {
-    return "Nova Iorque";
-  }
-
-  if (timeZone === "Europe/Lisbon") {
-    return "Lisboa";
-  }
-
-  return "Brasília";
 }
 
 function formatDayLabel(dia: string) {

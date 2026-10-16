@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientExecutionsPageProps = {
@@ -47,17 +51,6 @@ function getSearchValue(value: string | string[] | undefined) {
 
 function hasError(execution: Pick<TestExecution, "erro">) {
   return Boolean(execution.erro?.trim());
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
 }
 
 function formatLabel(value: string | null) {
@@ -171,6 +164,7 @@ export default async function ClientExecutionsPage({
     ? requestedEstado
     : "todas";
 
+  const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
   let query = supabase
     .from("lexia_testes_execucoes")
@@ -335,7 +329,7 @@ export default async function ClientExecutionsPage({
                 {executions.map((execution) => (
                   <tr className="border-b border-zinc-100" key={execution.id}>
                     <td className="break-words px-3 py-4 align-top text-zinc-600">
-                      {formatDate(execution.criado_em)}
+                      {formatDateInTimezone(execution.criado_em, timeZone)}
                     </td>
                     <td className="px-3 py-4 align-top">
                       <Badge>{execution.rota ?? "Sem rota"}</Badge>

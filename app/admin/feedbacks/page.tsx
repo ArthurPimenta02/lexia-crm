@@ -11,6 +11,10 @@ import {
   isLikelyImageUrl,
   parseFeedbackComentario,
 } from "@/app/components/feedback-conversation-utils";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminFeedback = {
@@ -24,17 +28,6 @@ type AdminFeedback = {
   status: AdminFeedbackStatus | null;
   criado_em: string | null;
 };
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
 
 function formatLabel(value: string | null) {
   if (!value) {
@@ -150,7 +143,10 @@ export default async function AdminFeedbacksPage() {
                   return (
                   <tr className="border-b border-zinc-100" key={feedback.id}>
                     <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDate(feedback.criado_em)}
+                      {formatDateInTimezone(
+                        feedback.criado_em,
+                        getClientTimezone(feedback.cliente_slug),
+                      )}
                     </td>
                     <td className="break-words px-3 py-3 align-top font-medium text-zinc-950">
                       {feedback.cliente_slug}

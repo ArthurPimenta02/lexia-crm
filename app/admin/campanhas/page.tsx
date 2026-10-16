@@ -13,7 +13,7 @@ import {
   getSearchValue,
 } from "@/lib/dashboard/date-range";
 import { getMetaAdsAccountEnvName, getMetaAdsConfig } from "@/lib/meta/ads";
-import { getClientTimezone } from "@/lib/metrics/external-client-metrics";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 import { atualizarCampanhasAdminAction } from "./actions";

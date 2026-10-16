@@ -16,6 +16,7 @@ import {
   handoffGridClass,
 } from "@/app/components/handoff-cards";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type Handoff = {
@@ -118,6 +119,7 @@ export default async function ClientHandoffsPage() {
     redirect("/app");
   }
 
+  const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
   const [
     { data: handoffsData, error: handoffsError },
@@ -201,6 +203,7 @@ export default async function ClientHandoffsPage() {
                 resumo={handoff.resumo}
                 status={handoff.status}
                 telefone={handoff.telefone}
+                timeZone={timeZone}
               />
             ))}
           </div>
@@ -246,6 +249,7 @@ export default async function ClientHandoffsPage() {
                   key={handoff.id}
                   mensagem={handoff.mensagem_teste}
                   resposta={getAgentResponseText(handoff)}
+                  timeZone={timeZone}
                 />
               ))}
             </div>
