@@ -98,7 +98,9 @@ function getConversationHref(
     params.set("cliente", clienteSlug);
   }
 
-  params.set("periodo", "mes");
+  // Sem `periodo`: a página das conversas abre a conversa pedida mesmo que
+  // caia fora do filtro, e forçar "mes" aqui só apagava a escolha do dono —
+  // continuando a deixar de fora um handoff com mais de 30 dias.
   params.set("canal", group.canal);
   params.set("conversa", group.identificadorConversa);
 

@@ -30,6 +30,7 @@ import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
+import { resolveConversationSelection } from "@/lib/conversations/select-conversation";
 import {
   getConversationDayKey,
   getConversationMessagePreview,
@@ -243,6 +244,7 @@ export default async function AdminConversationsPage({
 
   let contacts: Contact[] = [];
   let messages: Message[] = [];
+  let conversationsInPeriod = new Set<string>();
   const emptyMessagesResult = { data: [] as Message[], error: null };
   let requestedHistoryResult: { data: Message[]; error: unknown } =
     emptyMessagesResult;
@@ -333,30 +335,27 @@ export default async function AdminConversationsPage({
 
     requestedHistoryResult = preloadedHistoryResult;
     messages = messagesResult.data as Message[];
-    const conversationsInPeriod = new Set(
+    conversationsInPeriod = new Set(
       messages.map((message) => message.identificador_conversa),
     );
-    contacts = contactsResult.data.filter((contact) =>
+    contacts = contactsResult.data;
+  }
+
+  const summaries = buildSummaries(messages);
+  const selection = resolveConversationSelection({
+    contacts,
+    isInPeriod: (contact) =>
       normalizedSearch
         ? normalizeConversationSearch(
             `${contact.nome ?? ""} ${contact.telefone ?? ""}`,
           ).includes(normalizedSearch)
         : conversationsInPeriod.has(contact.identificador_conversa),
-    );
-  }
-
-  const summaries = buildSummaries(messages);
-  const sortedContacts = [...contacts].sort(
-    (firstContact, secondContact) =>
-      getDateTimeValue(getContactLastActivity(secondContact, summaries)) -
-      getDateTimeValue(getContactLastActivity(firstContact, summaries)),
-  );
-  const selectedContact =
-    sortedContacts.find(
-      (contact) => contact.identificador_conversa === requestedConversation,
-    ) ??
-    sortedContacts[0] ??
-    null;
+    requestedConversation,
+    sortValue: (contact) =>
+      getDateTimeValue(getContactLastActivity(contact, summaries)),
+  });
+  const sortedContacts = selection.contacts;
+  const selectedContact = selection.selected;
   const selectedMessagesResult =
     selectedClient && selectedContact
       ? selectedContact.identificador_conversa === requestedConversation
@@ -489,6 +488,9 @@ export default async function AdminConversationsPage({
                     contact,
                     summaries,
                   );
+                  const isOutsidePeriod =
+                    selection.requestedIsOutsidePeriod &&
+                    contact.identificador_conversa === requestedConversation;
 
                   return (
                     <Link
@@ -514,6 +516,15 @@ export default async function AdminConversationsPage({
                           <p className="truncate text-sm font-semibold">
                             {contact.nome || contact.telefone || "Sem nome"}
                           </p>
+                          {isOutsidePeriod ? (
+                            <p
+                              className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                isSelected ? "text-amber-300" : "text-amber-700"
+                              }`}
+                            >
+                              Fora do período
+                            </p>
+                          ) : null}
                           <p
                             className={`mt-0.5 truncate text-[11px] ${
                               isSelected ? "text-white/70" : "text-zinc-500"
@@ -651,6 +662,13 @@ export default async function AdminConversationsPage({
                   </div>
                 </div>
 
+                {selection.requestedIsOutsidePeriod ? (
+                  <p className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900 lg:px-4">
+                    Esta conversa está fora do período filtrado ({range.label}),
+                    mas o histórico completo está aqui.
+                  </p>
+                ) : null}
+
                 <ScrollToBottomPanel
                   className="lexia-chat-wallpaper flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2.5 sm:px-4 sm:py-3"
                   scrollKey={`${selectedClient.slug}:${selectedContact.identificador_conversa}:${displayMessages.length}:${lastSelectedMessageId}`}
@@ -715,7 +733,9 @@ export default async function AdminConversationsPage({
               </>
             ) : (
               <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-zinc-500">
-                Selecciona uma conversa para visualizar as mensagens.
+                {selection.requestedIsMissing
+                  ? "Não encontrámos esta conversa neste cliente. Escolhe uma da lista."
+                  : "Selecciona uma conversa para visualizar as mensagens."}
               </div>
             )}
           </section>

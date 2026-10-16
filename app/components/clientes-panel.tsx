@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
 import { ChannelBadge } from "@/app/components/channel-brand";
 import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
+import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import type { ClienteLinha, ClientesDeFora } from "@/lib/clientes/read";
 import {
@@ -607,14 +609,29 @@ function FichaDoCliente({
         {cliente.canais.map((canal) => (
           <ChannelBadge channel={canal} key={canal} />
         ))}
-        <a
-          className="inline-flex min-h-9 items-center rounded-full bg-[#25D366] px-4 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
-          href={`https://wa.me/${cliente.telefoneDigitos}`}
-          rel="noreferrer noopener"
-          target="_blank"
+        {cliente.telefoneDigitos ? (
+          <a
+            className="inline-flex min-h-9 items-center rounded-full bg-[#25D366] px-4 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
+            href={`https://wa.me/${cliente.telefoneDigitos}`}
+            rel="noreferrer noopener"
+            target="_blank"
+          >
+            Abrir no WhatsApp
+          </a>
+        ) : null}
+        {/*
+          O `wa.me` abre o telemóvel do dono e só serve para responder. Isto
+          abre o histórico que a plataforma já tem — e nos contactos de
+          Instagram ou Messenger, onde não há número, é a única forma de ler a
+          conversa. Sem `periodo` de propósito: a página das conversas abre a
+          conversa pedida mesmo que a última mensagem seja de há meses.
+        */}
+        <Link
+          className="inline-flex min-h-9 items-center rounded-full bg-zinc-950 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          href={buildAppConversationHref(cliente.identificadorConversa, null)}
         >
-          Abrir no WhatsApp
-        </a>
+          Ir para a conversa na plataforma
+        </Link>
       </div>
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
