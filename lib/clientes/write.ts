@@ -9,9 +9,15 @@ import {
   type CamposDoServico,
   escreverMarcacao,
   prepararServico,
+  type ServicoJaRegistado,
+  servicosJaRegistados,
 } from "@/lib/clientes/marcacao";
 import { procurarPorTelefone } from "@/lib/clientes/read";
-import { montarTelefone } from "@/lib/clientes/telefone";
+import {
+  montarTelefone,
+  normalizarTelefone,
+  pareceTelefone,
+} from "@/lib/clientes/telefone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -36,6 +42,11 @@ export type GravarClienteResultado = {
     nome: string;
     telefone: string;
   }[];
+  /**
+   * Serviços que este cliente já tem na agenda. Preenchido quando o registo
+   * de um serviço novo parou para avisar: a ficha mostra-os e deixa insistir.
+   */
+  jaRegistados?: ServicoJaRegistado[];
   mensagem: string;
   ok: boolean;
 };
@@ -330,6 +341,134 @@ export async function criarCliente({
 
   return {
     mensagem: `${nome} ficou no painel, com "${servico.nome}" no histórico.`,
+    ok: true,
+  };
+}
+
+/**
+ * Regista um serviço já feito num cliente que já está no painel.
+ *
+ * Este é o caso normal, e não o raro: o Martim também trata do CRM, e um
+ * cliente com ficha é precisamente o que volta para fazer mais um serviço.
+ * Deixar isto só no formulário de criar obrigava a inventar um contacto
+ * repetido para registar uma venda real.
+ *
+ * O aviso de repetição
+ * --------------------
+ * Carregar duas vezes no botão escrevia a mesma venda duas vezes, e o total
+ * gasto passava a mentir sem dar nas vistas — um número errado continua a
+ * parecer um número. A trava é a mesma que o Arthur escolheu para os
+ * contactos duplicados: quem já tem serviços na agenda não é bloqueado, é
+ * avisado. A primeira submissão devolve a lista do que já lá está e a segunda,
+ * com `confirmado`, escreve. Mostrar a lista é o que resolve, porque o serviço
+ * repetido fica à vista.
+ *
+ * O nome, o telefone e a viatura vêm da ficha lida aqui e nunca do formulário.
+ * Um telefone vindo do navegador escrevia a venda no histórico de outra
+ * pessoa; e a leitura por `cliente_slug` e `id` é, ao mesmo tempo, a
+ * autorização sobre o `contactoId`.
+ */
+export async function registarServicoDeCliente({
+  caminhoParaRevalidar,
+  clienteSlug,
+  confirmado,
+  contactoId,
+  servico: camposDoServico,
+}: {
+  caminhoParaRevalidar: string;
+  clienteSlug: string;
+  confirmado: boolean;
+  contactoId: string;
+  servico: CamposDoServico;
+}): Promise<GravarClienteResultado> {
+  const admin = createAdminClient();
+  const { data: contacto, error } = await admin
+    .from("lexia_contactos")
+    .select("id, nome, telefone, viatura")
+    .eq("cliente_slug", clienteSlug)
+    .eq("id", contactoId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[clientes] falha a ler a ficha antes de registar", error);
+
+    return { mensagem: "Não foi possível ler a ficha do cliente.", ok: false };
+  }
+
+  if (!contacto) {
+    return { mensagem: "Cliente não encontrado.", ok: false };
+  }
+
+  const nome = (contacto.nome ?? "").trim();
+  const telefone = normalizarTelefone(contacto.telefone);
+
+  // Sem número não há ponte: `marcacoes` liga-se à ficha pelo telefone e por
+  // mais nada. Uma linha escrita sem ele ficava na agenda sem nunca voltar a
+  // aparecer nesta ficha nem no total gasto.
+  if (!pareceTelefone(telefone)) {
+    return {
+      mensagem:
+        "Esta ficha não tem um número de telefone a sério, e é o número que liga o serviço ao histórico. Põe o número primeiro.",
+      ok: false,
+    };
+  }
+
+  const { erro: erroServico, servico } = await prepararServico({
+    campos: camposDoServico,
+    clienteSlug,
+  });
+
+  if (erroServico) {
+    return { mensagem: erroServico, ok: false };
+  }
+
+  // Aqui o bloco não é opcional: o formulário existe só para isto. Vazio é
+  // um engano, e dizê-lo é melhor do que gravar nada e responder "feito".
+  if (!servico) {
+    return { mensagem: "Escolhe o serviço que foi feito e a data.", ok: false };
+  }
+
+  if (!confirmado) {
+    const { erro: erroHistorico, servicos } = await servicosJaRegistados({
+      clienteSlug,
+      telefone,
+    });
+
+    if (erroHistorico) {
+      return { mensagem: erroHistorico, ok: false };
+    }
+
+    if (servicos.length > 0) {
+      return {
+        jaRegistados: servicos,
+        mensagem:
+          servicos.length === 1
+            ? `${nome || "Este cliente"} já tem um serviço registado.`
+            : `${nome || "Este cliente"} já tem ${servicos.length} serviços registados.`,
+        ok: false,
+      };
+    }
+  }
+
+  const { erro: erroEscrita } = await escreverMarcacao({
+    clienteSlug,
+    nomeCliente: nome,
+    servico,
+    telefone,
+    viatura: contacto.viatura,
+  });
+
+  if (erroEscrita) {
+    return {
+      mensagem: `O serviço não foi registado: ${erroEscrita}.`,
+      ok: false,
+    };
+  }
+
+  revalidatePath(caminhoParaRevalidar);
+
+  return {
+    mensagem: `"${servico.nome}" entrou no histórico.`,
     ok: true,
   };
 }
