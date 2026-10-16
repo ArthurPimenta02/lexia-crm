@@ -48,6 +48,13 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # Os testes de isolamento por cliente correm dentro deste job, e nao num
+      # job proprio, de proposito: o ruleset do `main` exige exactamente um
+      # check, "Lint, typecheck e build". Um job novo nao ficava obrigatorio e
+      # podia falhar sem travar o merge. Daqui, trava.
+      - name: Testes
+        run: npm test
+
       # O build nao le segredos: todas as variaveis de ambiente do Supabase sao
       # lidas dentro das funcoes (lib/supabase/*.ts), nunca no topo do modulo.
       # Se algum dia isso mudar, este passo passa a exigir secrets no GitHub.
