@@ -17,7 +17,7 @@
  * cliente") e não só sobre o resultado de uma.
  */
 
-export type Filtro = { coluna: string; valor: unknown };
+export type Filtro = { coluna: string; valor: unknown; valores?: unknown[] };
 
 export type Registo = {
   colunas: string | null;
@@ -32,7 +32,11 @@ export type Linha = Record<string, unknown>;
 type Resultado<T> = { data: T; error: { code?: string; message: string } | null };
 
 function correspondeAosFiltros(linha: Linha, filtros: Filtro[]) {
-  return filtros.every((filtro) => linha[filtro.coluna] === filtro.valor);
+  return filtros.every((filtro) =>
+    filtro.valores
+      ? filtro.valores.includes(linha[filtro.coluna])
+      : linha[filtro.coluna] === filtro.valor,
+  );
 }
 
 class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
@@ -54,6 +58,12 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
 
   eq(coluna: string, valor: unknown) {
     this.filtros.push({ coluna, valor });
+
+    return this;
+  }
+
+  in(coluna: string, valores: unknown[]) {
+    this.filtros.push({ coluna, valor: valores, valores });
 
     return this;
   }
