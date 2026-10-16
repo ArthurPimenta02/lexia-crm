@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 
 import {
   criarClienteAction,
-  gravarNotasAction,
+  gravarFichaAction,
   juntarClientesAction,
   separarClientesAction,
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
@@ -60,12 +61,13 @@ export default async function ClientesPage() {
       <ClientesPanel
         actionCriar={criarClienteAction}
         actionJuntar={juntarClientesAction}
-        actionNotas={gravarNotasAction}
+        actionFicha={gravarFichaAction}
         actionSeparar={separarClientesAction}
         clientes={clientes}
         deFora={deFora}
         historicoLigado={historicoLigado}
         moeda={moeda}
+        mostrarViatura={mostraViatura(profile.cliente_slug)}
         podeEditar={profile.role === "cliente_admin"}
         timeZone={getClientTimezone(profile.cliente_slug)}
       />

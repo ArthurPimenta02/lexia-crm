@@ -134,8 +134,20 @@ function assertTudoFiltradoPorCliente(slug: string) {
   }
 }
 
+/** A ficha vazia: estes testes são sobre o isolamento, não sobre os campos. */
+const fichaVazia = {
+  emailBruto: "",
+  idadeBruto: "",
+  moradaBruto: "",
+  notasBruto: "",
+  origemManualBruto: "",
+  origemManualNotaBruto: "",
+  viaturaBruto: "",
+};
+
 const comum = {
   caminhoParaRevalidar: "/app/clientes",
+  campos: fichaVazia,
   // Portugal é o que o formulário traz pré-escolhido, e é o que 320 dos 347
   // contactos reais do Detail usam.
   indicativoBruto: "351",
@@ -154,7 +166,6 @@ test("a procura de duplicados não vê o contacto da outra empresa", async () =>
     clienteSlug: B,
     confirmado: false,
     nomeBruto: "Nome Novo",
-    notasBruto: "",
     telefoneBruto: "351999888777",
   });
 
@@ -180,7 +191,6 @@ test("criar com um número já na própria lista pára para avisar, e não grava
     clienteSlug: A,
     confirmado: false,
     nomeBruto: "Nome Novo",
-    notasBruto: "",
     telefoneBruto: NUMERO,
   });
 
@@ -199,7 +209,7 @@ test("confirmado, cria mesmo assim, e só na própria empresa", async () => {
     clienteSlug: A,
     confirmado: true,
     nomeBruto: "Nome Novo",
-    notasBruto: "nota",
+    campos: { ...fichaVazia, notasBruto: "nota" },
     telefoneBruto: "351 91234-5679",
   });
 
@@ -234,7 +244,6 @@ test("um número nacional sai com o indicativo do país escolhido", async () => 
     clienteSlug: A,
     confirmado: true,
     nomeBruto: "Sem Indicativo",
-    notasBruto: "",
     telefoneBruto: "961112233",
   });
 
@@ -256,7 +265,6 @@ test("o indicativo não é sempre Portugal", async () => {
     confirmado: true,
     indicativoBruto: "55",
     nomeBruto: "Cliente do Brasil",
-    notasBruto: "",
     telefoneBruto: "11968662120",
   });
 
@@ -275,7 +283,6 @@ test("um número colado já com indicativo não o leva duas vezes", async () => 
     clienteSlug: A,
     confirmado: true,
     nomeBruto: "Colado Completo",
-    notasBruto: "",
     telefoneBruto: "351 961 112 244",
   });
 
@@ -296,7 +303,6 @@ test("um número com + ignora o selector do país", async () => {
     clienteSlug: A,
     confirmado: true,
     nomeBruto: "Cliente de Fora",
-    notasBruto: "",
     telefoneBruto: "+44 7911 123456",
   });
 
@@ -319,7 +325,6 @@ test("um número nacional é apanhado pelo aviso de duplicado", async () => {
     clienteSlug: A,
     confirmado: false,
     nomeBruto: "Nome Novo",
-    notasBruto: "",
     // O CONTACTO_A1 é o 351912345678, escrito com hífen. Isto é o mesmo
     // número sem o indicativo.
     telefoneBruto: "912345678",
@@ -342,7 +347,6 @@ test("criar com o número exacto de uma conversa que já existe é recusado", as
     clienteSlug: A,
     confirmado: true,
     nomeBruto: "Nome Novo",
-    notasBruto: "",
     telefoneBruto: "351999888777",
   });
 
@@ -362,7 +366,6 @@ test("um PSID de Instagram não passa por telefone", async () => {
     clienteSlug: A,
     confirmado: false,
     nomeBruto: "PSID Disfarçado",
-    notasBruto: "",
     telefoneBruto: "275278116535591",
   });
 
@@ -371,14 +374,14 @@ test("um PSID de Instagram não passa por telefone", async () => {
   assert.equal(contactos().length, 3);
 });
 
-test("gravar notas num contacto de outra empresa não lhe toca", async () => {
+test("gravar a ficha de um contacto de outra empresa não lhe toca", async () => {
   reiniciar();
 
-  const resultado = await write.gravarNotasDoCliente({
+  const resultado = await write.gravarFichaDoCliente({
     ...comum,
+    campos: { ...fichaVazia, notasBruto: "escrito pela empresa A" },
     clienteSlug: A,
     contactoId: CONTACTO_B1,
-    notasBruto: "escrito pela empresa A",
   });
 
   assert.equal(resultado.ok, false);
@@ -386,14 +389,14 @@ test("gravar notas num contacto de outra empresa não lhe toca", async () => {
   assertTudoFiltradoPorCliente(A);
 });
 
-test("gravar notas no contacto próprio grava", async () => {
+test("gravar a ficha do contacto próprio grava", async () => {
   reiniciar();
 
-  const resultado = await write.gravarNotasDoCliente({
+  const resultado = await write.gravarFichaDoCliente({
     ...comum,
+    campos: { ...fichaVazia, notasBruto: "  Audi A4, cliente antigo  " },
     clienteSlug: A,
     contactoId: CONTACTO_A1,
-    notasBruto: "  Audi A4, cliente antigo  ",
   });
 
   assert.equal(resultado.ok, true);

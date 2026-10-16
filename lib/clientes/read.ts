@@ -54,22 +54,34 @@ export type ContactoJunto = {
 export type ClienteLinha = {
   canal: string;
   canais: string[];
+  email: string | null;
   /** Marcações já realizadas, do mais recente para o mais antigo. */
   historico: MarcacaoDoCliente[];
   id: string;
+  idade: number | null;
+  /** De quando é a idade registada: 34 anos em 2024 não é 34 hoje. */
+  idadeRegistadaEm: string | null;
   identificadorConversa: string;
   /** Contactos de outros canais que o Martim juntou a este. */
   juntos: ContactoJunto[];
   /** Data da última mensagem trocada, em qualquer um dos contactos juntos. */
   mensagemUltima: string | null;
   mensagens: number;
+  morada: string | null;
   nome: string;
   notas: string | null;
+  /** O que a Meta confirmou. Existe em 3% dos contactos — ver `origemManual`. */
+  origemCapturada: string | null;
+  /** O canal que o dono escolheu. Lembrado, não medido: os dois convivem. */
+  origemManual: string | null;
+  origemManualNota: string | null;
   primeiroContactoEm: string | null;
   telefone: string;
   telefoneDigitos: string;
   /** Soma do que já pagou nas marcações que não foram canceladas. */
   totalGasto: number | null;
+  /** O carro da pessoa, escrito no painel. Só o Detail usa. */
+  viatura: string | null;
 };
 
 /** Um contacto sem número utilizável: fica de fora da lista, mas conta-se. */
@@ -91,12 +103,20 @@ type ContactoRow = {
   atualizado_em: string | null;
   canal: string | null;
   criado_em: string | null;
+  email: string | null;
   fundido_em: string | null;
   id: string;
+  idade: number | null;
+  idade_registada_em: string | null;
   identificador_conversa: string;
+  morada: string | null;
   nome: string | null;
   notas: string | null;
+  origem_manual: string | null;
+  origem_manual_nota: string | null;
+  origem_tipo: string | null;
   telefone: string | null;
+  viatura: string | null;
 };
 
 type MensagemRow = {
@@ -139,7 +159,7 @@ async function lerContactos(clienteSlug: string) {
     const result = await admin
       .from("lexia_contactos")
       .select(
-        "id, nome, telefone, canal, identificador_conversa, notas, fundido_em, criado_em, atualizado_em",
+        "id, nome, telefone, canal, identificador_conversa, notas, fundido_em, criado_em, atualizado_em, email, morada, viatura, idade, idade_registada_em, origem_manual, origem_manual_nota, origem_tipo",
       )
       .eq("cliente_slug", clienteSlug)
       .not("identificador_conversa", "like", "teste:%")
@@ -387,20 +407,28 @@ export async function getClientes(
           ...juntos.map((junto) => junto.canal),
         ]),
       ],
+      email: contacto.email,
       historico,
       id: contacto.id,
+      idade: contacto.idade,
+      idadeRegistadaEm: contacto.idade_registada_em,
       identificadorConversa: contacto.identificador_conversa,
       juntos,
       mensagemUltima,
       mensagens,
+      morada: contacto.morada,
       nome,
       notas: contacto.notas,
+      origemCapturada: contacto.origem_tipo,
+      origemManual: contacto.origem_manual,
+      origemManualNota: contacto.origem_manual_nota,
       primeiroContactoEm: contacto.criado_em,
       telefone: contacto.telefone ?? "",
       telefoneDigitos: digitos,
       // Null, e não zero, quando não sabemos: sem credenciais da base do
       // cliente não há marcações, e zero seria uma afirmação falsa.
       totalGasto: marcacoes === null ? null : totalGasto,
+      viatura: contacto.viatura,
     });
   }
 

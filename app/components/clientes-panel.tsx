@@ -7,6 +7,12 @@ import { ChannelBadge } from "@/app/components/channel-brand";
 import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
 import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import {
+  canaisDeAquisicao,
+  canalQuePedeNota,
+  getCanalLabel,
+  getOrigemCapturadaLabel,
+} from "@/lib/clientes/ficha";
 import type { ClienteLinha, ClientesDeFora } from "@/lib/clientes/read";
 import { formatDayInTimezone } from "@/lib/clientes/timezone";
 import {
@@ -176,6 +182,133 @@ function CampoTelefone() {
 }
 
 /**
+ * Os campos que descrevem a pessoa, iguais a criar e a editar.
+ *
+ * São o mesmo componente nos dois sítios de propósito: dois formulários com os
+ * mesmos campos escritos duas vezes acabam a divergir — um ganha um campo que o
+ * outro não tem, e o dono nunca percebe porque é que a morada só se consegue
+ * escrever ao criar.
+ *
+ * O `prefixo` existe só para os `id` dos rótulos. A ficha pode ter várias
+ * instâncias abertas na mesma página e `id` repetido faz o clique no rótulo
+ * saltar para o campo errado.
+ */
+function CamposDaPessoa({
+  cliente,
+  mostrarViatura,
+  prefixo,
+}: {
+  cliente?: ClienteLinha;
+  mostrarViatura: boolean;
+  prefixo: string;
+}) {
+  const [canal, setCanal] = useState(cliente?.origemManual ?? "");
+
+  return (
+    <>
+      <label className={`${labelClass} min-w-48 flex-1`} htmlFor={`${prefixo}-email`}>
+        Email
+        <input
+          className={`${inputClass} w-full`}
+          defaultValue={cliente?.email ?? ""}
+          id={`${prefixo}-email`}
+          maxLength={320}
+          name="email"
+          placeholder="opcional"
+          type="email"
+        />
+      </label>
+
+      <label className={`${labelClass} min-w-48 flex-1`} htmlFor={`${prefixo}-morada`}>
+        Endereço
+        <input
+          className={`${inputClass} w-full`}
+          defaultValue={cliente?.morada ?? ""}
+          id={`${prefixo}-morada`}
+          maxLength={512}
+          name="morada"
+          placeholder="opcional"
+          type="text"
+        />
+      </label>
+
+      {mostrarViatura ? (
+        <label
+          className={`${labelClass} min-w-48 flex-1`}
+          htmlFor={`${prefixo}-viatura`}
+        >
+          Carro
+          <input
+            className={`${inputClass} w-full`}
+            defaultValue={cliente?.viatura ?? ""}
+            id={`${prefixo}-viatura`}
+            maxLength={160}
+            name="viatura"
+            placeholder="ex.: BMW Série 3 preto"
+            type="text"
+          />
+        </label>
+      ) : null}
+
+      <label className={`${labelClass} w-28`} htmlFor={`${prefixo}-idade`}>
+        Idade
+        <input
+          className={`${inputClass} w-full`}
+          defaultValue={cliente?.idade ?? ""}
+          id={`${prefixo}-idade`}
+          inputMode="numeric"
+          max={120}
+          min={1}
+          name="idade"
+          placeholder="opcional"
+          type="number"
+        />
+      </label>
+
+      <label
+        className={`${labelClass} min-w-48 flex-1`}
+        htmlFor={`${prefixo}-origem`}
+      >
+        Canal de aquisição
+        <select
+          className={`${inputClass} w-full`}
+          id={`${prefixo}-origem`}
+          name="origem_manual"
+          onChange={(evento) => setCanal(evento.target.value)}
+          value={canal}
+        >
+          <option value="">Não sei</option>
+          {canaisDeAquisicao.map((opcao) => (
+            <option key={opcao.value} value={opcao.value}>
+              {opcao.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {canal === canalQuePedeNota ? (
+        <label
+          className={`${labelClass} min-w-48 flex-1`}
+          htmlFor={`${prefixo}-origem-nota`}
+        >
+          De onde veio
+          <input
+            className={`${inputClass} w-full`}
+            defaultValue={cliente?.origemManualNota ?? ""}
+            id={`${prefixo}-origem-nota`}
+            maxLength={200}
+            name="origem_manual_nota"
+            placeholder="ex.: feira de automóveis de Braga"
+            required
+            type="text"
+          />
+        </label>
+      ) : null}
+    </>
+  );
+}
+
+/**
  * Criar um cliente à mão.
  *
  * O aviso de duplicado é um segundo passo e não um bloqueio: a primeira
@@ -183,7 +316,13 @@ function CampoTelefone() {
  * aparece o botão que insiste. O Arthur escolheu assim para não se decidir
  * pelo dono que duas linhas são a mesma pessoa.
  */
-function CriarClienteForm({ action }: { action: ClienteAction }) {
+function CriarClienteForm({
+  action,
+  mostrarViatura,
+}: {
+  action: ClienteAction;
+  mostrarViatura: boolean;
+}) {
   const [resultado, formAction] = useActionState<
     GravarClienteResultado | null,
     FormData
@@ -207,6 +346,8 @@ function CriarClienteForm({ action }: { action: ClienteAction }) {
         </label>
 
         <CampoTelefone />
+
+        <CamposDaPessoa mostrarViatura={mostrarViatura} prefixo="criar" />
 
         <label className={`${labelClass} min-w-48 flex-1`} htmlFor="cliente-notas">
           Notas
@@ -263,12 +404,25 @@ function CriarClienteForm({ action }: { action: ClienteAction }) {
   );
 }
 
-function NotasForm({
+/**
+ * Editar a ficha de quem já está na base.
+ *
+ * Era só as notas. Sem isto, os campos novos só valiam para quem fosse criado
+ * a partir de hoje — e a base já tem 1001 contactos no Detail e 573 na
+ * Miranda, todos sem canal de aquisição.
+ *
+ * O nome e o telefone ficam de fora: o telefone é a chave que liga esta linha
+ * ao histórico de marcações na outra base e ao aviso de duplicado. Mudá-lo num
+ * campo de texto partia as duas coisas sem dizer nada.
+ */
+function FichaForm({
   action,
   cliente,
+  mostrarViatura,
 }: {
   action: ClienteAction;
   cliente: ClienteLinha;
+  mostrarViatura: boolean;
 }) {
   const [resultado, formAction] = useActionState<
     GravarClienteResultado | null,
@@ -276,8 +430,16 @@ function NotasForm({
   >(action, null);
 
   return (
-    <form action={formAction} className="flex flex-col gap-2">
+    <form action={formAction} className="flex flex-col gap-3">
       <input name="contacto_id" type="hidden" value={cliente.id} />
+
+      <div className="flex flex-wrap items-start gap-3">
+        <CamposDaPessoa
+          cliente={cliente}
+          mostrarViatura={mostrarViatura}
+          prefixo={`ficha-${cliente.id}`}
+        />
+      </div>
 
       <label className={labelClass} htmlFor={`notas-${cliente.id}`}>
         Notas
@@ -287,17 +449,100 @@ function NotasForm({
           id={`notas-${cliente.id}`}
           maxLength={4000}
           name="notas"
-          placeholder="Carro, preferências, o que correu bem ou mal."
+          placeholder="Preferências, o que correu bem ou mal."
         />
       </label>
 
       <div className="flex items-center gap-3">
         <FormSubmitButton className={botaoDiscreto} pendingLabel="A gravar...">
-          Gravar notas
+          Gravar ficha
         </FormSubmitButton>
         <Mensagem resultado={resultado} />
       </div>
     </form>
+  );
+}
+
+/**
+ * Por onde é que esta pessoa chegou.
+ *
+ * As duas respostas aparecem lado a lado quando ambas existem, e cada uma diz
+ * de onde vem. Não é pedantismo: a que a Meta confirmou existe em 3% dos
+ * contactos (26 em 1001 no Detail, medido a 2026-10-16) e é a única que serve
+ * para julgar o custo de uma campanha. A que o dono escolheu cobre o resto,
+ * mas é memória. Mostrá-las como se fossem a mesma coisa fazia a segunda
+ * contaminar a primeira.
+ */
+function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
+  const capturada = getOrigemCapturadaLabel(cliente.origemCapturada);
+  const manual = getCanalLabel(cliente.origemManual);
+
+  if (!capturada && !manual) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      {capturada ? (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
+          {capturada}
+          <span className="font-normal text-emerald-700/80">confirmado</span>
+        </span>
+      ) : null}
+      {manual ? (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-700">
+          {manual}
+          {cliente.origemManualNota ? ` · ${cliente.origemManualNota}` : ""}
+          <span className="font-normal text-zinc-500">indicado</span>
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** A ficha para quem não pode editar: os mesmos campos, só que escritos. */
+function CamposEmLeitura({
+  cliente,
+  mostrarViatura,
+}: {
+  cliente: ClienteLinha;
+  mostrarViatura: boolean;
+}) {
+  const linhas = [
+    { rotulo: "Email", valor: cliente.email },
+    { rotulo: "Endereço", valor: cliente.morada },
+    ...(mostrarViatura ? [{ rotulo: "Carro", valor: cliente.viatura }] : []),
+    {
+      rotulo: "Idade",
+      valor: cliente.idade === null ? null : String(cliente.idade),
+    },
+  ].filter((linha) => linha.valor);
+
+  if (linhas.length === 0 && !cliente.notas) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {linhas.length > 0 ? (
+        <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+          {linhas.map((linha) => (
+            <div key={linha.rotulo}>
+              <dt className="text-zinc-500">{linha.rotulo}</dt>
+              <dd className="mt-0.5 text-sm font-medium text-zinc-900">
+                {linha.valor}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+
+      {cliente.notas ? (
+        <p className="text-sm whitespace-pre-line text-zinc-700">
+          {cliente.notas}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -600,22 +845,24 @@ function LinhaDoCliente({
 
 /** A ficha aberta, por baixo da linha. */
 function FichaDoCliente({
+  actionFicha,
   actionJuntar,
-  actionNotas,
   actionSeparar,
   aoFechar,
   cliente,
   moeda,
+  mostrarViatura,
   outros,
   podeEditar,
   timeZone,
 }: {
+  actionFicha: ClienteAction;
   actionJuntar: ClienteAction;
-  actionNotas: ClienteAction;
   actionSeparar: ClienteAction;
   aoFechar: () => void;
   cliente: ClienteLinha;
   moeda: string;
+  mostrarViatura: boolean;
   outros: ClienteLinha[];
   podeEditar: boolean;
   timeZone: string;
@@ -678,13 +925,17 @@ function FichaDoCliente({
         </div>
       </dl>
 
+      <OrigemDoCliente cliente={cliente} />
+
       {podeEditar ? (
-        <NotasForm action={actionNotas} cliente={cliente} />
-      ) : cliente.notas ? (
-        <p className="text-sm whitespace-pre-line text-zinc-700">
-          {cliente.notas}
-        </p>
-      ) : null}
+        <FichaForm
+          action={actionFicha}
+          cliente={cliente}
+          mostrarViatura={mostrarViatura}
+        />
+      ) : (
+        <CamposEmLeitura cliente={cliente} mostrarViatura={mostrarViatura} />
+      )}
 
       <div>
         <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
@@ -788,24 +1039,27 @@ function FichaDoCliente({
 
 export function ClientesPanel({
   actionCriar,
+  actionFicha,
   actionJuntar,
-  actionNotas,
   actionSeparar,
   clientes,
   deFora,
   historicoLigado,
   moeda,
+  mostrarViatura,
   podeEditar,
   timeZone,
 }: {
   actionCriar: ClienteAction;
+  actionFicha: ClienteAction;
   actionJuntar: ClienteAction;
-  actionNotas: ClienteAction;
   actionSeparar: ClienteAction;
   clientes: ClienteLinha[];
   deFora: ClientesDeFora;
   historicoLigado: boolean;
   moeda: string;
+  /** O campo "Carro" só faz sentido onde se tratam carros. */
+  mostrarViatura: boolean;
   podeEditar: boolean;
   /**
    * O fuso do cliente. É obrigatório porque isto corre nos dois lados: o
@@ -930,7 +1184,10 @@ export function ClientesPanel({
                 conversa real assim que a pessoa escrever.
               </p>
               <div className="mt-3">
-                <CriarClienteForm action={actionCriar} />
+                <CriarClienteForm
+                  action={actionCriar}
+                  mostrarViatura={mostrarViatura}
+                />
               </div>
             </>
           ) : null}
@@ -1038,12 +1295,13 @@ export function ClientesPanel({
 
                 {aberto === cliente.id ? (
                   <FichaDoCliente
+                    actionFicha={actionFicha}
                     actionJuntar={actionJuntar}
-                    actionNotas={actionNotas}
                     actionSeparar={actionSeparar}
                     aoFechar={() => setAberto(null)}
                     cliente={cliente}
                     moeda={moeda}
+                    mostrarViatura={mostrarViatura}
                     outros={clientes.filter((outro) => outro.id !== cliente.id)}
                     podeEditar={podeEditar}
                     timeZone={timeZone}
