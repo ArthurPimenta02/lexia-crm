@@ -28,6 +28,7 @@ import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
+import { resolveConversationSelection } from "@/lib/conversations/select-conversation";
 import {
   getConversationDayKey,
   getConversationMessagePreview,
@@ -327,24 +328,20 @@ export default async function ClientConversationsPage({
   const conversationsInPeriod = new Set(
     messages.map((message) => message.identificador_conversa),
   );
-  const contacts = contactsResult.data.filter((contact) =>
-    normalizedSearch
-      ? normalizeConversationSearch(
-          `${contact.nome ?? ""} ${contact.telefone ?? ""}`,
-        ).includes(normalizedSearch)
-      : conversationsInPeriod.has(contact.identificador_conversa),
-  );
-  const sortedContacts = [...contacts].sort(
-    (firstContact, secondContact) =>
-      getDateTimeValue(getContactLastActivity(secondContact, summaries)) -
-      getDateTimeValue(getContactLastActivity(firstContact, summaries)),
-  );
-  const selectedContact =
-    sortedContacts.find(
-      (contact) => contact.identificador_conversa === requestedConversation,
-    ) ??
-    sortedContacts[0] ??
-    null;
+  const selection = resolveConversationSelection({
+    contacts: contactsResult.data,
+    isInPeriod: (contact) =>
+      normalizedSearch
+        ? normalizeConversationSearch(
+            `${contact.nome ?? ""} ${contact.telefone ?? ""}`,
+          ).includes(normalizedSearch)
+        : conversationsInPeriod.has(contact.identificador_conversa),
+    requestedConversation,
+    sortValue: (contact) =>
+      getDateTimeValue(getContactLastActivity(contact, summaries)),
+  });
+  const sortedContacts = selection.contacts;
+  const selectedContact = selection.selected;
   const selectedMessagesResult = selectedContact
     ? selectedContact.identificador_conversa === requestedConversation
       ? requestedHistoryResult
@@ -426,6 +423,9 @@ export default async function ClientConversationsPage({
                     summaries.get(contact.identificador_conversa)
                   : summaries.get(contact.identificador_conversa);
                 const lastActivity = getContactLastActivity(contact, summaries);
+                const isOutsidePeriod =
+                  selection.requestedIsOutsidePeriod &&
+                  contact.identificador_conversa === requestedConversation;
 
                 return (
                   <Link
@@ -450,6 +450,15 @@ export default async function ClientConversationsPage({
                           <p className="truncate text-sm font-semibold">
                             {contact.nome || contact.telefone || "Sem nome"}
                           </p>
+                          {isOutsidePeriod ? (
+                            <p
+                              className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                isSelected ? "text-amber-300" : "text-amber-700"
+                              }`}
+                            >
+                              Fora do período
+                            </p>
+                          ) : null}
                           <p
                             className={`mt-0.5 truncate text-[11px] ${
                               isSelected ? "text-white/85" : "text-zinc-500"
@@ -578,6 +587,13 @@ export default async function ClientConversationsPage({
                 </div>
               </div>
 
+              {selection.requestedIsOutsidePeriod ? (
+                <p className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900 lg:px-4">
+                  Esta conversa está fora do período filtrado ({range.label}),
+                  mas o histórico completo está aqui.
+                </p>
+              ) : null}
+
               <ScrollToBottomPanel
                 className="lexia-chat-wallpaper flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2.5 sm:px-4 sm:py-3"
                 scrollKey={`${selectedContact.identificador_conversa}:${displayMessages.length}:${lastSelectedMessageId}`}
@@ -639,7 +655,9 @@ export default async function ClientConversationsPage({
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-zinc-500">
-              Selecione uma conversa para ver as mensagens.
+              {selection.requestedIsMissing
+                ? "Não encontrámos esta conversa. Escolha uma da lista."
+                : "Selecione uma conversa para ver as mensagens."}
             </div>
           )}
         </section>
