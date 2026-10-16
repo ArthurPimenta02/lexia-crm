@@ -1,38 +1,6 @@
 import Link from "next/link";
 
-export const timezoneOptions = [
-  { label: "Brasil", value: "brasil", timeZone: "America/Sao_Paulo" },
-  { label: "Lisboa", value: "lisboa", timeZone: "Europe/Lisbon" },
-  { label: "New York", value: "new_york", timeZone: "America/New_York" },
-] as const;
-
-export type TimezoneValue = (typeof timezoneOptions)[number]["value"];
-
-export function getSelectedTimezone(value: string | string[] | undefined) {
-  const raw = Array.isArray(value) ? value[0] : value;
-
-  return (
-    timezoneOptions.find((option) => option.value === raw) ?? timezoneOptions[0]
-  );
-}
-
-export function formatDateInTimezone(
-  date: string | null,
-  timeZone: string,
-  options: Intl.DateTimeFormatOptions = {
-    dateStyle: "short",
-    timeStyle: "short",
-  },
-) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    ...options,
-    timeZone,
-  }).format(new Date(date));
-}
+import { timezoneOptions } from "@/lib/clientes/timezone";
 
 export function TimezoneSwitcher({
   activeValue,

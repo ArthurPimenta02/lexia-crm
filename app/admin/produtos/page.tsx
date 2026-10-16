@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import {
   getProdutos,
   getProdutosExcluidos,
@@ -161,6 +162,7 @@ export default async function AdminProdutosPage({
         produtos={produtos}
         servicos={servicos}
         servicosPorProduto={servicosPorProduto}
+        timeZone={getClientTimezone(clienteSlug)}
       />
     </div>
   );

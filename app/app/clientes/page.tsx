@@ -9,6 +9,7 @@ import {
 import { ClientesPanel } from "@/app/components/clientes-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientes } from "@/lib/clientes/read";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
 
 export const metadata = {
@@ -66,6 +67,7 @@ export default async function ClientesPage() {
         historicoLigado={historicoLigado}
         moeda={moeda}
         podeEditar={profile.role === "cliente_admin"}
+        timeZone={getClientTimezone(profile.cliente_slug)}
       />
     </div>
   );

@@ -20,11 +20,11 @@ import {
   type ConversationPeriodState,
   getConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
+import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import {
   formatDateInTimezone,
   getSelectedTimezone,
-} from "@/app/components/conversation-timezone";
-import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
+} from "@/lib/clientes/timezone";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
@@ -208,7 +208,9 @@ export default async function ClientConversationsPage({
   const selectedChannel = allowedChannels.includes(requestedChannel)
     ? requestedChannel
     : "";
-  const selectedTimezone = getSelectedTimezone(params.fuso);
+  // Sem `?fuso=` na barra, as horas aparecem no fuso do cliente e não no do
+  // Brasil. Um atendimento das 09:45 em Boston aparecia como 13:45.
+  const selectedTimezone = getSelectedTimezone(params.fuso, profile.cliente_slug);
   const selectedPeriod = getSearchValue(params.periodo) || "mes";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);

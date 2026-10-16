@@ -22,11 +22,11 @@ import {
   type ConversationPeriodState,
   getConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
+import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import {
   formatDateInTimezone,
   getSelectedTimezone,
-} from "@/app/components/conversation-timezone";
-import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
+} from "@/lib/clientes/timezone";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
@@ -209,20 +209,9 @@ export default async function AdminConversationsPage({
   const selectedChannel = allowedChannels.includes(requestedChannel)
     ? requestedChannel
     : "";
-  const selectedTimezone = getSelectedTimezone(params.fuso);
   const selectedPeriod = getSearchValue(params.periodo) || "mes";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
-  const range = getConversationDateRange(
-    selectedPeriod,
-    customStart,
-    customEnd,
-    selectedTimezone.timeZone,
-  );
-  const periodState = getConversationPeriodState(
-    range,
-    selectedTimezone.timeZone,
-  );
   const requestedConversation = getSearchValue(params.conversa);
   const supabase = await createClient();
 
@@ -241,6 +230,24 @@ export default async function AdminConversationsPage({
     clients.find((client) => client.slug === requestedClient) ??
     clients[0] ??
     null;
+
+  // O fuso só se decide depois de sabermos o cliente: sem `?fuso=` na barra,
+  // as horas aparecem no fuso dele e não no do Brasil. O período é calculado
+  // a seguir porque "hoje" significa coisas diferentes em Lisboa e em Boston.
+  const selectedTimezone = getSelectedTimezone(
+    params.fuso,
+    selectedClient?.slug,
+  );
+  const range = getConversationDateRange(
+    selectedPeriod,
+    customStart,
+    customEnd,
+    selectedTimezone.timeZone,
+  );
+  const periodState = getConversationPeriodState(
+    range,
+    selectedTimezone.timeZone,
+  );
 
   let contacts: Contact[] = [];
   let messages: Message[] = [];

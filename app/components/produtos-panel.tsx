@@ -15,6 +15,7 @@ import type {
   ProdutoLinha,
   ServicosPorProduto,
 } from "@/lib/produtos/read";
+import { formatDayInTimezone } from "@/lib/clientes/timezone";
 import type { ServicoSimples } from "@/lib/servicos/read";
 
 /**
@@ -39,14 +40,6 @@ function formatQuantidade(valor: number) {
   return new Intl.NumberFormat("pt-PT", {
     maximumFractionDigits: 3,
   }).format(valor);
-}
-
-function formatData(iso: string) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(iso));
 }
 
 /**
@@ -79,10 +72,12 @@ function legendaDaDuracao(produto: ProdutoLinha) {
 function MovimentoItem({
   moeda,
   movimento,
+  timeZone,
   unidade,
 }: {
   moeda: string;
   movimento: MovimentoLinha;
+  timeZone: string;
   unidade: string;
 }) {
   const etiqueta =
@@ -95,7 +90,7 @@ function MovimentoItem({
   return (
     <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 py-1.5 last:border-b-0">
       <span className="text-xs text-zinc-500">
-        {formatData(movimento.ocorridoEm)}
+        {formatDayInTimezone(movimento.ocorridoEm, timeZone)}
       </span>
       <span className="min-w-0 flex-1 truncate text-xs text-zinc-700">
         {etiqueta}
@@ -131,6 +126,7 @@ export function ProdutosPanel({
   produtos,
   servicos,
   servicosPorProduto,
+  timeZone,
 }: {
   actionAjuste: ProdutoAction;
   actionCompra: ProdutoAction;
@@ -150,6 +146,8 @@ export function ProdutosPanel({
   /** Catálogo vivo, para o selector de "ligar serviço". */
   servicos: ServicoSimples[];
   servicosPorProduto: ServicosPorProduto;
+  /** O fuso do cliente: as datas dos movimentos são escritas nele. */
+  timeZone: string;
 }) {
   // O que está a acabar primeiro aparece primeiro: é a única ordem que faz
   // este ecrã valer uma visita de manhã. Sem previsão vai para o fim, por
@@ -313,6 +311,7 @@ export function ProdutosPanel({
                         key={movimento.id}
                         moeda={moeda}
                         movimento={movimento}
+                        timeZone={timeZone}
                         unidade={produto.unidade}
                       />
                     ))}

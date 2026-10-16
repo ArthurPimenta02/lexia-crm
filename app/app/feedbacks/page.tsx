@@ -8,6 +8,10 @@ import {
   parseFeedbackComentario,
 } from "@/app/components/feedback-conversation-utils";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientFeedback = {
@@ -19,17 +23,6 @@ type ClientFeedback = {
   status: string | null;
   criado_em: string | null;
 };
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
 
 function formatLabel(value: string | null) {
   if (!value) {
@@ -76,6 +69,7 @@ export default async function ClientFeedbacksPage() {
     redirect("/app");
   }
 
+  const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lexia_feedbacks")
@@ -149,7 +143,7 @@ export default async function ClientFeedbacksPage() {
                   return (
                   <tr className="border-b border-zinc-200" key={feedback.id}>
                     <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDate(feedback.criado_em)}
+                      {formatDateInTimezone(feedback.criado_em, timeZone)}
                     </td>
                     <td className="break-words px-3 py-3 align-top font-medium text-zinc-950">
                       <div className="flex flex-col gap-2">

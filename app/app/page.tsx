@@ -29,8 +29,9 @@ import {
 } from "@/lib/dashboard/message-metrics-data";
 import {
   getClientTimezone,
-  getExternalClientMetrics,
-} from "@/lib/metrics/external-client-metrics";
+  getTimezoneLabel,
+} from "@/lib/clientes/timezone";
+import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
@@ -143,18 +144,6 @@ function countNewContacts(
       })
       .map(getConversationKey),
   ).size;
-}
-
-function getTimezoneLabel(timeZone: string) {
-  if (timeZone === "America/New_York") {
-    return "Nova Iorque";
-  }
-
-  if (timeZone === "Europe/Lisbon") {
-    return "Lisboa";
-  }
-
-  return "Brasília";
 }
 
 function RankingList({

@@ -28,9 +28,10 @@ import {
   findStartedConversationKeys,
 } from "@/lib/dashboard/message-metrics-data";
 import {
+  formatDateInTimezone,
   getClientTimezone,
-  getExternalClientMetrics,
-} from "@/lib/metrics/external-client-metrics";
+} from "@/lib/clientes/timezone";
+import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
@@ -99,17 +100,6 @@ const channelOptions = [
 ] as const;
 
 const allowedChannels = ["whatsapp", "messenger", "instagram"];
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
 
 function formatLabel(value: string | null) {
   if (!value) {
@@ -1314,7 +1304,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-zinc-600">
-                  {formatDate(contact.criado_em)}
+                  {formatDateInTimezone(
+                    contact.criado_em,
+                    getClientTimezone(contact.cliente_slug),
+                  )}
                 </p>
               </Link>
             ))}

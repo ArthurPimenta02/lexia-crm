@@ -15,6 +15,10 @@ import {
 } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientDetailPageProps = {
@@ -93,17 +97,6 @@ type ConversationMessage = {
   conteudo: string | null;
   criado_em: string | null;
 };
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
 
 function formatLabel(value: string | null) {
   if (!value) {
@@ -265,6 +258,7 @@ export default async function ClientDetailPage({
   }
 
   const { slug } = await params;
+  const timeZone = getClientTimezone(slug);
   const supabase = await createClient();
   const { data: client, error: clientError } = await supabase
     .from("lexia_clientes")
@@ -578,7 +572,7 @@ export default async function ClientDetailPage({
                     {getMessagePreview(lastMessage)}
                   </p>
                   <p className="mt-2 text-xs text-zinc-400">
-                    {formatDate(contact.atualizado_em)}
+                    {formatDateInTimezone(contact.atualizado_em, timeZone)}
                   </p>
                 </Link>
               );
@@ -680,7 +674,7 @@ export default async function ClientDetailPage({
                       {formatLabel(clientUser.status)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDate(clientUser.criado_em)}
+                      {formatDateInTimezone(clientUser.criado_em, timeZone)}
                     </td>
                     <td className="px-3 py-3 align-top">
                       <div className="flex flex-col gap-2">
@@ -808,7 +802,7 @@ export default async function ClientDetailPage({
               {latestExecutions.map((execution) => (
                 <tr className="border-b border-zinc-100" key={execution.id}>
                   <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatDate(execution.criado_em)}
+                    {formatDateInTimezone(execution.criado_em, timeZone)}
                   </td>
                   <td className="break-words px-3 py-3 align-top text-zinc-600">
                     {formatLabel(execution.origem)}
@@ -881,7 +875,7 @@ export default async function ClientDetailPage({
                 return (
                   <tr className="border-b border-zinc-100" key={feedback.id}>
                     <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDate(feedback.criado_em)}
+                      {formatDateInTimezone(feedback.criado_em, timeZone)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-zinc-600">
                       <div className="flex flex-col gap-2">
@@ -970,7 +964,7 @@ export default async function ClientDetailPage({
               {latestHandoffs.map((handoff) => (
                 <tr className="border-b border-zinc-100" key={handoff.id}>
                   <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatDate(handoff.criado_em)}
+                    {formatDateInTimezone(handoff.criado_em, timeZone)}
                   </td>
                   <td className="break-words px-3 py-3 align-top text-zinc-600">
                     {handoff.nome_contacto ?? "Sem nome"}

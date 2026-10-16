@@ -10,6 +10,7 @@ import {
 } from "@/app/app/produtos/actions";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import {
   getProdutos,
   getProdutosExcluidos,
@@ -88,6 +89,7 @@ export default async function ProdutosPage() {
         produtos={produtos}
         servicos={servicos}
         servicosPorProduto={servicosPorProduto}
+        timeZone={getClientTimezone(profile.cliente_slug)}
       />
     </div>
   );

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { formatDateInTimezone } from "@/lib/clientes/timezone";
 
 export type HandoffStatusValue =
   | "pendente"
@@ -46,17 +47,6 @@ const priorityMeta: Record<string, { chip: string; label: string }> = {
   },
   urgente: { chip: "border-red-300 bg-red-600 text-white", label: "Urgente" },
 };
-
-export function formatHandoffDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
-}
 
 function Chip({ className, children }: { children: ReactNode; className: string }) {
   return (
@@ -133,6 +123,7 @@ export function HandoffCard({
   resumo,
   status,
   telefone,
+  timeZone,
 }: {
   actions: HandoffStatusAction[];
   clientLabel?: string;
@@ -144,6 +135,8 @@ export function HandoffCard({
   resumo: string | null;
   status: string | null;
   telefone: string | null;
+  /** O fuso do cliente a quem o handoff pertence. */
+  timeZone: string;
 }) {
   const statusInfo = statusMeta[status ?? ""] ?? {
     chip: "border-zinc-200 bg-zinc-50 text-zinc-600",
@@ -164,7 +157,7 @@ export function HandoffCard({
           </p>
         </div>
         <p className="shrink-0 text-xs text-zinc-500">
-          {formatHandoffDate(criadoEm)}
+          {formatDateInTimezone(criadoEm, timeZone)}
         </p>
       </header>
 
@@ -219,12 +212,15 @@ export function SimulatedHandoffCard({
   deleteButton,
   mensagem,
   resposta,
+  timeZone,
 }: {
   clientLabel?: string;
   criadoEm: string | null;
   deleteButton: ReactNode;
   mensagem: string | null;
   resposta: string | null;
+  /** O fuso do cliente a quem o handoff pertence. */
+  timeZone: string;
 }) {
   return (
     <article className={handoffCardClass}>
@@ -233,7 +229,7 @@ export function SimulatedHandoffCard({
           Simulado{clientLabel ? ` · ${clientLabel}` : ""}
         </Chip>
         <p className="shrink-0 text-xs text-zinc-500">
-          {formatHandoffDate(criadoEm)}
+          {formatDateInTimezone(criadoEm, timeZone)}
         </p>
       </header>
       <Field label="Mensagem do cliente">

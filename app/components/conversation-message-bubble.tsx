@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { ConversationMessageMedia } from "@/app/components/conversation-message-media";
-import { formatDateInTimezone } from "@/app/components/conversation-timezone";
+import { formatDateInTimezone } from "@/lib/clientes/timezone";
 import {
   getConversationMessagePreview,
   isSentConversationMessage,

@@ -6,6 +6,10 @@ import { TechnicalDetailsModal } from "@/app/admin/execucoes/technical-details-m
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import {
+  formatDateInTimezone,
+  getClientTimezone,
+} from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminExecutionsPageProps = {
@@ -67,17 +71,6 @@ function getUniqueClients(rows: ExecutionOptions[]) {
 
 function hasError(execution: Pick<AdminTestExecution, "erro">) {
   return Boolean(execution.erro?.trim());
-}
-
-function formatDate(date: string | null) {
-  if (!date) {
-    return "Sem data";
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(date));
 }
 
 function formatLabel(value: string | null) {
@@ -425,7 +418,10 @@ export default async function AdminExecutionsPage({
                 {executions.map((execution) => (
                   <tr className="border-b border-zinc-100" key={execution.id}>
                     <td className="break-words px-3 py-4 align-top text-zinc-600">
-                      {formatDate(execution.criado_em)}
+                      {formatDateInTimezone(
+                        execution.criado_em,
+                        getClientTimezone(execution.cliente_slug),
+                      )}
                     </td>
                     <td className="break-words px-3 py-4 align-top font-medium text-zinc-950">
                       {execution.cliente_slug}

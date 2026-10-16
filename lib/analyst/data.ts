@@ -12,6 +12,7 @@ import {
   isMessageInRange,
   type DashboardMessageMetricRow,
 } from "@/lib/dashboard/operational-metrics";
+import { getTimezoneValue } from "@/lib/clientes/timezone";
 import { getDateInputValue } from "@/lib/dashboard/date-range";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -177,12 +178,6 @@ function formatConversationLabel(
 
   const compact = identifier.length > 24 ? identifier.slice(-18) : identifier;
   return `Conversa ${compact}`;
-}
-
-function getTimezoneValue(timezone: string) {
-  if (timezone === "Europe/Lisbon") return "lisboa";
-  if (timezone === "America/New_York") return "new_york";
-  return "brasil";
 }
 
 export class AnalystDataContext {
