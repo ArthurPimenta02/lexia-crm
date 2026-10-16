@@ -576,10 +576,32 @@ function LinhaDoCliente({
         {cliente.mensagens} msg
       </span>
 
-      <span className="shrink-0 text-right text-sm font-semibold text-zinc-900">
-        {cliente.totalGasto === null
-          ? "—"
-          : formatMoeda(cliente.totalGasto, moeda)}
+      <span className="flex shrink-0 items-center justify-end gap-2">
+        <span className="text-sm font-semibold text-zinc-900">
+          {cliente.totalGasto === null
+            ? "—"
+            : formatMoeda(cliente.totalGasto, moeda)}
+        </span>
+        {/*
+          A seta é o que diz que a linha abre — e, virada ao contrário, que
+          volta a fechar. Sem ela a ficha parecia não ter saída.
+        */}
+        <svg
+          aria-hidden="true"
+          className={`h-4 w-4 text-zinc-400 transition-transform ${
+            aberto ? "rotate-180" : ""
+          }`}
+          viewBox="0 0 20 20"
+        >
+          <path
+            d="M5.5 7.5L10 12l4.5-4.5"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+          />
+        </svg>
       </span>
     </button>
   );
@@ -590,6 +612,7 @@ function FichaDoCliente({
   actionJuntar,
   actionNotas,
   actionSeparar,
+  aoFechar,
   cliente,
   moeda,
   outros,
@@ -598,6 +621,7 @@ function FichaDoCliente({
   actionJuntar: ClienteAction;
   actionNotas: ClienteAction;
   actionSeparar: ClienteAction;
+  aoFechar: () => void;
   cliente: ClienteLinha;
   moeda: string;
   outros: ClienteLinha[];
@@ -740,6 +764,31 @@ function FichaDoCliente({
       {podeEditar ? (
         <JuntarForm action={actionJuntar} cliente={cliente} outros={outros} />
       ) : null}
+
+      {/*
+        Com notas, histórico e o escolhedor de juntar, a ficha é mais alta do
+        que o ecrã. Fechar pela linha obriga a rolar para cima à procura dela;
+        isto fecha onde a leitura acaba.
+      */}
+      <div>
+        <button
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-1.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+          onClick={aoFechar}
+          type="button"
+        >
+          <svg aria-hidden="true" className="h-3.5 w-3.5" viewBox="0 0 20 20">
+            <path
+              d="M14.5 12.5L10 8l-4.5 4.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="1.8"
+            />
+          </svg>
+          Fechar ficha
+        </button>
+      </div>
     </div>
   );
 }
@@ -990,6 +1039,7 @@ export function ClientesPanel({
                     actionJuntar={actionJuntar}
                     actionNotas={actionNotas}
                     actionSeparar={actionSeparar}
+                    aoFechar={() => setAberto(null)}
                     cliente={cliente}
                     moeda={moeda}
                     outros={clientes.filter((outro) => outro.id !== cliente.id)}
