@@ -312,7 +312,12 @@ function CamposDaPessoa({
 }
 
 /**
- * O serviço que a pessoa já fez, no momento em que entra no painel.
+ * O serviço que a pessoa já fez.
+ *
+ * O mesmo bloco serve os dois sítios — criar um cliente e registar mais um
+ * serviço numa ficha que já existe — porque é a mesma venda e o mesmo
+ * contrato. O `prefixo` existe porque os dois aparecem na mesma página: ids
+ * repetidos no HTML fazem o rótulo ir buscar o campo errado.
  *
  * Isto não grava na ficha: grava em `marcacoes`, na base do próprio cliente,
  * que é de onde o histórico e o total gasto já vêm. Um campo "ticket" na ficha
@@ -329,10 +334,14 @@ function CamposDaPessoa({
 function CamposDoServico({
   executores,
   moeda,
+  opcional,
+  prefixo,
   servicos,
 }: {
   executores: ExecutorOpcao[];
   moeda: string;
+  opcional: boolean;
+  prefixo: string;
   servicos: ServicoOpcao[];
 }) {
   if (servicos.length === 0) {
@@ -342,12 +351,20 @@ function CamposDoServico({
   return (
     <div className="flex w-full flex-wrap items-start gap-3 rounded-xl bg-zinc-50 px-3 py-3">
       <p className="w-full text-xs text-zinc-500">
-        Serviço já feito <span className="text-zinc-400">— opcional</span>
+        Serviço já feito{" "}
+        {opcional ? <span className="text-zinc-400">— opcional</span> : null}
       </p>
 
-      <label className={`${labelClass} min-w-48 flex-1`} htmlFor="servico-id">
+      <label
+        className={`${labelClass} min-w-48 flex-1`}
+        htmlFor={`${prefixo}-servico-id`}
+      >
         Serviço
-        <select className={`${inputClass} w-full`} id="servico-id" name="servico_id">
+        <select
+          className={`${inputClass} w-full`}
+          id={`${prefixo}-servico-id`}
+          name="servico_id"
+        >
           <option value="">Nenhum</option>
           {servicos.map((servico) => (
             <option key={servico.id} value={servico.id}>
@@ -357,21 +374,24 @@ function CamposDoServico({
         </select>
       </label>
 
-      <label className={`${labelClass} w-40`} htmlFor="servico-data">
+      <label className={`${labelClass} w-40`} htmlFor={`${prefixo}-servico-data`}>
         Data
         <input
           className={`${inputClass} w-full`}
-          id="servico-data"
+          id={`${prefixo}-servico-data`}
           name="servico_data"
           type="date"
         />
       </label>
 
-      <label className={`${labelClass} w-32`} htmlFor="servico-valor">
+      <label
+        className={`${labelClass} w-32`}
+        htmlFor={`${prefixo}-servico-valor`}
+      >
         Ticket ({moeda})
         <input
           className={`${inputClass} w-full`}
-          id="servico-valor"
+          id={`${prefixo}-servico-valor`}
           inputMode="decimal"
           min={0}
           name="servico_valor"
@@ -382,11 +402,14 @@ function CamposDoServico({
       </label>
 
       {executores.length > 0 ? (
-        <label className={`${labelClass} w-36`} htmlFor="servico-executor">
+        <label
+          className={`${labelClass} w-36`}
+          htmlFor={`${prefixo}-servico-executor`}
+        >
           Quem fez
           <select
             className={`${inputClass} w-full`}
-            id="servico-executor"
+            id={`${prefixo}-servico-executor`}
             name="servico_executor"
           >
             <option value="">Não sei</option>
@@ -471,6 +494,8 @@ function CriarClienteForm({
         <CamposDoServico
           executores={executores}
           moeda={moeda}
+          opcional
+          prefixo="criar"
           servicos={servicos}
         />
       </div>
@@ -565,6 +590,99 @@ function FichaForm({
         </FormSubmitButton>
         <Mensagem resultado={resultado} />
       </div>
+    </form>
+  );
+}
+
+/**
+ * Registar mais um serviço num cliente que já está no painel.
+ *
+ * É um formulário à parte do "Gravar ficha", e não mais uns campos lá dentro.
+ * São dois actos diferentes — corrigir a morada não é vender — e em duas bases
+ * de dados diferentes. Juntos num botão só, cada correcção de email registava
+ * uma venda.
+ *
+ * O aviso é o que o Arthur pediu e é a única trava: quem já tem serviços na
+ * agenda vê-os listados e tem de insistir. Não bloqueia — um cliente que volta
+ * três vezes no mesmo mês é um bom cliente, não um engano — mas põe o que já
+ * lá está à frente dos olhos, que é o que faz ver o serviço repetido antes de
+ * ele ser escrito duas vezes.
+ */
+function ServicoNaFichaForm({
+  action,
+  cliente,
+  executores,
+  moeda,
+  servicos,
+  timeZone,
+}: {
+  action: ClienteAction;
+  cliente: ClienteLinha;
+  executores: ExecutorOpcao[];
+  moeda: string;
+  servicos: ServicoOpcao[];
+  timeZone: string;
+}) {
+  const [resultado, formAction] = useActionState<
+    GravarClienteResultado | null,
+    FormData
+  >(action, null);
+  const jaRegistados = resultado?.jaRegistados ?? [];
+
+  if (servicos.length === 0) {
+    return null;
+  }
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <input name="contacto_id" type="hidden" value={cliente.id} />
+
+      <CamposDoServico
+        executores={executores}
+        moeda={moeda}
+        opcional={false}
+        prefixo={`ficha-${cliente.id}`}
+        servicos={servicos}
+      />
+
+      <div className="flex items-center gap-3">
+        <FormSubmitButton className={botaoDiscreto} pendingLabel="A registar...">
+          Registar serviço
+        </FormSubmitButton>
+        <Mensagem resultado={resultado} />
+      </div>
+
+      {jaRegistados.length > 0 ? (
+        <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-900">
+          <p className="font-semibold">
+            {cliente.nome} já tem isto registado:
+          </p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {jaRegistados.map((linha) => (
+              <li key={linha.id}>
+                {formatDayInTimezone(linha.dataInicio, timeZone)} ·{" "}
+                {linha.nome ?? "serviço não registado"} ·{" "}
+                {linha.valor === null ? "—" : formatMoeda(linha.valor, moeda)}
+                {linha.estado === "cancelada" ? " · cancelada" : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2">
+            Se o serviço que estás a registar já está nesta lista, cancela — ele
+            conta duas vezes para o total gasto e o número deixa de valer. Se é
+            mesmo mais um, continua.
+          </p>
+          <div className="mt-3">
+            <input name="confirmado" type="hidden" value="sim" />
+            <FormSubmitButton
+              className={botaoDiscreto}
+              pendingLabel="A registar..."
+            >
+              Registar mesmo assim
+            </FormSubmitButton>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }
@@ -954,23 +1072,29 @@ function FichaDoCliente({
   actionFicha,
   actionJuntar,
   actionSeparar,
+  actionServico,
   aoFechar,
   cliente,
+  executores,
   moeda,
   mostrarViatura,
   outros,
   podeEditar,
+  servicos,
   timeZone,
 }: {
   actionFicha: ClienteAction;
   actionJuntar: ClienteAction;
   actionSeparar: ClienteAction;
+  actionServico: ClienteAction;
   aoFechar: () => void;
   cliente: ClienteLinha;
+  executores: ExecutorOpcao[];
   moeda: string;
   mostrarViatura: boolean;
   outros: ClienteLinha[];
   podeEditar: boolean;
+  servicos: ServicoOpcao[];
   timeZone: string;
 }) {
   return (
@@ -1085,6 +1209,25 @@ function FichaDoCliente({
             ))}
           </ul>
         )}
+
+        {/*
+          Por baixo da lista e não por cima: o aviso de repetição só serve
+          se o que já lá está estiver à vista no momento de escrever.
+          `totalGasto === null` é "não sabemos" e não "nunca comprou" — sem
+          base ligada não há onde escrever, e o formulário não aparece.
+        */}
+        {podeEditar && cliente.totalGasto !== null ? (
+          <div className="mt-3">
+            <ServicoNaFichaForm
+              action={actionServico}
+              cliente={cliente}
+              executores={executores}
+              moeda={moeda}
+              servicos={servicos}
+              timeZone={timeZone}
+            />
+          </div>
+        ) : null}
       </div>
 
       {cliente.juntos.length > 0 ? (
@@ -1148,6 +1291,7 @@ export function ClientesPanel({
   actionFicha,
   actionJuntar,
   actionSeparar,
+  actionServico,
   clientes,
   deFora,
   executores,
@@ -1162,6 +1306,7 @@ export function ClientesPanel({
   actionFicha: ClienteAction;
   actionJuntar: ClienteAction;
   actionSeparar: ClienteAction;
+  actionServico: ClienteAction;
   clientes: ClienteLinha[];
   deFora: ClientesDeFora;
   /** Quem executa, para dizer quem fez o serviço registado à mão. */
@@ -1416,12 +1561,15 @@ export function ClientesPanel({
                     actionFicha={actionFicha}
                     actionJuntar={actionJuntar}
                     actionSeparar={actionSeparar}
+                    actionServico={actionServico}
                     aoFechar={() => setAberto(null)}
                     cliente={cliente}
+                    executores={executores}
                     moeda={moeda}
                     mostrarViatura={mostrarViatura}
                     outros={clientes.filter((outro) => outro.id !== cliente.id)}
                     podeEditar={podeEditar}
+                    servicos={servicos}
                     timeZone={timeZone}
                   />
                 ) : null}

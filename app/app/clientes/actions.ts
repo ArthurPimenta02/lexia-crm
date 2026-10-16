@@ -6,6 +6,7 @@ import {
   criarCliente,
   gravarFichaDoCliente,
   juntarClientes,
+  registarServicoDeCliente,
   separarClientes,
   type CamposDaFicha,
   type GravarClienteResultado,
@@ -45,7 +46,11 @@ function camposDaFicha(formData: FormData): CamposDaFicha {
 }
 
 /**
- * O serviço já feito, lido do formulário de criar.
+ * O serviço já feito, lido do formulário.
+ *
+ * Os mesmos nomes de campo no formulário de criar e no da ficha, pela mesma
+ * razão que em `camposDaFicha`: um nome trocado num dos lados gravava vazio
+ * sem dizer nada.
  *
  * Vai para `marcacoes`, na base do próprio cliente, e não para a ficha: é uma
  * venda, e as vendas já são o que alimenta o histórico e o total gasto.
@@ -119,6 +124,40 @@ export async function gravarFichaAction(
     clienteSlug: perfil.clienteSlug,
     contactoId,
     userId: perfil.userId,
+  });
+}
+
+/**
+ * Regista um serviço já feito num cliente que já está no painel.
+ *
+ * Separada do `gravarFichaAction` de propósito. São duas bases de dados
+ * diferentes e dois actos diferentes: corrigir o email não é vender. Juntar
+ * as duas coisas num botão só punha o dono a registar uma venda de cada vez
+ * que arranjasse uma morada.
+ */
+export async function registarServicoAction(
+  _anterior: GravarClienteResultado | null,
+  formData: FormData,
+): Promise<GravarClienteResultado> {
+  const perfil = await perfilDoCliente();
+
+  if (!perfil) {
+    return semPermissao;
+  }
+
+  const contactoId = String(formData.get("contacto_id") ?? "").trim();
+
+  if (!contactoId) {
+    return { mensagem: "Cliente não identificado.", ok: false };
+  }
+
+  return registarServicoDeCliente({
+    caminhoParaRevalidar: caminho,
+    clienteSlug: perfil.clienteSlug,
+    // Só depois de o aviso dos serviços que já lá estão ter sido mostrado.
+    confirmado: String(formData.get("confirmado") ?? "") === "sim",
+    contactoId,
+    servico: camposDoServico(formData),
   });
 }
 

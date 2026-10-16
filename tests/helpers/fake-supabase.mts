@@ -45,6 +45,8 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private devolveLinhas = false;
   private limiteLinhas: number | null = null;
   private colunas: string | null = null;
+  private ordenacao: { ascendente: boolean; coluna: string } | null = null;
+  private janela: { ate: number; de: number } | null = null;
 
   constructor(
     private readonly base: FakeSupabase,
@@ -85,6 +87,25 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     return this;
   }
 
+  order(coluna: string, opcoes?: { ascending?: boolean }) {
+    this.ordenacao = { ascendente: opcoes?.ascending !== false, coluna };
+
+    return this;
+  }
+
+  /**
+   * A janela de linhas, com os dois extremos incluídos — como na Supabase.
+   *
+   * Vale a pena implementar a sério e não devolver tudo: quem lê paginado
+   * pede páginas até vir uma incompleta, e um `range` que ignora os limites
+   * devolvia sempre a página cheia e punha o teste a correr para sempre.
+   */
+  range(de: number, ate: number) {
+    this.janela = { ate, de };
+
+    return this;
+  }
+
   select(colunas?: string) {
     this.devolveLinhas = true;
     this.colunas = colunas ?? null;
@@ -121,7 +142,7 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   }
 
   private seleccionar() {
-    return this.base.linhasDe(this.tabela).filter((linha) => {
+    const encontradas = this.base.linhasDe(this.tabela).filter((linha) => {
       if (!correspondeAosFiltros(linha, this.filtros)) {
         return false;
       }
@@ -132,6 +153,22 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
         return typeof valor !== "string" || !valor.startsWith(prefixo);
       });
     });
+
+    if (this.ordenacao) {
+      const { ascendente, coluna } = this.ordenacao;
+
+      encontradas.sort((a, b) => {
+        const esquerda = String(a[coluna] ?? "");
+        const direita = String(b[coluna] ?? "");
+        const comparacao = esquerda < direita ? -1 : esquerda > direita ? 1 : 0;
+
+        return ascendente ? comparacao : -comparacao;
+      });
+    }
+
+    return this.janela
+      ? encontradas.slice(this.janela.de, this.janela.ate + 1)
+      : encontradas;
   }
 
   private async executar(): Promise<Resultado<Linha[] | null>> {

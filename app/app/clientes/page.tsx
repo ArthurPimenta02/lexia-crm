@@ -4,6 +4,7 @@ import {
   criarClienteAction,
   gravarFichaAction,
   juntarClientesAction,
+  registarServicoAction,
   separarClientesAction,
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
@@ -67,6 +68,7 @@ export default async function ClientesPage() {
         actionJuntar={juntarClientesAction}
         actionFicha={gravarFichaAction}
         actionSeparar={separarClientesAction}
+        actionServico={registarServicoAction}
         clientes={clientes}
         deFora={deFora}
         historicoLigado={historicoLigado}

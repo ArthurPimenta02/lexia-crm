@@ -1,8 +1,15 @@
+import { normalizarTelefone } from "@/lib/clientes/telefone";
 import { getClientTimezone, instanteAoMeioDiaNoFuso } from "@/lib/clientes/timezone";
 import { createServicosClient, getServicosConfig } from "@/lib/servicos/config";
+import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 
 /**
- * O serviço que o dono regista à mão quando mete um cliente no painel.
+ * O serviço que o dono regista à mão.
+ *
+ * Serve os dois momentos: quando mete um cliente novo no painel, e quando um
+ * cliente que já lá está volta e faz mais um serviço. O segundo é o caso
+ * normal — o Martim também trata do CRM, e um cliente que já tem ficha é
+ * precisamente o que volta.
  *
  * Porque é que isto não é uma coluna da ficha
  * -------------------------------------------
@@ -168,6 +175,113 @@ export async function prepararServico({
       nome: String(servico.nome).trim(),
       valor,
     },
+  };
+}
+
+/** Um serviço que já está na agenda, no nome deste número. */
+export type ServicoJaRegistado = {
+  dataInicio: string | null;
+  estado: string | null;
+  id: string;
+  nome: string | null;
+  valor: number | null;
+};
+
+type MarcacaoLida = {
+  data_inicio: string | null;
+  estado: string | null;
+  id: string | number;
+  servico: string | null;
+  sinal_valor: number | string | null;
+  telefone: string | null;
+  valor_previsto: number | string | null;
+};
+
+function paraNumero(valor: number | string | null) {
+  if (valor === null) {
+    return null;
+  }
+
+  const numero = typeof valor === "number" ? valor : Number(valor);
+
+  return Number.isFinite(numero) ? numero : null;
+}
+
+/**
+ * O que este número já comprou.
+ *
+ * Existe para o aviso: antes de registar mais um serviço num cliente que já
+ * está no painel, o dono vê o que lá está e decide. Sem isto, carregar duas
+ * vezes no botão escrevia a mesma venda duas vezes e o total gasto passava a
+ * mentir — e ninguém reparava, porque o número continua a parecer um número.
+ *
+ * A junção é pelos dígitos do telefone e faz-se aqui, em memória, pela mesma
+ * razão que na leitura do painel: são duas bases de dados, não há chave
+ * estrangeira, e o mesmo número aparece escrito de maneiras diferentes nas
+ * duas. Um `.eq("telefone", …)` deixava passar exactamente as linhas que
+ * interessa apanhar.
+ *
+ * Se a leitura falhar, isto devolve erro e NÃO uma lista vazia. Lista vazia
+ * era dizer "este cliente nunca comprou nada" com base numa pergunta que não
+ * foi respondida — e a seguir escrever sem aviso nenhum.
+ */
+export async function servicosJaRegistados({
+  clienteSlug,
+  telefone,
+}: {
+  clienteSlug: string;
+  telefone: string;
+}): Promise<{ erro: string | null; servicos: ServicoJaRegistado[] }> {
+  const config = getServicosConfig(clienteSlug);
+  const externo = config ? createServicosClient(config) : null;
+
+  if (!externo) {
+    return {
+      erro: "Este cliente não tem agenda de serviços ligada.",
+      servicos: [],
+    };
+  }
+
+  const { data, error } = await fetchAllSupabaseRows<MarcacaoLida>(
+    async (from, to) => {
+      const result = await externo
+        .from("marcacoes")
+        .select(
+          "id, telefone, servico, estado, data_inicio, valor_previsto, sinal_valor",
+        )
+        .eq("cliente_slug", clienteSlug)
+        .order("data_inicio", { ascending: false })
+        .range(from, to);
+
+      return { data: (result.data ?? []) as MarcacaoLida[], error: result.error };
+    },
+  );
+
+  if (error) {
+    console.error("[clientes] falha a ler o histórico antes de registar", error);
+
+    return {
+      erro: "Não foi possível ler o que este cliente já comprou, por isso não se registou nada. Tenta outra vez.",
+      servicos: [],
+    };
+  }
+
+  const digitos = normalizarTelefone(telefone);
+
+  return {
+    erro: null,
+    servicos: data
+      .filter((linha) => normalizarTelefone(linha.telefone) === digitos)
+      .map((linha) => ({
+        dataInicio: linha.data_inicio,
+        estado: linha.estado,
+        id: String(linha.id),
+        nome: linha.servico,
+        // O mesmo critério do painel: o previsto é o total do serviço, o
+        // sinal é só o que já entrou. Dois números diferentes para a mesma
+        // venda no mesmo ecrã seria pior do que não mostrar nenhum.
+        valor: paraNumero(linha.valor_previsto) ?? paraNumero(linha.sinal_valor),
+      })),
   };
 }
 
