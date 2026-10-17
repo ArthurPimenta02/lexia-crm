@@ -47,7 +47,8 @@ export async function atualizarCampanhasAdminAction(
   }
 
   return atualizarCampanhasDoCliente({
-    caminhoParaRevalidar: "/admin/campanhas",
+    // O dashboard mostra os mesmos números numa faixa, e tem o mesmo botão.
+    caminhosParaRevalidar: ["/admin", "/admin/campanhas"],
     clienteSlug,
   });
 }
