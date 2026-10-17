@@ -43,10 +43,15 @@ export default async function CampanhasPage({
   const clienteSlug = profile.cliente_slug;
   const timezone = getClientTimezone(clienteSlug);
   const params = await searchParams;
-  // Padrão "mes" e não "hoje" como no dashboard: o gasto do dia corrente está
-  // sempre incompleto, e abrir a página num número a meio engana.
+  /*
+   * "hoje" como em todo o resto do produto, com uma ressalva que vale a pena
+   * saber: o gasto da Meta é sincronizado uma vez por dia, às 06:00 UTC (ver o
+   * cron no `vercel.json`). O número de hoje é o que havia à hora da
+   * sincronização e não acompanha o dia — só fecha na corrida seguinte. Quem
+   * quiser o gasto consolidado escolhe "Este mês" no filtro.
+   */
   const range = getDateRange(
-    getSearchValue(params.periodo) || "mes",
+    getSearchValue(params.periodo) || "hoje",
     getSearchValue(params.inicio),
     getSearchValue(params.fim),
     timezone,

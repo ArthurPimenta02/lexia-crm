@@ -48,7 +48,7 @@ export default async function AdminCampanhasPage({
   }
 
   const params = await searchParams;
-  const periodo = getSearchValue(params.periodo) || "mes";
+  const periodo = getSearchValue(params.periodo) || "hoje";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
   const clientePedido = getSearchValue(params.cliente);
@@ -85,7 +85,11 @@ export default async function AdminCampanhasPage({
 
   const clienteSlug = clienteSelecionado.slug;
   const timezone = getClientTimezone(clienteSlug);
-  // Padrão "mes": o gasto do dia corrente está sempre incompleto.
+  /*
+   * "hoje" como em todo o resto do produto, com a mesma ressalva do ecrã do
+   * cliente: o gasto da Meta sincroniza uma vez por dia, às 06:00 UTC, por
+   * isso o número de hoje não acompanha o dia. "Este mês" dá o consolidado.
+   */
   const range = getDateRange(periodo, customStart, customEnd, timezone);
   const inicio = getDateInputValue(range.start, timezone);
   const fim = getDateInputValue(getInclusiveRangeEnd(range.end), timezone);

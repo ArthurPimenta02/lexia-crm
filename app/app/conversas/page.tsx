@@ -214,7 +214,7 @@ export default async function ClientConversationsPage({
     params.fuso,
     profile.cliente_slug,
   );
-  const selectedPeriod = getSearchValue(params.periodo) || "mes";
+  const selectedPeriod = getSearchValue(params.periodo) || "hoje";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
   const range = getConversationDateRange(

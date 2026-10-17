@@ -13,13 +13,21 @@ export type LoginState = {
   error?: string;
 };
 
+/*
+ * Entra-se no dashboard, não na área de testes.
+ *
+ * A área de testes era a primeira página por ter sido a primeira a existir, e
+ * ficou. Mas quem abre o CRM abre-o para ver como está o atendimento, não para
+ * simular uma conversa — e o dashboard é o único ecrã que responde a isso sem
+ * ser preciso clicar em nada.
+ */
 function getRedirectPath(role: LexiaUserRole) {
   if (role === "lexia_admin") {
-    return "/admin/area-testes";
+    return "/admin";
   }
 
   if (isClientRole(role)) {
-    return "/app/area-testes";
+    return "/app";
   }
 
   return null;

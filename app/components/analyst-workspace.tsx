@@ -134,7 +134,7 @@ export function AnalystWorkspace({
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingAbortRef = useRef<AbortController | null>(null);
-  const [period, setPeriod] = useState("mes");
+  const [period, setPeriod] = useState("hoje");
   const [channel, setChannel] = useState("todos");
   const [customStart, setCustomStart] = useState(getTodayInputValue);
   const [customEnd, setCustomEnd] = useState(getTodayInputValue);
