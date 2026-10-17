@@ -7,8 +7,10 @@ import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 export default async function LoginPage() {
   const { profile } = await getLoggedInUserProfile();
 
+  // Mesmo destino do `getRedirectPath` da acção de login: quem já tem sessão
+  // aberta e volta ao /login cai no dashboard, como quem acabou de entrar.
   if (profile?.role === "lexia_admin") {
-    redirect("/admin/area-testes");
+    redirect("/admin");
   }
 
   if (profile && isClientRole(profile.role)) {

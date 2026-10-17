@@ -73,7 +73,7 @@ export async function resolveAnalystScope(
 
   const timezone = getClientTimezone(clienteSlug);
   const range = getDateRange(
-    String(input.periodo ?? "mes"),
+    String(input.periodo ?? "hoje"),
     String(input.inicio ?? ""),
     String(input.fim ?? ""),
     timezone,

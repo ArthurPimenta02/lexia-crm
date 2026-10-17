@@ -209,7 +209,7 @@ export default async function AdminConversationsPage({
   const selectedChannel = allowedChannels.includes(requestedChannel)
     ? requestedChannel
     : "";
-  const selectedPeriod = getSearchValue(params.periodo) || "mes";
+  const selectedPeriod = getSearchValue(params.periodo) || "hoje";
   const customStart = getSearchValue(params.inicio);
   const customEnd = getSearchValue(params.fim);
   const requestedConversation = getSearchValue(params.conversa);

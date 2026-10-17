@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
+import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 
 const adminNavigation = [
@@ -34,7 +35,12 @@ export default async function AdminLayout({
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
       <AppSidebar items={adminNavigation} subtitle="Administração" />
 
-      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
+      <ScrollToTop alvoId="conteudo" />
+
+      <main
+        className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background"
+        id="conteudo"
+      >
         <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
           {children}
         </div>

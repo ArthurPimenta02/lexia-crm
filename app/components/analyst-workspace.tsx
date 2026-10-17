@@ -132,9 +132,9 @@ export function AnalystWorkspace({
   mode,
 }: AnalystWorkspaceProps) {
   const router = useRouter();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const pollingAbortRef = useRef<AbortController | null>(null);
-  const [period, setPeriod] = useState("mes");
+  const [period, setPeriod] = useState("hoje");
   const [channel, setChannel] = useState("todos");
   const [customStart, setCustomStart] = useState(getTodayInputValue);
   const [customEnd, setCustomEnd] = useState(getTodayInputValue);
@@ -214,8 +214,25 @@ export function AnalystWorkspace({
     [],
   );
 
+  /*
+   * Acompanhar a conversa é rolar a lista, e não a página.
+   *
+   * Isto era um `scrollIntoView` no fim das mensagens, e o `scrollIntoView`
+   * não escolhe um contentor: rola todos os ancestrais que rolem até o
+   * elemento ficar à vista. Como o `<main>` do layout também rola, abrir o
+   * Analista arrastava o ecrã inteiro para baixo — a página nascia já fora do
+   * topo, mesmo acabada de abrir.
+   *
+   * Mexer no `scrollTop` do contentor das mensagens não toca em mais nada.
+   */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lista = messagesScrollRef.current;
+
+    if (!lista) {
+      return;
+    }
+
+    lista.scrollTo({ behavior: "smooth", top: lista.scrollHeight });
   }, [isLoading, messages]);
 
   function changePeriod(nextPeriod: string) {
@@ -578,7 +595,10 @@ export function AnalystWorkspace({
         </aside>
 
         <div className="flex min-h-0 flex-col bg-surface">
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-8">
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-8"
+            ref={messagesScrollRef}
+          >
             <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6">
               {messages.map((message) => (
                 <div
@@ -686,7 +706,6 @@ export function AnalystWorkspace({
                   {requestError}
                 </div>
               ) : null}
-              <div ref={messagesEndRef} />
             </div>
           </div>
 

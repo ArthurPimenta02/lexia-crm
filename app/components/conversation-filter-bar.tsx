@@ -110,9 +110,14 @@ export function ConversationFilterBar({
   const periodLabel =
     conversationPeriodOptions.find((option) => option.key === period.key)
       ?.label ?? rangeLabel;
+  /*
+   * A contagem é de filtros *alterados*, por isso cada parcela compara com o
+   * valor por omissão do ecrã — e o do período é "hoje". Com "mes" aqui, uma
+   * página acabada de abrir anunciava um filtro activo que ninguém escolheu.
+   */
   const activeFilterCount =
     Number(Boolean(channel)) +
-    Number(period.key !== "mes") +
+    Number(period.key !== "hoje") +
     Number(timezone !== "brasil");
   const searchClearHref = buildHref({
     basePath,

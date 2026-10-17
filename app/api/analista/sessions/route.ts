@@ -1,7 +1,4 @@
-import {
-  AnalystRequestError,
-  resolveAnalystScope,
-} from "@/lib/analyst/scope";
+import { AnalystRequestError, resolveAnalystScope } from "@/lib/analyst/scope";
 import type { AnalystScopeInput, AnalystSource } from "@/lib/analyst/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -10,9 +7,14 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    /*
+     * Sem `periodo`: esta rota só lista sessões, que não são filtradas por
+     * data. O período ia aqui apenas para o resolvedor de âmbito o aceitar, e
+     * um valor fixo a dizer "mes" dava a entender que filtrava algo. Fica o
+     * padrão do resolvedor.
+     */
     const input: AnalystScopeInput = {
       clienteSlug: url.searchParams.get("clienteSlug") ?? undefined,
-      periodo: "mes",
     };
     const scope = await resolveAnalystScope(input);
     const sessionId = url.searchParams.get("sessaoId");
@@ -28,11 +30,10 @@ export async function GET(request: Request) {
       .limit(12);
 
     if (sessionsError) {
-      if (
-        sessionsError.code === "42P01" ||
-        sessionsError.code === "PGRST205"
-      ) {
-        throw new Error("A migration do Analista Lexia ainda não foi aplicada.");
+      if (sessionsError.code === "42P01" || sessionsError.code === "PGRST205") {
+        throw new Error(
+          "A migration do Analista Lexia ainda não foi aplicada.",
+        );
       }
       throw new Error("Não foi possível carregar as análises recentes.");
     }
