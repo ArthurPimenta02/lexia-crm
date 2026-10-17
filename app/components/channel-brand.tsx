@@ -1,11 +1,20 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
+
+import {
+  InstagramGlyph,
+  MessengerGlyph,
+  TodosGlyph,
+  WhatsAppGlyph,
+} from "@/app/components/channel-glyphs";
 
 type ChannelVariant = "light" | "dark";
 
 type ChannelMeta = {
   label: string;
   shortLabel: string;
-  iconLabel: string;
+  /** O desenho oficial da marca. Pinta-se a branco sobre a cor do canal. */
+  Glyph: (props: { className?: string }) => ReactElement;
   icon: string;
 };
 
@@ -20,32 +29,38 @@ type ChannelMeta = {
  * O estado seleccionado também era da cor do canal, com brilho e tudo,
  * enquanto todos os outros botões escolhidos no produto ficam pretos. Agora
  * segue o preto da Lexia, como os restantes.
+ *
+ * As cores são as que cada marca publica, e os degradés seguem a construção
+ * dos ícones reais: o do Instagram irradia do canto inferior esquerdo (amarelo
+ * → vermelho → magenta → azul), e não em diagonal recta como estava, que dava
+ * um roxo que não existe no ícone deles. São cores de terceiros, por isso ficam
+ * fixas aqui de propósito — não acompanham a `cor_principal` do cliente.
  */
 const channelMeta: Record<string, ChannelMeta> = {
   whatsapp: {
     label: "WhatsApp",
     shortLabel: "WhatsApp",
-    iconLabel: "W",
+    Glyph: WhatsAppGlyph,
     icon: "bg-[#25D366] text-white",
   },
   messenger: {
     label: "Messenger",
     shortLabel: "Messenger",
-    iconLabel: "M",
-    icon: "bg-gradient-to-br from-[#00B2FF] to-[#A033FF] text-white",
+    Glyph: MessengerGlyph,
+    icon: "bg-[linear-gradient(135deg,#00B2FF_0%,#006AFF_40%,#A033FF_70%,#FF5280_90%,#FF7061_100%)] text-white",
   },
   instagram: {
     label: "Instagram",
     shortLabel: "Instagram",
-    iconLabel: "I",
-    icon: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#515BD4] text-white",
+    Glyph: InstagramGlyph,
+    icon: "bg-[radial-gradient(circle_at_30%_107%,#FDF497_0%,#FDF497_5%,#FD5949_45%,#D6249F_60%,#285AEB_90%)] text-white",
   },
 };
 
 const defaultMeta: ChannelMeta = {
   label: "Todas",
   shortLabel: "Todas",
-  iconLabel: "•",
+  Glyph: TodosGlyph,
   icon: "bg-primary text-primary-foreground",
 };
 
@@ -69,14 +84,25 @@ export function ChannelIcon({
   size?: "sm" | "md";
 }) {
   const meta = getChannelMeta(channel);
+  const Glyph = meta.Glyph;
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-bold ${
-        size === "sm" ? "h-5 w-5 text-[10px]" : "h-8 w-8 text-xs"
+      className={`inline-flex shrink-0 items-center justify-center rounded-full ${
+        size === "sm" ? "h-5 w-5" : "h-8 w-8"
       } ${meta.icon}`}
     >
-      {meta.iconLabel}
+      {/*
+        O glifo ocupa cerca de 60% do círculo, que é a proporção com que as
+        próprias marcas desenham os seus ícones de aplicação. Os traçados da
+        Simple Icons preenchem a caixa de 24x24 toda, sem margem, por isso a
+        margem tem de ser dada aqui — a 100% o desenho encostava ao rebordo.
+
+        As medidas são em pixéis inteiros (12 dentro de 20, 20 dentro de 32)
+        para que as linhas finas do Instagram caiam na grelha do ecrã em vez de
+        ficarem esborratadas entre dois pixéis.
+      */}
+      <Glyph className={size === "sm" ? "h-3 w-3" : "h-5 w-5"} />
     </span>
   );
 }

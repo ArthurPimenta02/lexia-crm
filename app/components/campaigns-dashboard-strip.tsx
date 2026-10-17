@@ -2,7 +2,9 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 import { formatCampanhasMoney } from "@/app/components/campaigns-panel";
+import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
 import { GrupoMetricas, SeccaoTitulo } from "@/app/components/painel-ui";
+import type { AtualizarCampanhasResultado } from "@/lib/campaigns/refresh";
 import { getResumoCampanhas } from "@/lib/campaigns/read";
 import {
   getDateInputValue,
@@ -28,17 +30,29 @@ function formatNumber(value: number) {
  * número ligeiramente diferente no mesmo ecrã.
  */
 export async function CampaignsDashboardStrip({
+  acaoAtualizar,
   clienteSlug,
   conversasIniciadas,
   hrefCampanhas,
   range,
+  slugNoFormulario,
   timezone,
 }: {
+  acaoAtualizar: (
+    estado: AtualizarCampanhasResultado | null,
+    formData: FormData,
+  ) => Promise<AtualizarCampanhasResultado>;
   clienteSlug: string;
   /** Conversas iniciadas no período, já contadas pelo dashboard. */
   conversasIniciadas: number;
   hrefCampanhas: string;
   range: { end: Date; start: Date };
+  /**
+   * Slug a enviar no formulário da actualização. Só o admin o preenche: a
+   * action do cliente tira-o do perfil no servidor de propósito, para que o
+   * navegador não possa pedir o gasto de outra empresa.
+   */
+  slugNoFormulario?: string;
   timezone: string;
 }) {
   if (getMetaAdsConfig(clienteSlug) === null) {
@@ -53,21 +67,46 @@ export async function CampaignsDashboardStrip({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <SeccaoTitulo
-          dica="O gasto da Meta é sincronizado uma vez por dia, às 06:00 UTC. O número de hoje é o que havia à hora da sincronização e só fecha na corrida seguinte."
+          dica="O gasto da Meta é sincronizado uma vez por dia, às 06:00 UTC. O número de hoje é o que havia à hora da sincronização; para o ver ao minuto, usa o Atualizar."
           sufixo="no período"
         >
           Campanhas
         </SeccaoTitulo>
 
-        <Link
-          className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
-          href={hrefCampanhas}
-        >
-          Ver campanhas
-          <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
-        </Link>
+        <div className="flex items-start gap-3">
+          {/*
+            O botão está aqui, e não só no ecrã de Campanhas, porque é neste que
+            o valor desactualizado se nota: o gasto de hoje nasce congelado na
+            hora da sincronização da madrugada, e quem olha para o dashboard
+            quer o número de agora sem ter de mudar de ecrã.
+          */}
+          <CampaignsRefreshButton
+            action={acaoAtualizar}
+            atualizadoEm={
+              resumo.atualizadoEm
+                ? new Intl.DateTimeFormat("pt-PT", {
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    month: "2-digit",
+                    timeZone: timezone,
+                  }).format(new Date(resumo.atualizadoEm))
+                : null
+            }
+            clienteSlug={slugNoFormulario}
+            compacto
+          />
+
+          <Link
+            className="inline-flex h-[30px] shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+            href={hrefCampanhas}
+          >
+            Ver campanhas
+            <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
 
       {resumo.temDados ? (

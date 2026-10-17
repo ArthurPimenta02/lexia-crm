@@ -27,11 +27,22 @@ export type AtualizarCampanhasResultado = {
 
 export async function atualizarCampanhasDoCliente({
   clienteSlug,
-  caminhoParaRevalidar,
+  caminhosParaRevalidar,
 }: {
-  caminhoParaRevalidar: string;
+  /**
+   * Todos os ecrãs que mostram estes números. É uma lista, e não um caminho
+   * só, porque o botão passou a existir também no dashboard: revalidar apenas
+   * o ecrã de Campanhas deixava a faixa do dashboard com o valor antigo
+   * precisamente depois de alguém a actualizar a partir dela.
+   */
+  caminhosParaRevalidar: string[];
   clienteSlug: string;
 }): Promise<AtualizarCampanhasResultado> {
+  const revalidar = () => {
+    for (const caminho of caminhosParaRevalidar) {
+      revalidatePath(caminho);
+    }
+  };
   const supabase = await createClient();
   const { data: ultima } = await supabase
     .from("lexia_campanha_custos")
@@ -46,7 +57,7 @@ export async function atualizarCampanhasDoCliente({
     : 0;
 
   if (sincronizadoEm && Date.now() - sincronizadoEm < janelaMinimaMs) {
-    revalidatePath(caminhoParaRevalidar);
+    revalidar();
 
     return {
       mensagem: "Os dados foram puxados há menos de um minuto. Já estão atuais.",
@@ -57,7 +68,7 @@ export async function atualizarCampanhasDoCliente({
   try {
     const resultado = await syncMetaCampanhas({ clienteSlug });
 
-    revalidatePath(caminhoParaRevalidar);
+    revalidar();
 
     return {
       mensagem: `Atualizado: ${resultado.linhas} dias de ${resultado.campanhas} campanhas.`,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { atualizarCampanhasAdminAction } from "@/app/admin/campanhas/actions";
 import { CampaignsDashboardStrip } from "@/app/components/campaigns-dashboard-strip";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
@@ -951,6 +952,7 @@ export default async function AdminDashboard({
       */}
       {selectedClient && !selectedChannel ? (
         <CampaignsDashboardStrip
+          acaoAtualizar={atualizarCampanhasAdminAction}
           clienteSlug={selectedClient}
           conversasIniciadas={totals.conversations}
           hrefCampanhas={buildAdminHref("/admin/campanhas", {
@@ -958,6 +960,7 @@ export default async function AdminDashboard({
             periodo: range.key,
           })}
           range={rangesByClient.get(selectedClient) ?? range}
+          slugNoFormulario={selectedClient}
           timezone={selectedTimezone}
         />
       ) : null}

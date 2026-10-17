@@ -30,7 +30,8 @@ export async function atualizarCampanhasAction(): Promise<AtualizarCampanhasResu
   }
 
   return atualizarCampanhasDoCliente({
-    caminhoParaRevalidar: "/app/campanhas",
+    // O dashboard mostra os mesmos números numa faixa, e tem o mesmo botão.
+    caminhosParaRevalidar: ["/app", "/app/campanhas"],
     clienteSlug: profile.cliente_slug,
   });
 }

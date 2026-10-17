@@ -3,6 +3,7 @@ import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { atualizarCampanhasAction } from "@/app/app/campanhas/actions";
 import { CampaignsDashboardStrip } from "@/app/components/campaigns-dashboard-strip";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
@@ -381,6 +382,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         sozinha para quem não tem conta de anúncios ligada.
       */}
       <CampaignsDashboardStrip
+        acaoAtualizar={atualizarCampanhasAction}
         clienteSlug={profile.cliente_slug}
         conversasIniciadas={startedConversations}
         hrefCampanhas="/app/campanhas"
