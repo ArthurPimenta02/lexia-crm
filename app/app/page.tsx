@@ -3,6 +3,7 @@ import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { CampaignsDashboardStrip } from "@/app/components/campaigns-dashboard-strip";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
   Card,
@@ -373,6 +374,19 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
           ]}
         />
       </div>
+
+      {/*
+        Logo depois do resultado, porque é a leitura que lhe falta: as conversas
+        iniciadas acima não dizem nada sobre o que custaram. Devolve `null`
+        sozinha para quem não tem conta de anúncios ligada.
+      */}
+      <CampaignsDashboardStrip
+        clienteSlug={profile.cliente_slug}
+        conversasIniciadas={startedConversations}
+        hrefCampanhas="/app/campanhas"
+        range={{ end: range.end, start: range.start }}
+        timezone={timezone}
+      />
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
