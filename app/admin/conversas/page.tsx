@@ -515,6 +515,10 @@ export default async function AdminConversationsPage({
                         searchQuery,
                       )}
                       key={contact.id}
+                      // Mesma razão do ecrã do cliente: sem isto o Next põe a
+                      // página no topo com um `scrollIntoView`, que arrasta a
+                      // própria lista de conversas de volta à primeira linha.
+                      scroll={false}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 gap-2">

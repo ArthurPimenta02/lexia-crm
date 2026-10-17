@@ -446,6 +446,18 @@ export default async function ClientConversationsPage({
                       searchQuery,
                     )}
                     key={contact.id}
+                    /*
+                     * Escolher uma conversa não é mudar de página, é mudar o
+                     * que está ao lado — e a lista tem de ficar onde estava.
+                     *
+                     * Por omissão o Next põe a nova página no topo, e quando a
+                     * janela não rola — aqui não rola, o layout é `h-dvh` —
+                     * fá-lo com um `scrollIntoView`, que rola todos os
+                     * contentores que rolem até o topo ficar à vista. O
+                     * contentor que rola nesta lista é ela própria, por isso
+                     * clicar na décima conversa saltava de volta à primeira.
+                     */
+                    scroll={false}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 gap-2">
