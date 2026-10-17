@@ -26,7 +26,11 @@ type ConversationLocks = {
 };
 
 const contactChunkSize = 100;
-const kindOrder: AgentLock["kind"][] = ["pausa_manual", "status", "pausa_eterna"];
+const kindOrder: AgentLock["kind"][] = [
+  "pausa_manual",
+  "status",
+  "pausa_eterna",
+];
 
 function groupByConversation(locks: AgentLock[]) {
   const groups = new Map<string, ConversationLocks>();
@@ -51,7 +55,8 @@ function groupByConversation(locks: AgentLock[]) {
     }))
     .sort(
       (a, b) =>
-        kindOrder.indexOf(a.locks[0].kind) - kindOrder.indexOf(b.locks[0].kind) ||
+        kindOrder.indexOf(a.locks[0].kind) -
+          kindOrder.indexOf(b.locks[0].kind) ||
         a.identificadorConversa.localeCompare(b.identificadorConversa),
     );
 }
@@ -60,7 +65,11 @@ async function loadContacts(clienteSlug: string, conversationIds: string[]) {
   const supabase = await createClient();
   const contacts = new Map<string, LockContact>();
 
-  for (let index = 0; index < conversationIds.length; index += contactChunkSize) {
+  for (
+    let index = 0;
+    index < conversationIds.length;
+    index += contactChunkSize
+  ) {
     const { data, error } = await supabase
       .from("lexia_contactos")
       .select("canal, identificador_conversa, nome, telefone")
@@ -113,12 +122,13 @@ export async function AgentLocksSection({
   clienteSlug,
   conversationsPath,
   includeClientParam = false,
-  title = "Agente pausado",
+  sufixo,
 }: {
   clienteSlug: string;
   conversationsPath: string;
   includeClientParam?: boolean;
-  title?: string;
+  /** No admin, qual dos clientes é esta secção. No painel do cliente não há. */
+  sufixo?: string;
 }) {
   const { error, isConfigured, locks } = await listAgentLocks(clienteSlug);
 
@@ -139,18 +149,22 @@ export async function AgentLocksSection({
     <section className="flex w-full min-w-0 flex-col gap-4">
       <HandoffSectionHeader
         count={error ? undefined : groups.length}
-        description="Conversas em que o agente não está a responder agora. Retome quando o atendimento humano terminar."
-        title={title}
+        dica="Conversas em que o agente não está a responder agora. Retome quando o atendimento humano terminar."
+        sufixo={sufixo}
+        title="Agente pausado"
       />
 
       {error ? (
-        <HandoffEmptyState>{error} Tente novamente em instantes.</HandoffEmptyState>
+        <HandoffEmptyState>
+          {error} Tente novamente em instantes.
+        </HandoffEmptyState>
       ) : groups.length > 0 ? (
         <div className={handoffGridClass}>
           {groups.map((group) => {
             const contact = contacts.get(group.identificadorConversa);
             const canal = contact?.canal ?? group.canal;
-            const name = contact?.nome || contact?.telefone || "Contacto sem nome";
+            const name =
+              contact?.nome || contact?.telefone || "Contacto sem nome";
             const canAct =
               Boolean(contact) ||
               group.locks.some((lock) => lock.kind !== "status");
@@ -163,10 +177,10 @@ export async function AgentLocksSection({
                 <header className="flex items-center gap-3">
                   <ChannelIcon channel={canal} />
                   <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-zinc-950">
+                    <h3 className="truncate text-base font-semibold text-foreground">
                       {name}
                     </h3>
-                    <p className="truncate text-sm text-zinc-500">
+                    <p className="truncate text-sm text-muted-foreground">
                       {contact?.telefone ?? group.identificadorConversa} ·{" "}
                       {getChannelLabel(canal)}
                     </p>
@@ -175,7 +189,7 @@ export async function AgentLocksSection({
 
                 <AgentLockBadges locks={group.locks} />
 
-                <div className="mt-auto flex flex-col gap-2 border-t border-zinc-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
                   {canAct ? (
                     <AgentPauseControls
                       clienteSlug={clienteSlug}
@@ -190,13 +204,13 @@ export async function AgentLocksSection({
                       identificadorConversa={group.identificadorConversa}
                     />
                   ) : (
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-muted-foreground">
                       Volta sozinho quando o prazo terminar.
                     </span>
                   )}
                   {contact ? (
                     <Link
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-950 hover:text-zinc-950 sm:h-9 sm:text-xs"
+                      className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground transition hover:border-foreground hover:text-foreground sm:h-9 sm:text-xs"
                       href={getConversationHref(
                         conversationsPath,
                         clienteSlug,

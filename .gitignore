@@ -40,6 +40,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# config local do servidor de preview do Claude Code, nao e produto
+.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

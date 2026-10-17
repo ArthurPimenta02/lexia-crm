@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { CampaignsPanel } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
 import {
@@ -69,25 +70,13 @@ export default async function AdminCampanhasPage({
     clientes[0] ??
     null;
 
-  const cabecalho = (
-    <div>
-      <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-        Campanhas
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-        Investimento em anúncios
-      </h1>
-      <p className="mt-2 max-w-2xl text-zinc-600">
-        Gasto e entrega das campanhas da Meta, por cliente.
-      </p>
-    </div>
-  );
+  const cabecalho = <PaginaCabecalho titulo="Campanhas" />;
 
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-8 text-center text-sm text-zinc-600 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground">
           Nenhum cliente activo disponível.
         </div>
       </div>
@@ -132,17 +121,17 @@ export default async function AdminCampanhasPage({
   const selectorDeCliente = (
     <Form
       action="/admin/campanhas"
-      className="flex flex-wrap items-end gap-2"
+      className="flex min-w-0 flex-wrap items-end gap-2"
       replace
       scroll={false}
     >
       <label
-        className="flex flex-col gap-2 text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase"
+        className="flex min-w-0 flex-col gap-2 text-sm font-semibold text-foreground"
         htmlFor="cliente"
       >
         Cliente
         <select
-          className="h-10 min-w-56 rounded-md border border-zinc-300 bg-white px-3 text-sm font-normal tracking-normal text-zinc-900 normal-case outline-none transition focus:border-zinc-950"
+          className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground sm:min-w-56"
           defaultValue={clienteSlug}
           id="cliente"
           name="cliente"
@@ -163,7 +152,7 @@ export default async function AdminCampanhasPage({
         </>
       ) : null}
       <FormSubmitButton
-        className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+        className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98]"
         pendingLabel="..."
       >
         Selecionar
@@ -173,14 +162,16 @@ export default async function AdminCampanhasPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        {cabecalho}
-        <CampaignsRefreshButton
-          action={atualizarCampanhasAdminAction}
-          atualizadoEm={atualizadoEm}
-          clienteSlug={clienteSlug}
-        />
-      </div>
+      <PaginaCabecalho
+        acoes={
+          <CampaignsRefreshButton
+            action={atualizarCampanhasAdminAction}
+            atualizadoEm={atualizadoEm}
+            clienteSlug={clienteSlug}
+          />
+        }
+        titulo="Campanhas"
+      />
 
       <CampaignsPanel
         basePath="/admin/campanhas"

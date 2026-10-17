@@ -21,11 +21,14 @@ export function NewClientForm() {
     <form action={formAction} className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="nome">
+          <label
+            className="text-sm font-medium text-muted-foreground"
+            htmlFor="nome"
+          >
             Nome
           </label>
           <input
-            className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             id="nome"
             name="nome"
             required
@@ -33,11 +36,14 @@ export function NewClientForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="slug">
+          <label
+            className="text-sm font-medium text-muted-foreground"
+            htmlFor="slug"
+          >
             Slug
           </label>
           <input
-            className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             id="slug"
             name="slug"
             placeholder="cliente_exemplo"
@@ -46,11 +52,14 @@ export function NewClientForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="status">
+          <label
+            className="text-sm font-medium text-muted-foreground"
+            htmlFor="status"
+          >
             Status
           </label>
           <select
-            className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue="ativo"
             id="status"
             name="status"
@@ -61,29 +70,29 @@ export function NewClientForm() {
           </select>
         </div>
 
-        <label className="flex items-center gap-3 rounded-md border border-zinc-200 px-3 py-3 text-sm font-medium text-zinc-700">
+        <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-3 text-sm font-medium text-muted-foreground">
           <input className="h-4 w-4" name="modo_teste" type="checkbox" />
           Modo teste ativo
         </label>
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-zinc-700"
+            className="text-sm font-medium text-muted-foreground"
             htmlFor="cor_principal"
           >
             Cor principal
           </label>
           <input
-            className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             id="cor_principal"
             name="cor_principal"
-            placeholder="#111827"
+            placeholder="#151515"
           />
         </div>
       </div>
 
-      <div className="border-t border-zinc-200 pt-5">
-        <label className="flex items-center gap-3 text-sm font-medium text-zinc-700">
+      <div className="border-t border-border pt-5">
+        <label className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
           <input className="h-4 w-4" name="criar_workflow" type="checkbox" />
           Criar workflow inicial
         </label>
@@ -91,13 +100,13 @@ export function NewClientForm() {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_nome"
             >
               Nome do workflow
             </label>
             <input
-              className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
               id="workflow_nome"
               name="workflow_nome"
             />
@@ -105,13 +114,13 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_tipo"
             >
               Tipo
             </label>
             <input
-              className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
               id="workflow_tipo"
               name="workflow_tipo"
             />
@@ -119,13 +128,13 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="webhook_url"
             >
               Webhook URL
             </label>
             <input
-              className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
               id="webhook_url"
               name="webhook_url"
               placeholder="https://..."
@@ -134,13 +143,13 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_status"
             >
               Status
             </label>
             <select
-              className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
               defaultValue="teste"
               id="workflow_status"
               name="workflow_status"
@@ -154,13 +163,13 @@ export function NewClientForm() {
       </div>
 
       {state.message ? (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.message}
         </p>
       ) : null}
 
       <button
-        className="h-11 w-fit rounded-md bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="h-11 w-fit rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
         disabled={pending}
         type="submit"
       >

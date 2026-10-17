@@ -45,7 +45,7 @@ export function ServicosLinhaForm({
   >(action, null);
 
   const inputClass =
-    "h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+    "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -55,13 +55,11 @@ export function ServicosLinhaForm({
       <input name="servico_id" type="hidden" value={servicoId} />
 
       <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
           Preço base ({moeda})
           <input
             className={`${inputClass} w-32`}
-            defaultValue={
-              precoEditavel && preco !== null ? String(preco) : ""
-            }
+            defaultValue={precoEditavel && preco !== null ? String(preco) : ""}
             disabled={!podeEditar || !precoEditavel}
             inputMode="decimal"
             min="0"
@@ -72,7 +70,7 @@ export function ServicosLinhaForm({
           />
         </label>
 
-        <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+        <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
           Notas
           <input
             className={`${inputClass} w-full`}
@@ -87,7 +85,7 @@ export function ServicosLinhaForm({
 
         {podeEditar ? (
           <FormSubmitButton
-            className="inline-flex min-h-10 items-center rounded-full bg-zinc-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+            className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
             pendingLabel="A gravar..."
           >
             Gravar

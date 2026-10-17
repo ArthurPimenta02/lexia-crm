@@ -24,11 +24,11 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
     <form action={formAction} className="mt-5 grid gap-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="email">
+          <label className="text-sm font-medium text-muted-foreground" htmlFor="email">
             E-mail
           </label>
           <input
-            className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             id="email"
             name="email"
             required
@@ -38,13 +38,13 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-zinc-700"
+            className="text-sm font-medium text-muted-foreground"
             htmlFor="password"
           >
             Senha temporária
           </label>
           <input
-            className="h-11 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             id="password"
             minLength={6}
             name="password"
@@ -54,11 +54,11 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="role">
+          <label className="text-sm font-medium text-muted-foreground" htmlFor="role">
             Role
           </label>
           <select
-            className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue="cliente_admin"
             id="role"
             name="role"
@@ -69,11 +69,11 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="status">
+          <label className="text-sm font-medium text-muted-foreground" htmlFor="status">
             Status
           </label>
           <select
-            className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue="ativo"
             id="status"
             name="status"
@@ -86,7 +86,7 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
 
       {state.message ? (
         <p
-          className={`rounded-md border px-3 py-2 text-sm ${
+          className={`rounded-lg border px-3 py-2 text-sm ${
             state.type === "success"
               ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border-red-200 bg-red-50 text-red-700"
@@ -97,7 +97,7 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
       ) : null}
 
       <button
-        className="h-11 w-fit rounded-md bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+        className="h-11 w-fit rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
         disabled={pending}
         type="submit"
       >

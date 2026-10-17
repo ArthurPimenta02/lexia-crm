@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ExpandableText } from "@/app/components/expandable-text";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import {
   buildAppConversationHref,
   isLikelyImageUrl,
@@ -36,7 +37,7 @@ function FeedbackResponse({ text }: { text: string | null }) {
   if (isLikelyImageUrl(text)) {
     return (
       <a
-        className="inline-flex max-w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-600 underline-offset-2 hover:underline"
+        className="inline-flex max-w-full rounded-2xl border border-border bg-surface-muted px-2 py-1 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
         href={text ?? ""}
         rel="noreferrer"
         target="_blank"
@@ -47,10 +48,7 @@ function FeedbackResponse({ text }: { text: string | null }) {
   }
 
   return (
-    <ExpandableText
-      emptyText="Resposta marcada não registada."
-      text={text}
-    />
+    <ExpandableText emptyText="Resposta marcada não registada." text={text} />
   );
 }
 
@@ -87,40 +85,35 @@ export default async function ClientFeedbacksPage() {
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div>
-        <p className="text-sm font-semibold tracking-[0.32em] text-zinc-500 uppercase">
-          Agente
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-          Feedbacks
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          Problemas e melhorias marcadas nas respostas do agente.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Feedbacks" />
 
-      <div className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         {feedbacks.length > 0 ? (
-          <div className="w-full">
-            <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-              <thead className="bg-zinc-50 text-zinc-700">
+          /*
+            Larguras em píxeis: em percentagem, a coluna da data ficava com
+            41px em telemóvel e partia-se a meio do ano. Aqui cada coluna tem
+            o que precisa e a tabela desliza na horizontal quando não cabe.
+          */
+          <div className="overflow-x-auto">
+            <table className="min-w-[1024px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
-                  <th className="w-[12%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
                     Data
                   </th>
-                  <th className="w-[12%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[140px] border-b border-border px-3 py-3 font-medium">
                     Categoria
                   </th>
-                  <th className="w-[20%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
                     Mensagem do cliente
                   </th>
-                  <th className="w-[22%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[260px] border-b border-border px-3 py-3 font-medium">
                     Resposta do agente
                   </th>
-                  <th className="w-[22%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
                     Comentário
                   </th>
-                  <th className="w-[12%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
                     Estado
                   </th>
                 </tr>
@@ -141,69 +134,69 @@ export default async function ClientFeedbacksPage() {
                     : feedback.comentario;
 
                   return (
-                  <tr className="border-b border-zinc-200" key={feedback.id}>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDateInTimezone(feedback.criado_em, timeZone)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top font-medium text-zinc-950">
-                      <div className="flex flex-col gap-2">
+                    <tr className="border-b border-border" key={feedback.id}>
+                      <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                        {formatDateInTimezone(feedback.criado_em, timeZone)}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top font-medium text-foreground">
+                        <div className="flex flex-col gap-2">
                           <span>{formatLabel(feedback.avaliacao)}</span>
-                        {parsedComentario.categoria ? (
-                          <span className="inline-flex w-fit rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                            {parsedComentario.categoria}
-                          </span>
+                          {parsedComentario.categoria ? (
+                            <span className="inline-flex w-fit rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                              {parsedComentario.categoria}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Mensagem do cliente não registada."
+                          text={feedback.mensagem_cliente}
+                        />
+                        {conversationTarget ? (
+                          <Link
+                            className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href={conversationTarget}
+                          >
+                            Abrir na conversa
+                          </Link>
                         ) : null}
-                      </div>
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-700">
-                      <ExpandableText
-                        emptyText="Mensagem do cliente não registada."
-                        text={feedback.mensagem_cliente}
-                      />
-                      {conversationTarget ? (
-                        <Link
-                          className="mt-2 block text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href={conversationTarget}
-                        >
-                          Abrir na conversa
-                        </Link>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-700">
-                      <FeedbackResponse text={feedback.resposta_agente} />
-                      {conversationTarget ? (
-                        <Link
-                          className="mt-2 block text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href={conversationTarget}
-                        >
-                          Ver conversa
-                        </Link>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-700">
-                      <ExpandableText
-                        emptyText="Sem comentário"
-                        text={commentText}
-                      />
-                      {parsedComentario.conversa ? (
-                        <p className="mt-2 text-xs text-zinc-500">
-                          Conversa relacionada
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-700">
-                      <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs font-medium text-zinc-600">
-                        {formatLabel(feedback.status)}
-                      </span>
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <FeedbackResponse text={feedback.resposta_agente} />
+                        {conversationTarget ? (
+                          <Link
+                            className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href={conversationTarget}
+                          >
+                            Ver conversa
+                          </Link>
+                        ) : null}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Sem comentário"
+                          text={commentText}
+                        />
+                        {parsedComentario.conversa ? (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Conversa relacionada
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <span className="rounded-full border border-border bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {formatLabel(feedback.status)}
+                        </span>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-600">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Ainda não há feedbacks registados.
           </div>
         )}

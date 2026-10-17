@@ -7,6 +7,7 @@ import { ChannelBadge } from "@/app/components/channel-brand";
 import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
 import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { SeccaoTitulo } from "@/app/components/painel-ui";
 import {
   canaisDeAquisicao,
   canalQuePedeNota,
@@ -58,21 +59,20 @@ const diasParaParado = 90;
 const porPagina = 25;
 
 const inputClass =
-  "h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+  "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
 
-const labelTexto =
-  "text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase";
+const labelTexto = "text-xs font-semibold text-muted-foreground";
 
 const labelClass = `flex flex-col gap-1.5 ${labelTexto}`;
 
 const botaoPrimario =
-  "inline-flex min-h-10 items-center rounded-full bg-zinc-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60";
+  "inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60";
 
 const botaoDiscreto =
-  "inline-flex min-h-8 items-center rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 disabled:opacity-60";
+  "inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-border-strong hover:bg-surface-muted disabled:opacity-60";
 
 const cartao =
-  "rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]";
+  "rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
 
 function formatMoeda(valor: number, moeda: string) {
   return new Intl.NumberFormat("pt-PT", {
@@ -158,10 +158,10 @@ function CampoTelefone() {
       <p
         className={`text-xs normal-case ${
           !escreveu
-            ? "text-zinc-500"
+            ? "text-muted-foreground"
             : montado.erro
               ? "text-red-700"
-              : "text-zinc-600"
+              : "text-muted-foreground"
         }`}
       >
         {!escreveu ? (
@@ -174,7 +174,7 @@ function CampoTelefone() {
         ) : (
           <>
             Vai ficar gravado como{" "}
-            <strong className="font-semibold text-zinc-900">
+            <strong className="font-semibold text-foreground">
               {montado.digitos}
             </strong>
           </>
@@ -209,7 +209,10 @@ function CamposDaPessoa({
 
   return (
     <>
-      <label className={`${labelClass} min-w-48 flex-1`} htmlFor={`${prefixo}-email`}>
+      <label
+        className={`${labelClass} min-w-48 flex-1`}
+        htmlFor={`${prefixo}-email`}
+      >
         Email
         <input
           className={`${inputClass} w-full`}
@@ -222,7 +225,10 @@ function CamposDaPessoa({
         />
       </label>
 
-      <label className={`${labelClass} min-w-48 flex-1`} htmlFor={`${prefixo}-morada`}>
+      <label
+        className={`${labelClass} min-w-48 flex-1`}
+        htmlFor={`${prefixo}-morada`}
+      >
         Endereço
         <input
           className={`${inputClass} w-full`}
@@ -349,10 +355,12 @@ function CamposDoServico({
   }
 
   return (
-    <div className="flex w-full flex-wrap items-start gap-3 rounded-xl bg-zinc-50 px-3 py-3">
-      <p className="w-full text-xs text-zinc-500">
+    <div className="flex w-full flex-wrap items-start gap-3 rounded-xl bg-surface-muted px-3 py-3">
+      <p className="w-full text-xs text-muted-foreground">
         Serviço já feito{" "}
-        {opcional ? <span className="text-zinc-400">— opcional</span> : null}
+        {opcional ? (
+          <span className="text-muted-foreground/60">— opcional</span>
+        ) : null}
       </p>
 
       <label
@@ -374,7 +382,10 @@ function CamposDoServico({
         </select>
       </label>
 
-      <label className={`${labelClass} w-40`} htmlFor={`${prefixo}-servico-data`}>
+      <label
+        className={`${labelClass} w-40`}
+        htmlFor={`${prefixo}-servico-data`}
+      >
         Data
         <input
           className={`${inputClass} w-full`}
@@ -455,7 +466,10 @@ function CriarClienteForm({
   return (
     <form action={formAction} className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start gap-3">
-        <label className={`${labelClass} min-w-48 flex-1`} htmlFor="cliente-nome">
+        <label
+          className={`${labelClass} min-w-48 flex-1`}
+          htmlFor="cliente-nome"
+        >
           Nome
           <input
             className={`${inputClass} w-full`}
@@ -472,7 +486,10 @@ function CriarClienteForm({
 
         <CamposDaPessoa mostrarViatura={mostrarViatura} prefixo="criar" />
 
-        <label className={`${labelClass} min-w-48 flex-1`} htmlFor="cliente-notas">
+        <label
+          className={`${labelClass} min-w-48 flex-1`}
+          htmlFor="cliente-notas"
+        >
           Notas
           <input
             className={`${inputClass} w-full`}
@@ -575,7 +592,7 @@ function FichaForm({
       <label className={labelClass} htmlFor={`notas-${cliente.id}`}>
         Notas
         <textarea
-          className="min-h-20 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-zinc-950"
+          className="min-h-20 rounded-2xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none transition focus:border-foreground"
           defaultValue={cliente.notas ?? ""}
           id={`notas-${cliente.id}`}
           maxLength={4000}
@@ -646,7 +663,10 @@ function ServicoNaFichaForm({
       />
 
       <div className="flex items-center gap-3">
-        <FormSubmitButton className={botaoDiscreto} pendingLabel="A registar...">
+        <FormSubmitButton
+          className={botaoDiscreto}
+          pendingLabel="A registar..."
+        >
           Registar serviço
         </FormSubmitButton>
         <Mensagem resultado={resultado} />
@@ -654,9 +674,7 @@ function ServicoNaFichaForm({
 
       {jaRegistados.length > 0 ? (
         <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-900">
-          <p className="font-semibold">
-            {cliente.nome} já tem isto registado:
-          </p>
+          <p className="font-semibold">{cliente.nome} já tem isto registado:</p>
           <ul className="mt-2 flex flex-col gap-1">
             {jaRegistados.map((linha) => (
               <li key={linha.id}>
@@ -714,10 +732,10 @@ function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
         </span>
       ) : null}
       {manual ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-medium text-zinc-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-medium text-muted-foreground">
           {manual}
           {cliente.origemManualNota ? ` · ${cliente.origemManualNota}` : ""}
-          <span className="font-normal text-zinc-500">indicado</span>
+          <span className="font-normal text-muted-foreground">indicado</span>
         </span>
       ) : null}
     </div>
@@ -752,8 +770,8 @@ function CamposEmLeitura({
         <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
           {linhas.map((linha) => (
             <div key={linha.rotulo}>
-              <dt className="text-zinc-500">{linha.rotulo}</dt>
-              <dd className="mt-0.5 text-sm font-medium text-zinc-900">
+              <dt className="text-muted-foreground">{linha.rotulo}</dt>
+              <dd className="mt-0.5 text-sm font-medium text-foreground">
                 {linha.valor}
               </dd>
             </div>
@@ -762,7 +780,7 @@ function CamposEmLeitura({
       ) : null}
 
       {cliente.notas ? (
-        <p className="text-sm whitespace-pre-line text-zinc-700">
+        <p className="text-sm whitespace-pre-line text-muted-foreground">
           {cliente.notas}
         </p>
       ) : null}
@@ -782,15 +800,17 @@ function OpcaoDeJuntar({
 }) {
   return (
     <button
-      className="flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 text-left transition hover:border-zinc-400 hover:bg-white"
+      className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left transition hover:border-border-strong hover:bg-surface"
       onClick={aoEscolher}
       type="button"
     >
       <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-zinc-900">
+        <span className="block truncate text-sm font-medium text-foreground">
           {outro.nome}
         </span>
-        <span className="block text-xs text-zinc-500">{outro.telefone}</span>
+        <span className="block text-xs text-muted-foreground">
+          {outro.telefone}
+        </span>
       </span>
       {mesmoNumero ? (
         <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
@@ -862,7 +882,7 @@ function JuntarForm({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+      <p className="text-xs font-semibold text-muted-foreground">
         Juntar a outro contacto
       </p>
 
@@ -871,7 +891,7 @@ function JuntarForm({
           <input name="duplicado_id" type="hidden" value={cliente.id} />
           <input name="principal_id" type="hidden" value={escolhido.id} />
 
-          <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+          <p className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
             <span className="font-semibold">{cliente.nome}</span> passa a
             aparecer dentro da ficha de{" "}
             <span className="font-semibold">{escolhido.nome}</span> ·{" "}
@@ -927,7 +947,7 @@ function JuntarForm({
 
           {procura.trim() !== "" ? (
             encontrados.length === 0 ? (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Nenhum contacto corresponde a essa procura.
               </p>
             ) : (
@@ -997,15 +1017,15 @@ function LinhaDoCliente({
   return (
     <button
       aria-expanded={aberto}
-      className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition hover:bg-zinc-50 sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] ${
-        aberto ? "bg-zinc-50" : ""
+      className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition hover:bg-surface-muted sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] ${
+        aberto ? "bg-surface-muted" : ""
       }`}
       onClick={aoAlternar}
       type="button"
     >
       <span className="min-w-0">
         <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-zinc-900">
+          <span className="truncate text-sm font-medium text-foreground">
             {cliente.nome}
           </span>
           {marcada ? (
@@ -1014,30 +1034,31 @@ function LinhaDoCliente({
             </span>
           ) : null}
           {cliente.juntos.length > 0 ? (
-            <span className="shrink-0 rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+            <span className="shrink-0 rounded-full bg-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
               +{cliente.juntos.length} junto
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-zinc-500 sm:hidden">
-          {cliente.telefone} · {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground sm:hidden">
+          {cliente.telefone} ·{" "}
+          {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
         </span>
       </span>
 
-      <span className="hidden truncate text-xs text-zinc-600 sm:block">
+      <span className="hidden truncate text-xs text-muted-foreground sm:block">
         {cliente.telefone}
       </span>
 
-      <span className="hidden text-xs text-zinc-600 sm:block">
+      <span className="hidden text-xs text-muted-foreground sm:block">
         {dias === null ? "—" : `há ${dias} ${dias === 1 ? "dia" : "dias"}`}
       </span>
 
-      <span className="hidden text-xs text-zinc-600 sm:block">
+      <span className="hidden text-xs text-muted-foreground sm:block">
         {cliente.mensagens} msg
       </span>
 
       <span className="flex shrink-0 items-center justify-end gap-2">
-        <span className="text-sm font-semibold text-zinc-900">
+        <span className="text-sm font-semibold text-foreground">
           {cliente.totalGasto === null
             ? "—"
             : formatMoeda(cliente.totalGasto, moeda)}
@@ -1048,7 +1069,7 @@ function LinhaDoCliente({
         */}
         <svg
           aria-hidden="true"
-          className={`h-4 w-4 text-zinc-400 transition-transform ${
+          className={`h-4 w-4 text-muted-foreground/60 transition-transform ${
             aberto ? "rotate-180" : ""
           }`}
           viewBox="0 0 20 20"
@@ -1098,7 +1119,7 @@ function FichaDoCliente({
   timeZone: string;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-t border-zinc-200 bg-zinc-50/60 px-4 py-4">
+    <div className="flex flex-col gap-4 border-t border-border bg-surface-muted px-4 py-4">
       <div className="flex flex-wrap items-center gap-2">
         {cliente.canais.map((canal) => (
           <ChannelBadge channel={canal} key={canal} />
@@ -1121,7 +1142,7 @@ function FichaDoCliente({
           conversa pedida mesmo que a última mensagem seja de há meses.
         */}
         <Link
-          className="inline-flex min-h-9 items-center rounded-full bg-zinc-950 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          className="inline-flex min-h-9 items-center rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
           href={buildAppConversationHref(cliente.identificadorConversa, null)}
         >
           Ir para a conversa na plataforma
@@ -1130,26 +1151,26 @@ function FichaDoCliente({
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
         <div>
-          <dt className="text-zinc-500">Última mensagem</dt>
-          <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          <dt className="text-muted-foreground">Última mensagem</dt>
+          <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Mensagens</dt>
-          <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          <dt className="text-muted-foreground">Mensagens</dt>
+          <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {cliente.mensagens}
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Primeiro contacto</dt>
-          <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          <dt className="text-muted-foreground">Primeiro contacto</dt>
+          <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {formatDayInTimezone(cliente.primeiroContactoEm, timeZone)}
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Marcações</dt>
-          <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+          <dt className="text-muted-foreground">Marcações</dt>
+          <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {cliente.totalGasto === null ? "—" : cliente.historico.length}
           </dd>
         </div>
@@ -1168,16 +1189,14 @@ function FichaDoCliente({
       )}
 
       <div>
-        <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
-          Histórico
-        </p>
+        <p className="text-xs font-semibold text-muted-foreground">Histórico</p>
         {cliente.totalGasto === null ? (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted-foreground">
             As marcações vivem na base de dados do cliente e ela não está ligada
             neste ambiente.
           </p>
         ) : cliente.historico.length === 0 ? (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-muted-foreground">
             Nunca marcou nada. Falou com o agente mas não fechou — é exactamente
             quem vale a pena voltar a contactar.
           </p>
@@ -1185,13 +1204,13 @@ function FichaDoCliente({
           <ul className="mt-2">
             {cliente.historico.map((linha) => (
               <li
-                className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-200 py-1.5 last:border-b-0"
+                className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border py-1.5 last:border-b-0"
                 key={linha.id}
               >
-                <span className="text-xs text-zinc-500">
+                <span className="text-xs text-muted-foreground">
                   {formatDayInTimezone(linha.dataInicio, timeZone)}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-zinc-700">
+                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                   {linha.servico ?? "serviço não registado"}
                   {linha.viatura ? ` · ${linha.viatura}` : ""}
                   {linha.estado === "cancelada" ? " · cancelada" : ""}
@@ -1199,8 +1218,8 @@ function FichaDoCliente({
                 <span
                   className={`text-xs font-semibold ${
                     linha.estado === "cancelada"
-                      ? "text-zinc-400 line-through"
-                      : "text-zinc-900"
+                      ? "text-muted-foreground/60 line-through"
+                      : "text-foreground"
                   }`}
                 >
                   {linha.valor === null ? "—" : formatMoeda(linha.valor, moeda)}
@@ -1232,16 +1251,16 @@ function FichaDoCliente({
 
       {cliente.juntos.length > 0 ? (
         <div>
-          <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+          <p className="text-xs font-semibold text-muted-foreground">
             Contactos juntos a este
           </p>
           <ul className="mt-2 flex flex-col gap-2">
             {cliente.juntos.map((junto) => (
               <li
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2 last:border-b-0 last:pb-0"
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
                 key={junto.id}
               >
-                <span className="text-xs text-zinc-700">
+                <span className="text-xs text-muted-foreground">
                   {junto.canal} ·{" "}
                   {junto.telefone || junto.identificadorConversa}
                 </span>
@@ -1265,7 +1284,7 @@ function FichaDoCliente({
       */}
       <div>
         <button
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-zinc-300 bg-white px-4 py-1.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-strong bg-surface px-4 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
           onClick={aoFechar}
           type="button"
         >
@@ -1424,9 +1443,7 @@ export function ClientesPanel({
       {podeEditar ? (
         <div className={cartao}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-              Novo cliente
-            </p>
+            <SeccaoTitulo>Novo cliente</SeccaoTitulo>
             <button
               className={botaoDiscreto}
               onClick={() => setACriar((anterior) => !anterior)}
@@ -1438,7 +1455,7 @@ export function ClientesPanel({
 
           {aCriar ? (
             <>
-              <p className="mt-3 text-xs text-zinc-500">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Fica no WhatsApp. É o único canal onde o número é também o
                 identificador da conversa, por isso o contacto liga-se à
                 conversa real assim que a pessoa escrever.
@@ -1491,7 +1508,7 @@ export function ClientesPanel({
               value={procura}
             />
           </label>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {filtrados.length} de {clientes.length} clientes
           </p>
         </div>
@@ -1501,8 +1518,8 @@ export function ClientesPanel({
             <button
               className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                 filtro === chip.id
-                  ? "bg-zinc-950 text-white"
-                  : "border border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border-strong bg-surface text-muted-foreground hover:border-border-strong"
               }`}
               key={chip.id}
               onClick={() => mudarFiltro(chip.id)}
@@ -1524,15 +1541,15 @@ export function ClientesPanel({
 
       {filtrados.length === 0 ? (
         <div className={cartao}>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-muted-foreground">
             {clientes.length === 0
               ? "Ainda não há clientes com nome e número de telefone."
               : "Nenhum cliente corresponde a essa procura."}
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[22px] border border-zinc-200/80 bg-white shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] gap-x-4 border-b border-zinc-200 bg-zinc-50 px-4 py-2 text-[11px] font-semibold tracking-[0.12em] text-zinc-500 uppercase sm:grid">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] gap-x-4 border-b border-border bg-surface-muted px-4 py-2 text-[11px] font-semibold text-muted-foreground sm:grid">
             <span>Nome</span>
             <span>Telefone</span>
             <span>Última mensagem</span>
@@ -1542,7 +1559,10 @@ export function ClientesPanel({
 
           <ul>
             {visiveis.map((cliente) => (
-              <li className="border-b border-zinc-100 last:border-b-0" key={cliente.id}>
+              <li
+                className="border-b border-border last:border-b-0"
+                key={cliente.id}
+              >
                 <LinhaDoCliente
                   aberto={aberto === cliente.id}
                   aoAlternar={() =>
@@ -1578,7 +1598,7 @@ export function ClientesPanel({
           </ul>
 
           {paginas > 1 ? (
-            <div className="flex items-center justify-between gap-3 border-t border-zinc-200 bg-zinc-50 px-4 py-2.5">
+            <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-muted px-4 py-2.5">
               <button
                 className={botaoDiscreto}
                 disabled={paginaActual === 0}
@@ -1587,7 +1607,7 @@ export function ClientesPanel({
               >
                 Anterior
               </button>
-              <span className="text-xs text-zinc-600">
+              <span className="text-xs text-muted-foreground">
                 Página {paginaActual + 1} de {paginas}
               </span>
               <button
@@ -1605,10 +1625,8 @@ export function ClientesPanel({
 
       {deFora.semTelefoneReal + deFora.semNome > 0 ? (
         <div className={cartao}>
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-            Contactos que não entram na lista
-          </p>
-          <ul className="mt-3 flex flex-col gap-2 text-sm text-zinc-700">
+          <SeccaoTitulo>Contactos que não entram na lista</SeccaoTitulo>
+          <ul className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
             {deFora.semTelefoneReal > 0 ? (
               <li>
                 <span className="font-semibold">{deFora.semTelefoneReal}</span>{" "}

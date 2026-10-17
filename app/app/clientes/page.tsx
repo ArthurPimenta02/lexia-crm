@@ -8,6 +8,7 @@ import {
   separarClientesAction,
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
@@ -43,25 +44,7 @@ export default async function ClientesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div>
-        <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-          Clientes
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-          Quem falou contigo, e o que já comprou
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          Cada pessoa que escreveu ao agente tem aqui uma ficha. A lista está
-          ordenada por quem falou mais recentemente, e entram as pessoas com
-          nome e com número de telefone — é o que permite voltar a falar com
-          elas.
-        </p>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          O histórico de marcações e o total gasto vêm das marcações — as que o
-          agente criou e as que registaste à mão —, ligadas à ficha pelo número
-          de telefone.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Clientes" />
 
       <ClientesPanel
         actionCriar={criarClienteAction}

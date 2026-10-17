@@ -103,12 +103,10 @@ export function ConversationPeriodFilter({
   timezone: string;
 }) {
   return (
-    <div className="mt-3 border-t border-zinc-200/70 pt-3">
+    <div className="mt-3 border-t border-border pt-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
-          Período
-        </p>
-        <p className="text-xs text-zinc-500">{rangeLabel}</p>
+        <p className="text-xs font-semibold text-muted-foreground">Período</p>
+        <p className="text-xs text-muted-foreground">{rangeLabel}</p>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -120,8 +118,8 @@ export function ConversationPeriodFilter({
               aria-current={isActive ? "page" : undefined}
               className={`inline-flex min-h-8 items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
                 isActive
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+                  ? "border-foreground bg-primary text-primary-foreground"
+                  : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted"
               }`}
               href={buildPeriodHref({
                 basePath,
@@ -162,7 +160,7 @@ export function ConversationPeriodFilter({
           <label className="min-w-0">
             <span className="sr-only">Início</span>
             <input
-              className="h-8 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
+              className="h-8 w-full min-w-0 rounded-2xl border border-border-strong bg-surface px-2 text-xs text-foreground outline-none transition focus:border-foreground"
               defaultValue={period.start}
               name="inicio"
               type="date"
@@ -171,7 +169,7 @@ export function ConversationPeriodFilter({
           <label className="min-w-0">
             <span className="sr-only">Fim</span>
             <input
-              className="h-8 w-full min-w-0 rounded-md border border-zinc-300 bg-white px-2 text-xs text-zinc-900 outline-none transition focus:border-zinc-950"
+              className="h-8 w-full min-w-0 rounded-2xl border border-border-strong bg-surface px-2 text-xs text-foreground outline-none transition focus:border-foreground"
               defaultValue={period.end}
               name="fim"
               type="date"
@@ -179,7 +177,7 @@ export function ConversationPeriodFilter({
           </label>
           <FormSubmitButton
             aria-label="Aplicar período"
-            className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-950 text-white transition hover:bg-zinc-800"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90"
             pendingLabel=""
             title="Aplicar período"
           >

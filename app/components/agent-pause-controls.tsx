@@ -125,7 +125,7 @@ export function AgentPauseControls({
       <div className={`flex flex-col gap-1.5 ${fullWidth ? "w-full sm:w-auto" : ""}`}>
         {canResume ? (
           <button
-            className={`${buttonBase} bg-zinc-950 text-white hover:bg-zinc-800`}
+            className={`${buttonBase} bg-primary text-primary-foreground hover:opacity-90`}
             disabled={pending}
             onClick={handleResume}
             type="button"
@@ -137,7 +137,7 @@ export function AgentPauseControls({
           <button
             aria-expanded={isSheetOpen}
             aria-haspopup="dialog"
-            className={`${buttonBase} border border-zinc-300 bg-white text-zinc-900 hover:border-zinc-950`}
+            className={`${buttonBase} border border-border-strong bg-surface text-foreground hover:border-foreground`}
             disabled={pending}
             onClick={() => {
               setError(null);
@@ -163,17 +163,17 @@ export function AgentPauseControls({
           role="dialog"
         >
           <div
-            className="w-full rounded-t-3xl bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-left shadow-2xl sm:max-w-sm sm:rounded-3xl sm:pt-5"
+            className="w-full rounded-t-3xl bg-surface px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-left shadow-2xl sm:max-w-sm sm:rounded-3xl sm:pt-5"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-zinc-200 sm:hidden" />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border sm:hidden" />
             <h2
-              className="text-lg font-semibold tracking-tight text-zinc-950"
+              className="text-lg font-semibold tracking-tight text-foreground"
               id="pausar-agente-titulo"
             >
               Pausar agente
             </h2>
-            <p className="mt-1 text-sm leading-5 text-zinc-600">
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {contactLabel
                 ? `O agente deixa de responder ${contactLabel}. `
                 : "O agente deixa de responder esta conversa. "}
@@ -183,7 +183,7 @@ export function AgentPauseControls({
             <div className="mt-4 flex flex-col gap-2">
               {manualPauseDurations.map((option) => (
                 <button
-                  className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left transition hover:border-zinc-950 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex min-h-14 items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-left transition hover:border-foreground hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={pending}
                   key={option.value}
                   onClick={() =>
@@ -198,14 +198,14 @@ export function AgentPauseControls({
                   type="button"
                 >
                   <span>
-                    <span className="block text-sm font-semibold text-zinc-950">
+                    <span className="block text-sm font-semibold text-foreground">
                       {option.label}
                     </span>
-                    <span className="block text-xs text-zinc-500">
+                    <span className="block text-xs text-muted-foreground">
                       {durationHints[option.value]}
                     </span>
                   </span>
-                  <span aria-hidden="true" className="text-zinc-400">
+                  <span aria-hidden="true" className="text-muted-foreground/60">
                     ›
                   </span>
                 </button>
@@ -217,7 +217,7 @@ export function AgentPauseControls({
             ) : null}
 
             <button
-              className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-zinc-600 transition hover:bg-zinc-100 disabled:opacity-60"
+              className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-muted-foreground transition hover:bg-muted disabled:opacity-60"
               disabled={pending}
               onClick={() => setIsSheetOpen(false)}
               type="button"

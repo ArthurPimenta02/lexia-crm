@@ -31,14 +31,14 @@ export function LexiaBrand({
         <div className="min-w-0">
           <p
             className={`text-lg font-semibold tracking-tight ${
-              isDark ? "text-zinc-50" : "text-zinc-950"
+              isDark ? "text-background" : "text-foreground"
             }`}
           >
             Lexia AI
           </p>
           <p
             className={`mt-0.5 text-[11px] font-medium tracking-[0.22em] uppercase ${
-              isDark ? "text-zinc-400" : "text-zinc-500"
+              isDark ? "text-muted-foreground/60" : "text-muted-foreground"
             }`}
           >
             IA que entende

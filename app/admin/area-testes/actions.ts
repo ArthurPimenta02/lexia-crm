@@ -83,7 +83,7 @@ export async function createAdminTestSession(
       cliente_slug: clienteSlug,
       origem: "painel_admin",
       status: "activa",
-      nome: "Nova sessão admin",
+      nome: "Nova sessão",
     })
     .select("id, session_id, cliente_slug, origem, status, nome, criado_em")
     .single();
@@ -273,7 +273,10 @@ export async function getAdminExecutionByRunId(
     .maybeSingle();
 
   if (error) {
-    return { data: null, error: "Não foi possível buscar a resposta do agente." };
+    return {
+      data: null,
+      error: "Não foi possível buscar a resposta do agente.",
+    };
   }
 
   return { data: (data as AdminTestExecution | null) ?? null, error: null };

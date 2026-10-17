@@ -36,7 +36,7 @@ export function CampaignsRefreshButton({
           <input name="cliente_slug" type="hidden" value={clienteSlug} />
         ) : null}
         <FormSubmitButton
-          className="inline-flex items-center rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           pendingLabel="A puxar da Meta..."
         >
           Atualizar dados
@@ -51,7 +51,7 @@ export function CampaignsRefreshButton({
           {resultado.mensagem}
         </p>
       ) : (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           {atualizadoEm
             ? `Última atualização: ${atualizadoEm}`
             : "Nunca atualizado."}

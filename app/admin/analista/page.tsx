@@ -35,8 +35,8 @@ export default async function AdminAnalystPage({
   if (clients.length === 0) {
     return (
       <section className="max-w-3xl">
-        <h1 className="text-3xl font-semibold text-zinc-950">Analista Lexia</h1>
-        <p className="mt-3 text-zinc-600">Nenhum cliente ativo encontrado.</p>
+        <h1 className="text-3xl font-semibold text-foreground">Analista Lexia</h1>
+        <p className="mt-3 text-muted-foreground">Nenhum cliente ativo encontrado.</p>
       </section>
     );
   }

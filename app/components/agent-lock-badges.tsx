@@ -6,19 +6,23 @@ const lockLabels: Record<AgentLock["kind"], string> = {
   status: "Atendimento humano em curso",
 };
 
-const lockStyles: Record<AgentLock["kind"], { chip: string; dot: string }> = {
-  pausa_eterna: {
-    chip: "border-violet-200 bg-violet-50 text-violet-900",
-    dot: "bg-violet-500",
-  },
-  pausa_manual: {
-    chip: "border-amber-200 bg-amber-50 text-amber-900",
-    dot: "bg-amber-500",
-  },
-  status: {
-    chip: "border-sky-200 bg-sky-50 text-sky-900",
-    dot: "bg-sky-500",
-  },
+/*
+ * Três travas, três razões, uma só aparência.
+ *
+ * Isto era violeta, âmbar e azul — três famílias de cor para dizer a mesma
+ * coisa: o agente não vai responder. O porquê e o até quando já estão
+ * escritos na etiqueta, em palavras, que é onde se lêem. A cor só ficava
+ * a competir com o resto do ecrã.
+ *
+ * O ponto é o único sinal que sobra, e carrega a única distinção que o dono
+ * precisa de apanhar de relance: uma pausa sem prazo não se desfaz sozinha,
+ * fica à espera de alguém. Essa leva o tom de aviso; as outras expiram e por
+ * isso são neutras.
+ */
+const lockDots: Record<AgentLock["kind"], string> = {
+  pausa_eterna: "bg-warning",
+  pausa_manual: "bg-muted-foreground",
+  status: "bg-muted-foreground",
 };
 
 export function formatLockRemaining(ttlSeconds: number | null) {
@@ -46,8 +50,8 @@ export function formatLockRemaining(ttlSeconds: number | null) {
 
 export function AgentActiveBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-900">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+      <span className="bg-positive h-1.5 w-1.5 rounded-full" />
       Agente ativo
     </span>
   );
@@ -66,11 +70,11 @@ export function AgentLockBadges({
     >
       {locks.map((lock) => (
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${lockStyles[lock.kind].chip}`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
           key={lock.kind}
         >
           <span
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${lockStyles[lock.kind].dot}`}
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${lockDots[lock.kind]}`}
           />
           <span>
             {lockLabels[lock.kind]}

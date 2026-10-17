@@ -2,6 +2,7 @@ import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getServicosConfig } from "@/lib/servicos/config";
@@ -74,27 +75,13 @@ export default async function AdminServicosPage({
     clientes[0] ??
     null;
 
-  const cabecalho = (
-    <div>
-      <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-        Serviços
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-        Custo e margem por serviço
-      </h1>
-      <p className="mt-2 max-w-2xl text-zinc-600">
-        Preço e duração vêm da base de dados do cliente. A receita de produtos
-        de cada serviço vive na Lexia, e é dela que sai o custo de produto e a
-        margem.
-      </p>
-    </div>
-  );
+  const cabecalho = <PaginaCabecalho titulo="Serviços" />;
 
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-8 text-center text-sm text-zinc-600 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           Nenhum cliente activo disponível.
         </div>
       </div>
@@ -121,12 +108,12 @@ export default async function AdminServicosPage({
       scroll={false}
     >
       <label
-        className="flex flex-col gap-2 text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase"
+        className="flex flex-col gap-2 text-sm font-semibold text-foreground"
         htmlFor="cliente"
       >
         Cliente
         <select
-          className="h-10 min-w-56 rounded-md border border-zinc-300 bg-white px-3 text-sm font-normal tracking-normal text-zinc-900 normal-case outline-none transition focus:border-zinc-950"
+          className="h-10 min-w-56 rounded-2xl border border-border-strong bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground"
           defaultValue={clienteSlug}
           id="cliente"
           name="cliente"
@@ -141,7 +128,7 @@ export default async function AdminServicosPage({
       </label>
       <input name="escalao" type="hidden" value={painel.escalaoActivo} />
       <FormSubmitButton
-        className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+        className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
         pendingLabel="..."
       >
         Selecionar

@@ -10,6 +10,7 @@ import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { parseFeedbackComentario } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   formatDateInTimezone,
@@ -66,7 +67,7 @@ const moduleFilters = [
 const allowedModules = moduleFilters.map((item) => item.value).filter(Boolean);
 
 function getSearchValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function formatLabel(value: string | null) {
@@ -112,10 +113,7 @@ function getFeedbackBehavior(feedback: FeedbackPrefill | null) {
   const parsed = parseFeedbackComentario(feedback.comentario);
 
   return (
-    parsed.observacao ||
-    feedback.comentario ||
-    feedback.resposta_agente ||
-    ""
+    parsed.observacao || feedback.comentario || feedback.resposta_agente || ""
   );
 }
 
@@ -139,15 +137,25 @@ function AdjustmentForm({
   };
   title: string;
 }) {
+  /*
+   * O `*:min-w-0` não é decoração: sem ele este formulário rebenta o cartão
+   * no telemóvel.
+   *
+   * Um item de grelha tem `min-width: auto`, ou seja, recusa-se a encolher
+   * abaixo do seu conteúdo mínimo. O conteúdo mínimo de um `<select>` é a
+   * sua opção mais comprida — aqui "Detail by Cordeiro (detail_by_cordeiro)"
+   * — e isso empurrava os campos todos para fora da borda a 375px. Pôr o
+   * mínimo a zero nos filhos directos deixa-os seguir a largura do cartão.
+   */
   return (
-    <form action={action} className="grid gap-4">
+    <form action={action} className="grid gap-4 *:min-w-0">
       <h2 className="text-lg font-semibold">{title}</h2>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+      <div className="grid gap-4 *:min-w-0 md:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
           Cliente
           <select
-            className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue={defaultValues.cliente_slug}
             name="cliente_slug"
             required
@@ -161,10 +169,10 @@ function AdjustmentForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
           Módulo
           <select
-            className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue={defaultValues.modulo}
             name="modulo"
             required
@@ -178,30 +186,30 @@ function AdjustmentForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
         Título
         <input
-          className="h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+          className="h-10 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
           defaultValue={defaultValues.titulo}
           name="titulo"
           required
         />
       </label>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
         Gatilho
         <textarea
-          className="min-h-24 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none transition focus:border-zinc-900"
+          className="min-h-24 rounded-lg border border-border-strong px-3 py-2 text-sm outline-none transition focus:border-foreground"
           defaultValue={defaultValues.gatilho}
           name="gatilho"
           required
         />
       </label>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
         Comportamento correcto
         <textarea
-          className="min-h-28 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none transition focus:border-zinc-900"
+          className="min-h-28 rounded-lg border border-border-strong px-3 py-2 text-sm outline-none transition focus:border-foreground"
           defaultValue={defaultValues.comportamento_correto}
           name="comportamento_correto"
           required
@@ -209,10 +217,10 @@ function AdjustmentForm({
       </label>
 
       <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
           Prioridade
           <input
-            className="h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-10 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue={defaultValues.prioridade}
             max={100}
             min={0}
@@ -222,9 +230,9 @@ function AdjustmentForm({
           />
         </label>
 
-        <label className="flex items-end gap-2 text-sm font-medium text-zinc-700">
+        <label className="flex items-end gap-2 text-sm font-medium text-muted-foreground">
           <input
-            className="h-4 w-4 rounded border-zinc-300"
+            className="h-4 w-4 rounded border-border-strong"
             defaultChecked={defaultValues.activo}
             name="activo"
             type="checkbox"
@@ -242,7 +250,7 @@ function AdjustmentForm({
       ) : null}
 
       <FormSubmitButton
-        className="h-10 w-fit rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+        className="h-10 w-fit rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
         pendingLabel="Guardando..."
       >
         Guardar ajuste
@@ -341,16 +349,11 @@ export default async function AdminAdjustmentsPage({
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Ajustes do Agente</h1>
-        <p className="mt-2 text-zinc-600">
-          Regras e correcções usadas para melhorar as respostas dos agentes.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Ajustes do agente" />
 
       {statusMessage ? (
         <div
-          className={`rounded-md border p-4 text-sm ${
+          className={`rounded-lg border p-4 text-sm ${
             status === "erro"
               ? "border-red-200 bg-red-50 text-red-700"
               : "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -362,20 +365,22 @@ export default async function AdminAdjustmentsPage({
 
       <Form
         action="/admin/ajustes"
-        className="rounded-md border border-zinc-200 bg-white p-5"
+        className="rounded-2xl border border-border bg-surface p-5"
         replace
         scroll={false}
       >
-        <div className="grid gap-4 md:grid-cols-[1fr_220px_auto]">
+        {/* Mesmo motivo do formulário de baixo: a opção mais comprida do
+            selector de cliente alargava a coluna para lá do cartão. */}
+        <div className="grid gap-4 *:min-w-0 md:grid-cols-[1fr_220px_auto]">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="cliente"
             >
               Cliente
             </label>
             <select
-              className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
               defaultValue={selectedClient}
               id="cliente"
               name="cliente"
@@ -391,13 +396,13 @@ export default async function AdminAdjustmentsPage({
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="modulo"
             >
               Módulo
             </label>
             <select
-              className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
               defaultValue={selectedModule}
               id="modulo"
               name="modulo"
@@ -412,7 +417,7 @@ export default async function AdminAdjustmentsPage({
 
           <div className="flex items-end">
             <FormSubmitButton
-              className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               pendingLabel="Filtrando..."
             >
               Filtrar
@@ -421,7 +426,7 @@ export default async function AdminAdjustmentsPage({
         </div>
       </Form>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-border bg-surface p-5">
         <AdjustmentForm
           action={createAgentAdjustment}
           clients={clients}
@@ -430,38 +435,38 @@ export default async function AdminAdjustmentsPage({
         />
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Ajustes registados</h2>
         </div>
 
         {adjustments.length > 0 ? (
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-border">
             {adjustments.map((adjustment) => (
               <article className="px-5 py-5" key={adjustment.id}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
+                      <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         {adjustment.modulo}
                       </span>
                       <span
                         className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
                           adjustment.activo
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-zinc-200 bg-zinc-100 text-zinc-600"
+                            : "border-border bg-muted text-muted-foreground"
                         }`}
                       >
                         {adjustment.activo ? "Activo" : "Inactivo"}
                       </span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-muted-foreground">
                         Prioridade {adjustment.prioridade ?? 0}
                       </span>
                     </div>
-                    <h3 className="mt-3 text-base font-semibold text-zinc-950">
+                    <h3 className="mt-3 text-base font-semibold text-foreground">
                       {adjustment.titulo ?? "Sem título"}
                     </h3>
-                    <p className="mt-1 text-sm text-zinc-500">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {adjustment.cliente_slug}
                     </p>
                   </div>
@@ -473,7 +478,7 @@ export default async function AdminAdjustmentsPage({
                         adjustment.id,
                         !adjustment.activo,
                       )}
-                      className="h-9 rounded-md border border-zinc-300 px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100"
+                      className="h-9 rounded-lg border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-muted"
                       confirmMessage={
                         adjustment.activo
                           ? "Desactivar este ajuste?"
@@ -487,10 +492,10 @@ export default async function AdminAdjustmentsPage({
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                    <p className="text-xs font-medium text-muted-foreground/60">
                       Gatilho
                     </p>
-                    <div className="mt-1 text-sm text-zinc-600">
+                    <div className="mt-1 text-sm text-muted-foreground">
                       <ExpandableText
                         emptyText="Sem gatilho"
                         text={adjustment.gatilho}
@@ -498,10 +503,10 @@ export default async function AdminAdjustmentsPage({
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                    <p className="text-xs font-medium text-muted-foreground/60">
                       Comportamento correcto
                     </p>
-                    <div className="mt-1 text-sm text-zinc-600">
+                    <div className="mt-1 text-sm text-muted-foreground">
                       <ExpandableText
                         emptyText="Sem comportamento"
                         text={adjustment.comportamento_correto}
@@ -510,7 +515,7 @@ export default async function AdminAdjustmentsPage({
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs text-zinc-400">
+                <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground/60">
                   <span>
                     Criado em{" "}
                     {formatDateInTimezone(
@@ -530,8 +535,8 @@ export default async function AdminAdjustmentsPage({
                   ) : null}
                 </div>
 
-                <details className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4">
-                  <summary className="cursor-pointer text-sm font-medium text-zinc-700">
+                <details className="mt-4 rounded-2xl border border-border bg-surface-muted p-4">
+                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
                     Editar ajuste
                   </summary>
                   <div className="mt-4">
@@ -557,7 +562,7 @@ export default async function AdminAdjustmentsPage({
             ))}
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Ainda não há ajustes registados para este cliente.
           </div>
         )}

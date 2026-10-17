@@ -8,6 +8,7 @@ import {
   registarCompraAction,
   reporProdutoAction,
 } from "@/app/app/produtos/actions";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -56,25 +57,7 @@ export default async function ProdutosPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div>
-        <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-          Produtos
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-          Stock e duração dos produtos
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          O stock é a soma do que registas: as compras entram, e cada serviço
-          que marcas como realizado tira o que a receita diz. O custo por
-          unidade vem da tua última compra, por isso actualiza-se sozinho
-          quando voltas a comprar.
-        </p>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          A previsão de quanto tempo falta é contada a partir do dia em que
-          começas a registar — não há histórico importado, e com menos de duas
-          execuções registadas não aparece número nenhum.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Produtos" />
 
       <ProdutosPanel
         actionAjuste={registarAjusteAction}

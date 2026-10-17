@@ -63,7 +63,7 @@ export function ExcluirServicoForm({
     return (
       <div className="flex flex-col items-end gap-1.5">
         <button
-          className="text-xs font-semibold text-zinc-500 underline decoration-dotted transition hover:text-red-700"
+          className="text-xs font-semibold text-muted-foreground underline decoration-dotted transition hover:text-red-700"
           onClick={() => setAConfirmar(true)}
           type="button"
         >
@@ -89,7 +89,7 @@ export function ExcluirServicoForm({
 
       <div className="flex items-center gap-2">
         <button
-          className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-900"
+          className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
           onClick={() => setAConfirmar(false)}
           type="button"
         >
@@ -130,7 +130,7 @@ export function ReporServicoForm({
       <input name="servico_id" type="hidden" value={servicoId} />
 
       <FormSubmitButton
-        className="inline-flex min-h-8 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+        className="inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
         pendingLabel="A repor..."
       >
         Repor

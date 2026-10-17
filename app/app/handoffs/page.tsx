@@ -8,6 +8,7 @@ import {
 } from "@/app/app/handoffs/actions";
 import { AgentLocksSection } from "@/app/components/agent-locks-section";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import {
   HandoffCard,
   HandoffEmptyState,
@@ -155,18 +156,7 @@ export default async function ClientHandoffsPage() {
 
   return (
     <section className="flex w-full min-w-0 max-w-7xl flex-col gap-8">
-      <div>
-        <p className="text-xs font-semibold tracking-[0.32em] text-zinc-500 uppercase sm:text-sm">
-          Agente
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl">
-          Atendimento humano
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
-          Veja onde o agente está pausado e os pedidos encaminhados para a
-          equipa.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Handoffs" />
 
       {profile.status === "ativo" ? (
         <Suspense fallback={null}>
@@ -180,7 +170,7 @@ export default async function ClientHandoffsPage() {
       <section className="flex w-full min-w-0 flex-col gap-4">
         <HandoffSectionHeader
           count={handoffs.length}
-          description="Pedidos em que o agente encaminhou a conversa para acompanhamento da equipa."
+          dica="Pedidos em que o agente encaminhou a conversa para acompanhamento da equipa."
           title="Pedidos de atendimento"
         />
         {handoffs.length > 0 ? (
@@ -215,20 +205,16 @@ export default async function ClientHandoffsPage() {
       </section>
 
       <details className="group w-full min-w-0">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:border-border-strong [&::-webkit-details-marker]:hidden">
           <span>Pedidos simulados em testes ({simulatedHandoffs.length})</span>
           <span
             aria-hidden="true"
-            className="text-zinc-400 transition group-open:rotate-90"
+            className="text-muted-foreground/60 transition group-open:rotate-90"
           >
             ›
           </span>
         </summary>
         <div className="mt-4 flex flex-col gap-4">
-          <p className="text-sm leading-6 text-zinc-600">
-            Simulações da Área de Testes que indicaram necessidade de
-            atendimento humano. Não afetam pedidos reais.
-          </p>
           {simulatedHandoffs.length > 0 ? (
             <div className={handoffGridClass}>
               {simulatedHandoffs.map((handoff) => (
@@ -254,7 +240,9 @@ export default async function ClientHandoffsPage() {
               ))}
             </div>
           ) : (
-            <HandoffEmptyState>Ainda não há pedidos simulados.</HandoffEmptyState>
+            <HandoffEmptyState>
+              Ainda não há pedidos simulados.
+            </HandoffEmptyState>
           )}
         </div>
       </details>

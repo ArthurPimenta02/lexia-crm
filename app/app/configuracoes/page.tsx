@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,8 +29,8 @@ function InfoItem({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-sm text-zinc-500">{label}</p>
-      <div className="mt-1 break-words font-medium text-zinc-950">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <div className="mt-1 break-words font-medium text-foreground">
         {children}
       </div>
     </div>
@@ -92,33 +93,23 @@ export default async function ClientSettingsPage() {
 
   return (
     <section className="flex w-full max-w-5xl flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Configurações</h1>
-        <p className="mt-2 text-zinc-600">
-          Configurações básicas do agente deste cliente.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Configurações" />
 
       {clientData?.modo_teste ? (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          O agente está em modo teste. Use a Área de Testes para simular
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          O agente está em modo teste. Use a Área de testes para simular
           conversas antes da produção.
         </div>
       ) : null}
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-border bg-surface p-5">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Cliente</h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              Dados principais do ambiente vinculado ao seu acesso.
-            </p>
-          </div>
+          <h2 className="text-lg font-semibold">Cliente</h2>
           <Link
-            className="h-10 w-fit rounded-md bg-zinc-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+            className="h-10 w-fit rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
             href="/app/area-testes"
           >
-            Ir para Área de Testes
+            Ir para Área de testes
           </Link>
         </div>
 
@@ -127,7 +118,9 @@ export default async function ClientSettingsPage() {
           <InfoItem label="Slug">
             {clientData?.slug ?? clienteSlug ?? "Sem cliente"}
           </InfoItem>
-          <InfoItem label="Status">{clientData?.status ?? "Sem status"}</InfoItem>
+          <InfoItem label="Status">
+            {clientData?.status ?? "Sem status"}
+          </InfoItem>
           <InfoItem label="Modo teste">
             {clientData?.modo_teste ? "Ativo" : "Inativo"}
           </InfoItem>
@@ -135,7 +128,7 @@ export default async function ClientSettingsPage() {
             <div className="flex items-center gap-2">
               {clientData?.cor_principal ? (
                 <span
-                  className="h-4 w-4 shrink-0 rounded-full border border-zinc-300"
+                  className="h-4 w-4 shrink-0 rounded-full border border-border-strong"
                   style={{ backgroundColor: clientData.cor_principal }}
                 />
               ) : null}
@@ -145,13 +138,13 @@ export default async function ClientSettingsPage() {
         </div>
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold">Workflows ativos</h2>
         {activeWorkflows.length > 0 ? (
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {activeWorkflows.map((workflow) => (
               <div
-                className="rounded-md border border-zinc-200 p-4"
+                className="rounded-lg border border-border p-4"
                 key={workflow.id}
               >
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -169,13 +162,13 @@ export default async function ClientSettingsPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">
+          <p className="mt-4 text-sm text-muted-foreground">
             Nenhum workflow ativo configurado.
           </p>
         )}
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold">Acesso do usuário</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <InfoItem label="Role">{formatLabel(profile.role)}</InfoItem>

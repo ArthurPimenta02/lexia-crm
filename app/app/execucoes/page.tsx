@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   formatDateInTimezone,
@@ -46,7 +47,7 @@ const routeValues = routeFilters.map((item) => item.value).filter(Boolean);
 const stateFilters = ["todas", "sucesso", "erro"];
 
 function getSearchValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function hasError(execution: Pick<TestExecution, "erro">) {
@@ -121,13 +122,15 @@ function Badge({
   tone = "neutral",
 }: {
   children: React.ReactNode;
-  tone?: "blue" | "green" | "neutral" | "red";
+  tone?: "green" | "neutral" | "red";
 }) {
+  /*
+   * Igual ao ecrã do admin: a cor fica reservada para correu bem ou rebentou.
+   */
   const classes = {
-    blue: "border-blue-200 bg-blue-50 text-blue-700",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    neutral: "border-zinc-200 bg-zinc-100 text-zinc-700",
-    red: "border-red-200 bg-red-50 text-red-700",
+    green: "border-border bg-muted text-positive",
+    neutral: "border-border bg-muted text-muted-foreground",
+    red: "border-border bg-muted text-danger",
   };
 
   return (
@@ -197,54 +200,50 @@ export default async function ClientExecutionsPage({
   });
   const summaryCards = [
     { title: "Execuções", value: executions.length },
-    { title: "Sucesso", value: executions.filter((item) => !hasError(item)).length },
+    {
+      title: "Sucesso",
+      value: executions.filter((item) => !hasError(item)).length,
+    },
     { title: "Erro", value: executions.filter(hasError).length },
   ];
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Execuções</h1>
-          <p className="mt-2 text-zinc-600">
-            Histórico de testes executados no agente.
-          </p>
-        </div>
-        <Link
-          className="inline-flex h-10 items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-          href="/app/area-testes"
-        >
-          Executar novo teste
-        </Link>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {summaryCards.map((card) => (
-          <div
-            className="rounded-md border border-zinc-200 bg-white p-5"
-            key={card.title}
+      <PaginaCabecalho
+        acoes={
+          <Link
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98]"
+            href="/app/area-testes"
           >
-            <p className="text-sm font-medium text-zinc-500">{card.title}</p>
-            <p className="mt-3 text-2xl font-semibold text-zinc-950">
-              {card.value}
-            </p>
-          </div>
-        ))}
-      </div>
+            Executar novo teste
+          </Link>
+        }
+        titulo="Execuções"
+      />
+
+      <GrupoMetricas
+        itens={summaryCards.map((card) => ({
+          label: card.title,
+          valor: card.value,
+        }))}
+      />
 
       <Form
         action="/app/execucoes"
-        className="rounded-md border border-zinc-200 bg-white p-5"
+        className="rounded-2xl border border-border bg-surface p-5"
         replace
         scroll={false}
       >
         <div className="grid gap-4 md:grid-cols-[1fr_220px_auto_auto]">
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-zinc-700" htmlFor="rota">
+            <label
+              className="text-sm font-medium text-muted-foreground"
+              htmlFor="rota"
+            >
               Rota
             </label>
             <select
-              className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
               defaultValue={selectedRota}
               id="rota"
               name="rota"
@@ -259,13 +258,13 @@ export default async function ClientExecutionsPage({
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="estado"
             >
               Estado
             </label>
             <select
-              className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
               defaultValue={selectedEstado}
               id="estado"
               name="estado"
@@ -278,7 +277,7 @@ export default async function ClientExecutionsPage({
 
           <div className="flex items-end">
             <FormSubmitButton
-              className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               pendingLabel="Filtrando..."
             >
               Filtrar
@@ -287,7 +286,7 @@ export default async function ClientExecutionsPage({
 
           <div className="flex items-end">
             <Link
-              className="flex h-10 items-center rounded-md border border-zinc-300 px-4 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
+              className="flex h-10 items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-muted-foreground transition hover:bg-muted"
               href="/app/execucoes"
             >
               Limpar
@@ -296,55 +295,55 @@ export default async function ClientExecutionsPage({
         </div>
       </Form>
 
-      <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         {executions.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-[980px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+              <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
-                  <th className="w-[120px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
                     Data
                   </th>
-                  <th className="w-[130px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
                     Rota
                   </th>
-                  <th className="w-[130px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
                     Origem
                   </th>
-                  <th className="w-[240px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
                     Mensagem enviada
                   </th>
-                  <th className="w-[280px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[280px] border-b border-border px-3 py-3 font-medium">
                     Resposta obtida
                   </th>
-                  <th className="w-[120px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
                     Estado
                   </th>
-                  <th className="w-[170px] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[170px] border-b border-border px-3 py-3 font-medium">
                     Sessão
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {executions.map((execution) => (
-                  <tr className="border-b border-zinc-100" key={execution.id}>
-                    <td className="break-words px-3 py-4 align-top text-zinc-600">
+                  <tr className="border-b border-border" key={execution.id}>
+                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       {formatDateInTimezone(execution.criado_em, timeZone)}
                     </td>
                     <td className="px-3 py-4 align-top">
                       <Badge>{execution.rota ?? "Sem rota"}</Badge>
                     </td>
                     <td className="px-3 py-4 align-top">
-                      <Badge tone="blue">{formatLabel(execution.origem)}</Badge>
+                      <Badge>{formatLabel(execution.origem)}</Badge>
                     </td>
-                    <td className="break-words px-3 py-4 align-top text-zinc-600">
+                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
                         emptyText="Sem mensagem"
                         maxLength={110}
                         text={execution.mensagem_teste}
                       />
                     </td>
-                    <td className="break-words px-3 py-4 align-top text-zinc-600">
+                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
                         emptyText="Sem resposta"
                         maxLength={130}
@@ -357,7 +356,7 @@ export default async function ClientExecutionsPage({
                           {hasError(execution) ? "Erro" : "Sucesso"}
                         </Badge>
                         {hasError(execution) ? (
-                          <div className="text-xs text-zinc-600">
+                          <div className="text-xs text-muted-foreground">
                             <ExpandableText
                               emptyText="Sem erro"
                               maxLength={70}
@@ -367,15 +366,27 @@ export default async function ClientExecutionsPage({
                         ) : null}
                       </div>
                     </td>
-                    <td className="break-all px-3 py-4 align-top font-mono text-xs text-zinc-500">
-                      <p>{execution.session_id ?? "Sem session_id"}</p>
+                    {/* Ver a nota em /admin/execucoes: cortar a uma linha. */}
+                    <td className="px-3 py-4 align-top font-mono text-xs text-muted-foreground">
+                      <p
+                        className="truncate"
+                        title={execution.session_id ?? ""}
+                      >
+                        {execution.session_id ?? "Sem session_id"}
+                      </p>
                       {execution.run_id ? (
-                        <p className="mt-2 text-zinc-400">
+                        <p
+                          className="mt-1.5 truncate text-muted-foreground/60"
+                          title={execution.run_id}
+                        >
                           run: {execution.run_id}
                         </p>
                       ) : null}
                       {execution.teste_id ? (
-                        <p className="mt-2 text-zinc-400">
+                        <p
+                          className="mt-1.5 truncate text-muted-foreground/60"
+                          title={execution.teste_id}
+                        >
                           teste: {execution.teste_id}
                         </p>
                       ) : null}
@@ -386,7 +397,7 @@ export default async function ClientExecutionsPage({
             </table>
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Ainda não há execuções registadas.
           </div>
         )}

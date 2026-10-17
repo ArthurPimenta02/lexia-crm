@@ -69,7 +69,7 @@ export function ConversationFeedbackAction({
     return (
       <div
         className={`text-[10px] font-medium ${
-          appearance === "light" ? "text-emerald-700" : "text-emerald-300"
+          appearance === "light" ? "text-positive" : "text-primary-foreground"
         }`}
       >
         Feedback registado.
@@ -83,8 +83,8 @@ export function ConversationFeedbackAction({
         <button
           className={`rounded-full px-0 text-[10px] font-medium underline-offset-2 transition hover:underline ${
             appearance === "light"
-              ? "text-zinc-500 hover:text-zinc-800"
-              : "text-white/65 hover:text-white"
+              ? "text-muted-foreground hover:text-foreground"
+              : "text-primary-foreground/65 hover:text-primary-foreground"
           }`}
           onClick={() => {
             setError(null);
@@ -96,13 +96,13 @@ export function ConversationFeedbackAction({
         </button>
       ) : (
         <form
-          className="mt-3 rounded-xl border border-zinc-200 bg-white p-3 text-zinc-900 shadow-[0_14px_35px_rgba(0,0,0,0.12)]"
+          className="mt-3 rounded-xl border border-border bg-surface p-3 text-foreground shadow-[0_14px_35px_rgba(0,0,0,0.12)]"
           onSubmit={handleSubmit}
         >
-          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-700">
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
             Categoria do problema
             <select
-              className="h-9 rounded-md border border-zinc-300 bg-white px-2 text-xs outline-none transition focus:border-zinc-900"
+              className="h-9 rounded-2xl border border-border-strong bg-surface px-2 text-xs outline-none transition focus:border-foreground"
               onChange={(event) => setCategoria(event.target.value)}
               value={categoria}
             >
@@ -114,10 +114,10 @@ export function ConversationFeedbackAction({
             </select>
           </label>
 
-          <label className="mt-3 flex flex-col gap-1 text-xs font-medium text-zinc-700">
+          <label className="mt-3 flex flex-col gap-1 text-xs font-medium text-muted-foreground">
             Observação
             <textarea
-              className="min-h-20 resize-y rounded-md border border-zinc-300 px-2 py-2 text-xs outline-none transition focus:border-zinc-900"
+              className="min-h-20 resize-y rounded-lg border border-border-strong px-2 py-2 text-xs outline-none transition focus:border-foreground"
               onChange={(event) => setObservacao(event.target.value)}
               placeholder="Descreve o problema nesta resposta..."
               value={observacao}
@@ -130,14 +130,14 @@ export function ConversationFeedbackAction({
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
-              className="rounded-md bg-zinc-950 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isSaving}
               type="submit"
             >
               {isSaving ? "A guardar..." : "Guardar feedback"}
             </button>
             <button
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100"
+              className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted"
               disabled={isSaving}
               onClick={() => {
                 setIsOpen(false);

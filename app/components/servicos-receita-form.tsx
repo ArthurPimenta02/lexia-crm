@@ -38,7 +38,7 @@ function Mensagem({ resultado }: { resultado: GravarProdutoResultado | null }) {
 }
 
 const inputClass =
-  "h-9 rounded-md border border-zinc-300 bg-white px-2.5 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+  "h-9 rounded-2xl border border-border-strong bg-surface px-2.5 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
 
 function LinhaDaReceita({
   action,
@@ -69,11 +69,14 @@ function LinhaDaReceita({
       <input name="produto_id" type="hidden" value={item.produtoId} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-36 flex-1 truncate text-sm text-zinc-800">
+        <span className="min-w-36 flex-1 truncate text-sm text-foreground">
           {item.produtoNome}
         </span>
 
-        <label className="sr-only" htmlFor={`qtd-${servicoId}-${item.produtoId}`}>
+        <label
+          className="sr-only"
+          htmlFor={`qtd-${servicoId}-${item.produtoId}`}
+        >
           Quantidade de {item.produtoNome}
         </label>
         <input
@@ -87,9 +90,11 @@ function LinhaDaReceita({
           step="0.001"
           type="number"
         />
-        <span className="w-10 text-xs text-zinc-500">{item.unidade}</span>
+        <span className="w-10 text-xs text-muted-foreground">
+          {item.unidade}
+        </span>
 
-        <span className="w-24 text-right text-sm font-semibold text-zinc-900">
+        <span className="w-24 text-right text-sm font-semibold text-foreground">
           {item.custo === null
             ? "sem preço"
             : new Intl.NumberFormat("pt-PT", {
@@ -102,7 +107,7 @@ function LinhaDaReceita({
 
         {podeEditar ? (
           <FormSubmitButton
-            className="inline-flex min-h-9 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+            className="inline-flex min-h-9 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
             pendingLabel="..."
           >
             Gravar
@@ -170,7 +175,7 @@ function AdicionarProduto({
         />
 
         <FormSubmitButton
-          className="inline-flex min-h-9 items-center rounded-full bg-zinc-950 px-4 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           pendingLabel="A juntar..."
         >
           Juntar à receita
@@ -202,12 +207,12 @@ export function ServicosReceitaForm({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+      <p className="text-xs font-semibold text-muted-foreground">
         Produtos gastos neste serviço
       </p>
 
       {receita.length === 0 ? (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Ainda nenhum. Enquanto esta lista estiver vazia, marcar o serviço como
           realizado não desconta nada do stock.
         </p>

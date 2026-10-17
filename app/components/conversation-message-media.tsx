@@ -24,7 +24,7 @@ export function ConversationMessageMedia({
 
   if (!src || hasError) {
     return (
-      <div className="flex min-h-20 min-w-44 items-center justify-center rounded-md bg-black/5 px-5 py-4 text-center text-sm text-zinc-500">
+      <div className="flex min-h-20 min-w-44 items-center justify-center rounded-lg bg-black/5 px-5 py-4 text-center text-sm text-muted-foreground">
         {unavailableLabel}
       </div>
     );
@@ -36,7 +36,7 @@ export function ConversationMessageMedia({
       // eslint-disable-next-line @next/next/no-img-element
       <img
         alt="Imagem da conversa"
-        className="max-h-[420px] w-auto max-w-full rounded-md object-contain"
+        className="max-h-[420px] w-auto max-w-full rounded-lg object-contain"
         loading="lazy"
         onError={() => setHasError(true)}
         src={src}
@@ -47,7 +47,7 @@ export function ConversationMessageMedia({
   if (mediaType === "video") {
     return (
       <video
-        className="max-h-[420px] w-full min-w-56 max-w-xl rounded-md bg-black"
+        className="max-h-[420px] w-full min-w-56 max-w-xl rounded-lg bg-black"
         controls
         onError={() => setHasError(true)}
         playsInline
@@ -71,7 +71,7 @@ export function ConversationMessageMedia({
 
   return (
     <a
-      className="flex min-h-16 min-w-52 items-center rounded-md bg-black/5 px-4 py-3 text-sm font-medium text-zinc-800 underline decoration-zinc-400 underline-offset-4 transition hover:bg-black/10"
+      className="flex min-h-16 min-w-52 items-center rounded-lg bg-black/5 px-4 py-3 text-sm font-medium text-foreground underline decoration-muted-foreground/60 underline-offset-4 transition hover:bg-black/10"
       href={src}
       rel="noreferrer"
       target="_blank"

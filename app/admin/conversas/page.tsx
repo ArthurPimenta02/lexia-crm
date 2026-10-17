@@ -379,7 +379,7 @@ export default async function AdminConversationsPage({
 
   const isChatOpenOnMobile = Boolean(
     selectedContact &&
-      selectedContact.identificador_conversa === requestedConversation,
+    selectedContact.identificador_conversa === requestedConversation,
   );
   const selectedMessages = selectedMessagesResult.data;
   const displayMessages = prepareConversationMessages(selectedMessages);
@@ -403,7 +403,7 @@ export default async function AdminConversationsPage({
         leading={
           <Form
             action="/admin/conversas"
-            className="flex min-w-0 items-center gap-1.5 sm:border-r sm:border-zinc-200 sm:pr-2"
+            className="flex min-w-0 items-center gap-1.5 sm:border-r sm:border-border sm:pr-2"
             replace
             scroll={false}
           >
@@ -411,7 +411,7 @@ export default async function AdminConversationsPage({
               Cliente
             </label>
             <select
-              className="h-9 min-w-0 max-w-56 rounded-lg border border-zinc-200 bg-white px-2.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400"
+              className="h-9 min-w-0 max-w-56 rounded-lg border border-border bg-surface px-2.5 text-sm text-foreground outline-none transition focus:border-border-strong"
               defaultValue={selectedClient?.slug ?? ""}
               id="cliente"
               name="cliente"
@@ -440,7 +440,7 @@ export default async function AdminConversationsPage({
               </>
             ) : null}
             <FormSubmitButton
-              className="h-9 rounded-lg bg-zinc-950 px-3 text-xs font-semibold text-white transition hover:bg-zinc-800"
+              className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
               pendingLabel="..."
             >
               Selecionar
@@ -454,42 +454,42 @@ export default async function AdminConversationsPage({
       />
 
       {!selectedClient ? (
-        <div className="rounded-md border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-zinc-500">
+        <div className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
           Nenhum cliente activo disponível.
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside
-            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/90 shadow-[0_14px_36px_rgba(0,0,0,0.05)] backdrop-blur ${
+            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface/90 shadow-[0_14px_36px_rgba(0,0,0,0.05)] backdrop-blur ${
               isChatOpenOnMobile ? "max-lg:hidden" : ""
             }`}
           >
-            <div className="border-b border-zinc-200/70 bg-white/95 px-3 py-2.5">
+            <div className="border-b border-border bg-surface/95 px-3 py-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold">Conversas</h2>
-                  <p className="mt-0.5 text-xs text-zinc-500">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {getConversationCountText(
                       sortedContacts.length,
                       searchQuery,
                     )}
                   </p>
                 </div>
-                <span className="text-[11px] text-zinc-400">
+                <span className="text-[11px] text-muted-foreground/60">
                   Mais recentes
                 </span>
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-[#f7f7f5] p-2">
+            <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-surface-muted p-2">
               {sortedContacts.length > 0 ? (
                 sortedContacts.map((contact) => {
                   const isSelected =
                     selectedContact?.identificador_conversa ===
                     contact.identificador_conversa;
                   const summary = isSelected
-                    ? selectedSummary ??
-                      summaries.get(contact.identificador_conversa)
+                    ? (selectedSummary ??
+                      summaries.get(contact.identificador_conversa))
                     : summaries.get(contact.identificador_conversa);
                   const lastActivity = getContactLastActivity(
                     contact,
@@ -503,8 +503,8 @@ export default async function AdminConversationsPage({
                     <Link
                       className={`rounded-[14px] border px-3 py-2.5 transition ${
                         isSelected
-                          ? "border-zinc-950 bg-zinc-950 text-white shadow-[0_16px_32px_rgba(0,0,0,0.16)]"
-                          : "border-transparent bg-white text-zinc-800 shadow-sm hover:border-zinc-200 hover:shadow-md"
+                          ? "border-foreground bg-primary text-primary-foreground shadow-[0_16px_32px_rgba(0,0,0,0.16)]"
+                          : "border-transparent bg-surface text-foreground shadow-sm hover:border-border hover:shadow-md"
                       }`}
                       href={getConversationHref(
                         selectedClient.slug,
@@ -520,25 +520,29 @@ export default async function AdminConversationsPage({
                         <div className="flex min-w-0 gap-2">
                           <ChannelIcon channel={contact.canal} />
                           <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">
-                            {contact.nome || contact.telefone || "Sem nome"}
-                          </p>
-                          {isOutsidePeriod ? (
+                            <p className="truncate text-sm font-semibold">
+                              {contact.nome || contact.telefone || "Sem nome"}
+                            </p>
+                            {isOutsidePeriod ? (
+                              <p
+                                className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                                  isSelected
+                                    ? "text-amber-300"
+                                    : "text-amber-700"
+                                }`}
+                              >
+                                Fora do período
+                              </p>
+                            ) : null}
                             <p
-                              className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                isSelected ? "text-amber-300" : "text-amber-700"
+                              className={`mt-0.5 truncate text-[11px] ${
+                                isSelected
+                                  ? "text-primary-foreground/70"
+                                  : "text-muted-foreground"
                               }`}
                             >
-                              Fora do período
+                              {contact.telefone ?? "Sem telefone"}
                             </p>
-                          ) : null}
-                          <p
-                            className={`mt-0.5 truncate text-[11px] ${
-                              isSelected ? "text-white/70" : "text-zinc-500"
-                            }`}
-                          >
-                            {contact.telefone ?? "Sem telefone"}
-                          </p>
                           </div>
                         </div>
                         <ChannelBadge
@@ -549,7 +553,9 @@ export default async function AdminConversationsPage({
 
                       <p
                         className={`mt-1.5 line-clamp-1 text-xs ${
-                          isSelected ? "text-white/75" : "text-zinc-500"
+                          isSelected
+                            ? "text-primary-foreground/75"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {summary
@@ -559,7 +565,9 @@ export default async function AdminConversationsPage({
 
                       <div
                         className={`mt-2 flex items-center justify-between gap-3 text-[11px] ${
-                          isSelected ? "text-white/60" : "text-zinc-400"
+                          isSelected
+                            ? "text-primary-foreground/60"
+                            : "text-muted-foreground/60"
                         }`}
                       >
                         <span>
@@ -578,7 +586,7 @@ export default async function AdminConversationsPage({
                   );
                 })
               ) : (
-                <div className="px-4 py-10 text-center text-sm text-zinc-500">
+                <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                   {searchQuery
                     ? `Nenhuma conversa encontrada para “${searchQuery}”.`
                     : "Não há conversas com mensagens neste período."}
@@ -588,7 +596,7 @@ export default async function AdminConversationsPage({
           </aside>
 
           <section
-            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_14px_36px_rgba(0,0,0,0.05)] ${
+            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.05)] ${
               isChatOpenOnMobile
                 ? "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:h-dvh max-lg:rounded-none max-lg:border-0"
                 : "max-lg:hidden"
@@ -596,12 +604,12 @@ export default async function AdminConversationsPage({
           >
             {selectedContact ? (
               <>
-                <div className="shrink-0 border-b border-zinc-200/70 bg-white/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:py-2.5">
+                <div className="shrink-0 border-b border-border bg-surface/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:py-2.5">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="flex min-w-0 items-center gap-2 lg:items-start lg:gap-3">
                       <Link
                         aria-label="Voltar para a lista de conversas"
-                        className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 lg:hidden"
+                        className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
                         href={getFilterHref(
                           selectedClient.slug,
                           selectedChannel,
@@ -610,7 +618,11 @@ export default async function AdminConversationsPage({
                           searchQuery,
                         )}
                       >
-                        <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 20 20">
+                        <svg
+                          aria-hidden="true"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                        >
                           <path
                             d="M12.5 4.5L7 10l5.5 5.5"
                             fill="none"
@@ -633,7 +645,7 @@ export default async function AdminConversationsPage({
                             <ChannelBadge channel={selectedContact.canal} />
                           </span>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-zinc-500 max-sm:hidden">
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
                           {selectedContact.telefone ?? "Sem telefone"} ·{" "}
                           {getChannelLabel(selectedContact.canal)}
                         </p>
@@ -643,7 +655,7 @@ export default async function AdminConversationsPage({
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-col gap-1.5 md:items-end">
-                      <div className="text-xs text-zinc-500 max-lg:hidden">
+                      <div className="text-xs text-muted-foreground max-lg:hidden">
                         {formatDateInTimezone(
                           selectedSummary?.lastActivityAt ??
                             selectedContact.atualizado_em,
@@ -716,7 +728,7 @@ export default async function AdminConversationsPage({
                             feedback={
                               showFeedback ? (
                                 <ConversationFeedbackAction
-                                  appearance="light"
+                                  appearance="dark"
                                   messageId={message.sourceMessageId}
                                   onSave={saveAdminConversationFeedback.bind(
                                     null,
@@ -732,14 +744,14 @@ export default async function AdminConversationsPage({
                       );
                     })
                   ) : (
-                    <div className="flex flex-1 items-center justify-center text-center text-sm text-zinc-500">
+                    <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
                       Esta conversa ainda não tem mensagens registadas.
                     </div>
                   )}
                 </ScrollToBottomPanel>
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-zinc-500">
+              <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
                 {selection.requestedIsMissing
                   ? "Não encontrámos esta conversa neste cliente. Escolhe uma da lista."
                   : "Selecciona uma conversa para visualizar as mensagens."}

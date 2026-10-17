@@ -7,6 +7,7 @@ import {
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminClient = {
@@ -99,12 +100,7 @@ export default async function AdminTestAreaPage({
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Área de Testes</h1>
-        <p className="mt-2 text-zinc-600">
-          Teste o workflow de qualquer cliente da Lexia.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Área de testes" />
 
       <Form
         action="/admin/area-testes"
@@ -113,11 +109,11 @@ export default async function AdminTestAreaPage({
         scroll={false}
       >
         <div className="flex min-w-72 flex-col gap-2">
-          <label className="text-sm font-medium text-zinc-700" htmlFor="cliente">
+          <label className="text-sm font-medium text-muted-foreground" htmlFor="cliente">
             Cliente
           </label>
           <select
-            className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-900"
+            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
             defaultValue={selectedClient?.slug ?? ""}
             id="cliente"
             name="cliente"
@@ -131,7 +127,7 @@ export default async function AdminTestAreaPage({
           </select>
         </div>
         <FormSubmitButton
-          className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+          className="h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           pendingLabel="Selecionando..."
         >
           Selecionar
@@ -139,7 +135,7 @@ export default async function AdminTestAreaPage({
       </Form>
 
       {!selectedClient ? (
-        <div className="rounded-md border border-zinc-200 bg-white px-4 py-10 text-center text-sm text-zinc-500">
+        <div className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
           Selecione um cliente para iniciar o teste.
         </div>
       ) : (

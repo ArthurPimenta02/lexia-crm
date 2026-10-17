@@ -169,16 +169,19 @@ export function TestChat({
     () => new Set(),
   );
   const [localExecutions, setLocalExecutions] = useState(executions);
-  const [feedbackByExecution, setFeedbackByExecution] = useState(() =>
-    Object.fromEntries(
-      feedbacks.map((feedback) => [
-        feedback.teste_execucao_id,
-        feedback.avaliacao,
-      ]),
-    ) as Record<string, FeedbackRating>,
+  const [feedbackByExecution, setFeedbackByExecution] = useState(
+    () =>
+      Object.fromEntries(
+        feedbacks.map((feedback) => [
+          feedback.teste_execucao_id,
+          feedback.avaliacao,
+        ]),
+      ) as Record<string, FeedbackRating>,
   );
   const [savingFeedbackId, setSavingFeedbackId] = useState<string | null>(null);
-  const [feedbackDraft, setFeedbackDraft] = useState<FeedbackDraft | null>(null);
+  const [feedbackDraft, setFeedbackDraft] = useState<FeedbackDraft | null>(
+    null,
+  );
   const [feedbackComment, setFeedbackComment] = useState("");
   const [pendingText, setPendingText] = useState<string | null>(null);
   const [lastPendingRun, setLastPendingRun] = useState<PendingRun | null>(null);
@@ -238,9 +241,7 @@ export function TestChat({
         return;
       }
 
-      setDeletedSessionIds((current) =>
-        new Set(current).add(sessionId),
-      );
+      setDeletedSessionIds((current) => new Set(current).add(sessionId));
 
       if (selectedSessionId === sessionId) {
         setLocalExecutions([]);
@@ -430,18 +431,18 @@ export function TestChat({
 
   return (
     <div className="grid h-[calc(100vh-190px)] min-h-[580px] gap-5 lg:grid-cols-[310px_1fr]">
-      <aside className="flex min-h-0 flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-4">
+      <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-950">
+            <h2 className="text-sm font-semibold text-foreground">
               Conversas de teste
             </h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Histórico das simulações
             </p>
           </div>
           <button
-            className="h-9 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+            className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-foreground"
             disabled={isCreating}
             onClick={handleCreateSession}
             type="button"
@@ -454,10 +455,10 @@ export function TestChat({
           {visibleSessions.length > 0 ? (
             visibleSessions.map((session) => (
               <div
-                className={`rounded-md border p-3 text-sm transition ${
+                className={`rounded-lg border p-3 text-sm transition ${
                   selectedSessionId === session.session_id
-                    ? "border-zinc-950 bg-zinc-950 text-white shadow-[0_14px_34px_rgba(0,0,0,0.16)]"
-                    : "border-zinc-200 bg-[#fbfbfa] text-zinc-700 hover:border-zinc-400 hover:bg-white hover:text-zinc-950"
+                    ? "border-foreground bg-primary text-primary-foreground shadow-[0_14px_34px_rgba(0,0,0,0.16)]"
+                    : "border-border bg-surface-muted text-muted-foreground hover:border-border-strong hover:bg-surface hover:text-foreground"
                 }`}
                 key={session.id}
               >
@@ -482,8 +483,8 @@ export function TestChat({
                 <button
                   className={`mt-2 text-xs font-medium underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 ${
                     selectedSessionId === session.session_id
-                      ? "text-white/80"
-                      : "text-zinc-500"
+                      ? "text-primary-foreground/80"
+                      : "text-muted-foreground"
                   }`}
                   disabled={isCreating}
                   onClick={() => handleDeleteSession(session.session_id)}
@@ -494,33 +495,28 @@ export function TestChat({
               </div>
             ))
           ) : (
-            <p className="px-3 py-8 text-sm text-zinc-500">
+            <p className="px-3 py-8 text-sm text-muted-foreground">
               Ainda não há conversas de teste.
             </p>
           )}
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col overflow-hidden rounded-md border border-zinc-200 bg-white shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
-        <div className="border-b border-zinc-200 bg-white px-5 py-4">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
+        <div className="border-b border-border bg-surface px-5 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <h2 className="font-semibold text-zinc-950">
-                Simulador de conversa
-              </h2>
-              <p className="mt-1 text-sm text-zinc-500">
-                Envie mensagens como se fosse uma conversa real com o agente.
-              </p>
-            </div>
+            <h2 className="font-semibold text-foreground">
+              Simulador de conversa
+            </h2>
             <div className="flex w-full max-w-sm flex-col gap-2">
               <label
-                className="text-sm font-medium text-zinc-700"
+                className="text-sm font-medium text-muted-foreground"
                 htmlFor="workflow"
               >
                 Canal de teste
               </label>
               <select
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-950 outline-none transition focus:border-zinc-950 focus:ring-4 focus:ring-zinc-950/5 disabled:bg-zinc-100 disabled:text-zinc-400"
+                className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground focus:ring-4 focus:ring-foreground/5 disabled:bg-muted disabled:text-muted-foreground"
                 disabled={workflows.length <= 1}
                 id="workflow"
                 onChange={(event) => setSelectedWorkflowId(event.target.value)}
@@ -538,7 +534,7 @@ export function TestChat({
                 ))}
               </select>
               {selectedWorkflow ? (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   Canal activo: {selectedWorkflow.tipo ?? "agente"}
                 </p>
               ) : null}
@@ -546,7 +542,7 @@ export function TestChat({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-[#f3f3f1] p-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-background p-5">
           {chatMessages.length > 0 ? (
             chatMessages.map((chatMessage) => {
               const selectedFeedback = chatMessage.execution
@@ -565,8 +561,8 @@ export function TestChat({
                   <div
                     className={`rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
                       chatMessage.role === "user"
-                        ? "bg-zinc-950 text-white"
-                        : "border border-zinc-200 bg-white text-zinc-800"
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border bg-surface text-foreground"
                     }`}
                   >
                     {chatMessage.text}
@@ -578,13 +574,12 @@ export function TestChat({
                     <div className="flex w-full max-w-xl flex-col gap-3">
                       <div className="flex flex-wrap items-center gap-2">
                         {feedbackOptions.map((option) => {
-                          const draftRating =
-                            feedbackDraft
-                              ? feedbackDraft.executionId ===
-                                chatMessage.execution?.id
-                                ? feedbackDraft.avaliacao
-                                : null
-                              : null;
+                          const draftRating = feedbackDraft
+                            ? feedbackDraft.executionId ===
+                              chatMessage.execution?.id
+                              ? feedbackDraft.avaliacao
+                              : null
+                            : null;
                           const selected =
                             (draftRating ?? selectedFeedback) === option.value;
                           const feedbackKey = `${chatMessage.execution?.id}:${option.value}`;
@@ -593,8 +588,8 @@ export function TestChat({
                             <button
                               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                                 selected
-                                  ? "border-zinc-950 bg-zinc-950 text-white"
-                                  : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 hover:text-zinc-950"
+                                  ? "border-foreground bg-primary text-primary-foreground"
+                                  : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:text-foreground"
                               }`}
                               disabled={savingFeedbackId === feedbackKey}
                               key={option.value}
@@ -611,7 +606,7 @@ export function TestChat({
                           );
                         })}
                         {selectedFeedback ? (
-                          <span className="text-xs text-zinc-500">
+                          <span className="text-xs text-muted-foreground">
                             Feedback enviado
                           </span>
                         ) : null}
@@ -619,9 +614,9 @@ export function TestChat({
 
                       {feedbackDraft?.executionId ===
                       chatMessage.execution.id ? (
-                        <div className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+                        <div className="rounded-2xl border border-border bg-surface p-3 shadow-sm">
                           <textarea
-                            className="min-h-24 w-full resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-4 focus:ring-zinc-950/5"
+                            className="min-h-24 w-full resize-none rounded-2xl border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5"
                             onChange={(event) =>
                               setFeedbackComment(event.target.value)
                             }
@@ -630,7 +625,7 @@ export function TestChat({
                           />
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
-                              className="h-9 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                              className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
                               disabled={
                                 savingFeedbackId ===
                                 `${chatMessage.execution.id}:${feedbackDraft.avaliacao}`
@@ -643,7 +638,7 @@ export function TestChat({
                               Enviar feedback
                             </button>
                             <button
-                              className="h-9 rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-950"
+                              className="h-9 rounded-lg border border-border-strong px-3 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
                               onClick={() => {
                                 setFeedbackDraft(null);
                                 setFeedbackComment("");
@@ -661,7 +656,7 @@ export function TestChat({
               );
             })
           ) : (
-            <div className="flex flex-1 items-center justify-center text-center text-sm text-zinc-500">
+            <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
               {selectedSessionId
                 ? "Nenhuma mensagem nesta sessão ainda."
                 : "Crie ou selecione uma sessão para começar."}
@@ -670,10 +665,10 @@ export function TestChat({
 
           {pendingText ? (
             <>
-              <div className="ml-auto max-w-[78%] rounded-2xl bg-zinc-950 px-4 py-3 text-sm leading-6 text-white shadow-sm">
+              <div className="ml-auto max-w-[78%] rounded-2xl bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground shadow-sm">
                 {pendingText}
               </div>
-              <div className="mr-auto max-w-[78%] rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm leading-6 text-zinc-600 shadow-sm">
+              <div className="mr-auto max-w-[78%] rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted-foreground shadow-sm">
                 Aguardando resposta do agente...
               </div>
             </>
@@ -682,22 +677,22 @@ export function TestChat({
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="shrink-0 border-t border-zinc-200 bg-white p-4">
+        <div className="shrink-0 border-t border-border bg-surface p-4">
           {error ? (
-            <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </p>
           ) : null}
 
           {notice ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               <p>
                 A mensagem foi enviada, mas o agente ainda não devolveu uma
                 resposta.
               </p>
               {lastPendingRun ? (
                 <button
-                  className="h-9 rounded-md border border-amber-300 bg-white px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-9 rounded-lg border border-amber-300 bg-surface px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isChecking}
                   onClick={handleCheckAgain}
                   type="button"
@@ -710,7 +705,7 @@ export function TestChat({
 
           <form className="flex gap-3" onSubmit={handleSendMessage}>
             <input
-              className="h-12 flex-1 rounded-md border border-zinc-300 bg-white px-4 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-4 focus:ring-zinc-950/5 disabled:bg-zinc-100 disabled:text-zinc-400"
+              className="h-12 flex-1 rounded-2xl border border-border-strong bg-surface px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5 disabled:bg-muted disabled:text-muted-foreground"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -722,7 +717,7 @@ export function TestChat({
               value={message}
             />
             <button
-              className="h-12 rounded-md bg-zinc-950 px-6 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+              className="h-12 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-foreground"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -731,7 +726,7 @@ export function TestChat({
                 !message.trim()
               }
               type="submit"
-          >
+            >
               {isSending ? "Enviando..." : "Enviar"}
             </button>
           </form>

@@ -5,11 +5,16 @@ import {
   ExcluirServicoForm,
   ReporServicoForm,
 } from "@/app/components/servicos-estado-forms";
+import { SeccaoTitulo } from "@/app/components/painel-ui";
 import { ServicosExecucaoForm } from "@/app/components/servicos-execucao-form";
 import { ServicosLinhaForm } from "@/app/components/servicos-linha-form";
 import { ServicosReceitaForm } from "@/app/components/servicos-receita-form";
 import type { GravarProdutoResultado } from "@/lib/produtos/write";
-import { escalaoBase, type PainelServicos, type ServicoLinha } from "@/lib/servicos/read";
+import {
+  escalaoBase,
+  type PainelServicos,
+  type ServicoLinha,
+} from "@/lib/servicos/read";
 import type { GravarServicoResultado } from "@/lib/servicos/write";
 
 /**
@@ -53,7 +58,9 @@ function formatDuracao(minutos: number | null) {
   const horas = Math.floor(minutos / 60);
   const resto = minutos % 60;
 
-  return resto === 0 ? `${horas}h` : `${horas}h${String(resto).padStart(2, "0")}`;
+  return resto === 0
+    ? `${horas}h`
+    : `${horas}h${String(resto).padStart(2, "0")}`;
 }
 
 /**
@@ -92,12 +99,14 @@ function MetricCard({
   value: string;
 }) {
   return (
-    <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-      <p className="text-sm font-medium text-zinc-500">{label}</p>
-      <p className="mt-4 text-3xl font-semibold tracking-tight text-zinc-950">
+    <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
         {value}
       </p>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">{description}</p>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        {description}
+      </p>
     </div>
   );
 }
@@ -111,25 +120,29 @@ function ExecutorLinhaResumo({
 }) {
   if (!linha.executa) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-200 px-3 py-2.5">
-        <p className="text-sm font-semibold text-zinc-400">{linha.nome}</p>
-        <p className="mt-1 text-xs text-zinc-400">Não executa este serviço.</p>
+      <div className="rounded-xl border border-dashed border-border px-3 py-2.5">
+        <p className="text-sm font-semibold text-muted-foreground/60">
+          {linha.nome}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground/60">
+          Não executa este serviço.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2.5">
+    <div className="rounded-xl border border-border bg-surface-muted px-3 py-2.5">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold text-zinc-800">{linha.nome}</p>
-        <p className="text-xs text-zinc-500">
+        <p className="text-sm font-semibold text-foreground">{linha.nome}</p>
+        <p className="text-xs text-muted-foreground">
           {formatDuracao(linha.duracaoMinutos)}
         </p>
       </div>
 
-      <p className="mt-1.5 text-xs text-zinc-500">
+      <p className="mt-1.5 text-xs text-muted-foreground">
         Rende{" "}
-        <span className="font-semibold text-zinc-900">
+        <span className="font-semibold text-foreground">
           {linha.euroPorHora === null
             ? "—"
             : formatMoney(linha.euroPorHora, moeda)}
@@ -153,19 +166,19 @@ function MargemDoServico({
   return (
     <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
       <div>
-        <dt className="text-zinc-500">Custo de produto</dt>
-        <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+        <dt className="text-muted-foreground">Custo de produto</dt>
+        <dd className="mt-0.5 text-sm font-semibold text-foreground">
           {servico.custoProduto === null
             ? "—"
             : formatMoney(servico.custoProduto, moeda)}
         </dd>
       </div>
       <div>
-        <dt className="text-zinc-500">Margem</dt>
+        <dt className="text-muted-foreground">Margem</dt>
         <dd
           className={`mt-0.5 text-sm font-semibold ${
             servico.margem === null
-              ? "text-zinc-400"
+              ? "text-muted-foreground/60"
               : margemPositiva
                 ? "text-emerald-700"
                 : "text-red-700"
@@ -181,8 +194,8 @@ function MargemDoServico({
         </dd>
       </div>
       <div>
-        <dt className="text-zinc-500">Produtos na receita</dt>
-        <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
+        <dt className="text-muted-foreground">Produtos na receita</dt>
+        <dd className="mt-0.5 text-sm font-semibold text-foreground">
           {servico.receita.length}
         </dd>
       </div>
@@ -238,7 +251,9 @@ export function ServicosPanel({
         servico.executores.find((linha) => linha.chave === principal)
           ?.euroPorHora ?? null,
     }))
-    .filter((item): item is { nome: string; valor: number } => item.valor !== null)
+    .filter(
+      (item): item is { nome: string; valor: number } => item.valor !== null,
+    )
     .sort((a, b) => b.valor - a.valor);
 
   const melhor = euroHoraPrincipal[0] ?? null;
@@ -250,24 +265,15 @@ export function ServicosPanel({
 
   return (
     <>
-      <div className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+      <div className="rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex flex-col gap-3">
             {leading}
-            <div>
-              <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-                Escalão de viatura
-              </p>
-              <p className="mt-1 text-sm text-zinc-600">
-                {painel.escalaoActivo === escalaoBase
-                  ? "A mostrar o preço base de cada serviço."
-                  : `A mostrar o preço de ${
-                      painel.escaloes.find(
-                        (escalao) => escalao.chave === painel.escalaoActivo,
-                      )?.label ?? painel.escalaoActivo
-                    }.`}
-              </p>
-            </div>
+            {/*
+              A frase "A mostrar o preço de X" dizia o mesmo que o botão
+              aceso ao lado. O escalão escolhido lê-se no botão.
+            */}
+            <SeccaoTitulo>Escalão de viatura</SeccaoTitulo>
           </div>
 
           {painel.escaloes.length > 0 ? (
@@ -279,8 +285,8 @@ export function ServicosPanel({
                   <Link
                     className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
                       activo
-                        ? "border-zinc-950 bg-zinc-950 text-white"
-                        : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+                        ? "border-foreground bg-primary text-primary-foreground"
+                        : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted"
                     }`}
                     href={hrefEscalao(opcao.chave)}
                     key={opcao.chave}
@@ -295,8 +301,8 @@ export function ServicosPanel({
       </div>
 
       {painel.vazioMotivo ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <p className="text-sm text-zinc-600">{painel.vazioMotivo}</p>
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <p className="text-sm text-muted-foreground">{painel.vazioMotivo}</p>
         </div>
       ) : (
         <>
@@ -331,7 +337,7 @@ export function ServicosPanel({
           </div>
 
           {painel.produtos.length === 0 ? (
-            <div className="rounded-[22px] border border-amber-200 bg-amber-50/70 p-5">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
               <p className="text-sm font-semibold text-amber-900">
                 Ainda não há produtos registados.
               </p>
@@ -347,15 +353,15 @@ export function ServicosPanel({
           <div className="flex flex-col gap-4">
             {painel.servicos.map((servico) => (
               <div
-                className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]"
+                className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                 key={servico.id}
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <h2 className="text-lg font-semibold tracking-tight text-zinc-950">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
                       {servico.nome}
                     </h2>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {[servico.categoria, servico.tipoPreco]
                         .filter(Boolean)
                         .join(" · ") || "Sem categoria"}
@@ -363,34 +369,32 @@ export function ServicosPanel({
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <p className="text-2xl font-semibold tracking-tight text-zinc-950">
+                    <p className="text-2xl font-semibold tracking-tight text-foreground">
                       {servico.preco === null
                         ? "—"
                         : formatMoney(servico.preco, painel.moeda)}
                     </p>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {legendaDoPreco(servico, painel.escalaoActivo)}
                     </p>
                   </div>
                 </div>
 
                 {servico.precosAlternativos.length > 0 ? (
-                  <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50/60 px-3 py-2.5">
-                    <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+                  <div className="mt-3 rounded-xl border border-border bg-surface-muted px-3 py-2.5">
+                    <SeccaoTitulo dica="Não variam com a viatura. A margem é calculada sobre o preço base.">
                       Outros preços deste serviço
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Não variam com a viatura. A margem abaixo é calculada
-                      sobre o preço base.
-                    </p>
+                    </SeccaoTitulo>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {servico.precosAlternativos.map((opcao) => (
                         <span
-                          className="inline-flex items-baseline gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs"
+                          className="inline-flex items-baseline gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs"
                           key={opcao.label}
                         >
-                          <span className="text-zinc-600">{opcao.label}</span>
-                          <span className="font-semibold text-zinc-950">
+                          <span className="text-muted-foreground">
+                            {opcao.label}
+                          </span>
+                          <span className="font-semibold text-foreground">
                             {formatMoney(opcao.valor, painel.moeda)}
                           </span>
                         </span>
@@ -400,12 +404,15 @@ export function ServicosPanel({
                 ) : null}
 
                 {servico.notasCatalogo.length > 0 ? (
-                  <div className="mt-3 rounded-xl bg-zinc-100/80 px-3 py-2.5">
-                    <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+                  <div className="mt-3 rounded-xl bg-muted px-3 py-2.5">
+                    <p className="text-xs font-semibold text-muted-foreground">
                       Nota do catálogo
                     </p>
                     {servico.notasCatalogo.map((nota) => (
-                      <p className="mt-1 text-xs leading-5 text-zinc-700" key={nota}>
+                      <p
+                        className="mt-1 text-xs leading-5 text-muted-foreground"
+                        key={nota}
+                      >
                         {nota}
                       </p>
                     ))}
@@ -445,7 +452,7 @@ export function ServicosPanel({
                   ))}
                 </div>
 
-                <div className="mt-4 border-t border-zinc-200 pt-4">
+                <div className="mt-4 border-t border-border pt-4">
                   <MargemDoServico moeda={painel.moeda} servico={servico} />
 
                   {servico.custoProdutoIncompleto ? (
@@ -459,7 +466,7 @@ export function ServicosPanel({
                   ) : null}
                 </div>
 
-                <div className="mt-4 border-t border-zinc-200 pt-4">
+                <div className="mt-4 border-t border-border pt-4">
                   <ServicosReceitaForm
                     actionReceita={actionReceita}
                     clienteSlug={clienteSlug}
@@ -476,7 +483,7 @@ export function ServicosPanel({
                   />
                 </div>
 
-                <div className="mt-4 flex flex-col gap-4 border-t border-zinc-200 pt-4">
+                <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4">
                   {podeEditar ? (
                     <ServicosExecucaoForm
                       action={actionExecucao}
@@ -499,7 +506,7 @@ export function ServicosPanel({
                 </div>
 
                 {podeEditar ? (
-                  <div className="mt-4 border-t border-zinc-200 pt-3">
+                  <div className="mt-4 border-t border-border pt-3">
                     <ExcluirServicoForm
                       action={actionExcluir}
                       clienteSlug={clienteSlug}
@@ -515,22 +522,17 @@ export function ServicosPanel({
       )}
 
       {podeEditar && painel.excluidos.length > 0 ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <SeccaoTitulo dica="Continuam na base de dados com preço, notas, receita e histórico. O agente é que deixou de os vender.">
             Excluídos
-          </p>
-          <p className="mt-2 text-xs text-zinc-500">
-            Estes serviços continuam na base de dados com tudo o que tinham:
-            preço, notas, receita e histórico. O agente é que deixou de os
-            vender.
-          </p>
+          </SeccaoTitulo>
           <ul className="mt-3 flex flex-col gap-2">
             {painel.excluidos.map((servico) => (
               <li
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0"
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
                 key={servico.id}
               >
-                <span className="text-sm text-zinc-800">{servico.nome}</span>
+                <span className="text-sm text-foreground">{servico.nome}</span>
                 <ReporServicoForm
                   action={actionRepor}
                   clienteSlug={clienteSlug}

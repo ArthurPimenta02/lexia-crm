@@ -213,9 +213,7 @@ export function AdminTestChat({
         return;
       }
 
-      setDeletedSessionIds((current) =>
-        new Set(current).add(sessionId),
-      );
+      setDeletedSessionIds((current) => new Set(current).add(sessionId));
 
       if (selectedSessionId === sessionId) {
         setLocalExecutions([]);
@@ -358,11 +356,11 @@ export function AdminTestChat({
 
   return (
     <div className="grid h-[calc(100vh-250px)] min-h-[540px] gap-5 lg:grid-cols-[280px_1fr]">
-      <aside className="flex min-h-0 flex-col rounded-md border border-zinc-200 bg-white">
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3">
-          <h2 className="text-sm font-semibold">Sessões admin</h2>
+      <aside className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold">Sessões</h2>
           <button
-            className="h-9 rounded-md bg-zinc-950 px-3 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+            className="h-9 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
             disabled={isCreating}
             onClick={handleCreateSession}
             type="button"
@@ -375,10 +373,10 @@ export function AdminTestChat({
           {visibleSessions.length > 0 ? (
             visibleSessions.map((session) => (
               <div
-                className={`rounded-md p-2 text-sm transition ${
+                className={`rounded-lg p-2 text-sm transition ${
                   selectedSessionId === session.session_id
-                    ? "bg-zinc-950 text-white"
-                    : "text-zinc-700 hover:bg-zinc-100"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
                 key={session.id}
               >
@@ -394,7 +392,7 @@ export function AdminTestChat({
                   }}
                 >
                   <span className="block font-medium">
-                    {session.nome ?? "Nova sessão admin"}
+                    {session.nome ?? "Nova sessão"}
                   </span>
                   <span className="block truncate text-xs opacity-70">
                     {session.session_id}
@@ -403,7 +401,7 @@ export function AdminTestChat({
                 <button
                   className={`mt-2 text-xs font-medium underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 ${
                     selectedSessionId === session.session_id
-                      ? "text-white/80"
+                      ? "text-primary-foreground/80"
                       : "text-red-600"
                   }`}
                   disabled={isCreating}
@@ -415,28 +413,29 @@ export function AdminTestChat({
               </div>
             ))
           ) : (
-            <p className="px-3 py-6 text-sm text-zinc-500">
+            <p className="px-3 py-6 text-sm text-muted-foreground">
               Nenhuma sessão criada ainda.
             </p>
           )}
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
-          <h2 className="font-semibold">Chat de teste admin</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Cliente selecionado: {clienteSlug}
-          </p>
+      <section className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
+          {/*
+            O slug do cliente já está no selector por cima desta caixa.
+            Repeti-lo em "Cliente selecionado: ..." não acrescentava nada.
+          */}
+          <h2 className="font-semibold">Chat de teste</h2>
           <div className="mt-4 flex max-w-xl flex-col gap-2">
             <label
-              className="text-sm font-medium text-zinc-700"
+              className="text-sm font-medium text-muted-foreground"
               htmlFor="admin-workflow"
             >
               Workflow de teste
             </label>
             <select
-              className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-zinc-900 disabled:bg-zinc-100"
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground disabled:bg-muted"
               disabled={workflows.length <= 1}
               id="admin-workflow"
               onChange={(event) => setSelectedWorkflowId(event.target.value)}
@@ -454,7 +453,7 @@ export function AdminTestChat({
               ))}
             </select>
             {selectedWorkflow ? (
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Workflow selecionado: {selectedWorkflow.nome ?? "Workflow"} (
                 {selectedWorkflow.tipo ?? "sem tipo"})
               </p>
@@ -466,10 +465,10 @@ export function AdminTestChat({
           {chatMessages.length > 0 ? (
             chatMessages.map((chatMessage) => (
               <div
-                className={`max-w-[78%] rounded-md px-4 py-3 text-sm leading-6 ${
+                className={`max-w-[78%] rounded-lg px-4 py-3 text-sm leading-6 ${
                   chatMessage.role === "admin"
-                    ? "ml-auto bg-zinc-950 text-white"
-                    : "mr-auto bg-zinc-100 text-zinc-900"
+                    ? "ml-auto bg-primary text-primary-foreground"
+                    : "mr-auto bg-muted text-foreground"
                 }`}
                 key={chatMessage.id}
               >
@@ -477,7 +476,7 @@ export function AdminTestChat({
               </div>
             ))
           ) : (
-            <div className="flex flex-1 items-center justify-center text-center text-sm text-zinc-500">
+            <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
               {selectedSessionId
                 ? "Nenhuma mensagem nesta sessão ainda."
                 : "Crie ou selecione uma sessão para começar."}
@@ -486,10 +485,10 @@ export function AdminTestChat({
 
           {pendingText ? (
             <>
-              <div className="ml-auto max-w-[78%] rounded-md bg-zinc-950 px-4 py-3 text-sm leading-6 text-white">
+              <div className="ml-auto max-w-[78%] rounded-lg bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground">
                 {pendingText}
               </div>
-              <div className="mr-auto max-w-[78%] rounded-md bg-zinc-100 px-4 py-3 text-sm leading-6 text-zinc-700">
+              <div className="mr-auto max-w-[78%] rounded-lg bg-muted px-4 py-3 text-sm leading-6 text-muted-foreground">
                 Aguardando resposta do agente...
               </div>
             </>
@@ -498,19 +497,19 @@ export function AdminTestChat({
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="shrink-0 border-t border-zinc-200 p-4">
+        <div className="shrink-0 border-t border-border p-4">
           {error ? (
-            <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </p>
           ) : null}
 
           {notice ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               <p>{notice}</p>
               {lastPendingRun ? (
                 <button
-                  className="h-9 rounded-md border border-amber-300 bg-white px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-9 rounded-lg border border-amber-300 bg-surface px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isChecking}
                   onClick={handleCheckAgain}
                   type="button"
@@ -523,7 +522,7 @@ export function AdminTestChat({
 
           <form className="flex gap-3" onSubmit={handleSendMessage}>
             <input
-              className="h-11 flex-1 rounded-md border border-zinc-300 px-3 text-sm outline-none transition focus:border-zinc-900 disabled:bg-zinc-100"
+              className="h-11 flex-1 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground disabled:bg-muted"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -535,7 +534,7 @@ export function AdminTestChat({
               value={message}
             />
             <button
-              className="h-11 rounded-md bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="h-11 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -544,7 +543,7 @@ export function AdminTestChat({
                 !message.trim()
               }
               type="submit"
-          >
+            >
               {isSending ? "Enviando..." : "Enviar"}
             </button>
           </form>

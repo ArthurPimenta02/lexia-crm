@@ -1,8 +1,19 @@
+import { ArrowUpRight, PlugZap } from "lucide-react";
 import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import {
+  Card,
+  CardTitulo,
+  Dica,
+  GrupoMetricas,
+  HorariosDePico,
+  LinhaMetrica,
+  Ranking,
+  SeccaoTitulo,
+} from "@/app/components/painel-ui";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -27,10 +38,7 @@ import {
   fetchDashboardPeriodMessages,
   findStartedConversationKeys,
 } from "@/lib/dashboard/message-metrics-data";
-import {
-  getClientTimezone,
-  getTimezoneLabel,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
@@ -51,36 +59,10 @@ type ContactMetricRow = {
   identificador_conversa: string;
 };
 
-function MetricCard({
-  description,
-  label,
-  value,
-}: {
-  description: string;
-  label: string;
-  value: number | string | null;
-}) {
-  const isPending = value === null || value === "--";
-
-  return (
-    <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-      <p className="text-sm font-medium text-zinc-500">{label}</p>
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <p className="text-4xl font-semibold tracking-tight text-zinc-950">
-          {isPending ? "--" : value}
-        </p>
-        {isPending ? (
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
-            Em breve
-          </span>
-        ) : null}
-      </div>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">{description}</p>
-    </div>
-  );
-}
-
-function formatConversionRate(appointments: number | null, conversations: number) {
+function formatConversionRate(
+  appointments: number | null,
+  conversations: number,
+) {
   if (appointments === null || conversations === 0) {
     return null;
   }
@@ -117,7 +99,11 @@ function countConversationsByChannel(
   for (const conversationKey of conversationKeys) {
     const channel = contactsByConversation.get(conversationKey)?.canal;
 
-    if (channel === "instagram" || channel === "messenger" || channel === "whatsapp") {
+    if (
+      channel === "instagram" ||
+      channel === "messenger" ||
+      channel === "whatsapp"
+    ) {
       counts[channel] += 1;
     } else {
       counts.unknown += 1;
@@ -144,75 +130,6 @@ function countNewContacts(
       })
       .map(getConversationKey),
   ).size;
-}
-
-function RankingList({
-  emptyText,
-  items,
-}: {
-  emptyText: string;
-  items: { label: string; value: number }[];
-}) {
-  const maxValue = Math.max(...items.map((item) => item.value), 1);
-
-  if (items.length === 0) {
-    return <p className="text-sm text-zinc-600">{emptyText}</p>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div key={item.label}>
-          <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-            <span className="truncate font-medium text-zinc-800">{item.label}</span>
-            <span className="text-zinc-500">{item.value}</span>
-          </div>
-          <div className="h-2 rounded-full bg-zinc-100">
-            <div
-              className="h-2 rounded-full bg-zinc-950"
-              style={{ width: `${Math.max((item.value / maxValue) * 100, 6)}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function MiniHeatmap({
-  cells,
-}: {
-  cells: { day: string; hour: number; value: number }[];
-}) {
-  const maxValue = Math.max(...cells.map((cell) => cell.value), 1);
-  const peakCells = cells
-    .filter((cell) => cell.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
-
-  if (peakCells.length === 0) {
-    return <p className="text-sm text-zinc-600">Sem mensagens recebidas no período.</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {peakCells.map((cell) => (
-        <div
-          className="rounded-2xl border border-zinc-200 p-3"
-          key={`${cell.day}-${cell.hour}`}
-          style={{
-            backgroundColor: `rgba(24,24,27,${0.04 + (cell.value / maxValue) * 0.14})`,
-          }}
-        >
-          <p className="text-xs font-semibold text-zinc-500">{cell.day}</p>
-          <p className="mt-1 text-lg font-semibold text-zinc-950">
-            {String(cell.hour).padStart(2, "0")}h
-          </p>
-          <p className="mt-1 text-xs text-zinc-600">{cell.value} mensagens</p>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default async function AppPage({ searchParams }: DashboardPageProps) {
@@ -262,10 +179,13 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       };
     },
   );
-  const externalMetricsPromise = getExternalClientMetrics(profile.cliente_slug, {
-    end: range.end,
-    start: range.start,
-  });
+  const externalMetricsPromise = getExternalClientMetrics(
+    profile.cliente_slug,
+    {
+      end: range.end,
+      start: range.start,
+    },
+  );
   const messagesResult = await messagesPromise;
   const startedConversationsPromise = messagesResult.error
     ? Promise.resolve({ data: new Set<string>(), error: messagesResult.error })
@@ -322,83 +242,74 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   );
 
   return (
-    <section className="flex w-full max-w-7xl flex-col gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold tracking-[0.32em] text-zinc-500 uppercase">
+    <section className="flex w-full flex-col gap-5">
+      {/*
+        Título e período na mesma linha. O período deixou de ser um cartão
+        com três linhas de texto por cima dos botões: o que ele tem a dizer
+        ("1 a 16 de Outubro", "Europa/Lisboa") cabe por baixo dos botões, em
+        letra pequena, e o botão escolhido já diz qual é o período.
+      */}
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Dashboard
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Visão geral do agente
           </h1>
-          <p className="mt-2 max-w-2xl text-zinc-600">
-            Indicadores operacionais do atendimento no período seleccionado.
+          <p className="mt-1 text-sm tabular-nums text-muted-foreground">
+            {range.label} · {getTimezoneLabel(timezone)}
           </p>
         </div>
-        <Link
-          className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-          href="/app/conversas"
-        >
-          Ver conversas
-        </Link>
-      </div>
 
-      <div className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-              Período
-            </p>
-            <p className="mt-1 text-sm text-zinc-600">{range.label}</p>
-            <p className="mt-1 text-xs text-zinc-500">
-              Fuso horário: {getTimezoneLabel(timezone)}
-            </p>
+        <div className="flex flex-col items-start gap-3 lg:items-end">
+          <div className="flex w-full items-center gap-2 overflow-x-auto lg:w-auto">
+            <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface p-1">
+              {dashboardPeriodOptions.map((option) => {
+                const isActive = option.key === range.key;
+
+                return (
+                  <Link
+                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                    href={`/app?periodo=${option.key}`}
+                    key={option.key}
+                  >
+                    {option.label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <Link
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-sm font-medium text-foreground transition hover:bg-muted"
+              href="/app/conversas"
+            >
+              Conversas
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {dashboardPeriodOptions.map((option) => {
-              const isActive = option.key === range.key;
-              const href = `/app?periodo=${option.key}`;
 
-              return (
-                <Link
-                  className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                    isActive
-                      ? "border-zinc-950 bg-zinc-950 text-white"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
-                  }`}
-                  href={href}
-                  key={option.key}
-                >
-                  {option.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {range.key === "personalizado" ? (
-          <Form
-            action="/app"
-            className="mt-4 flex flex-wrap items-end gap-3"
-            replace
-            scroll={false}
-          >
-            <input name="periodo" type="hidden" value="personalizado" />
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
-              Início
+          {range.key === "personalizado" ? (
+            <Form
+              action="/app"
+              className="flex flex-wrap items-end gap-2"
+              replace
+              scroll={false}
+            >
+              <input name="periodo" type="hidden" value="personalizado" />
               <input
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+                aria-label="Início"
+                className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none transition focus:border-primary"
                 defaultValue={
                   customStart || getDateInputValue(range.start, timezone)
                 }
                 name="inicio"
                 type="date"
               />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
-              Fim
               <input
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+                aria-label="Fim"
+                className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none transition focus:border-primary"
                 defaultValue={
                   customEnd ||
                   getDateInputValue(getInclusiveRangeEnd(range.end), timezone)
@@ -406,177 +317,187 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                 name="fim"
                 type="date"
               />
-            </label>
-            <FormSubmitButton
-              className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-              pendingLabel="Aplicando..."
-            >
-              Aplicar
-            </FormSubmitButton>
-          </Form>
-        ) : null}
-      </div>
+              <FormSubmitButton
+                className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                pendingLabel="A aplicar..."
+              >
+                Aplicar
+              </FormSubmitButton>
+            </Form>
+          ) : null}
+        </div>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          description="Primeira mensagem recebida de cada conversa dentro do período."
-          label="Conversas iniciadas"
-          value={startedConversations}
-        />
-        <MetricCard
-          description="Agendamentos válidos criados no período, conforme o estado usado por este cliente."
-          label="Agendamentos realizados"
-          value={externalMetrics.appointments ?? "--"}
-        />
-        <MetricCard
-          description={
-            externalMetrics.appointments === null
-              ? "A fonte de agendamentos ainda não está conectada para este cliente."
-              : `${externalMetrics.appointments} agendamentos para ${startedConversations} conversas iniciadas no mesmo período; sem atribuição individual.`
-          }
-          label="Relação com agendamentos"
-          value={conversionRate ?? "--"}
-        />
-        <MetricCard
-          description={
-            autonomyMetrics.dataAvailable
-              ? `${autonomyMetrics.interventionConversations} conversa${
-                  autonomyMetrics.interventionConversations === 1 ? "" : "s"
-                } com intervenção humana. Dados a partir de ${formatRangeDate(
-                  autonomyMetrics.effectiveStart,
-                  timezone,
-                )}.`
-              : "Dados de autonomia disponíveis a partir de 01/08/2026."
-          }
-          label="Autonomia do agente"
-          value={
-            autonomyMetrics.percentage === null
-              ? "--"
-              : `${autonomyMetrics.percentage}%`
-          }
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <MetricCard
-          description="Mensagens automáticas de retomada efectivamente registadas no período."
-          label="Follow-ups enviados"
-          value={followupsSent}
-        />
-        <MetricCard
-          description={`${followupRecovery.followupConversations} conversas receberam follow-up rápido e ${followupRecovery.recoveredConversations} voltaram a responder.`}
-          label="Recuperação de follow-up rápido"
-          value={
-            followupRecovery.recoveryRate === null
-              ? "--"
-              : `${followupRecovery.recoveryRate}%`
-          }
+      {/*
+        Os quatro números que respondem à pergunta "como é que isto está a
+        correr". Os outros oito não desapareceram — desceram para a lista
+        logo a seguir, porque eram oito cartões gigantes a disputar a mesma
+        atenção que estes quatro.
+      */}
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo sufixo="no período">Resultado</SeccaoTitulo>
+        <GrupoMetricas
+          itens={[
+            {
+              dica: "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
+              label: "Conversas iniciadas",
+              valor: startedConversations,
+            },
+            {
+              dica: "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
+              label: "Agendamentos",
+              valor: externalMetrics.appointments ?? "--",
+            },
+            {
+              dica: "Agendamentos a dividir por conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
+              label: "Agendam. / conversa",
+              nota:
+                externalMetrics.appointments === null
+                  ? undefined
+                  : `${externalMetrics.appointments} para ${startedConversations} conversas`,
+              valor: conversionRate ?? "--",
+            },
+            {
+              dica: autonomyMetrics.dataAvailable
+                ? `Percentagem de conversas que o agente fechou sozinho. Dados a partir de ${formatRangeDate(autonomyMetrics.effectiveStart, timezone)}.`
+                : "Dados de autonomia só existem a partir de 01/08/2026.",
+              label: "Autonomia do agente",
+              nota: autonomyMetrics.dataAvailable
+                ? `${autonomyMetrics.interventionConversations} com intervenção humana`
+                : undefined,
+              valor:
+                autonomyMetrics.percentage === null
+                  ? "--"
+                  : `${autonomyMetrics.percentage}%`,
+            },
+          ]}
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          description="Conversas com pelo menos uma mensagem recebida ou enviada no período."
-          label="Conversas activas"
-          value={activeConversations}
-        />
-        <MetricCard
-          description="Mensagens recebidas dos clientes finais no período."
-          label="Mensagens recebidas"
-          value={receivedMessages}
-        />
-        <MetricCard
-          description="Todas as mensagens enviadas, incluindo agente, equipa e follow-ups."
-          label="Mensagens enviadas"
-          value={sentMessages}
-        />
-        <MetricCard
-          description="Contactos distintos criados pela primeira vez no período."
-          label="Novos contactos"
-          value={newContacts}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <MetricCard
-          description={`${outOfHours.outsideCount} de ${outOfHours.sentCount} respostas do agente fora de 9h-19h ou fim de semana.`}
-          label="Atendimento fora do horário"
-          value={
-            outOfHours.percentage === null ? "--" : `${outOfHours.percentage}%`
-          }
-        />
-        <MetricCard
-          description={`${firstResponse.samples} conversas iniciadas com primeira resposta automática em até 1h.`}
-          label="Primeira resposta média"
-          value={formatSeconds(firstResponse.averageSeconds)}
-        />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
-            Conversas iniciadas por canal
-          </h2>
-          <div className="mt-5 grid gap-3">
-            <RankingList
-              emptyText="Sem conversas por canal no período."
-              items={[
-                { label: "WhatsApp", value: channelCounts.whatsapp },
-                { label: "Messenger", value: channelCounts.messenger },
-                { label: "Instagram", value: channelCounts.instagram },
-                { label: "Canal não identificado", value: channelCounts.unknown },
-              ].filter((item) => item.value > 0)}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card>
+          <CardTitulo>Volume no período</CardTitulo>
+          <div className="divide-y divide-border border-t border-border">
+            <LinhaMetrica
+              dica="Conversas com pelo menos uma mensagem recebida ou enviada no período, mesmo que tenham começado antes."
+              label="Conversas activas"
+              valor={activeConversations}
+            />
+            <LinhaMetrica
+              dica="Mensagens que os clientes finais enviaram."
+              label="Mensagens recebidas"
+              valor={receivedMessages}
+            />
+            <LinhaMetrica
+              dica="Todas as mensagens enviadas: agente, equipa e follow-ups."
+              label="Mensagens enviadas"
+              valor={sentMessages}
+            />
+            <LinhaMetrica
+              dica="Contactos distintos criados pela primeira vez no período."
+              label="Novos contactos"
+              valor={newContacts}
             />
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
+        <Card>
+          <CardTitulo>Qualidade do atendimento</CardTitulo>
+          <div className="divide-y divide-border border-t border-border">
+            <LinhaMetrica
+              dica="Tempo médio até à primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora."
+              label="Primeira resposta"
+              nota={`${firstResponse.samples} conversas`}
+              valor={formatSeconds(firstResponse.averageSeconds)}
+            />
+            <LinhaMetrica
+              dica="Respostas do agente fora de 9h-19h ou ao fim-de-semana. É o que o agente cobre e uma pessoa não cobriria."
+              label="Fora do horário"
+              nota={`${outOfHours.outsideCount} de ${outOfHours.sentCount} respostas`}
+              valor={
+                outOfHours.percentage === null
+                  ? "--"
+                  : `${outOfHours.percentage}%`
+              }
+            />
+            <LinhaMetrica
+              dica="Mensagens automáticas de retomada efectivamente registadas no período."
+              label="Follow-ups enviados"
+              valor={followupsSent}
+            />
+            <LinhaMetrica
+              dica="Das conversas que receberam follow-up rápido, quantas voltaram a responder."
+              label="Recuperação por follow-up"
+              nota={`${followupRecovery.recoveredConversations} de ${followupRecovery.followupConversations} voltaram`}
+              valor={
+                followupRecovery.recoveryRate === null
+                  ? "--"
+                  : `${followupRecovery.recoveryRate}%`
+              }
+            />
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 xl:grid-cols-3">
+        <Card className="p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
+            Conversas por canal
+          </h2>
+          <Ranking
+            itens={[
+              { label: "WhatsApp", value: channelCounts.whatsapp },
+              { label: "Messenger", value: channelCounts.messenger },
+              { label: "Instagram", value: channelCounts.instagram },
+              { label: "Sem canal", value: channelCounts.unknown },
+            ].filter((item) => item.value > 0)}
+            vazio="Sem conversas por canal no período."
+          />
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             Serviços mais agendados
           </h2>
-          <div className="mt-5">
-            <RankingList
-              emptyText="Sem agendamentos no período."
-              items={externalMetrics.services}
-            />
-          </div>
-        </div>
+          <Ranking
+            itens={externalMetrics.services}
+            vazio="Sem agendamentos no período."
+          />
+        </Card>
 
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
+        <Card className="p-5">
+          <h2 className="mb-4 text-sm font-semibold text-foreground">
             Agendamentos por dia
           </h2>
-          <div className="mt-5">
-            <RankingList
-              emptyText="Sem agendamentos no período."
-              items={externalMetrics.appointmentWeekdays.filter(
-                (item) => item.value > 0,
-              )}
-            />
-          </div>
-        </div>
+          <Ranking
+            itens={externalMetrics.appointmentWeekdays.filter(
+              (item) => item.value > 0,
+            )}
+            vazio="Sem agendamentos no período."
+          />
+        </Card>
       </div>
 
-      <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-        <h2 className="text-lg font-semibold text-zinc-950">
-          Horários de pico
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Mensagens recebidas por dia e hora no fuso do cliente.
-        </p>
-        <div className="mt-5">
-          <MiniHeatmap cells={heatmapCells} />
+      <Card className="p-5">
+        <div className="mb-4 flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold text-foreground">
+            Horários de pico
+          </h2>
+          <Dica texto="As oito horas com mais mensagens recebidas, no fuso do cliente." />
         </div>
-      </div>
+        <HorariosDePico cells={heatmapCells} />
+      </Card>
 
       {!externalMetrics.isConfigured ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
-            Métricas em preparação
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600">
-            As conversas já estão conectadas. Agendamentos e follow-ups entram
-            assim que a fonte de métricas do cliente estiver ligada ao painel.
+        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-muted px-5 py-4">
+          <PlugZap
+            aria-hidden="true"
+            className="mt-0.5 h-4 w-4 shrink-0 text-warning"
+          />
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            As conversas já estão ligadas. Agendamentos e follow-ups entram
+            assim que a fonte de métricas deste cliente estiver ligada ao
+            painel.
           </p>
         </div>
       ) : null}

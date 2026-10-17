@@ -22,10 +22,10 @@ export type ProdutoAction = (
 ) => Promise<GravarProdutoResultado>;
 
 const inputClass =
-  "h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+  "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
 
 const labelClass =
-  "flex flex-col gap-1.5 text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase";
+  "flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground";
 
 function Mensagem({ resultado }: { resultado: GravarProdutoResultado | null }) {
   if (!resultado) {
@@ -76,7 +76,11 @@ export function CriarProdutoForm({
 
         <label className={labelClass} htmlFor="nova-unidade">
           Unidade
-          <select className={`${inputClass} w-28`} id="nova-unidade" name="unidade">
+          <select
+            className={`${inputClass} w-28`}
+            id="nova-unidade"
+            name="unidade"
+          >
             <option value="ml">ml</option>
             <option value="l">l</option>
             <option value="g">g</option>
@@ -85,7 +89,10 @@ export function CriarProdutoForm({
           </select>
         </label>
 
-        <label className={`${labelClass} min-w-48 flex-1`} htmlFor="novas-notas">
+        <label
+          className={`${labelClass} min-w-48 flex-1`}
+          htmlFor="novas-notas"
+        >
           Notas
           <input
             className={`${inputClass} w-full`}
@@ -98,7 +105,7 @@ export function CriarProdutoForm({
         </label>
 
         <FormSubmitButton
-          className="inline-flex min-h-10 items-center rounded-full bg-zinc-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           pendingLabel="A criar..."
         >
           Criar produto
@@ -135,7 +142,7 @@ export function CompraForm({
       ) : null}
       <input name="produto_id" type="hidden" value={produtoId} />
 
-      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+      <p className="text-xs font-semibold text-muted-foreground">
         Comprei mais
       </p>
 
@@ -171,14 +178,14 @@ export function CompraForm({
         />
 
         <FormSubmitButton
-          className="inline-flex min-h-10 items-center rounded-full bg-zinc-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex min-h-10 items-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           pendingLabel="A registar..."
         >
           Registar compra
         </FormSubmitButton>
       </div>
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-muted-foreground">
         O total é o que pagaste pela quantidade toda. O custo por {unidade} sai
         daí e passa a valer para a margem de todos os serviços que usam este
         produto.
@@ -212,7 +219,7 @@ export function AjusteForm({
       ) : null}
       <input name="produto_id" type="hidden" value={produtoId} />
 
-      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+      <p className="text-xs font-semibold text-muted-foreground">
         Corrigir o stock
       </p>
 
@@ -257,7 +264,7 @@ export function AjusteForm({
         />
 
         <FormSubmitButton
-          className="inline-flex min-h-10 items-center rounded-full border border-zinc-300 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+          className="inline-flex min-h-10 items-center rounded-full border border-border-strong bg-surface px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
           pendingLabel="A ajustar..."
         >
           Ajustar
@@ -270,7 +277,7 @@ export function AjusteForm({
 }
 
 const inputPequeno =
-  "h-9 rounded-md border border-zinc-300 bg-white px-2.5 text-sm outline-none transition focus:border-zinc-950 disabled:bg-zinc-50 disabled:text-zinc-500";
+  "h-9 rounded-2xl border border-border-strong bg-surface px-2.5 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
 
 function LinhaDeServico({
   action,
@@ -301,7 +308,7 @@ function LinhaDeServico({
       <input name="servico_id" type="hidden" value={item.servicoId} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-36 flex-1 truncate text-sm text-zinc-800">
+        <span className="min-w-36 flex-1 truncate text-sm text-foreground">
           {item.servicoNome}
         </span>
 
@@ -321,9 +328,9 @@ function LinhaDeServico({
           step="0.001"
           type="number"
         />
-        <span className="w-10 text-xs text-zinc-500">{unidade}</span>
+        <span className="w-10 text-xs text-muted-foreground">{unidade}</span>
 
-        <span className="w-24 text-right text-sm font-semibold text-zinc-900">
+        <span className="w-24 text-right text-sm font-semibold text-foreground">
           {item.custo === null
             ? "sem preço"
             : new Intl.NumberFormat("pt-PT", {
@@ -335,7 +342,7 @@ function LinhaDeServico({
         </span>
 
         <FormSubmitButton
-          className="inline-flex min-h-9 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+          className="inline-flex min-h-9 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
           pendingLabel="..."
         >
           Gravar
@@ -404,7 +411,7 @@ function LigarServico({
         />
 
         <FormSubmitButton
-          className="inline-flex min-h-9 items-center rounded-full bg-zinc-950 px-4 text-xs font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60"
+          className="inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
           pendingLabel="A ligar..."
         >
           Ligar serviço
@@ -446,12 +453,12 @@ export function ServicosDoProdutoForm({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
+      <p className="text-xs font-semibold text-muted-foreground">
         Serviços que gastam este produto
       </p>
 
       {servicos.length === 0 ? (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Nenhum. Enquanto nenhum serviço gastar este produto, o stock só muda
           quando registas compras ou ajustes à mão.
         </p>
@@ -469,7 +476,7 @@ export function ServicosDoProdutoForm({
                 unidade={unidade}
               />
             ) : (
-              <p className="text-sm text-zinc-800" key={item.servicoId}>
+              <p className="text-sm text-foreground" key={item.servicoId}>
                 {item.servicoNome} — {item.quantidade} {unidade}
               </p>
             ),
@@ -488,7 +495,7 @@ export function ServicosDoProdutoForm({
       ) : null}
 
       {podeEditar && servicos.length > 0 ? (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           Pôr a quantidade a zero tira o serviço desta lista.
         </p>
       ) : null}
@@ -526,7 +533,7 @@ export function ExcluirProdutoForm({
     return (
       <div className="flex flex-col items-end gap-1.5">
         <button
-          className="text-xs font-semibold text-zinc-500 underline decoration-dotted transition hover:text-red-700"
+          className="text-xs font-semibold text-muted-foreground underline decoration-dotted transition hover:text-red-700"
           onClick={() => setAConfirmar(true)}
           type="button"
         >
@@ -554,7 +561,7 @@ export function ExcluirProdutoForm({
 
       <div className="flex items-center gap-2">
         <button
-          className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-900"
+          className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
           onClick={() => setAConfirmar(false)}
           type="button"
         >
@@ -595,7 +602,7 @@ export function ReporProdutoForm({
       <input name="produto_id" type="hidden" value={produtoId} />
 
       <FormSubmitButton
-        className="inline-flex min-h-8 items-center rounded-full border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 disabled:opacity-60"
+        className="inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
         pendingLabel="A repor..."
       >
         Repor

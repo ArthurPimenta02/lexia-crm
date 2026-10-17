@@ -5,6 +5,7 @@ import {
   clearClientTestData,
   updateClientUserStatus,
 } from "@/app/admin/clientes/[slug]/actions";
+import { GrupoMetricas, SeccaoTitulo } from "@/app/components/painel-ui";
 import { ClientUserForm } from "@/app/admin/clientes/[slug]/client-user-form";
 import { ClientSettingsForm } from "@/app/admin/clientes/[slug]/settings-form";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
@@ -161,11 +162,7 @@ function getAgentResponseText(execution: LatestExecution) {
   return stringifyMessage(source) || fallback.join("\n\n");
 }
 
-async function getCount(
-  table: string,
-  clienteSlug: string,
-  status?: string,
-) {
+async function getCount(table: string, clienteSlug: string, status?: string) {
   const supabase = await createClient();
   let query = supabase
     .from(table)
@@ -230,16 +227,18 @@ function getMessagePreview(message: ConversationMessage | null | undefined) {
 }
 
 function InfoItem({
+  className = "",
   label,
   children,
 }: {
+  className?: string;
   label: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <p className="text-sm text-zinc-500">{label}</p>
-      <div className="mt-1 font-medium text-zinc-950">{children}</div>
+    <div className={`min-w-0 ${className}`}>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <div className="mt-1 font-medium text-foreground">{children}</div>
     </div>
   );
 }
@@ -337,7 +336,9 @@ export default async function ClientDetailPage({
       .limit(5),
     supabase
       .from("lexia_contactos")
-      .select("id, canal, identificador_conversa, nome, telefone, atualizado_em")
+      .select(
+        "id, canal, identificador_conversa, nome, telefone, atualizado_em",
+      )
       .eq("cliente_slug", clientData.slug)
       .not("identificador_conversa", "like", "teste:%")
       .order("atualizado_em", { ascending: false })
@@ -377,11 +378,9 @@ export default async function ClientDetailPage({
   const activeWorkflows = workflows.filter(
     (workflow) => workflow.status === "ativo",
   );
-  const activeWorkflow =
-    activeWorkflows[0] ?? null;
+  const activeWorkflow = activeWorkflows[0] ?? null;
   const editableWorkflow = activeWorkflow ?? workflows[0] ?? null;
-  const latestExecutions =
-    (latestExecutionsData ?? []) as LatestExecution[];
+  const latestExecutions = (latestExecutionsData ?? []) as LatestExecution[];
   const latestFeedbacks = (latestFeedbacksData ?? []) as LatestFeedback[];
   const latestHandoffs = (latestHandoffsData ?? []) as LatestHandoff[];
   const latestContacts = (latestContactsData ?? []) as ConversationContact[];
@@ -434,16 +433,15 @@ export default async function ClientDetailPage({
         <h1 className="text-3xl font-semibold">
           {clientData.nome ?? "Cliente"}
         </h1>
-        <p className="mt-2 text-zinc-600">Resumo do cliente na Lexia.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
-            className="rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800"
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
             href={`/admin/conversas?cliente=${encodeURIComponent(clientData.slug)}`}
           >
             Ver conversas
           </Link>
           <Link
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
+            className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted"
             href="/admin/feedbacks"
           >
             Ver feedbacks
@@ -451,10 +449,12 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      <div className="rounded-md border border-zinc-200 bg-white p-5">
+      <div className="rounded-2xl border border-border bg-surface p-5">
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           <InfoItem label="Slug">{clientData.slug}</InfoItem>
-          <InfoItem label="Status">{clientData.status ?? "Sem status"}</InfoItem>
+          <InfoItem label="Status">
+            {clientData.status ?? "Sem status"}
+          </InfoItem>
           <InfoItem label="Modo teste">
             {clientData.modo_teste ? "Ativo" : "Inativo"}
           </InfoItem>
@@ -462,7 +462,7 @@ export default async function ClientDetailPage({
             <div className="flex items-center gap-2">
               {clientData.cor_principal ? (
                 <span
-                  className="h-4 w-4 rounded-full border border-zinc-300"
+                  className="h-4 w-4 rounded-full border border-border-strong"
                   style={{ backgroundColor: clientData.cor_principal }}
                 />
               ) : null}
@@ -470,10 +470,9 @@ export default async function ClientDetailPage({
             </div>
           </InfoItem>
           <InfoItem
+            className="md:col-span-2 xl:col-span-2"
             label={
-              activeWorkflows.length > 1
-                ? "Workflows ativos"
-                : "Workflow ativo"
+              activeWorkflows.length > 1 ? "Workflows ativos" : "Workflow ativo"
             }
           >
             {activeWorkflows.length === 0 ? (
@@ -485,61 +484,47 @@ export default async function ClientDetailPage({
                 maxLength={80}
               />
             ) : (
-              <div className="space-y-1">
-                <p>{activeWorkflows.length} workflows ativos</p>
-                <ul className="space-y-1 text-xs text-zinc-600">
-                  {activeWorkflows.map((workflow) => (
-                    <li key={workflow.id}>
-                      {workflow.nome ?? "Workflow"} (
-                      {workflow.tipo ?? "sem tipo"})
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="space-y-1 text-sm">
+                {activeWorkflows.map((workflow) => (
+                  <li key={workflow.id}>
+                    {workflow.nome ?? "Workflow"}{" "}
+                    <span className="text-muted-foreground">
+                      ({workflow.tipo ?? "sem tipo"})
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
-          </InfoItem>
-          <InfoItem label="Workflow status">
-            {activeWorkflows.length > 1
-              ? `${activeWorkflows.length} ativos`
-              : activeWorkflow?.status ?? "Sem workflow"}
           </InfoItem>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <div
-            className="rounded-md border border-zinc-200 bg-white p-5"
-            key={card.title}
-          >
-            <p className="text-sm font-medium text-zinc-500">{card.title}</p>
-            <p className="mt-3 text-2xl font-semibold text-zinc-950">
-              {card.value}
-            </p>
-          </div>
-        ))}
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo sufixo="todo o histórico">Atendimento</SeccaoTitulo>
+        <GrupoMetricas
+          itens={cards.map((card) => ({
+            label: card.title,
+            valor: card.value,
+          }))}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {testCards.map((card) => (
-          <div
-            className="rounded-md border border-zinc-200 bg-white p-5"
-            key={card.title}
-          >
-            <p className="text-sm font-medium text-zinc-500">{card.title}</p>
-            <p className="mt-3 text-2xl font-semibold text-zinc-950">
-              {card.value}
-            </p>
-          </div>
-        ))}
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo>Testes e handoffs</SeccaoTitulo>
+        <GrupoMetricas
+          itens={testCards.map((card) => ({
+            label: card.title,
+            valor: card.value,
+          }))}
+        />
       </div>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Últimas conversas reais</h2>
         </div>
         {latestContacts.length > 0 ? (
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-border">
             {latestContacts.map((contact) => {
               const lastMessage = lastMessageByConversation.get(
                 contact.identificador_conversa,
@@ -547,7 +532,7 @@ export default async function ClientDetailPage({
 
               return (
                 <Link
-                  className="block px-5 py-4 transition hover:bg-zinc-50"
+                  className="block px-5 py-4 transition hover:bg-surface-muted"
                   href={buildAdminConversationHref(
                     clientData.slug,
                     contact.identificador_conversa,
@@ -557,21 +542,21 @@ export default async function ClientDetailPage({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-950">
+                      <p className="truncate text-sm font-semibold text-foreground">
                         {contact.nome || contact.telefone || "Sem nome"}
                       </p>
-                      <p className="mt-1 text-xs text-zinc-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {contact.telefone ?? "Sem telefone"}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                    <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {formatLabel(contact.canal)}
                     </span>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-sm text-zinc-600">
+                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                     {getMessagePreview(lastMessage)}
                   </p>
-                  <p className="mt-2 text-xs text-zinc-400">
+                  <p className="mt-2 text-xs text-muted-foreground/60">
                     {formatDateInTimezone(contact.atualizado_em, timeZone)}
                   </p>
                 </Link>
@@ -579,19 +564,14 @@ export default async function ClientDetailPage({
             })}
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Ainda não há conversas reais registadas.
           </div>
         )}
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
-        <div className="mb-5">
-          <h2 className="text-lg font-semibold">Configurações do cliente</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Edite os dados básicos do cliente e o workflow usado nos testes.
-          </p>
-        </div>
+      <section className="rounded-2xl border border-border bg-surface p-5">
+        <h2 className="mb-5 text-lg font-semibold">Configurações do cliente</h2>
         <ClientSettingsForm
           clienteSlug={clientData.slug}
           workflowId={editableWorkflow?.id ?? null}
@@ -608,115 +588,119 @@ export default async function ClientDetailPage({
         />
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Usuários do cliente</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Crie usuários vinculados ao cliente e controle o status de acesso.
-          </p>
         </div>
 
         <div className="p-5">
-          <h3 className="font-semibold text-zinc-950">
+          <h3 className="font-semibold text-foreground">
             Criar usuário do cliente
           </h3>
           <ClientUserForm clienteSlug={clientData.slug} />
         </div>
 
         {clientUsers.length > 0 ? (
-          <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-            <thead className="bg-zinc-50 text-zinc-600">
-              <tr>
-                <th className="w-[34%] border-y border-zinc-200 px-3 py-3 font-medium">
-                  User ID
-                </th>
-                <th className="w-[18%] border-y border-zinc-200 px-3 py-3 font-medium">
-                  Role
-                </th>
-                <th className="w-[14%] border-y border-zinc-200 px-3 py-3 font-medium">
-                  Status
-                </th>
-                <th className="w-[18%] border-y border-zinc-200 px-3 py-3 font-medium">
-                  Criado em
-                </th>
-                <th className="w-[16%] border-y border-zinc-200 px-3 py-3 font-medium">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {clientUsers.map((clientUser) => {
-                const activateAction = updateClientUserStatus.bind(
-                  null,
-                  clientData.slug,
-                  clientUser.user_id,
-                  "ativo",
-                );
-                const deactivateAction = updateClientUserStatus.bind(
-                  null,
-                  clientData.slug,
-                  clientUser.user_id,
-                  "inativo",
-                );
+          /*
+            Larguras em píxeis e tabela a deslizar na horizontal.
+            Em percentagem, num ecrã estreito a data partia-se a meio do ano
+            e o UUID partia-se letra a letra, dando linhas de 200px de altura.
+          */
+          <div className="overflow-x-auto">
+            <table className="min-w-[860px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
+                <tr>
+                  <th className="w-[320px] border-y border-border px-3 py-3 font-medium">
+                    User ID
+                  </th>
+                  <th className="w-[120px] border-y border-border px-3 py-3 font-medium">
+                    Role
+                  </th>
+                  <th className="w-[104px] border-y border-border px-3 py-3 font-medium">
+                    Status
+                  </th>
+                  <th className="w-[152px] border-y border-border px-3 py-3 font-medium">
+                    Criado em
+                  </th>
+                  <th className="w-[164px] border-y border-border px-3 py-3 font-medium">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientUsers.map((clientUser) => {
+                  const activateAction = updateClientUserStatus.bind(
+                    null,
+                    clientData.slug,
+                    clientUser.user_id,
+                    "ativo",
+                  );
+                  const deactivateAction = updateClientUserStatus.bind(
+                    null,
+                    clientData.slug,
+                    clientUser.user_id,
+                    "inativo",
+                  );
 
-                return (
-                  <tr
-                    className="border-b border-zinc-100"
-                    key={clientUser.user_id}
-                  >
-                    <td className="break-words px-3 py-3 align-top font-mono text-[11px] text-zinc-600 sm:text-xs">
-                      {clientUser.user_id}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatLabel(clientUser.role)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatLabel(clientUser.status)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDateInTimezone(clientUser.criado_em, timeZone)}
-                    </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex flex-col gap-2">
-                        <form action={activateAction}>
-                          <FormSubmitButton
-                            className="h-9 w-full rounded-md border border-zinc-300 px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
-                            disabled={clientUser.status === "ativo"}
-                            pendingLabel="Ativando..."
-                          >
-                            Ativar
-                          </FormSubmitButton>
-                        </form>
-                        <form action={deactivateAction}>
-                          <FormSubmitButton
-                            className="h-9 w-full rounded-md border border-zinc-300 px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:text-zinc-400"
-                            disabled={clientUser.status === "inativo"}
-                            pendingLabel="Inativando..."
-                          >
-                            Inativar
-                          </FormSubmitButton>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr
+                      className="border-b border-border"
+                      key={clientUser.user_id}
+                    >
+                      <td className="break-words px-3 py-3 align-top font-mono text-[11px] text-muted-foreground sm:text-xs">
+                        {clientUser.user_id}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {formatLabel(clientUser.role)}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {formatLabel(clientUser.status)}
+                      </td>
+                      <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                        {formatDateInTimezone(clientUser.criado_em, timeZone)}
+                      </td>
+                      <td className="px-3 py-3 align-top">
+                        <div className="flex flex-col gap-2">
+                          <form action={activateAction}>
+                            <FormSubmitButton
+                              className="h-9 w-full rounded-2xl border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                              disabled={clientUser.status === "ativo"}
+                              pendingLabel="Ativando..."
+                            >
+                              Ativar
+                            </FormSubmitButton>
+                          </form>
+                          <form action={deactivateAction}>
+                            <FormSubmitButton
+                              className="h-9 w-full rounded-2xl border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                              disabled={clientUser.status === "inativo"}
+                              pendingLabel="Inativando..."
+                            >
+                              Inativar
+                            </FormSubmitButton>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="border-t border-zinc-200 px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="border-t border-border px-4 py-10 text-center text-sm text-muted-foreground">
             Nenhum usuário vinculado a este cliente ainda.
           </div>
         )}
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold">Workflow</h2>
         {workflows.length > 0 ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {workflows.map((workflow) => (
               <div
-                className="rounded-md border border-zinc-200 p-4"
+                className="rounded-lg border border-border p-4"
                 key={workflow.id}
               >
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -727,7 +711,9 @@ export default async function ClientDetailPage({
                       maxLength={80}
                     />
                   </InfoItem>
-                  <InfoItem label="Tipo">{workflow.tipo ?? "Sem tipo"}</InfoItem>
+                  <InfoItem label="Tipo">
+                    {workflow.tipo ?? "Sem tipo"}
+                  </InfoItem>
                   <InfoItem label="Status">
                     {workflow.status ?? "Sem status"}
                   </InfoItem>
@@ -743,28 +729,28 @@ export default async function ClientDetailPage({
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-zinc-500">
+          <p className="mt-4 text-sm text-muted-foreground">
             Nenhum workflow configurado para este cliente.
           </p>
         )}
       </section>
 
-      <section className="rounded-md border border-red-200 bg-white p-5">
+      <section className="rounded-lg border border-red-200 bg-surface p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-950">
+            <h2 className="text-lg font-semibold text-foreground">
               Limpeza de dados de teste
             </h2>
-            <p className="mt-1 max-w-3xl text-sm text-zinc-500">
-              Remove sessões, execuções, feedbacks ligados a testes, mensagens
-              e contactos de teste deste cliente. Handoffs reais de produção
-              não serão apagados.
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Remove sessões, execuções, feedbacks ligados a testes, mensagens e
+              contactos de teste deste cliente. Handoffs reais de produção não
+              serão apagados.
             </p>
           </div>
           <div>
             <ConfirmActionButton
               action={clearClientTestData.bind(null, clientData.slug)}
-              className="h-10 rounded-md border border-red-300 px-4 text-sm font-medium text-red-700 transition hover:bg-red-50"
+              className="h-10 rounded-lg border border-red-300 px-4 text-sm font-medium text-red-700 transition hover:bg-red-50"
               confirmMessage="Tem certeza? Isso vai apagar sessões de teste, execuções de teste, feedbacks ligados a testes, mensagens e contactos de teste deste cliente. Handoffs reais de produção não serão apagados."
             >
               Limpar dados de teste deste cliente
@@ -773,220 +759,227 @@ export default async function ClientDetailPage({
         </div>
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Últimas execuções de teste</h2>
         </div>
         {latestExecutions.length > 0 ? (
-          <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-            <thead className="bg-zinc-50 text-zinc-600">
-              <tr>
-                <th className="w-[13%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Data
-                </th>
-                <th className="w-[12%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Origem
-                </th>
-                <th className="w-[12%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Rota
-                </th>
-                <th className="w-[28%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Mensagem
-                </th>
-                <th className="w-[35%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Resposta
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {latestExecutions.map((execution) => (
-                <tr className="border-b border-zinc-100" key={execution.id}>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatDateInTimezone(execution.criado_em, timeZone)}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatLabel(execution.origem)}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {execution.rota ?? "Sem rota"}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    <ExpandableText
-                      emptyText="Sem mensagem"
-                      text={execution.mensagem_teste}
-                    />
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    <ExpandableText
-                      emptyText="Sem resposta"
-                      text={getAgentResponseText(execution)}
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[1000px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
+                <tr>
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
+                    Data
+                  </th>
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
+                    Origem
+                  </th>
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
+                    Rota
+                  </th>
+                  <th className="w-[280px] border-b border-border px-3 py-3 font-medium">
+                    Mensagem
+                  </th>
+                  <th className="w-[348px] border-b border-border px-3 py-3 font-medium">
+                    Resposta
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {latestExecutions.map((execution) => (
+                  <tr className="border-b border-border" key={execution.id}>
+                    <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                      {formatDateInTimezone(execution.criado_em, timeZone)}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      {formatLabel(execution.origem)}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      {execution.rota ?? "Sem rota"}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      <ExpandableText
+                        emptyText="Sem mensagem"
+                        text={execution.mensagem_teste}
+                      />
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      <ExpandableText
+                        emptyText="Sem resposta"
+                        text={getAgentResponseText(execution)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Nenhuma execução de teste encontrada.
           </div>
         )}
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Últimos feedbacks</h2>
         </div>
         {latestFeedbacks.length > 0 ? (
-          <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-            <thead className="bg-zinc-50 text-zinc-600">
-              <tr>
-                <th className="w-[13%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Data
-                </th>
-                <th className="w-[15%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Categoria
-                </th>
-                <th className="w-[24%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Mensagem do cliente
-                </th>
-                <th className="w-[24%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Resposta marcada
-                </th>
-                <th className="w-[14%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Status
-                </th>
-                <th className="w-[10%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Link
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {latestFeedbacks.map((feedback) => {
-                const parsed = parseFeedbackComentario(feedback.comentario);
-                const conversationHref = parsed.conversa
-                  ? buildAdminConversationHref(
-                      clientData.slug,
-                      parsed.conversa,
-                      parsed.messageId,
-                    )
-                  : null;
+          <div className="overflow-x-auto">
+            <table className="min-w-[1010px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
+                <tr>
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
+                    Data
+                  </th>
+                  <th className="w-[150px] border-b border-border px-3 py-3 font-medium">
+                    Categoria
+                  </th>
+                  <th className="w-[262px] border-b border-border px-3 py-3 font-medium">
+                    Mensagem do cliente
+                  </th>
+                  <th className="w-[262px] border-b border-border px-3 py-3 font-medium">
+                    Resposta marcada
+                  </th>
+                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
+                    Status
+                  </th>
+                  <th className="w-[104px] border-b border-border px-3 py-3 font-medium">
+                    Link
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {latestFeedbacks.map((feedback) => {
+                  const parsed = parseFeedbackComentario(feedback.comentario);
+                  const conversationHref = parsed.conversa
+                    ? buildAdminConversationHref(
+                        clientData.slug,
+                        parsed.conversa,
+                        parsed.messageId,
+                      )
+                    : null;
 
-                return (
-                  <tr className="border-b border-zinc-100" key={feedback.id}>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDateInTimezone(feedback.criado_em, timeZone)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <div className="flex flex-col gap-2">
-                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
-                          {parsed.categoria ?? formatLabel(feedback.avaliacao)}
-                        </span>
-                        {parsed.observacao ? (
-                          <ExpandableText
-                            emptyText="Sem observação"
-                            text={parsed.observacao}
-                            maxLength={90}
-                          />
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <ExpandableText
-                        emptyText="Mensagem do cliente não registada."
-                        text={feedback.mensagem_cliente}
-                      />
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <ExpandableText
-                        emptyText="Resposta marcada não registada."
-                        text={feedback.resposta_agente}
-                      />
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatLabel(feedback.status)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {conversationHref ? (
-                        <Link
-                          className="text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href={conversationHref}
-                        >
-                          Ver conversa
-                        </Link>
-                      ) : (
-                        <Link
-                          className="text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href="/admin/feedbacks"
-                        >
-                          Ver feedback
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  return (
+                    <tr className="border-b border-border" key={feedback.id}>
+                      <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                        {formatDateInTimezone(feedback.criado_em, timeZone)}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <div className="flex flex-col gap-2">
+                          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            {parsed.categoria ??
+                              formatLabel(feedback.avaliacao)}
+                          </span>
+                          {parsed.observacao ? (
+                            <ExpandableText
+                              emptyText="Sem observação"
+                              text={parsed.observacao}
+                              maxLength={90}
+                            />
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Mensagem do cliente não registada."
+                          text={feedback.mensagem_cliente}
+                        />
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Resposta marcada não registada."
+                          text={feedback.resposta_agente}
+                        />
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {formatLabel(feedback.status)}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {conversationHref ? (
+                          <Link
+                            className="text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href={conversationHref}
+                          >
+                            Ver conversa
+                          </Link>
+                        ) : (
+                          <Link
+                            className="text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href="/admin/feedbacks"
+                          >
+                            Ver feedback
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Ainda não há feedbacks registados.
           </div>
         )}
       </section>
 
-      <section className="rounded-md border border-zinc-200 bg-white">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <section className="rounded-2xl border border-border bg-surface">
+        <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold">Últimos handoffs</h2>
         </div>
         {latestHandoffs.length > 0 ? (
-          <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-            <thead className="bg-zinc-50 text-zinc-600">
-              <tr>
-                <th className="w-[18%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Data
-                </th>
-                <th className="w-[18%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Nome
-                </th>
-                <th className="w-[34%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Motivo
-                </th>
-                <th className="w-[15%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Prioridade
-                </th>
-                <th className="w-[15%] border-b border-zinc-200 px-3 py-3 font-medium">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {latestHandoffs.map((handoff) => (
-                <tr className="border-b border-zinc-100" key={handoff.id}>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatDateInTimezone(handoff.criado_em, timeZone)}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {handoff.nome_contacto ?? "Sem nome"}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    <ExpandableText
-                      emptyText="Sem motivo"
-                      text={handoff.motivo}
-                    />
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatLabel(handoff.prioridade)}
-                  </td>
-                  <td className="break-words px-3 py-3 align-top text-zinc-600">
-                    {formatLabel(handoff.status)}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-[900px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
+                <tr>
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
+                    Data
+                  </th>
+                  <th className="w-[180px] border-b border-border px-3 py-3 font-medium">
+                    Nome
+                  </th>
+                  <th className="w-[348px] border-b border-border px-3 py-3 font-medium">
+                    Motivo
+                  </th>
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
+                    Prioridade
+                  </th>
+                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
+                    Status
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {latestHandoffs.map((handoff) => (
+                  <tr className="border-b border-border" key={handoff.id}>
+                    <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                      {formatDateInTimezone(handoff.criado_em, timeZone)}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      {handoff.nome_contacto ?? "Sem nome"}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      <ExpandableText
+                        emptyText="Sem motivo"
+                        text={handoff.motivo}
+                      />
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      {formatLabel(handoff.prioridade)}
+                    </td>
+                    <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                      {formatLabel(handoff.status)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Nenhum handoff encontrado.
           </div>
         )}

@@ -11,8 +11,8 @@ export const dashboardTimeZone = "America/Sao_Paulo";
 
 export const dashboardPeriodOptions = [
   { key: "hoje", label: "Hoje" },
-  { key: "semana", label: "Esta Semana" },
-  { key: "mes", label: "Este Mês" },
+  { key: "semana", label: "Esta semana" },
+  { key: "mes", label: "Este mês" },
   { key: "personalizado", label: "Personalizada" },
 ] as const;
 
