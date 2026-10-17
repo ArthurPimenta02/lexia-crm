@@ -538,15 +538,21 @@ export default async function AdminConversationsPage({
                                 Fora do período
                               </p>
                             ) : null}
-                            <p
-                              className={`mt-0.5 truncate text-[11px] ${
-                                isSelected
-                                  ? "text-primary-foreground/70"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {contact.telefone ?? "Sem telefone"}
-                            </p>
+                            {/*
+                              Como no cabeçalho: sem nome, o título já é o
+                              próprio número ou o PSID, e esta linha repetia-o.
+                            */}
+                            {contact.nome ? (
+                              <p
+                                className={`mt-0.5 truncate text-[11px] ${
+                                  isSelected
+                                    ? "text-primary-foreground/70"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                {contact.telefone ?? "Sem telefone"}
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                         <ChannelBadge
@@ -610,7 +616,7 @@ export default async function AdminConversationsPage({
               <>
                 <div className="shrink-0 border-b border-border bg-surface/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:py-2.5">
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div className="flex min-w-0 items-center gap-2 lg:items-start lg:gap-3">
+                    <div className="flex min-w-0 items-center gap-2 lg:gap-3">
                       <Link
                         aria-label="Voltar para a lista de conversas"
                         className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
@@ -642,19 +648,26 @@ export default async function AdminConversationsPage({
                         só, no ícone, agora que é o desenho oficial da marca.
                         O `sr-only` existe porque o glifo é `aria-hidden`.
                       */}
-                      <ChannelIcon channel={selectedContact.canal} />
+                      <ChannelIcon channel={selectedContact.canal} size="lg" />
                       <span className="sr-only">
                         {getChannelLabel(selectedContact.canal)}
                       </span>
                       <div className="min-w-0">
-                        <h2 className="truncate font-semibold">
+                        <h2 className="truncate text-[15px] leading-tight font-semibold">
                           {selectedContact.nome ||
                             selectedContact.telefone ||
                             "Conversa"}
                         </h2>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
-                          {selectedContact.telefone ?? "Sem telefone"}
-                        </p>
+                        {/*
+                          Sem nome o título já é o próprio número, ou o PSID do
+                          Instagram. Repeti-lo mostrava a mesma cadeia duas
+                          vezes, uma por cima da outra.
+                        */}
+                        {selectedContact.nome ? (
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
+                            {selectedContact.telefone ?? "Sem telefone"}
+                          </p>
+                        ) : null}
                         <p className="sr-only">
                           {selectedContact.identificador_conversa}
                         </p>

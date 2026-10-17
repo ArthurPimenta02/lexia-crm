@@ -76,33 +76,40 @@ function getChannelMeta(channel: string | null | undefined) {
   return channel ? (channelMeta[channel] ?? defaultMeta) : defaultMeta;
 }
 
+/*
+ * O glifo ocupa cerca de 60% do círculo, que é a proporção com que as próprias
+ * marcas desenham os seus ícones de aplicação. Os traçados da Simple Icons
+ * preenchem a caixa de 24x24 toda, sem margem, por isso a margem tem de ser
+ * dada aqui — a 100% o desenho encostava ao rebordo.
+ *
+ * As medidas são em pixéis inteiros para que as linhas finas do Instagram
+ * caiam na grelha do ecrã em vez de ficarem esborratadas entre dois pixéis.
+ *
+ * O `lg` é para o cabeçalho da conversa aberta, onde o contacto é o assunto do
+ * painel e não mais uma linha de uma lista.
+ */
+const tamanhos = {
+  lg: { circulo: "h-10 w-10", glifo: "h-6 w-6" },
+  md: { circulo: "h-8 w-8", glifo: "h-5 w-5" },
+  sm: { circulo: "h-5 w-5", glifo: "h-3 w-3" },
+};
+
 export function ChannelIcon({
   channel,
   size = "md",
 }: {
   channel: string | null | undefined;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 }) {
   const meta = getChannelMeta(channel);
   const Glyph = meta.Glyph;
+  const tamanho = tamanhos[size];
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full ${
-        size === "sm" ? "h-5 w-5" : "h-8 w-8"
-      } ${meta.icon}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full ${tamanho.circulo} ${meta.icon}`}
     >
-      {/*
-        O glifo ocupa cerca de 60% do círculo, que é a proporção com que as
-        próprias marcas desenham os seus ícones de aplicação. Os traçados da
-        Simple Icons preenchem a caixa de 24x24 toda, sem margem, por isso a
-        margem tem de ser dada aqui — a 100% o desenho encostava ao rebordo.
-
-        As medidas são em pixéis inteiros (12 dentro de 20, 20 dentro de 32)
-        para que as linhas finas do Instagram caiam na grelha do ecrã em vez de
-        ficarem esborratadas entre dois pixéis.
-      */}
-      <Glyph className={size === "sm" ? "h-3 w-3" : "h-5 w-5"} />
+      <Glyph className={tamanho.glifo} />
     </span>
   );
 }
