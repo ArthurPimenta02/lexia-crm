@@ -4,15 +4,15 @@ import { AppSidebar } from "@/app/components/app-sidebar";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 
 const adminNavigation = [
-  { label: "Dashboard", href: "/admin" },
-  { label: "Analista Lexia", href: "/admin/analista" },
-  { label: "Campanhas", href: "/admin/campanhas" },
-  { label: "Serviços", href: "/admin/servicos" },
-  { label: "Produtos", href: "/admin/produtos" },
-  { label: "Área de Testes", href: "/admin/area-testes" },
-  { label: "Conversas", href: "/admin/conversas" },
-  { label: "Handoffs", href: "/admin/handoffs" },
-  { label: "Feedbacks", href: "/admin/feedbacks" },
+  { label: "Dashboard", href: "/admin", icon: "dashboard" },
+  { label: "Analista Lexia", href: "/admin/analista", icon: "analista" },
+  { label: "Campanhas", href: "/admin/campanhas", icon: "campanhas" },
+  { label: "Serviços", href: "/admin/servicos", icon: "servicos" },
+  { label: "Produtos", href: "/admin/produtos", icon: "produtos" },
+  { label: "Área de testes", href: "/admin/area-testes", icon: "testes" },
+  { label: "Conversas", href: "/admin/conversas", icon: "conversas" },
+  { label: "Handoffs", href: "/admin/handoffs", icon: "handoffs" },
+  { label: "Feedbacks", href: "/admin/feedbacks", icon: "feedbacks" },
 ];
 
 export default async function AdminLayout({
@@ -31,11 +31,13 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-x-hidden bg-[#f3f3f1] pt-14 text-zinc-950 lg:flex-row lg:pt-0">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
       <AppSidebar items={adminNavigation} subtitle="Administração" />
 
-      <main className="min-w-0 flex-1 overflow-x-hidden bg-[linear-gradient(180deg,#f8f8f6_0%,#f3f3f1_48%,#ecebea_100%)] px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
-        {children}
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+          {children}
+        </div>
       </main>
     </div>
   );

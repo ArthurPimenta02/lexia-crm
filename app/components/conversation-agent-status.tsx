@@ -34,7 +34,7 @@ export async function ConversationAgentStatus({
 
   if (error) {
     return (
-      <p className="text-xs text-zinc-500">Estado do agente indisponível.</p>
+      <p className="text-xs text-muted-foreground">Estado do agente indisponível.</p>
     );
   }
 

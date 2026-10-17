@@ -1,21 +1,44 @@
 "use client";
 
+import { LogOut, Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { LexiaBrand } from "@/app/components/lexia-brand";
-import { SidebarNav } from "@/app/components/sidebar-nav";
+import {
+  estaActivo,
+  SidebarNav,
+  type SidebarNavItem,
+} from "@/app/components/sidebar-nav";
+
+/**
+ * A moldura do painel: barra lateral no computador, gaveta no telemóvel.
+ *
+ * Porque é que o "Sair" andava a fugir
+ * ------------------------------------
+ * A barra era uma coluna normal ao lado do conteúdo, e uma coluna cresce até
+ * à altura do que está ao lado dela. Na lista de clientes, com as fichas
+ * abertas, isso dava uma coluna de milhares de píxeis — e o "Sair", que vive
+ * no fundo dela, ia a reboque. Para sair da conta era preciso descer a
+ * página inteira.
+ *
+ * A cura não é aqui, é no layout: quem rola agora é o `<main>`, não a
+ * janela. A barra ocupa a altura do ecrã e fica quieta. Aqui dentro só a
+ * navegação rola, se as páginas não couberem; a marca em cima e o "Sair" em
+ * baixo estão fora dessa zona, por isso estão sempre no mesmo sítio.
+ */
 
 type AppSidebarProps = {
-  items: { href: string; label: string }[];
+  items: SidebarNavItem[];
   subtitle: string;
 };
 
-// Desktop: barra lateral fixa. Mobile: barra superior compacta com menu
-// hambúrguer que abre a mesma navegação numa gaveta.
 export function AppSidebar({ items, subtitle }: AppSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const paginaActual = items.find((item) => estaActivo(item.href, pathname));
 
   useEffect(() => {
     if (!isOpen) {
@@ -40,79 +63,79 @@ export function AppSidebar({ items, subtitle }: AppSidebarProps) {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-zinc-900 bg-[#050505] px-4 lg:hidden">
-        <div className="flex items-center gap-2.5">
-          <LexiaBrand compact showText={false} />
-          <div className="min-w-0 leading-tight">
-            <p className="text-sm font-semibold text-zinc-50">Lexia AI</p>
-            <p className="text-[11px] text-zinc-400">{subtitle}</p>
-          </div>
-        </div>
+      {/*
+        No telemóvel a barra de cima diz em que página se está. Antes dizia
+        sempre "Lexia AI", que é a única coisa que quem está lá dentro já
+        sabe.
+      */}
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 lg:hidden">
         <button
           aria-controls="lexia-menu"
           aria-expanded={isOpen}
-          aria-label={isOpen ? "Fechar menu" : "Abrir menu"}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-zinc-100 transition hover:bg-white/10"
-          onClick={() => setIsOpen((current) => !current)}
+          aria-label="Abrir menu"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground transition hover:bg-muted"
+          onClick={() => setIsOpen(true)}
           type="button"
         >
-          <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 20 20">
-            {isOpen ? (
-              <path
-                d="M5 5l10 10M15 5L5 15"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.8"
-              />
-            ) : (
-              <path
-                d="M3.5 6h13M3.5 10h13M3.5 14h13"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.8"
-              />
-            )}
-          </svg>
+          <Menu aria-hidden="true" className="h-5 w-5" />
         </button>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-sidebar-foreground">
+            {paginaActual?.label ?? subtitle}
+          </p>
+        </div>
+
+        <LexiaBrand compact showText={false} tone="light" />
       </header>
 
       {isOpen ? (
         <button
           aria-label="Fechar menu"
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
           onClick={() => setIsOpen(false)}
           type="button"
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[82%] max-w-72 shrink-0 flex-col overflow-y-auto border-r border-zinc-900 bg-[#050505] px-5 py-6 shadow-[18px_0_60px_rgba(0,0,0,0.18)] transition-transform duration-200 lg:static lg:z-auto lg:w-72 lg:max-w-none lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-[17rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[17rem] lg:max-w-none lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="lexia-menu"
       >
-        <div className="mb-8">
-          <LexiaBrand compact />
-          <p className="mt-3 text-sm font-medium text-zinc-400">{subtitle}</p>
+        <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-5 pb-4">
+          <LexiaBrand compact tone="light" />
+          <button
+            aria-label="Fechar menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground lg:hidden"
+            onClick={() => setIsOpen(false)}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-5 w-5" />
+          </button>
         </div>
 
-        <SidebarNav
-          groupLabel="AGENTE"
-          items={items}
-          onNavigate={() => setIsOpen(false)}
-          variant="dark"
-        />
+        {/* A única zona que rola. Tudo o resto fica onde está. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+          <SidebarNav
+            groupLabel={subtitle}
+            items={items}
+            onNavigate={() => setIsOpen(false)}
+          />
+        </div>
 
-        <form action={logoutAction}>
-          <FormSubmitButton
-            className="h-11 w-full rounded-md border border-white/10 bg-white/[0.03] px-4 text-sm font-medium text-zinc-200 transition hover:bg-white/10 hover:text-white disabled:opacity-60"
-            pendingLabel="Saindo..."
-          >
-            Sair
-          </FormSubmitButton>
-        </form>
+        <div className="shrink-0 border-t border-sidebar-border p-3">
+          <form action={logoutAction}>
+            <FormSubmitButton
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground disabled:opacity-60"
+              pendingLabel="A sair..."
+            >
+              <LogOut aria-hidden="true" className="h-4 w-4" />
+              Sair
+            </FormSubmitButton>
+          </form>
+        </div>
       </aside>
     </>
   );

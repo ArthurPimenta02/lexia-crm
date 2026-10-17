@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { CampaignsPanel } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
 import {
@@ -75,23 +76,15 @@ export default async function CampanhasPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-            Campanhas
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Investimento em anúncios
-          </h1>
-          <p className="mt-2 max-w-2xl text-zinc-600">
-            Gasto e entrega das campanhas da Meta no período seleccionado.
-          </p>
-        </div>
-        <CampaignsRefreshButton
-          action={atualizarCampanhasAction}
-          atualizadoEm={atualizadoEm}
-        />
-      </div>
+      <PaginaCabecalho
+        acoes={
+          <CampaignsRefreshButton
+            action={atualizarCampanhasAction}
+            atualizadoEm={atualizadoEm}
+          />
+        }
+        titulo="Campanhas"
+      />
 
       <CampaignsPanel
         basePath="/app/campanhas"

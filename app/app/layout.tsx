@@ -4,16 +4,16 @@ import { AppSidebar } from "@/app/components/app-sidebar";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 const clientNavigation = [
-  { label: "Dashboard", href: "/app" },
-  { label: "Analista Lexia", href: "/app/analista" },
-  { label: "Campanhas", href: "/app/campanhas" },
-  { label: "Clientes", href: "/app/clientes" },
-  { label: "Serviços", href: "/app/servicos" },
-  { label: "Produtos", href: "/app/produtos" },
-  { label: "Conversas", href: "/app/conversas" },
-  { label: "Área de Testes", href: "/app/area-testes" },
-  { label: "Handoffs", href: "/app/handoffs" },
-  { label: "Feedbacks", href: "/app/feedbacks" },
+  { label: "Dashboard", href: "/app", icon: "dashboard" },
+  { label: "Analista Lexia", href: "/app/analista", icon: "analista" },
+  { label: "Campanhas", href: "/app/campanhas", icon: "campanhas" },
+  { label: "Clientes", href: "/app/clientes", icon: "clientes" },
+  { label: "Serviços", href: "/app/servicos", icon: "servicos" },
+  { label: "Produtos", href: "/app/produtos", icon: "produtos" },
+  { label: "Conversas", href: "/app/conversas", icon: "conversas" },
+  { label: "Área de testes", href: "/app/area-testes", icon: "testes" },
+  { label: "Handoffs", href: "/app/handoffs", icon: "handoffs" },
+  { label: "Feedbacks", href: "/app/feedbacks", icon: "feedbacks" },
 ];
 
 export default async function ClientAppLayout({
@@ -32,11 +32,17 @@ export default async function ClientAppLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-x-hidden bg-[#f3f3f1] pt-14 text-zinc-950 lg:flex-row lg:pt-0">
+    // `h-dvh` + `overflow-hidden` fazem a moldura caber exactamente no ecrã:
+    // a janela deixa de rolar e quem rola é o `<main>`. É o que mantém a
+    // barra lateral — e o "Sair" — parada, por mais comprida que a página
+    // seja.
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
       <AppSidebar items={clientNavigation} subtitle="Painel do agente" />
 
-      <main className="min-w-0 flex-1 overflow-x-hidden bg-[linear-gradient(180deg,#f8f8f6_0%,#f3f3f1_48%,#ecebea_100%)] px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
-        {children}
+      <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background">
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
+          {children}
+        </div>
       </main>
     </div>
   );

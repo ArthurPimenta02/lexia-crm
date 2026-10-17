@@ -6,6 +6,7 @@ import {
 } from "@/app/admin/feedbacks/actions";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import {
   buildAdminConversationHref,
   isLikelyImageUrl,
@@ -41,7 +42,7 @@ function FeedbackResponse({ text }: { text: string | null }) {
   if (isLikelyImageUrl(text)) {
     return (
       <a
-        className="inline-flex max-w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-700 underline-offset-2 hover:underline"
+        className="inline-flex max-w-full rounded-2xl border border-border bg-surface-muted px-2 py-1 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
         href={text ?? ""}
         rel="noreferrer"
         target="_blank"
@@ -52,10 +53,7 @@ function FeedbackResponse({ text }: { text: string | null }) {
   }
 
   return (
-    <ExpandableText
-      emptyText="Resposta marcada não registada."
-      text={text}
-    />
+    <ExpandableText emptyText="Resposta marcada não registada." text={text} />
   );
 }
 
@@ -82,44 +80,47 @@ export default async function AdminFeedbacksPage() {
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Feedbacks</h1>
-        <p className="mt-2 text-zinc-600">
-          Feedbacks recebidos em todos os clientes da Lexia.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Feedbacks" />
 
-      <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         {feedbacks.length > 0 ? (
-          <div className="w-full">
-            <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+          /*
+            Larguras em píxeis e não em percentagem.
+            Com nove colunas em percentagem, a data ficava com 84px úteis e
+            partia-se a meio do ano ("05/09/20" / "26, 00:59"); o slug do
+            cliente partia-se letra a letra. Em píxeis cada coluna tem o que
+            precisa e, se não couber tudo, a tabela desliza na horizontal —
+            que é o que as outras tabelas do painel já fazem.
+          */
+          <div className="overflow-x-auto">
+            <table className="min-w-[1280px] table-fixed border-collapse text-left text-xs sm:text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
-                  <th className="w-[9%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
                     Data
                   </th>
-                  <th className="w-[9%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[132px] border-b border-border px-3 py-3 font-medium">
                     Cliente
                   </th>
-                  <th className="w-[10%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
                     Avaliação
                   </th>
-                  <th className="w-[16%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[220px] border-b border-border px-3 py-3 font-medium">
                     Mensagem do cliente
                   </th>
-                  <th className="w-[18%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
                     Resposta do agente
                   </th>
-                  <th className="w-[16%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[200px] border-b border-border px-3 py-3 font-medium">
                     Comentário
                   </th>
-                  <th className="w-[8%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[104px] border-b border-border px-3 py-3 font-medium">
                     Origem
                   </th>
-                  <th className="w-[7%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[96px] border-b border-border px-3 py-3 font-medium">
                     Status
                   </th>
-                  <th className="w-[7%] border-b border-zinc-200 px-3 py-3 font-medium">
+                  <th className="w-[156px] border-b border-border px-3 py-3 font-medium">
                     Ações
                   </th>
                 </tr>
@@ -141,111 +142,112 @@ export default async function AdminFeedbacksPage() {
                     : feedback.comentario;
 
                   return (
-                  <tr className="border-b border-zinc-100" key={feedback.id}>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatDateInTimezone(
-                        feedback.criado_em,
-                        getClientTimezone(feedback.cliente_slug),
-                      )}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top font-medium text-zinc-950">
-                      {feedback.cliente_slug}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <div className="flex flex-col gap-2">
-                        <span>{formatLabel(feedback.avaliacao)}</span>
-                        {parsedComentario.categoria ? (
-                          <span className="inline-flex w-fit rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
-                            {parsedComentario.categoria}
-                          </span>
-                        ) : null}
-                      </div>
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <ExpandableText
-                        emptyText="Mensagem do cliente não registada."
-                        text={feedback.mensagem_cliente}
-                      />
-                      {conversationTarget ? (
-                        <Link
-                          className="mt-2 block text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href={conversationTarget}
-                        >
-                          Abrir na conversa
-                        </Link>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <FeedbackResponse text={feedback.resposta_agente} />
-                      {conversationTarget ? (
-                        <Link
-                          className="mt-2 block text-xs font-medium text-zinc-950 underline-offset-2 hover:underline"
-                          href={conversationTarget}
-                        >
-                          Ver conversa
-                        </Link>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      <ExpandableText
-                        emptyText="Sem comentário"
-                        text={commentText}
-                      />
-                      {parsedComentario.conversa ? (
-                        <p className="mt-2 break-all font-mono text-xs text-zinc-400">
-                          {parsedComentario.conversa}
-                        </p>
-                      ) : null}
-                      {parsedComentario.origemDetalhada ? (
-                        <p className="mt-1 text-xs text-zinc-400">
-                          Origem: {formatLabel(parsedComentario.origemDetalhada)}
-                        </p>
-                      ) : null}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatLabel(feedback.origem)}
-                    </td>
-                    <td className="break-words px-3 py-3 align-top text-zinc-600">
-                      {formatLabel(feedback.status)}
-                    </td>
-                    <td className="px-3 py-3 align-top">
-                      <div className="flex flex-col gap-2">
-                        <Link
-                          className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-zinc-700 transition hover:bg-zinc-100"
-                          href={`/admin/ajustes?cliente=${encodeURIComponent(
-                            feedback.cliente_slug,
-                          )}&feedback=${encodeURIComponent(feedback.id)}`}
-                        >
-                          Criar ajuste
-                        </Link>
-                        {statusActions.map((action) => (
-                          <form
-                            action={updateAdminFeedbackStatus.bind(
-                              null,
-                              feedback.id,
-                              action.status,
-                            )}
-                            key={action.status}
+                    <tr className="border-b border-border" key={feedback.id}>
+                      <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
+                        {formatDateInTimezone(
+                          feedback.criado_em,
+                          getClientTimezone(feedback.cliente_slug),
+                        )}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top font-medium text-foreground">
+                        {feedback.cliente_slug}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <div className="flex flex-col gap-2">
+                          <span>{formatLabel(feedback.avaliacao)}</span>
+                          {parsedComentario.categoria ? (
+                            <span className="inline-flex w-fit rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {parsedComentario.categoria}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Mensagem do cliente não registada."
+                          text={feedback.mensagem_cliente}
+                        />
+                        {conversationTarget ? (
+                          <Link
+                            className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href={conversationTarget}
                           >
-                            <FormSubmitButton
-                              className="min-h-10 w-full rounded-md border border-zinc-300 px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
-                              disabled={feedback.status === action.status}
-                              pendingLabel="Salvando..."
+                            Abrir na conversa
+                          </Link>
+                        ) : null}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <FeedbackResponse text={feedback.resposta_agente} />
+                        {conversationTarget ? (
+                          <Link
+                            className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
+                            href={conversationTarget}
+                          >
+                            Ver conversa
+                          </Link>
+                        ) : null}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        <ExpandableText
+                          emptyText="Sem comentário"
+                          text={commentText}
+                        />
+                        {parsedComentario.conversa ? (
+                          <p className="mt-2 break-all font-mono text-xs text-muted-foreground/60">
+                            {parsedComentario.conversa}
+                          </p>
+                        ) : null}
+                        {parsedComentario.origemDetalhada ? (
+                          <p className="mt-1 text-xs text-muted-foreground/60">
+                            Origem:{" "}
+                            {formatLabel(parsedComentario.origemDetalhada)}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {formatLabel(feedback.origem)}
+                      </td>
+                      <td className="break-words px-3 py-3 align-top text-muted-foreground">
+                        {formatLabel(feedback.status)}
+                      </td>
+                      <td className="px-3 py-3 align-top">
+                        <div className="flex flex-col gap-2">
+                          <Link
+                            className="w-full rounded-lg border border-border-strong px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-muted-foreground transition hover:bg-muted"
+                            href={`/admin/ajustes?cliente=${encodeURIComponent(
+                              feedback.cliente_slug,
+                            )}&feedback=${encodeURIComponent(feedback.id)}`}
+                          >
+                            Criar ajuste
+                          </Link>
+                          {statusActions.map((action) => (
+                            <form
+                              action={updateAdminFeedbackStatus.bind(
+                                null,
+                                feedback.id,
+                                action.status,
+                              )}
+                              key={action.status}
                             >
-                              {action.label}
-                            </FormSubmitButton>
-                          </form>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
+                              <FormSubmitButton
+                                className="min-h-10 w-full rounded-lg border border-border-strong px-2 py-1.5 text-left text-xs font-medium whitespace-normal text-muted-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={feedback.status === action.status}
+                                pendingLabel="Salvando..."
+                              >
+                                {action.label}
+                              </FormSubmitButton>
+                            </form>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-zinc-500">
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
             Nenhum feedback recebido ainda.
           </div>
         )}

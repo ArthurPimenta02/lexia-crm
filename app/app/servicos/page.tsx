@@ -7,6 +7,7 @@ import {
   registarExecucaoAction,
   reporServicoAction,
 } from "@/app/app/servicos/actions";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelServicos } from "@/lib/servicos/read";
@@ -43,27 +44,7 @@ export default async function ServicosPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-            Serviços
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Custo e margem por serviço
-          </h1>
-          <p className="mt-2 max-w-2xl text-zinc-600">
-            O preço e a duração vêm do teu catálogo, já como estão. O que tens
-            de dizer aqui é quanto cada serviço gasta de cada produto. O custo
-            sai do que pagaste na última compra desse produto e a margem é
-            calculada a partir daí — nunca é guardada, muda sozinha quando
-            mexes num preço ou compras mais caro.
-          </p>
-          <p className="mt-2 max-w-2xl text-zinc-600">
-            Cada vez que carregas em <strong>Realizei este serviço</strong>, as
-            quantidades da receita saem do stock.
-          </p>
-        </div>
-      </div>
+      <PaginaCabecalho titulo="Serviços" />
 
       <ServicosPanel
         action={gravarServicoAction}

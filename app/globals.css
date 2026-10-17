@@ -1,13 +1,68 @@
 @import "tailwindcss";
 
+/*
+ * Paleta por variáveis, e não por cores escritas à mão em cada ficheiro.
+ *
+ * É isto que torna o white-label possível: para pintar o painel com a marca
+ * de um cliente basta reescrever `--primary` no elemento que embrulha a
+ * aplicação, e tudo o que usa `bg-primary` muda com ele. Enquanto as cores
+ * estiverem escritas à mão (`bg-zinc-950`) em cada botão, não há cor de
+ * cliente nenhuma que as alcance.
+ *
+ * O valor de origem é o preto da Lexia — quem não tiver cor definida fica
+ * exactamente como está hoje.
+ */
 :root {
-  --background: #f3f3f1;
-  --foreground: #151515;
+  --background: #f4f4f2;
+  --foreground: #121212;
+
+  --surface: #ffffff;
+  --surface-muted: #faf9f8;
+  --border: #e5e4e1;
+  --border-strong: #d6d5d1;
+
+  --muted: #f1f0ee;
+  --muted-foreground: #6b6a67;
+
+  --primary: #151515;
+  --primary-foreground: #ffffff;
+  --primary-soft: #f1f0ee;
+
+  --positive: #0f7a52;
+  --warning: #9a6214;
+  --danger: #b0372c;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #121212;
+  --sidebar-muted: #7d7c79;
+  --sidebar-border: #e5e4e1;
+  --sidebar-active: #f1f0ee;
+  --sidebar-active-foreground: #121212;
+
+  --radius: 0.875rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -17,6 +72,15 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Inter, Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-wrap: pretty;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 button,
@@ -63,8 +127,16 @@ summary:focus-visible,
 .lexia-chat-wallpaper {
   background-color: #ecebe7;
   background-image:
-    radial-gradient(circle at 18px 18px, rgb(21 21 21 / 0.035) 1.5px, transparent 1.5px),
-    radial-gradient(circle at 54px 54px, rgb(21 21 21 / 0.03) 1.5px, transparent 1.5px),
+    radial-gradient(
+      circle at 18px 18px,
+      rgb(21 21 21 / 0.035) 1.5px,
+      transparent 1.5px
+    ),
+    radial-gradient(
+      circle at 54px 54px,
+      rgb(21 21 21 / 0.03) 1.5px,
+      transparent 1.5px
+    ),
     linear-gradient(135deg, rgb(255 255 255 / 0.68), rgb(236 235 231 / 0.88));
   background-size:
     72px 72px,

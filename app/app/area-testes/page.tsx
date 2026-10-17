@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { TestChat } from "@/app/app/area-testes/test-chat";
 import {
   type TestFeedback,
@@ -102,18 +103,7 @@ export default async function ClientTestAreaPage({
 
   return (
     <section className="flex w-full max-w-7xl flex-col gap-6">
-      <div>
-        <p className="text-sm font-semibold tracking-[0.32em] text-zinc-500 uppercase">
-          Agente
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-          Testar agente
-        </h1>
-        <p className="mt-2 max-w-2xl text-zinc-600">
-          Simule conversas e avalie as respostas antes de activar o atendimento
-          em produção.
-        </p>
-      </div>
+      <PaginaCabecalho titulo="Área de testes" />
 
       <TestChat
         executions={executions}

@@ -6,35 +6,39 @@ type ChannelMeta = {
   label: string;
   shortLabel: string;
   iconLabel: string;
-  pill: string;
   icon: string;
-  active: string;
 };
 
+/*
+ * A cor da marca vive só no círculo do canal.
+ *
+ * Antes a etiqueta inteira era tingida — fundo verde, borda verde, texto
+ * verde — à volta de um círculo que já era verde. A mesma informação três
+ * vezes, e numa lista de cem conversas em que quase todas são WhatsApp, o
+ * ecrã ficava verde e o que distingue uma linha da outra deixava de saltar.
+ *
+ * O estado seleccionado também era da cor do canal, com brilho e tudo,
+ * enquanto todos os outros botões escolhidos no produto ficam pretos. Agora
+ * segue o preto da Lexia, como os restantes.
+ */
 const channelMeta: Record<string, ChannelMeta> = {
   whatsapp: {
     label: "WhatsApp",
     shortLabel: "WhatsApp",
     iconLabel: "W",
-    pill: "border-emerald-200 bg-emerald-50 text-emerald-800",
     icon: "bg-[#25D366] text-white",
-    active: "border-[#25D366] bg-[#25D366] text-white shadow-[0_12px_28px_rgba(37,211,102,0.24)]",
   },
   messenger: {
     label: "Messenger",
     shortLabel: "Messenger",
     iconLabel: "M",
-    pill: "border-sky-200 bg-sky-50 text-sky-800",
     icon: "bg-gradient-to-br from-[#00B2FF] to-[#A033FF] text-white",
-    active: "border-[#00B2FF] bg-gradient-to-r from-[#00B2FF] to-[#A033FF] text-white shadow-[0_12px_28px_rgba(0,178,255,0.22)]",
   },
   instagram: {
     label: "Instagram",
     shortLabel: "Instagram",
     iconLabel: "I",
-    pill: "border-pink-200 bg-pink-50 text-pink-800",
     icon: "bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#515BD4] text-white",
-    active: "border-[#DD2A7B] bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#515BD4] text-white shadow-[0_12px_28px_rgba(221,42,123,0.24)]",
   },
 };
 
@@ -42,9 +46,7 @@ const defaultMeta: ChannelMeta = {
   label: "Todas",
   shortLabel: "Todas",
   iconLabel: "•",
-  pill: "border-zinc-200 bg-zinc-100 text-zinc-700",
-  icon: "bg-zinc-900 text-white",
-  active: "border-zinc-950 bg-zinc-950 text-white shadow-sm",
+  icon: "bg-primary text-primary-foreground",
 };
 
 export function getChannelLabel(channel: string | null | undefined) {
@@ -56,7 +58,7 @@ export function getChannelLabel(channel: string | null | undefined) {
 }
 
 function getChannelMeta(channel: string | null | undefined) {
-  return channel ? channelMeta[channel] ?? defaultMeta : defaultMeta;
+  return channel ? (channelMeta[channel] ?? defaultMeta) : defaultMeta;
 }
 
 export function ChannelIcon({
@@ -93,7 +95,7 @@ export function ChannelBadge({
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${
         variant === "dark"
           ? "border-white/10 bg-white/[0.06] text-white"
-          : meta.pill
+          : "border-border bg-muted text-foreground"
       }`}
     >
       <ChannelIcon channel={channel} size="sm" />
@@ -116,13 +118,15 @@ export function ChannelFilterLink({
   const meta = getChannelMeta(channel);
   const inactive =
     variant === "dark"
-      ? "border-white/10 bg-white/[0.04] text-zinc-100 hover:border-white/20 hover:bg-white/[0.08]"
-      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50";
+      ? "border-white/10 bg-white/[0.04] text-background hover:border-white/20 hover:bg-white/[0.08]"
+      : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted";
 
   return (
     <Link
       className={`inline-flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
-        active ? meta.active : inactive
+        active
+          ? "border-foreground bg-primary text-primary-foreground shadow-sm"
+          : inactive
       }`}
       href={href}
     >

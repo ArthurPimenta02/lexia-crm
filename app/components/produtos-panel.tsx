@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { SeccaoTitulo } from "@/app/components/painel-ui";
 import {
   AjusteForm,
   CompraForm,
@@ -88,11 +89,11 @@ function MovimentoItem({
         : "Ajuste";
 
   return (
-    <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 py-1.5 last:border-b-0">
-      <span className="text-xs text-zinc-500">
+    <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border py-1.5 last:border-b-0">
+      <span className="text-xs text-muted-foreground">
         {formatDayInTimezone(movimento.ocorridoEm, timeZone)}
       </span>
-      <span className="min-w-0 flex-1 truncate text-xs text-zinc-700">
+      <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
         {etiqueta}
         {movimento.nota ? ` — ${movimento.nota}` : ""}
       </span>
@@ -173,10 +174,8 @@ export function ProdutosPanel({
       {leading}
 
       {podeEditar ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-            Novo produto
-          </p>
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <SeccaoTitulo>Novo produto</SeccaoTitulo>
           <div className="mt-3">
             <CriarProdutoForm action={actionCriar} clienteSlug={clienteSlug} />
           </div>
@@ -184,11 +183,9 @@ export function ProdutosPanel({
       ) : null}
 
       {ordenados.length === 0 ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-6 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <p className="text-sm text-zinc-600">
-            Ainda não há produtos. Cria o primeiro acima, registra o que
-            compraste e depois, na página Serviços, diz quanto cada serviço
-            gasta dele.
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <p className="text-sm text-muted-foreground">
+            Ainda não há produtos. Cria o primeiro acima.
           </p>
         </div>
       ) : (
@@ -200,160 +197,165 @@ export function ProdutosPanel({
             );
 
             return (
-            <div
-              className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]"
-              key={produto.id}
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold tracking-tight text-zinc-950">
-                    {produto.nome}
-                  </h2>
-                  {produto.notas ? (
-                    <p className="mt-1 text-xs text-zinc-500">{produto.notas}</p>
-                  ) : null}
+              <div
+                className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                key={produto.id}
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                      {produto.nome}
+                    </h2>
+                    {produto.notas ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {produto.notas}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <p
+                      className={`text-2xl font-semibold tracking-tight ${
+                        produto.stock <= 0 ? "text-red-700" : "text-foreground"
+                      }`}
+                    >
+                      {formatQuantidade(produto.stock)} {produto.unidade}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      em stock
+                    </p>
+                  </div>
                 </div>
 
-                <div className="shrink-0 text-right">
-                  <p
-                    className={`text-2xl font-semibold tracking-tight ${
-                      produto.stock <= 0 ? "text-red-700" : "text-zinc-950"
-                    }`}
-                  >
-                    {formatQuantidade(produto.stock)} {produto.unidade}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">em stock</p>
-                </div>
-              </div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
+                  <div>
+                    <dt className="text-muted-foreground">
+                      Custo por {produto.unidade}
+                    </dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                      {produto.custoUnitario === null
+                        ? "—"
+                        : formatMoney(produto.custoUnitario, moeda, 4)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Valor do stock</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                      {produto.custoUnitario === null
+                        ? "—"
+                        : formatMoney(
+                            produto.custoUnitario * produto.stock,
+                            moeda,
+                          )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Dura mais</dt>
+                    <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                      {produto.diasRestantes === null
+                        ? "—"
+                        : `${produto.diasRestantes} ${
+                            produto.diasRestantes === 1 ? "dia" : "dias"
+                          }`}
+                    </dd>
+                  </div>
+                </dl>
 
-              <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
-                <div>
-                  <dt className="text-zinc-500">Custo por {produto.unidade}</dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
-                    {produto.custoUnitario === null
-                      ? "—"
-                      : formatMoney(produto.custoUnitario, moeda, 4)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">Valor do stock</dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
-                    {produto.custoUnitario === null
-                      ? "—"
-                      : formatMoney(produto.custoUnitario * produto.stock, moeda)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-zinc-500">Dura mais</dt>
-                  <dd className="mt-0.5 text-sm font-semibold text-zinc-900">
-                    {produto.diasRestantes === null
-                      ? "—"
-                      : `${produto.diasRestantes} ${
-                          produto.diasRestantes === 1 ? "dia" : "dias"
-                        }`}
-                  </dd>
-                </div>
-              </dl>
-
-              <p className="mt-2 text-xs text-zinc-500">
-                {legendaDaDuracao(produto)}
-              </p>
-
-              {produto.custoUnitario === null ? (
-                <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  Sem compra registada, este produto não tem preço, e os
-                  serviços que o usam ficam sem custo e sem margem. Registra em
-                  baixo quanto pagaste pela última vez que o compraste.
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {legendaDaDuracao(produto)}
                 </p>
-              ) : null}
 
-              {podeEditar ? (
-                <div className="mt-4 grid gap-4 border-t border-zinc-200 pt-4 lg:grid-cols-2">
-                  <CompraForm
-                    action={actionCompra}
+                {produto.custoUnitario === null ? (
+                  <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    Sem compra registada, este produto não tem preço, e os
+                    serviços que o usam ficam sem custo e sem margem. Registra
+                    em baixo quanto pagaste pela última vez que o compraste.
+                  </p>
+                ) : null}
+
+                {podeEditar ? (
+                  <div className="mt-4 grid gap-4 border-t border-border pt-4 lg:grid-cols-2">
+                    <CompraForm
+                      action={actionCompra}
+                      clienteSlug={clienteSlug}
+                      moeda={moeda}
+                      produtoId={produto.id}
+                      unidade={produto.unidade}
+                    />
+                    <AjusteForm
+                      action={actionAjuste}
+                      clienteSlug={clienteSlug}
+                      produtoId={produto.id}
+                      unidade={produto.unidade}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 border-t border-border pt-4">
+                  <ServicosDoProdutoForm
+                    actionReceita={actionReceita}
                     clienteSlug={clienteSlug}
                     moeda={moeda}
+                    podeEditar={podeEditar}
                     produtoId={produto.id}
-                    unidade={produto.unidade}
-                  />
-                  <AjusteForm
-                    action={actionAjuste}
-                    clienteSlug={clienteSlug}
-                    produtoId={produto.id}
+                    servicos={servicosDoProduto}
+                    servicosDisponiveis={servicos.filter(
+                      (servico) => !jaLigados.has(servico.id),
+                    )}
                     unidade={produto.unidade}
                   />
                 </div>
-              ) : null}
 
-              <div className="mt-4 border-t border-zinc-200 pt-4">
-                <ServicosDoProdutoForm
-                  actionReceita={actionReceita}
-                  clienteSlug={clienteSlug}
-                  moeda={moeda}
-                  podeEditar={podeEditar}
-                  produtoId={produto.id}
-                  servicos={servicosDoProduto}
-                  servicosDisponiveis={servicos.filter(
-                    (servico) => !jaLigados.has(servico.id),
-                  )}
-                  unidade={produto.unidade}
-                />
+                {produto.movimentos.length > 0 ? (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      Últimos movimentos
+                    </p>
+                    <ul className="mt-2">
+                      {produto.movimentos.map((movimento) => (
+                        <MovimentoItem
+                          key={movimento.id}
+                          moeda={moeda}
+                          movimento={movimento}
+                          timeZone={timeZone}
+                          unidade={produto.unidade}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {podeEditar ? (
+                  <div className="mt-4 border-t border-border pt-3">
+                    <ExcluirProdutoForm
+                      action={actionExcluir}
+                      clienteSlug={clienteSlug}
+                      nome={produto.nome}
+                      produtoId={produto.id}
+                      servicosAfectados={servicosDoProduto.length}
+                    />
+                  </div>
+                ) : null}
               </div>
-
-              {produto.movimentos.length > 0 ? (
-                <div className="mt-4 border-t border-zinc-200 pt-4">
-                  <p className="text-xs font-semibold tracking-[0.12em] text-zinc-500 uppercase">
-                    Últimos movimentos
-                  </p>
-                  <ul className="mt-2">
-                    {produto.movimentos.map((movimento) => (
-                      <MovimentoItem
-                        key={movimento.id}
-                        moeda={moeda}
-                        movimento={movimento}
-                        timeZone={timeZone}
-                        unidade={produto.unidade}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {podeEditar ? (
-                <div className="mt-4 border-t border-zinc-200 pt-3">
-                  <ExcluirProdutoForm
-                    action={actionExcluir}
-                    clienteSlug={clienteSlug}
-                    nome={produto.nome}
-                    produtoId={produto.id}
-                    servicosAfectados={servicosDoProduto.length}
-                  />
-                </div>
-              ) : null}
-            </div>
             );
           })}
         </div>
       )}
 
       {podeEditar && excluidos.length > 0 ? (
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <SeccaoTitulo dica="O stock e as compras destes produtos continuam guardados. Repor traz o produto de volta, mas não as quantidades por serviço.">
             Excluídos
-          </p>
-          <p className="mt-2 text-xs text-zinc-500">
-            O stock e as compras destes produtos continuam guardados. Repor
-            traz o produto de volta, mas não as quantidades por serviço.
-          </p>
+          </SeccaoTitulo>
           <ul className="mt-3 flex flex-col gap-2">
             {excluidos.map((produto) => (
               <li
-                className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-2 last:border-b-0 last:pb-0"
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
                 key={produto.id}
               >
-                <span className="text-sm text-zinc-800">
+                <span className="text-sm text-foreground">
                   {produto.nome}{" "}
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-xs text-muted-foreground">
                     ({produto.unidade})
                   </span>
                 </span>

@@ -109,8 +109,7 @@ export function ConversationFilterBar({
   const selectedTimezone = getSelectedTimezone(timezone);
   const periodLabel =
     conversationPeriodOptions.find((option) => option.key === period.key)
-      ?.label ??
-    rangeLabel;
+      ?.label ?? rangeLabel;
   const activeFilterCount =
     Number(Boolean(channel)) +
     Number(period.key !== "mes") +
@@ -139,7 +138,7 @@ export function ConversationFilterBar({
     : basePath;
 
   return (
-    <div className="relative z-20 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-zinc-200/80 bg-white/95 p-2 shadow-sm">
+    <div className="relative z-20 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/95 p-2 shadow-sm">
       {leading}
 
       <Form
@@ -156,12 +155,12 @@ export function ConversationFilterBar({
         />
         <Search
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400"
+          className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60"
         />
         <input
           aria-label="Pesquisar conversa por nome ou telefone"
           autoComplete="off"
-          className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50 pr-16 pl-9 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white"
+          className="h-9 w-full rounded-lg border border-border bg-surface-muted pr-16 pl-9 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-border-strong focus:bg-surface"
           defaultValue={searchQuery}
           inputMode="search"
           maxLength={80}
@@ -173,7 +172,7 @@ export function ConversationFilterBar({
           {searchQuery ? (
             <Link
               aria-label="Limpar pesquisa"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-800"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/60 transition hover:bg-border hover:text-foreground"
               href={searchClearHref}
               title="Limpar pesquisa"
             >
@@ -182,7 +181,7 @@ export function ConversationFilterBar({
           ) : null}
           <button
             aria-label="Pesquisar"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-950"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-border hover:text-foreground"
             title="Pesquisar"
             type="submit"
           >
@@ -191,33 +190,36 @@ export function ConversationFilterBar({
         </div>
       </Form>
 
-      <p className="ml-auto hidden min-w-0 truncate text-xs text-zinc-500 md:block">
-        {getChannelLabel(channel)} · {searchQuery ? "Busca global" : periodLabel}
+      <p className="ml-auto hidden min-w-0 truncate text-xs text-muted-foreground md:block">
+        {getChannelLabel(channel)} ·{" "}
+        {searchQuery ? "Busca global" : periodLabel}
         {" · "}
         {selectedTimezone.label}
       </p>
 
       <details className="group relative">
-        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 [&::-webkit-details-marker]:hidden">
+        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground transition hover:border-border-strong hover:bg-surface-muted [&::-webkit-details-marker]:hidden">
           <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
           <span>Filtros</span>
           {activeFilterCount > 0 ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-950 px-1 text-[10px] font-semibold text-white">
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
               {activeFilterCount}
             </span>
           ) : null}
         </summary>
 
-        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 max-h-[min(70dvh,560px)] w-[min(430px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4 shadow-[0_22px_60px_rgba(0,0,0,0.16)]">
+        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 max-h-[min(70dvh,560px)] w-[min(430px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-[0_22px_60px_rgba(0,0,0,0.16)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-zinc-950">
+              <p className="text-sm font-semibold text-foreground">
                 Filtrar conversas
               </p>
-              <p className="mt-0.5 text-xs text-zinc-500">{rangeLabel}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {rangeLabel}
+              </p>
             </div>
             <Link
-              className="text-xs font-semibold text-zinc-500 transition hover:text-zinc-950"
+              className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
               href={resetHref}
             >
               Limpar filtros
@@ -225,9 +227,7 @@ export function ConversationFilterBar({
           </div>
 
           <div className="mt-4">
-            <p className="text-xs font-semibold tracking-[0.18em] text-zinc-500 uppercase">
-              Canal
-            </p>
+            <p className="text-xs font-semibold text-muted-foreground">Canal</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {channelFilters.map((filter) => (
                 <ChannelFilterLink
@@ -258,7 +258,7 @@ export function ConversationFilterBar({
             timezone={timezone}
           />
 
-          <div className="mt-3 border-t border-zinc-200/70 pt-3">
+          <div className="mt-3 border-t border-border pt-3">
             <TimezoneSwitcher
               activeValue={timezone}
               buildHref={(nextTimezone) =>

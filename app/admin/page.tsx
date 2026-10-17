@@ -3,6 +3,13 @@ import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import {
+  Dica,
+  GrupoMetricas,
+  HorariosDePico,
+  Ranking,
+  SeccaoTitulo,
+} from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -140,27 +147,18 @@ function countByClient<T extends { cliente_slug: string }>(
   return counts;
 }
 
-function StatCard({
-  description,
-  label,
-  value,
-}: {
-  description: string;
-  label: string;
-  value: number | string;
-}) {
-  return (
-    <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-      <p className="text-sm font-medium text-zinc-500">{label}</p>
-      <p className="mt-4 text-4xl font-semibold tracking-tight text-zinc-950">
-        {value}
-      </p>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">{description}</p>
-    </div>
-  );
-}
-
-function formatConversionRate(appointments: number | null, conversations: number) {
+/**
+ * O mesmo cartão do painel do cliente, com o nome que esta página já usava.
+ *
+ * A `description` que era um parágrafo por baixo do número passou a ser a
+ * explicação do `?`. São catorze cartões nesta página: catorze parágrafos
+ * era mais texto do que dados, e empurrava metade dos números para fora do
+ * ecrã.
+ */
+function formatConversionRate(
+  appointments: number | null,
+  conversations: number,
+) {
   if (appointments === null || conversations === 0) {
     return "--";
   }
@@ -202,30 +200,7 @@ function RankingList({
   emptyText: string;
   items: { label: string; value: number }[];
 }) {
-  const maxValue = Math.max(...items.map((item) => item.value), 1);
-
-  if (items.length === 0) {
-    return <p className="text-sm text-zinc-600">{emptyText}</p>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div key={item.label}>
-          <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-            <span className="truncate font-medium text-zinc-800">{item.label}</span>
-            <span className="text-zinc-500">{item.value}</span>
-          </div>
-          <div className="h-2 rounded-full bg-zinc-100">
-            <div
-              className="h-2 rounded-full bg-zinc-950"
-              style={{ width: `${Math.max((item.value / maxValue) * 100, 6)}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <Ranking itens={items} vazio={emptyText} />;
 }
 
 function MiniHeatmap({
@@ -233,38 +208,12 @@ function MiniHeatmap({
 }: {
   cells: { day: string; hour: number; value: number }[];
 }) {
-  const maxValue = Math.max(...cells.map((cell) => cell.value), 1);
-  const peakCells = cells
-    .filter((cell) => cell.value > 0)
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
-
-  if (peakCells.length === 0) {
-    return <p className="text-sm text-zinc-600">Sem mensagens recebidas no período.</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-      {peakCells.map((cell) => (
-        <div
-          className="rounded-2xl border border-zinc-200 p-3"
-          key={`${cell.day}-${cell.hour}`}
-          style={{
-            backgroundColor: `rgba(24,24,27,${0.04 + (cell.value / maxValue) * 0.14})`,
-          }}
-        >
-          <p className="text-xs font-semibold text-zinc-500">{cell.day}</p>
-          <p className="mt-1 text-lg font-semibold text-zinc-950">
-            {String(cell.hour).padStart(2, "0")}h
-          </p>
-          <p className="mt-1 text-xs text-zinc-600">{cell.value} mensagens</p>
-        </div>
-      ))}
-    </div>
-  );
+  return <HorariosDePico cells={cells} />;
 }
 
-export default async function AdminDashboard({ searchParams }: AdminDashboardProps) {
+export default async function AdminDashboard({
+  searchParams,
+}: AdminDashboardProps) {
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile) {
@@ -296,7 +245,9 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   }
 
   const clients = (clientsData ?? []) as Client[];
-  const selectedClient = clients.some((client) => client.slug === requestedClient)
+  const selectedClient = clients.some(
+    (client) => client.slug === requestedClient,
+  )
     ? requestedClient
     : "";
   const selectedClientSlugs = selectedClient
@@ -305,32 +256,34 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   const selectedTimezone = selectedClient
     ? getClientTimezone(selectedClient)
     : dashboardTimeZone;
-  const range = getDateRange(
-    period,
-    customStart,
-    customEnd,
-    selectedTimezone,
-  );
+  const range = getDateRange(period, customStart, customEnd, selectedTimezone);
   const rangesByClient = new Map(
-    selectedClientSlugs.map((clienteSlug) => [
-      clienteSlug,
-      getDateRange(
-        period,
-        customStart,
-        customEnd,
-        getClientTimezone(clienteSlug),
-      ),
-    ] as const),
+    selectedClientSlugs.map(
+      (clienteSlug) =>
+        [
+          clienteSlug,
+          getDateRange(
+            period,
+            customStart,
+            customEnd,
+            getClientTimezone(clienteSlug),
+          ),
+        ] as const,
+    ),
   );
   const clientRanges = Array.from(rangesByClient.values());
   const queryStart = new Date(
     clientRanges.length > 0
-      ? Math.min(...clientRanges.map((clientRange) => clientRange.start.getTime()))
+      ? Math.min(
+          ...clientRanges.map((clientRange) => clientRange.start.getTime()),
+        )
       : range.start.getTime(),
   );
   const queryEnd = new Date(
     clientRanges.length > 0
-      ? Math.max(...clientRanges.map((clientRange) => clientRange.end.getTime()))
+      ? Math.max(
+          ...clientRanges.map((clientRange) => clientRange.end.getTime()),
+        )
       : range.end.getTime(),
   );
   const isRowInClientRange = (row: {
@@ -359,10 +312,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             )
             .not("identificador_conversa", "like", "teste:%");
 
-          contactsQuery = contactsQuery.in(
-            "cliente_slug",
-            selectedClientSlugs,
-          );
+          contactsQuery = contactsQuery.in("cliente_slug", selectedClientSlugs);
 
           if (selectedChannel) {
             contactsQuery = contactsQuery.eq("canal", selectedChannel);
@@ -433,15 +383,18 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           .select("cliente_slug, status")
           .in("cliente_slug", selectedClientSlugs);
   const externalMetricsPromise = Promise.all(
-    selectedClientSlugs.map(async (clienteSlug) => [
-      clienteSlug,
-      selectedChannel
-        ? null
-        : await getExternalClientMetrics(
-            clienteSlug,
-            rangesByClient.get(clienteSlug) ?? range,
-          ),
-    ] as const),
+    selectedClientSlugs.map(
+      async (clienteSlug) =>
+        [
+          clienteSlug,
+          selectedChannel
+            ? null
+            : await getExternalClientMetrics(
+                clienteSlug,
+                rangesByClient.get(clienteSlug) ?? range,
+              ),
+        ] as const,
+    ),
   );
   const [
     contactsResult,
@@ -487,7 +440,8 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   const periodContacts = contacts.filter(isRowInClientRange);
   const messages = (messagesResult.data as Message[]).filter(
     (message) =>
-      !selectedChannel || channelConversationKeys.has(getConversationKey(message)),
+      !selectedChannel ||
+      channelConversationKeys.has(getConversationKey(message)),
   );
   const startedConversationsResult = await findStartedConversationKeys(
     supabase,
@@ -521,14 +475,17 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   const activeConversationCounts =
     getUniqueConversationCountsByClient(messageMetricRows);
   const startedConversationKeysByClient = new Map(
-    selectedClientSlugs.map((clienteSlug) => [
-      clienteSlug,
-      new Set(
-        Array.from(startedConversationKeys).filter((key) =>
-          key.startsWith(`${clienteSlug}:`),
-        ),
-      ),
-    ] as const),
+    selectedClientSlugs.map(
+      (clienteSlug) =>
+        [
+          clienteSlug,
+          new Set(
+            Array.from(startedConversationKeys).filter((key) =>
+              key.startsWith(`${clienteSlug}:`),
+            ),
+          ),
+        ] as const,
+    ),
   );
   const autonomyMetricsByClient = new Map(
     selectedClientSlugs.map((clienteSlug) => {
@@ -626,13 +583,18 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     messageMetricRows,
     selectedTimezone,
   );
-  const outOfHoursEntries = selectedClientSlugs.map((clienteSlug) => [
-    clienteSlug,
-    getOutOfHoursMetrics(
-      messageMetricRows.filter((message) => message.cliente_slug === clienteSlug),
-      getClientTimezone(clienteSlug),
-    ),
-  ] as const);
+  const outOfHoursEntries = selectedClientSlugs.map(
+    (clienteSlug) =>
+      [
+        clienteSlug,
+        getOutOfHoursMetrics(
+          messageMetricRows.filter(
+            (message) => message.cliente_slug === clienteSlug,
+          ),
+          getClientTimezone(clienteSlug),
+        ),
+      ] as const,
+  );
   const outOfHoursByClient = new Map(outOfHoursEntries);
   const totalOutOfHoursSent = outOfHoursEntries.reduce(
     (total, [, metrics]) => total + metrics.sentCount,
@@ -651,7 +613,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   const instagramCounts = new Map<string, number>();
   const unknownChannelCounts = new Map<string, number>();
 
-  for (const [clienteSlug, conversationKeys] of startedConversationKeysByClient) {
+  for (const [
+    clienteSlug,
+    conversationKeys,
+  ] of startedConversationKeysByClient) {
     for (const conversationKey of conversationKeys) {
       const channel = contactsByConversation.get(conversationKey)?.canal;
       const target =
@@ -697,7 +662,8 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
     const clientMessages = messageMetricRows.filter(
       (message) => message.cliente_slug === client.slug,
     );
-    const startedConversations = startedConversationCounts.get(client.slug) ?? 0;
+    const startedConversations =
+      startedConversationCounts.get(client.slug) ?? 0;
 
     return {
       appointments: metrics?.appointments ?? null,
@@ -782,20 +748,13 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="text-sm font-semibold tracking-[0.32em] text-zinc-500 uppercase">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             Dashboard
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-            Visão geral da plataforma
           </h1>
-          <p className="mt-2 max-w-3xl text-zinc-600">
-            Números reais dos agentes, conversas, agendamentos e problemas
-            marcados no período seleccionado.
-          </p>
         </div>
         <Link
-          className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+          className="inline-flex h-10 w-fit shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           href={buildAdminHref("/admin/conversas", {
             cliente: selectedClientLabel,
             canal: selectedChannel,
@@ -805,17 +764,17 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
         </Link>
       </div>
 
-      <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <Form
           action="/admin"
-          className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end"
+          className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
           replace
           scroll={false}
         >
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Cliente
             <select
-              className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+              className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
               defaultValue={selectedClient}
               name="cliente"
             >
@@ -828,10 +787,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             </select>
           </label>
 
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Canal
             <select
-              className="h-11 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+              className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
               defaultValue={selectedChannel}
               name="canal"
             >
@@ -844,26 +803,23 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           </label>
 
           <FormSubmitButton
-            className="h-11 rounded-md bg-zinc-950 px-5 text-sm font-medium text-white transition hover:bg-zinc-800"
+            className="h-10 shrink-0 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
             pendingLabel="Aplicando..."
           >
             Aplicar filtros
           </FormSubmitButton>
         </Form>
 
-        <div className="mt-5 flex flex-col gap-4 border-t border-zinc-100 pt-5 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-              Período
+        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">
+              {range.label}
             </p>
-            <p className="mt-1 text-sm text-zinc-600">{range.label}</p>
-            <p className="mt-1 text-xs text-zinc-500">
-              {selectedClient
-                ? `Fuso horário: ${selectedTimezone}`
-                : "Cada cliente é calculado no respectivo fuso horário."}
+            <p className="truncate text-xs text-muted-foreground">
+              {selectedClient ? selectedTimezone : "Vários fusos horários"}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface-muted p-1">
             {dashboardPeriodOptions.map((option) => {
               const isActive = option.key === range.key;
               const href = buildAdminHref("/admin", {
@@ -874,10 +830,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
 
               return (
                 <Link
-                  className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  className={`inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium transition ${
                     isActive
-                      ? "border-zinc-950 bg-zinc-950 text-white"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                   href={href}
                   key={option.key}
@@ -903,10 +859,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             {selectedChannel ? (
               <input name="canal" type="hidden" value={selectedChannel} />
             ) : null}
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+            <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
               Início
               <input
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+                className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
                 defaultValue={
                   customStart ||
                   getDateInputValue(range.start, selectedTimezone)
@@ -915,10 +871,10 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                 type="date"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700">
+            <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
               Fim
               <input
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm outline-none transition focus:border-zinc-950"
+                className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
                 defaultValue={
                   customEnd ||
                   getDateInputValue(
@@ -931,7 +887,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
               />
             </label>
             <FormSubmitButton
-              className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+              className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
               pendingLabel="Aplicando..."
             >
               Aplicar
@@ -940,114 +896,127 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          description="Primeira mensagem recebida de cada conversa dentro do período."
-          label="Conversas iniciadas"
-          value={totals.conversations}
-        />
-        <StatCard
-          description={
-            selectedChannel
-              ? "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança."
-              : "Agendamentos válidos criados no período, conforme o estado de cada cliente."
-          }
-          label="Agendamentos realizados"
-          value={selectedChannel ? "--" : totals.appointments}
-        />
-        <StatCard
-          description={
-            selectedChannel
-              ? "Indisponível com filtro de canal, pois os agendamentos não registam essa origem."
-              : `${totals.appointments} agendamentos para ${totals.conversations} conversas iniciadas no mesmo período; sem atribuição individual.`
-          }
-          label="Relação com agendamentos"
-          value={totalConversionRate}
-        />
-        <StatCard
-          description={
-            autonomyMetrics.dataAvailable
-              ? `${autonomyMetrics.interventionConversations} conversa${
-                  autonomyMetrics.interventionConversations === 1 ? "" : "s"
-                } com intervenção humana. Dados fiáveis a partir de 01/08/2026.`
-              : "Dados de autonomia disponíveis a partir de 01/08/2026."
-          }
-          label="Autonomia do agente"
-          value={
-            autonomyMetrics.percentage === null
-              ? "--"
-              : `${autonomyMetrics.percentage}%`
-          }
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          description="Mensagens automáticas de retomada efectivamente registadas no período."
-          label="Follow-ups enviados"
-          value={totals.followups}
-        />
-        <StatCard
-          description={`${followupRecovery.followupConversations} conversas receberam follow-up rápido e ${followupRecovery.recoveredConversations} voltaram a responder.`}
-          label="Recuperação de follow-up rápido"
-          value={
-            followupRecovery.recoveryRate === null
-              ? "--"
-              : `${followupRecovery.recoveryRate}%`
-          }
-        />
-        <StatCard
-          description="Contactos distintos criados pela primeira vez no período."
-          label="Novos contactos"
-          value={newContactCount}
-        />
-        <StatCard
-          description={`${totalOutOfHoursCount} de ${totalOutOfHoursSent} respostas fora de 9h-19h ou fim de semana.`}
-          label="Fora do horário"
-          value={
-            totalOutOfHoursPercentage === null
-              ? "--"
-              : `${totalOutOfHoursPercentage}%`
-          }
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo sufixo="no período">Resultado</SeccaoTitulo>
+        <GrupoMetricas
+          itens={[
+            {
+              dica: "Primeira mensagem recebida de cada conversa dentro do período.",
+              label: "Conversas iniciadas",
+              valor: totals.conversations,
+            },
+            {
+              dica: selectedChannel
+                ? "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança."
+                : "Agendamentos válidos criados no período, conforme o estado de cada cliente.",
+              label: "Agendamentos",
+              valor: selectedChannel ? "--" : totals.appointments,
+            },
+            {
+              dica: selectedChannel
+                ? "Indisponível com filtro de canal, pois os agendamentos não registam essa origem."
+                : "Agendamentos a dividir pelas conversas iniciadas no mesmo período; sem atribuição individual.",
+              label: "Agendam. / conversa",
+              nota: selectedChannel
+                ? undefined
+                : `${totals.appointments} para ${totals.conversations} conversas`,
+              valor: totalConversionRate,
+            },
+            {
+              dica: autonomyMetrics.dataAvailable
+                ? "Conversas resolvidas sem ninguém da equipa escrever. Dados fiáveis a partir de 01/08/2026."
+                : "Dados de autonomia disponíveis a partir de 01/08/2026.",
+              label: "Autonomia do agente",
+              nota: autonomyMetrics.dataAvailable
+                ? `${autonomyMetrics.interventionConversations} com intervenção humana`
+                : undefined,
+              valor:
+                autonomyMetrics.percentage === null
+                  ? "--"
+                  : `${autonomyMetrics.percentage}%`,
+            },
+          ]}
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          description="Conversas com pelo menos uma mensagem recebida ou enviada no período."
-          label="Conversas activas"
-          value={totals.activeConversations}
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo sufixo="no período">Captação e retoma</SeccaoTitulo>
+        <GrupoMetricas
+          itens={[
+            {
+              dica: "Contactos distintos criados pela primeira vez no período.",
+              label: "Novos contactos",
+              valor: newContactCount,
+            },
+            {
+              dica: "Mensagens automáticas de retomada efectivamente registadas no período.",
+              label: "Follow-ups enviados",
+              valor: totals.followups,
+            },
+            {
+              dica: "Conversas que receberam follow-up rápido e voltaram a responder.",
+              label: "Recuperação por follow-up",
+              nota: `${followupRecovery.recoveredConversations} de ${followupRecovery.followupConversations} voltaram a responder`,
+              valor:
+                followupRecovery.recoveryRate === null
+                  ? "--"
+                  : `${followupRecovery.recoveryRate}%`,
+            },
+            {
+              dica: "Respostas enviadas fora de 9h-19h ou ao fim de semana.",
+              label: "Fora do horário",
+              nota: `${totalOutOfHoursCount} de ${totalOutOfHoursSent} respostas`,
+              valor:
+                totalOutOfHoursPercentage === null
+                  ? "--"
+                  : `${totalOutOfHoursPercentage}%`,
+            },
+          ]}
         />
-        <StatCard
-          description={`${firstResponse.samples} conversas iniciadas com primeira resposta automática em até 1h.`}
-          label="Primeira resposta média"
-          value={formatSeconds(firstResponse.averageSeconds)}
-        />
-        <StatCard
-          description="Feedbacks ainda pendentes de análise."
-          label="Feedbacks pendentes"
-          value={totals.pendingFeedbacks}
-        />
-        <StatCard
-          description="Mensagens recebidas dos clientes finais."
-          label="Mensagens recebidas"
-          value={totals.messagesReceived}
-        />
-        <StatCard
-          description="Todas as mensagens enviadas, incluindo agente, equipa e follow-ups."
-          label="Mensagens enviadas"
-          value={totals.messagesSent}
-        />
-        <StatCard
-          description="Handoffs reais ainda pendentes."
-          label="Handoffs pendentes"
-          value={totals.handoffs}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <SeccaoTitulo sufixo="no período">Atendimento</SeccaoTitulo>
+        <GrupoMetricas
+          itens={[
+            {
+              dica: "Conversas com pelo menos uma mensagem recebida ou enviada no período.",
+              label: "Conversas activas",
+              valor: totals.activeConversations,
+            },
+            {
+              dica: "Tempo até à primeira resposta automática, nas conversas respondidas em menos de 1h.",
+              label: "Primeira resposta",
+              nota: `${firstResponse.samples} conversas`,
+              valor: formatSeconds(firstResponse.averageSeconds),
+            },
+            {
+              dica: "Mensagens recebidas dos clientes finais.",
+              label: "Mensagens recebidas",
+              valor: totals.messagesReceived,
+            },
+            {
+              dica: "Todas as mensagens enviadas, incluindo agente, equipa e follow-ups.",
+              label: "Mensagens enviadas",
+              valor: totals.messagesSent,
+            },
+            {
+              dica: "Handoffs reais ainda pendentes.",
+              label: "Handoffs pendentes",
+              valor: totals.handoffs,
+            },
+            {
+              dica: "Feedbacks ainda pendentes de análise.",
+              label: "Feedbacks pendentes",
+              valor: totals.pendingFeedbacks,
+            },
+          ]}
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="text-lg font-semibold text-foreground">
             Conversas iniciadas por canal
           </h2>
           <div className="mt-5">
@@ -1058,8 +1027,8 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="text-lg font-semibold text-foreground">
             Serviços mais agendados
           </h2>
           <div className="mt-5">
@@ -1070,8 +1039,8 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-          <h2 className="text-lg font-semibold text-zinc-950">
+        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="text-lg font-semibold text-foreground">
             Agendamentos por dia
           </h2>
           <div className="mt-5">
@@ -1083,97 +1052,96 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
         </div>
       </div>
 
-      <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-        <h2 className="text-lg font-semibold text-zinc-950">
-          Horários de pico
-        </h2>
-        <p className="mt-1 text-sm text-zinc-600">
-          Mensagens recebidas por dia e hora. Em visão geral, usa o fuso da
-          plataforma; ao filtrar cliente, usa o fuso do cliente.
-        </p>
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-lg font-semibold text-foreground">
+            Horários de pico
+          </h2>
+          <Dica texto="Mensagens recebidas por dia e hora. Em visão geral usa o fuso da plataforma; ao filtrar cliente, o fuso do cliente." />
+        </div>
         <div className="mt-5">
           <MiniHeatmap cells={heatmapCells} />
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[24px] border border-zinc-200/80 bg-white/95 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
-        <div className="border-b border-zinc-100 px-5 py-4">
-          <h2 className="text-lg font-semibold text-zinc-950">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="border-b border-border px-5 py-4">
+          <h2 className="text-lg font-semibold text-foreground">
             Clientes no período
           </h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Comparativo de operação por cliente, canal e estado.
-          </p>
         </div>
 
         {rows.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1380px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold tracking-[0.08em] text-zinc-500 uppercase">
+              <thead className="bg-surface-muted text-xs font-semibold text-muted-foreground">
                 <tr>
-                  <th className="w-[15%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[15%] border-b border-border px-4 py-3">
                     Cliente
                   </th>
-                  <th className="w-[7%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[7%] border-b border-border px-4 py-3">
                     Iniciadas
                   </th>
-                  <th className="w-[11%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[11%] border-b border-border px-4 py-3">
                     Canais
                   </th>
-                  <th className="w-[8%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[8%] border-b border-border px-4 py-3">
                     Recebidas
                   </th>
-                  <th className="w-[8%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[8%] border-b border-border px-4 py-3">
                     Enviadas
                   </th>
-                  <th className="w-[9%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[9%] border-b border-border px-4 py-3">
                     Agendamentos
                   </th>
-                  <th className="w-[9%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[9%] border-b border-border px-4 py-3">
                     Relação
                   </th>
-                  <th className="w-[9%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[9%] border-b border-border px-4 py-3">
                     Autonomia
                   </th>
-                  <th className="w-[8%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[8%] border-b border-border px-4 py-3">
                     Follow-ups
                   </th>
-                  <th className="w-[9%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[9%] border-b border-border px-4 py-3">
                     Pendências
                   </th>
-                  <th className="w-[7%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[7%] border-b border-border px-4 py-3">
                     Workflows
                   </th>
-                  <th className="w-[7%] border-b border-zinc-200 px-4 py-3">
+                  <th className="w-[7%] border-b border-border px-4 py-3">
                     Ações
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr className="border-b border-zinc-100" key={row.client.slug}>
+                  <tr
+                    className="border-b border-border transition last:border-0 hover:bg-surface-muted"
+                    key={row.client.slug}
+                  >
                     <td className="px-4 py-4 align-top">
-                      <p className="font-semibold text-zinc-950">
+                      <p className="font-semibold text-foreground">
                         {row.client.nome ?? row.client.slug}
                       </p>
-                      <p className="mt-1 font-mono text-xs text-zinc-500">
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">
                         {row.client.slug}
                       </p>
-                      <p className="mt-2 text-xs text-zinc-500">
+                      <p className="mt-2 text-xs text-muted-foreground">
                         {formatLabel(row.client.status)} ·{" "}
                         {row.client.modo_teste ? "Modo teste" : "Produção"}
                       </p>
                     </td>
                     <td className="px-4 py-4 align-top">
-                      <p className="text-2xl font-semibold text-zinc-950">
+                      <p className="text-2xl font-semibold text-foreground">
                         {row.conversations}
                       </p>
-                      <p className="mt-1 text-xs text-zinc-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {row.activeConversations} activas
                       </p>
                     </td>
                     <td className="px-4 py-4 align-top">
-                      <div className="flex flex-col gap-1.5 text-xs font-medium text-zinc-700">
+                      <div className="flex flex-col gap-1.5 text-xs font-medium text-foreground">
                         <span>WhatsApp: {row.whatsapp}</span>
                         <span>Messenger: {row.messenger}</span>
                         <span>Instagram: {row.instagram}</span>
@@ -1182,18 +1150,18 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       {row.messagesReceived}
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       {row.messagesSent}
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       {row.appointments ?? "--"}
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       <div className="flex flex-col gap-1 text-xs">
-                        <span className="text-base font-semibold text-zinc-950">
+                        <span className="text-base font-semibold text-foreground">
                           {row.conversionRate}
                         </span>
                         <span>
@@ -1201,9 +1169,9 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       <div className="flex flex-col gap-1 text-xs">
-                        <span className="text-base font-semibold text-zinc-950">
+                        <span className="text-base font-semibold text-foreground">
                           {row.autonomy?.percentage == null
                             ? "--"
                             : `${row.autonomy?.percentage}%`}
@@ -1214,22 +1182,22 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       {row.followups ?? "--"}
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       <div className="flex flex-col gap-1.5 text-xs font-medium">
                         <span>Feedbacks: {row.pendingFeedbacks}</span>
                         <span>Handoffs: {row.handoffs}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-4 align-top text-zinc-700">
+                    <td className="px-4 py-4 align-top text-foreground">
                       {row.workflows}
                     </td>
                     <td className="px-4 py-4 align-top">
                       <div className="flex flex-col gap-2">
                         <Link
-                          className="rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                          className="rounded-2xl border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
                           href={buildAdminHref("/admin/conversas", {
                             canal: selectedChannel,
                             cliente: row.client.slug,
@@ -1238,7 +1206,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
                           Conversas
                         </Link>
                         <Link
-                          className="rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                          className="rounded-2xl border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
                           href={`/admin/feedbacks`}
                         >
                           Feedbacks
@@ -1251,24 +1219,21 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             </table>
           </div>
         ) : (
-          <div className="px-5 py-10 text-sm text-zinc-600">
+          <div className="px-5 py-10 text-sm text-muted-foreground">
             Nenhum cliente encontrado com os filtros actuais.
           </div>
         )}
       </div>
 
-      <div className="rounded-[24px] border border-zinc-200/80 bg-white/95 p-5 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-950">
+            <h2 className="text-lg font-semibold text-foreground">
               Últimas conversas iniciadas
             </h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              Amostra recente dentro do período seleccionado.
-            </p>
           </div>
           <Link
-            className="text-sm font-semibold text-zinc-950 underline-offset-2 hover:underline"
+            className="text-sm font-semibold text-foreground underline-offset-2 hover:underline"
             href={buildAdminHref("/admin/conversas", {
               canal: selectedChannel,
               cliente: selectedClient,
@@ -1282,7 +1247,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {latestContacts.map((contact) => (
               <Link
-                className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 transition hover:border-zinc-300 hover:bg-white"
+                className="rounded-2xl border border-border bg-surface-muted p-4 transition hover:border-border hover:bg-surface"
                 href={buildAdminHref("/admin/conversas", {
                   canal: contact.canal ?? "",
                   cliente: contact.cliente_slug,
@@ -1292,18 +1257,18 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-zinc-950">
+                    <p className="truncate font-semibold text-foreground">
                       {contact.nome || contact.telefone || "Sem nome"}
                     </p>
-                    <p className="mt-1 truncate font-mono text-xs text-zinc-500">
+                    <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
                       {contact.cliente_slug}
                     </p>
                   </div>
-                  <span className="rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-semibold text-zinc-600">
+                  <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                     {formatLabel(contact.canal)}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-zinc-600">
+                <p className="mt-3 text-sm text-muted-foreground">
                   {formatDateInTimezone(
                     contact.criado_em,
                     getClientTimezone(contact.cliente_slug),
@@ -1313,7 +1278,7 @@ export default async function AdminDashboard({ searchParams }: AdminDashboardPro
             ))}
           </div>
         ) : (
-          <p className="mt-5 text-sm text-zinc-600">
+          <p className="mt-5 text-sm text-muted-foreground">
             Ainda não há conversas reais registadas neste período.
           </p>
         )}

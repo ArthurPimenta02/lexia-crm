@@ -2,6 +2,7 @@ import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -62,21 +63,7 @@ export default async function AdminProdutosPage({
 
   const clientes = (clientesData ?? []) as AdminCliente[];
 
-  const cabecalho = (
-    <div>
-      <p className="text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase">
-        Produtos
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
-        Stock e duração dos produtos
-      </h1>
-      <p className="mt-2 max-w-2xl text-zinc-600">
-        O stock é a soma dos movimentos: compras entram, serviços realizados
-        tiram. O custo por unidade vem da última compra registada e alimenta a
-        margem na página de Serviços.
-      </p>
-    </div>
-  );
+  const cabecalho = <PaginaCabecalho titulo="Produtos" />;
 
   const clienteSelecionado =
     clientes.find((cliente) => cliente.slug === pedido) ?? clientes[0] ?? null;
@@ -85,7 +72,7 @@ export default async function AdminProdutosPage({
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
-        <div className="rounded-[22px] border border-zinc-200/80 bg-white p-8 text-center text-sm text-zinc-600 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           Nenhum cliente activo disponível.
         </div>
       </div>
@@ -108,7 +95,7 @@ export default async function AdminProdutosPage({
   const moeda = getServicosConfig(clienteSlug)?.moeda ?? "EUR";
 
   const selectorDeCliente = (
-    <div className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.06)]">
+    <div className="rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <Form
         action="/admin/produtos"
         className="flex flex-wrap items-end gap-2"
@@ -116,12 +103,12 @@ export default async function AdminProdutosPage({
         scroll={false}
       >
         <label
-          className="flex flex-col gap-2 text-xs font-semibold tracking-[0.22em] text-zinc-500 uppercase"
+          className="flex flex-col gap-2 text-sm font-semibold text-foreground"
           htmlFor="cliente"
         >
           Cliente
           <select
-            className="h-10 min-w-56 rounded-md border border-zinc-300 bg-white px-3 text-sm font-normal tracking-normal text-zinc-900 normal-case outline-none transition focus:border-zinc-950"
+            className="h-10 min-w-56 rounded-2xl border border-border-strong bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground"
             defaultValue={clienteSlug}
             id="cliente"
             name="cliente"
@@ -134,7 +121,7 @@ export default async function AdminProdutosPage({
           </select>
         </label>
         <FormSubmitButton
-          className="h-10 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
+          className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
           pendingLabel="..."
         >
           Selecionar

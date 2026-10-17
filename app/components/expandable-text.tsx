@@ -24,7 +24,7 @@ export function ExpandableText({
       <span className="whitespace-pre-wrap break-words">{visibleText}</span>
       {shouldTruncate ? (
         <button
-          className="mt-1 block text-xs font-semibold text-zinc-950 underline-offset-2 hover:underline"
+          className="mt-1 block text-xs font-semibold text-foreground underline-offset-2 hover:underline"
           onClick={() => setIsOpen(true)}
           type="button"
         >
@@ -38,13 +38,13 @@ export function ExpandableText({
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-md border border-zinc-200 bg-white shadow-xl">
-            <div className="flex items-center justify-between gap-4 border-b border-zinc-200 px-5 py-4">
-              <h2 className="text-base font-semibold text-zinc-950">
+          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-xl">
+            <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+              <h2 className="text-base font-semibold text-foreground">
                 Texto completo
               </h2>
               <button
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100"
+                className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
                 onClick={() => setIsOpen(false)}
                 type="button"
               >
@@ -52,7 +52,7 @@ export function ExpandableText({
               </button>
             </div>
             <div className="overflow-y-auto px-5 py-4">
-              <p className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-700">
+              <p className="whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
                 {value}
               </p>
             </div>
