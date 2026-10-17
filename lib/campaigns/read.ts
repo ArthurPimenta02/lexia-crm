@@ -135,6 +135,89 @@ async function contarContactosPorDia(
   return porDia;
 }
 
+export type ResumoCampanhas = {
+  atualizadoEm: string | null;
+  cliques: number;
+  cliquesLink: number;
+  gasto: number;
+  impressoes: number;
+  moeda: string;
+  temDados: boolean;
+};
+
+type ResumoCustoRow = Pick<
+  CustoRow,
+  "cliques" | "cliques_link" | "gasto" | "impressoes" | "moeda" | "sincronizado_em"
+>;
+
+/**
+ * Os totais de gasto do período, sem o detalhe por campanha nem por dia.
+ *
+ * O `getPainelCampanhas` já devolve isto e muito mais, mas para calcular o
+ * custo por contacto varre a tabela de contactos inteira do período — e o
+ * dashboard varre-a de qualquer maneira para as contas dele. Chamá-lo lá só
+ * para mostrar o investido duplicava a leitura mais pesada da página. Aqui
+ * leem-se só os custos, e o denominador do custo por conversa vem das
+ * conversas que o dashboard já contou.
+ */
+export async function getResumoCampanhas({
+  clienteSlug,
+  fim,
+  inicio,
+}: {
+  clienteSlug: string;
+  /** Dia final inclusivo, YYYY-MM-DD no fuso do cliente. */
+  fim: string;
+  /** Dia inicial inclusivo, YYYY-MM-DD no fuso do cliente. */
+  inicio: string;
+}): Promise<ResumoCampanhas> {
+  const supabase = await createClient();
+  const { data, error } = await fetchAllSupabaseRows<ResumoCustoRow>(
+    (from, to) =>
+      supabase
+        .from("lexia_campanha_custos")
+        .select("cliques, cliques_link, gasto, impressoes, moeda, sincronizado_em")
+        .eq("cliente_slug", clienteSlug)
+        .gte("dia", inicio)
+        .lte("dia", fim)
+        .range(from, to),
+  );
+
+  const vazio: ResumoCampanhas = {
+    atualizadoEm: null,
+    cliques: 0,
+    cliquesLink: 0,
+    gasto: 0,
+    impressoes: 0,
+    moeda: "EUR",
+    temDados: false,
+  };
+
+  if (error || data.length === 0) {
+    return vazio;
+  }
+
+  const resumo: ResumoCampanhas = { ...vazio, temDados: true };
+
+  for (const linha of data) {
+    resumo.gasto += toNumber(linha.gasto);
+    resumo.impressoes += toNumber(linha.impressoes);
+    resumo.cliques += toNumber(linha.cliques);
+    resumo.cliquesLink += toNumber(linha.cliques_link);
+
+    if (
+      linha.sincronizado_em &&
+      (!resumo.atualizadoEm || linha.sincronizado_em > resumo.atualizadoEm)
+    ) {
+      resumo.atualizadoEm = linha.sincronizado_em;
+    }
+  }
+
+  resumo.moeda = data.find((linha) => linha.moeda)?.moeda ?? "EUR";
+
+  return resumo;
+}
+
 export async function getPainelCampanhas({
   clienteSlug,
   fim,

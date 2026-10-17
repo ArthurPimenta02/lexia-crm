@@ -2,6 +2,7 @@ import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
+import { CampaignsDashboardStrip } from "@/app/components/campaigns-dashboard-strip";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import {
   Dica,
@@ -938,6 +939,28 @@ export default async function AdminDashboard({
           ]}
         />
       </div>
+
+      {/*
+        Só com uma empresa escolhida, e sem filtro de canal.
+
+        Sem empresa escolhida haveria várias contas de anúncios e possivelmente
+        várias moedas a somar para um total que não quer dizer nada. Com filtro
+        de canal, o gasto não acompanha: a Meta cobra por posicionamento, que
+        não é o `canal` por onde a conversa entrou, e dividir um gasto inteiro
+        por um terço das conversas dava um custo por conversa inflacionado.
+      */}
+      {selectedClient && !selectedChannel ? (
+        <CampaignsDashboardStrip
+          clienteSlug={selectedClient}
+          conversasIniciadas={totals.conversations}
+          hrefCampanhas={buildAdminHref("/admin/campanhas", {
+            cliente: selectedClient,
+            periodo: range.key,
+          })}
+          range={rangesByClient.get(selectedClient) ?? range}
+          timezone={selectedTimezone}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-3">
         <SeccaoTitulo sufixo="no período">Captação e retoma</SeccaoTitulo>
