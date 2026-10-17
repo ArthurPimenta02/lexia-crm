@@ -570,21 +570,32 @@ export default async function ClientConversationsPage({
                         />
                       </svg>
                     </Link>
+                    {/*
+                      O canal diz-se uma vez só, no ícone.
+
+                      Estavam aqui três: o ícone, uma etiqueta "WhatsApp" ao
+                      lado do nome e outra vez no subtítulo, a seguir ao
+                      telefone. Desde que o ícone passou a ser o desenho
+                      oficial da marca, lê-se de relance e as outras duas não
+                      acrescentavam nada — só empurravam o nome da pessoa, que
+                      é o que interessa neste cabeçalho, para o meio da linha.
+
+                      O nome do canal fica em `sr-only` porque o glifo é
+                      `aria-hidden`: sem isto, quem usa leitor de ecrã deixava
+                      de saber por onde a conversa entrou.
+                    */}
                     <ChannelIcon channel={selectedContact.canal} />
+                    <span className="sr-only">
+                      {getChannelLabel(selectedContact.canal)}
+                    </span>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="truncate font-semibold text-foreground">
-                          {selectedContact.nome ||
-                            selectedContact.telefone ||
-                            "Conversa"}
-                        </h2>
-                        <span className="max-sm:hidden">
-                          <ChannelBadge channel={selectedContact.canal} />
-                        </span>
-                      </div>
+                      <h2 className="truncate font-semibold text-foreground">
+                        {selectedContact.nome ||
+                          selectedContact.telefone ||
+                          "Conversa"}
+                      </h2>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
-                        {selectedContact.telefone ?? "Sem telefone"} ·{" "}
-                        {getChannelLabel(selectedContact.canal)}
+                        {selectedContact.telefone ?? "Sem telefone"}
                       </p>
                     </div>
                   </div>

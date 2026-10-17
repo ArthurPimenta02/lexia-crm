@@ -637,21 +637,23 @@ export default async function AdminConversationsPage({
                           />
                         </svg>
                       </Link>
+                      {/*
+                        Mesma razão do ecrã do cliente: o canal diz-se uma vez
+                        só, no ícone, agora que é o desenho oficial da marca.
+                        O `sr-only` existe porque o glifo é `aria-hidden`.
+                      */}
                       <ChannelIcon channel={selectedContact.canal} />
+                      <span className="sr-only">
+                        {getChannelLabel(selectedContact.canal)}
+                      </span>
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="truncate font-semibold">
-                            {selectedContact.nome ||
-                              selectedContact.telefone ||
-                              "Conversa"}
-                          </h2>
-                          <span className="max-sm:hidden">
-                            <ChannelBadge channel={selectedContact.canal} />
-                          </span>
-                        </div>
+                        <h2 className="truncate font-semibold">
+                          {selectedContact.nome ||
+                            selectedContact.telefone ||
+                            "Conversa"}
+                        </h2>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
-                          {selectedContact.telefone ?? "Sem telefone"} ·{" "}
-                          {getChannelLabel(selectedContact.canal)}
+                          {selectedContact.telefone ?? "Sem telefone"}
                         </p>
                         <p className="sr-only">
                           {selectedContact.identificador_conversa}
