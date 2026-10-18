@@ -100,10 +100,6 @@ export type CartaoPipeline = {
 
 export type PipelineResultado = {
   cartoes: CartaoPipeline[];
-  /** Quantos eventos da agenda não se conseguem ligar a nenhum cartão. */
-  agendaSemLigacao: number;
-  /** Quantos eventos da agenda existem daqui para a frente. */
-  agendaFutura: number;
   erro: string | null;
 };
 
@@ -197,8 +193,6 @@ export async function getPipeline(
   agora = new Date(),
 ): Promise<PipelineResultado> {
   const vazio: PipelineResultado = {
-    agendaFutura: 0,
-    agendaSemLigacao: 0,
     cartoes: [],
     erro: null,
   };
@@ -238,17 +232,12 @@ export async function getPipeline(
 
   // A agenda, indexada pelos últimos 9 dígitos do telefone.
   const porTelefone = new Map<string, AgendamentoRow[]>();
-  let agendaFutura = 0;
 
   for (const a of agenda.data) {
     const quando = data(a.inicio);
 
     if (!quando) {
       continue;
-    }
-
-    if (quando >= agora) {
-      agendaFutura += 1;
     }
 
     const chave = chaveTelefone(a.telefone_digitos);
@@ -356,17 +345,7 @@ export async function getPipeline(
     return (b.ultimaMensagemEm ?? "").localeCompare(a.ultimaMensagemEm ?? "");
   });
 
-  const agendaSemLigacao = agenda.data.filter((a) => {
-    const quando = data(a.inicio);
-
-    return (
-      quando !== null &&
-      quando >= agora &&
-      !ligados.has(`${a.telefone_digitos}|${a.inicio}`)
-    );
-  }).length;
-
-  return { agendaFutura, agendaSemLigacao, cartoes, erro: null };
+  return { cartoes, erro: null };
 }
 
 export function agruparPorEtapa(cartoes: CartaoPipeline[]) {
