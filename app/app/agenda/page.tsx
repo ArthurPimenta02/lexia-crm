@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AgendaPanel } from "@/app/components/agenda-panel";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
-import { getAgendaSemana } from "@/lib/agenda/read";
+import { getAgenda, VISTAS, type Vista } from "@/lib/agenda/read";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
@@ -18,8 +18,9 @@ export default async function AgendaPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    dia?: string | string[];
     executor?: string | string[];
-    semana?: string | string[];
+    vista?: string | string[];
   }>;
 }) {
   const { profile } = await getLoggedInUserProfile();
@@ -40,11 +41,20 @@ export default async function AgendaPage({
   const executor = primeiro(params.executor);
   const timeZone = getClientTimezone(profile.cliente_slug);
 
-  const agenda = await getAgendaSemana({
+  // Um `?vista=` que não conhecemos cai na semana em vez de rebentar: o
+  // endereço é partilhado por quem o copia da barra, e já cá chegou um
+  // `?semana=` do nome antigo do parâmetro.
+  const pedida = primeiro(params.vista);
+  const vista: Vista = (VISTAS as readonly string[]).includes(pedida)
+    ? (pedida as Vista)
+    : "semana";
+
+  const agenda = await getAgenda({
     clienteSlug: profile.cliente_slug,
-    dia: primeiro(params.semana) || undefined,
+    dia: primeiro(params.dia) || undefined,
     executor: executor || undefined,
     timeZone,
+    vista,
   });
 
   return (

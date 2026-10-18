@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 
 /**
- * A agenda do dono — a semana, como ele a vê no Google.
+ * A agenda do dono — a semana ou o mês, como ele a vê no Google.
  *
  * Quatro coisas medidas a 2026-10-18 que explicam o que está aqui.
  *
@@ -19,9 +19,12 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
  *    data em UTC já virou. O fuso de cada cliente vem do
  *    `lib/clientes/timezone.ts` e não se escreve aqui.
  *
- * 3. A semana começa à segunda. É como as agendas de trabalho se lêem nos
- *    dois países, e põe sábado e domingo juntos no fim — que é precisamente
- *    quando o Detail trabalha mais.
+ * 3. A semana começa à segunda, e a grelha do mês também. É como as agendas
+ *    de trabalho se lêem nos dois países, e põe sábado e domingo juntos no
+ *    fim — que é precisamente quando o Detail trabalha mais. O Google começa
+ *    ao domingo porque está em locale americano; alinhar as duas vistas uma
+ *    com a outra vale mais do que alinhar com ele, senão as colunas saltavam
+ *    de sítio ao trocar de vista.
  *
  * 4. O `executor` vem preenchido em todas as linhas e é por isso que serve de
  *    filtro: no Detail são duas agendas separadas (Martim 114, Roberto 67) e
@@ -47,26 +50,45 @@ export type EventoAgenda = {
   valorPrevisto: number | null;
 };
 
+export const VISTAS = ["semana", "mes"] as const;
+
+export type Vista = (typeof VISTAS)[number];
+
 export type DiaAgenda = {
   /** O dia em `AAAA-MM-DD`, já no fuso do cliente. */
   chave: string;
   eventos: EventoAgenda[];
+  /**
+   * `true` para os dias que a grelha do mês mostra só para fechar a semana e
+   * que pertencem ao mês ao lado. Na vista de semana é sempre `false`.
+   */
+  foraDoPeriodo: boolean;
   /** `true` se for hoje no fuso do cliente. */
   hoje: boolean;
 };
 
 export type AgendaResultado = {
+  /** Um dia dentro do período anterior, para o link de recuar. */
+  anterior: string;
+  /**
+   * O dia a levar ao trocar de vista: hoje, quando hoje cai no período que
+   * está à vista, e o primeiro dia do período quando não cai. Sem isto, saltar
+   * do mês de outubro para a semana deixava o dono na semana de 1 de outubro
+   * em vez da semana em que está.
+   */
+  diaDeReferencia: string;
   dias: DiaAgenda[];
   erro: string | null;
-  /** Os executores que aparecem na semana, para o filtro. */
+  /** Os executores que aparecem no período, para o filtro. */
   executores: string[];
-  /** A segunda-feira desta semana, em `AAAA-MM-DD`. */
-  inicioSemana: string;
-  /** Quantos eventos da semana foram marcados pelo agente. */
+  /** O primeiro dia do período: a segunda-feira, ou o dia 1 do mês. */
+  inicio: string;
+  /** Quantos eventos do período foram marcados pelo agente. */
   marcadosPeloAgente: number;
-  proximaSemana: string;
-  semanaAnterior: string;
+  /** Um dia dentro do período seguinte, para o link de avançar. */
+  proximo: string;
   total: number;
+  vista: Vista;
 };
 
 type AgendamentoRow = {
@@ -124,6 +146,54 @@ export function segundaDaSemana(dia: string) {
   return somarDias(dia, 1 - diaDaSemana);
 }
 
+/** O dia 1 do mês a que um dia pertence. */
+export function primeiroDoMes(dia: string) {
+  return `${dia.slice(0, 7)}-01`;
+}
+
+/**
+ * Soma meses ao dia 1 de um mês.
+ *
+ * Conta em meses absolutos em vez de mexer no número do mês, senão dezembro
+ * mais um dava o mês 13 e janeiro menos um dava o mês 0.
+ */
+export function somarMeses(dia: string, meses: number) {
+  const [ano, mes] = dia.split("-").map(Number);
+  const total = ano * 12 + (mes - 1) + meses;
+
+  return `${String(Math.floor(total / 12)).padStart(4, "0")}-${String(
+    (total % 12) + 1,
+  ).padStart(2, "0")}-01`;
+}
+
+/** O último dia do mês a que um dia pertence. */
+export function ultimoDoMes(dia: string) {
+  return somarDias(somarMeses(primeiroDoMes(dia), 1), -1);
+}
+
+/**
+ * Os dias que a vista mostra, em ordem.
+ *
+ * A grelha do mês não tem 30 dias: tem semanas inteiras, por isso começa na
+ * segunda antes do dia 1 e acaba no domingo depois do último dia. Dão 28 a 42
+ * dias conforme o mês cair, e é por isso que o número não está escrito à mão.
+ */
+function diasDoPeriodo(vista: Vista, inicio: string) {
+  if (vista === "semana") {
+    return Array.from({ length: 7 }, (_, i) => somarDias(inicio, i));
+  }
+
+  const primeiro = segundaDaSemana(inicio);
+  const ultimo = somarDias(segundaDaSemana(ultimoDoMes(inicio)), 6);
+  const dias: string[] = [];
+
+  for (let d = primeiro; d <= ultimo; d = somarDias(d, 1)) {
+    dias.push(d);
+  }
+
+  return dias;
+}
+
 /** Valida `AAAA-MM-DD` e recusa datas impossíveis como `2026-02-31`. */
 function diaValido(valor: string | undefined) {
   if (!valor || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
@@ -146,34 +216,47 @@ const numero = (valor: number | string | null) => {
   return Number.isFinite(convertido) ? convertido : null;
 };
 
-export async function getAgendaSemana({
+export async function getAgenda({
   clienteSlug,
   dia,
   executor,
   timeZone,
+  vista = "semana",
   agora = new Date(),
 }: {
   clienteSlug: string;
-  /** O dia pedido no endereço, `AAAA-MM-DD`. Sem ele, a semana de hoje. */
+  /** O dia pedido no endereço, `AAAA-MM-DD`. Sem ele, o período de hoje. */
   dia?: string;
   /** O executor escolhido no filtro, se houver. */
   executor?: string;
   timeZone: string;
+  vista?: Vista;
   agora?: Date;
 }): Promise<AgendaResultado> {
   const hoje = diaNoFuso(agora, timeZone);
-  const inicioSemana = segundaDaSemana(diaValido(dia) ?? hoje);
-  const fimSemana = somarDias(inicioSemana, 6);
+  const escolhido = diaValido(dia) ?? hoje;
+  const inicio =
+    vista === "semana" ? segundaDaSemana(escolhido) : primeiroDoMes(escolhido);
+
+  const chaves = diasDoPeriodo(vista, inicio);
+  const primeiroDaGrelha = chaves[0];
+  const ultimoDaGrelha = chaves[chaves.length - 1];
+
+  const doPeriodo = (chave: string) =>
+    vista === "semana" ? true : chave.slice(0, 7) === inicio.slice(0, 7);
 
   const vazio: AgendaResultado = {
+    anterior:
+      vista === "semana" ? somarDias(inicio, -7) : somarMeses(inicio, -1),
+    diaDeReferencia: doPeriodo(hoje) && chaves.includes(hoje) ? hoje : inicio,
     dias: [],
     erro: null,
     executores: [],
-    inicioSemana,
+    inicio,
     marcadosPeloAgente: 0,
-    proximaSemana: somarDias(inicioSemana, 7),
-    semanaAnterior: somarDias(inicioSemana, -7),
+    proximo: vista === "semana" ? somarDias(inicio, 7) : somarMeses(inicio, 1),
     total: 0,
+    vista,
   };
 
   if (!clienteSlug) {
@@ -185,8 +268,8 @@ export async function getAgendaSemana({
   // A janela vai um dia para cada lado em UTC e só depois se filtra pelo dia
   // no fuso do cliente. Sem a folga, um evento das 21h de sexta em Boston —
   // que em UTC já é sábado — ficava de fora da semana a que pertence.
-  const de = `${somarDias(inicioSemana, -1)}T00:00:00.000Z`;
-  const ate = `${somarDias(fimSemana, 2)}T00:00:00.000Z`;
+  const de = `${somarDias(primeiroDaGrelha, -1)}T00:00:00.000Z`;
+  const ate = `${somarDias(ultimoDaGrelha, 2)}T00:00:00.000Z`;
 
   const { data, error } = await fetchAllSupabaseRows<AgendamentoRow>(
     async (from, to) => {
@@ -213,7 +296,6 @@ export async function getAgendaSemana({
     return { ...vazio, erro: "Não foi possível carregar a agenda." };
   }
 
-  const chaves = Array.from({ length: 7 }, (_, i) => somarDias(inicioSemana, i));
   const porDia = new Map<string, EventoAgenda[]>(chaves.map((c) => [c, []]));
   const executores = new Set<string>();
   let total = 0;
@@ -243,10 +325,15 @@ export async function getAgendaSemana({
       continue;
     }
 
-    total += 1;
+    // Os dias que a grelha do mês traz do mês ao lado contam-se para fora da
+    // soma: o cabeçalho diz "outubro", e dizer "15 marcações" a incluir dois
+    // dias de setembro era um número que não batia com coisa nenhuma.
+    if (doPeriodo(chave)) {
+      total += 1;
 
-    if (linha.origem === "agente") {
-      marcadosPeloAgente += 1;
+      if (linha.origem === "agente") {
+        marcadosPeloAgente += 1;
+      }
     }
 
     doDia.push({
@@ -279,17 +366,15 @@ export async function getAgendaSemana({
   }
 
   return {
+    ...vazio,
     dias: chaves.map((chave) => ({
       chave,
       eventos: porDia.get(chave) ?? [],
+      foraDoPeriodo: !doPeriodo(chave),
       hoje: chave === hoje,
     })),
-    erro: null,
     executores: [...executores].sort((a, b) => a.localeCompare(b)),
-    inicioSemana,
     marcadosPeloAgente,
-    proximaSemana: somarDias(inicioSemana, 7),
-    semanaAnterior: somarDias(inicioSemana, -7),
     total,
   };
 }

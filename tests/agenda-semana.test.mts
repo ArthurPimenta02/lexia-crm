@@ -92,6 +92,28 @@ function estadoInicial(): Record<string, Linha[]> {
         inicio: "2026-10-21T14:00:00+00:00",
         titulo: "Desmarcada",
       }),
+      /*
+       * Setembro e novembro, para a grelha do mês de outubro.
+       *
+       * Outubro de 2026 começa à quinta e acaba ao sábado, por isso a grelha
+       * do mês arrasta 28, 29 e 30 de setembro à frente e 1 de novembro atrás.
+       * Estes dois eventos têm de aparecer na grelha — uma célula de segunda
+       * em branco por ser de setembro lê-se como um dia livre — e não podem
+       * entrar na conta do mês.
+       */
+      evento({
+        cliente_slug: A,
+        id: "a-fim-de-setembro",
+        inicio: "2026-09-29T09:00:00+00:00",
+        titulo: "Ainda setembro",
+      }),
+      evento({
+        cliente_slug: A,
+        id: "a-inicio-de-novembro",
+        inicio: "2026-11-01T09:00:00+00:00",
+        titulo: "Já novembro",
+      }),
+
       // A agenda do outro cliente, na mesma semana e à mesma hora.
       evento({
         cliente_slug: B,
@@ -136,6 +158,21 @@ function estadoInicial(): Record<string, Linha[]> {
       }),
 
       /*
+       * Segunda, 30/11, às 19h30 de Boston: a última hora do último dia do
+       * mês. Em UTC já é 1 de dezembro — na grelha de novembro é o evento que
+       * salta de célula e sai da conta do mês se o fuso for ignorado, e sai
+       * para um dia que a grelha mostra a cinzento, o que torna o erro ainda
+       * mais difícil de ver.
+       */
+      evento({
+        cliente_slug: C,
+        executor: "Samuel",
+        id: "c-ultima-noite-do-mes",
+        inicio: "2026-12-01T00:30:00+00:00",
+        titulo: "Última de novembro",
+      }),
+
+      /*
        * Um evento de dia inteiro numa segunda de julho em Lisboa.
        *
        * A sincronização grava os eventos de dia inteiro à meia-noite do fuso
@@ -163,21 +200,31 @@ mock.module("@/lib/supabase/admin", {
   namedExports: { createAdminClient: () => base },
 });
 
-const { getAgendaSemana, segundaDaSemana, somarDias, diaNoFuso } =
-  await import("@/lib/agenda/read");
+const {
+  diaNoFuso,
+  getAgenda,
+  primeiroDoMes,
+  segundaDaSemana,
+  somarDias,
+  somarMeses,
+  ultimoDoMes,
+} = await import("@/lib/agenda/read");
 
 function reiniciar() {
   base = new FakeSupabase(estadoInicial());
 }
 
 const semanaDe = (dia: string, extra: Record<string, unknown> = {}) =>
-  getAgendaSemana({
+  getAgenda({
     agora: new Date("2026-10-21T12:00:00.000Z"),
     clienteSlug: A,
     dia,
     timeZone: LISBOA,
     ...extra,
   });
+
+const mesDe = (dia: string, extra: Record<string, unknown> = {}) =>
+  semanaDe(dia, { vista: "mes", ...extra });
 
 test("a semana começa à segunda, venha o dia que vier", () => {
   // Quarta, sexta, domingo e a própria segunda dão todos a mesma segunda.
@@ -224,7 +271,7 @@ test("a semana tem sempre sete dias e sabe qual é hoje", async () => {
 test("uma marcação da noite de sexta em Boston não escorrega para sábado", async () => {
   reiniciar();
 
-  const agenda = await getAgendaSemana({
+  const agenda = await getAgenda({
     agora: new Date("2026-11-18T12:00:00.000Z"),
     clienteSlug: C,
     dia: "2026-11-18",
@@ -250,7 +297,7 @@ test("uma marcação da noite de sexta em Boston não escorrega para sábado", a
 test("a última hora de domingo não cai fora da janela de consulta", async () => {
   reiniciar();
 
-  const agenda = await getAgendaSemana({
+  const agenda = await getAgenda({
     agora: new Date("2026-11-18T12:00:00.000Z"),
     clienteSlug: C,
     dia: "2026-11-18",
@@ -271,7 +318,7 @@ test("a última hora de domingo não cai fora da janela de consulta", async () =
 test("um dia inteiro na segunda não cai fora pelo outro lado da janela", async () => {
   reiniciar();
 
-  const agenda = await getAgendaSemana({
+  const agenda = await getAgenda({
     agora: new Date("2026-07-20T12:00:00.000Z"),
     clienteSlug: C,
     dia: "2026-07-20",
@@ -348,9 +395,9 @@ test("os passos para a frente e para trás são de sete dias", async () => {
 
   const agenda = await semanaDe("2026-10-21");
 
-  assert.equal(agenda.inicioSemana, "2026-10-19");
-  assert.equal(agenda.semanaAnterior, "2026-10-12");
-  assert.equal(agenda.proximaSemana, "2026-10-26");
+  assert.equal(agenda.inicio, "2026-10-19");
+  assert.equal(agenda.anterior, "2026-10-12");
+  assert.equal(agenda.proximo, "2026-10-26");
 });
 
 test("um dia impossível no endereço cai na semana de hoje", async () => {
@@ -360,7 +407,7 @@ test("um dia impossível no endereço cai na semana de hoje", async () => {
     const agenda = await semanaDe(lixo);
 
     assert.equal(
-      agenda.inicioSemana,
+      agenda.inicio,
       "2026-10-19",
       `"${lixo}" devia cair na semana de hoje`,
     );
@@ -377,6 +424,122 @@ test("conta quantas marcações da semana foram do agente", async () => {
   assert.equal(agenda.marcadosPeloAgente, 1);
 });
 
+test("a grelha do mês fecha as semanas com os dias do mês ao lado", async () => {
+  reiniciar();
+
+  const agenda = await mesDe("2026-10-18");
+
+  assert.equal(agenda.inicio, "2026-10-01");
+
+  // Outubro de 2026 tem 31 dias mas a grelha tem 35: começa na segunda antes
+  // do dia 1 e acaba no domingo depois do dia 31. Um mês de 30 dias a começar
+  // à segunda dá 28 e um de 31 a começar ao domingo dá 42 — é por isso que o
+  // número não se escreve à mão.
+  assert.equal(agenda.dias.length, 35);
+  assert.equal(agenda.dias[0].chave, "2026-09-28");
+  assert.equal(agenda.dias.at(-1)?.chave, "2026-11-01");
+
+  // E a grelha diz quais é que são de fora, senão o dono lia 28 de setembro
+  // como um dia de outubro.
+  assert.deepEqual(
+    agenda.dias.filter((dia) => dia.foraDoPeriodo).map((dia) => dia.chave),
+    ["2026-09-28", "2026-09-29", "2026-09-30", "2026-11-01"],
+  );
+});
+
+test("os dias do mês ao lado mostram o que têm mas não entram na conta", async () => {
+  reiniciar();
+
+  const agenda = await mesDe("2026-10-18");
+  const diaDe = (chave: string) =>
+    agenda.dias.find((dia) => dia.chave === chave);
+
+  // A janela de consulta tem de chegar às duas pontas da grelha, não ao mês.
+  assert.deepEqual(
+    diaDe("2026-09-29")?.eventos.map((e) => e.id),
+    ["a-fim-de-setembro"],
+  );
+  assert.deepEqual(
+    diaDe("2026-11-01")?.eventos.map((e) => e.id),
+    ["a-inicio-de-novembro"],
+  );
+
+  // 21, 23, 25 e 26 de outubro. A desmarcada não conta, e setembro e novembro
+  // também não: o cabeçalho diz "outubro", e dizer "6 marcações" a incluir
+  // dias de outros meses era um número que não batia com coisa nenhuma.
+  assert.equal(agenda.total, 4);
+});
+
+test("a última noite do mês em Boston não escorrega para o mês seguinte", async () => {
+  reiniciar();
+
+  const agenda = await getAgenda({
+    agora: new Date("2026-11-18T12:00:00.000Z"),
+    clienteSlug: C,
+    dia: "2026-11-18",
+    timeZone: BOSTON,
+    vista: "mes",
+  });
+
+  const trinta = agenda.dias.find((dia) => dia.chave === "2026-11-30");
+
+  // Às 19h30 de 30 de novembro em Boston já é 1 de dezembro em UTC. Agrupar
+  // por UTC punha a marcação numa célula a cinzento do mês seguinte e tirava-a
+  // da conta de novembro — duas mentiras de uma vez.
+  assert.deepEqual(
+    trinta?.eventos.map((e) => e.id),
+    ["c-ultima-noite-do-mes"],
+  );
+  assert.equal(trinta?.foraDoPeriodo, false);
+
+  // As quatro marcações de novembro: 20, 21, 22 e 30. Agrupada em UTC, a de
+  // 30 saía para dezembro e a conta do mês dizia três.
+  assert.equal(agenda.total, 4);
+});
+
+test("os passos do mês são de um mês e atravessam o ano", async () => {
+  reiniciar();
+
+  const agenda = await mesDe("2026-10-18");
+
+  assert.equal(agenda.anterior, "2026-09-01");
+  assert.equal(agenda.proximo, "2026-11-01");
+
+  assert.equal(primeiroDoMes("2026-10-18"), "2026-10-01");
+
+  // Dezembro mais um não é o mês 13 e janeiro menos um não é o mês 0.
+  assert.equal(somarMeses("2026-12-01", 1), "2027-01-01");
+  assert.equal(somarMeses("2026-01-01", -1), "2025-12-01");
+
+  // E fevereiro tem 28 dias, menos quando tem 29.
+  assert.equal(ultimoDoMes("2026-02-10"), "2026-02-28");
+  assert.equal(ultimoDoMes("2028-02-10"), "2028-02-29");
+  assert.equal(ultimoDoMes("2026-10-18"), "2026-10-31");
+});
+
+test("trocar de vista cai no dia de hoje, ou no início do período", async () => {
+  reiniciar();
+
+  // Hoje é 21/10 em Lisboa. Olhando para outubro, passar à semana tem de dar
+  // a semana em que o dono está.
+  const esteMes = await mesDe("2026-10-18");
+
+  assert.equal(esteMes.diaDeReferencia, "2026-10-21");
+
+  // Olhando para março de 2027, não: tem de dar a semana de 1 de março. Levar
+  // o dia de hoje atirava o dono de volta para outubro ao trocar de vista.
+  const outroMes = await mesDe("2027-03-10");
+
+  assert.equal(outroMes.diaDeReferencia, "2027-03-01");
+
+  // E o mesmo ao contrário, da semana para o mês.
+  const estaSemana = await semanaDe("2026-10-21");
+  const outraSemana = await semanaDe("2027-03-10");
+
+  assert.equal(estaSemana.diaDeReferencia, "2026-10-21");
+  assert.equal(outraSemana.diaDeReferencia, "2027-03-08");
+});
+
 test("o mesmo instante dá dias diferentes em Lisboa e em Boston", async () => {
   // À uma da manhã em UTC já é dia 24 em Lisboa e ainda é dia 23 em Boston.
   // O mesmo instante, dois dias — é a razão de `diaNoFuso` existir.
@@ -389,7 +552,7 @@ test("o mesmo instante dá dias diferentes em Lisboa e em Boston", async () => {
 test("sem cliente associado não se lê nada da base", async () => {
   reiniciar();
 
-  const agenda = await getAgendaSemana({
+  const agenda = await getAgenda({
     agora: new Date("2026-10-21T12:00:00.000Z"),
     clienteSlug: "",
     timeZone: LISBOA,
