@@ -59,6 +59,26 @@ function Cartao({
       }).format(new Date(cartao.marcacaoEm))
     : null;
 
+  /*
+   * O nome da marcação ganha ao nome do contacto.
+   *
+   * O nome do contacto é o do perfil de WhatsApp, escolhido pela própria
+   * pessoa, e muitas vezes não é um nome: o cartão do Izaías de Freitas
+   * Estevam aparecia como "Out Of Service" e o do Stevan J Torres como "The
+   * Blessed⚡️". Quem olhava para o quadro não reconhecia ninguém e
+   * concluía que a marcação estava no cartão errado.
+   *
+   * O nome do perfil não se perde — desce para a segunda linha, ao lado do
+   * telefone, porque é por ele que a conversa se encontra no WhatsApp.
+   */
+  const titulo =
+    cartao.marcacaoNome ?? cartao.nome ?? cartao.telefone ?? "Sem nome";
+  const alcunha = cartao.marcacaoNome && cartao.nome ? cartao.nome : null;
+  const segundaLinha =
+    [alcunha, titulo === cartao.telefone ? null : cartao.telefone]
+      .filter(Boolean)
+      .join(" · ") || null;
+
   return (
     <Link
       className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-surface p-3 transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
@@ -68,21 +88,37 @@ function Cartao({
         <ChannelIcon channel={cartao.canal} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">
-            {cartao.nome ?? cartao.telefone ?? "Sem nome"}
+            {titulo}
           </p>
-          {cartao.nome && cartao.telefone ? (
+          {segundaLinha ? (
             <p className="truncate text-xs text-muted-foreground">
-              {cartao.telefone}
+              {segundaLinha}
             </p>
           ) : null}
         </div>
       </div>
 
       {marcacao ? (
-        <p className="truncate text-xs font-semibold text-emerald-700">
-          {marcacao}
-          {cartao.marcacaoServico ? ` · ${cartao.marcacaoServico}` : ""}
-        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="min-w-0 truncate text-xs font-semibold text-emerald-700">
+            {marcacao}
+            {cartao.marcacaoServico ? ` · ${cartao.marcacaoServico}` : ""}
+          </p>
+          {/*
+            Quem marcou é a primeira pergunta de quem abre este quadro, e a
+            resposta não se adivinha pelo título: medido a 2026-10-18, 83% dos
+            eventos das agendas foram escritos à mão.
+          */}
+          <span
+            className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              cartao.marcacaoOrigem === "agente"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {cartao.marcacaoOrigem === "agente" ? "Agente" : "À mão"}
+          </span>
+        </div>
       ) : null}
 
       <p className="text-xs leading-snug text-muted-foreground">

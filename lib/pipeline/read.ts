@@ -56,6 +56,8 @@ type MensagemRow = {
 type AgendamentoRow = {
   estado: string | null;
   inicio: string | null;
+  nome_cliente: string | null;
+  origem: string | null;
   servico: string | null;
   telefone_digitos: string | null;
 };
@@ -74,6 +76,17 @@ export type CartaoPipeline = {
   identificadorConversa: string;
   /** Quando é a marcação por acontecer, se houver. */
   marcacaoEm: string | null;
+  /**
+   * O nome com que a marcação foi feita.
+   *
+   * Vale a pena guardar à parte do `nome` do contacto porque os dois divergem
+   * muito: o `nome` é o do perfil de WhatsApp, que a pessoa escolheu para si
+   * ("Out Of Service", "The Blessed⚡️"), e este é o nome que ela deu quando
+   * marcou. Mostrar só o primeiro faz o cartão parecer de outra pessoa.
+   */
+  marcacaoNome: string | null;
+  /** `agente` se foi o agente de IA a marcar; `manual` se foi à mão. */
+  marcacaoOrigem: string | null;
   marcacaoServico: string | null;
   mensagens: number;
   nome: string | null;
@@ -140,7 +153,9 @@ async function lerAgenda(clienteSlug: string) {
   return fetchAllSupabaseRows<AgendamentoRow>(async (from, to) => {
     const result = await admin
       .from("lexia_agendamentos")
-      .select("telefone_digitos, inicio, estado, servico")
+      .select(
+        "telefone_digitos, inicio, estado, servico, nome_cliente, origem",
+      )
       .eq("cliente_slug", clienteSlug)
       .neq("estado", "cancelado")
       .order("inicio", { ascending: true })
@@ -277,6 +292,8 @@ export async function getPipeline(
     let marcacaoFutura: Date | null = null;
     let marcacaoPassada: Date | null = null;
     let servicoFuturo: string | null = null;
+    let nomeFuturo: string | null = null;
+    let origemFutura: string | null = null;
 
     for (const m of marcacoes) {
       const quando = data(m.inicio);
@@ -292,6 +309,8 @@ export async function getPipeline(
         // próxima — é essa que interessa mostrar no cartão.
         if (!marcacaoFutura) {
           marcacaoFutura = quando;
+          nomeFuturo = m.nome_cliente;
+          origemFutura = m.origem;
           servicoFuturo = m.servico;
         }
       } else {
@@ -315,6 +334,8 @@ export async function getPipeline(
       id: contacto.id,
       identificadorConversa: conversa,
       marcacaoEm: marcacaoFutura ? marcacaoFutura.toISOString() : null,
+      marcacaoNome: nomeFuturo,
+      marcacaoOrigem: origemFutura,
       marcacaoServico: servicoFuturo,
       mensagens: total.get(conversa) ?? 0,
       nome: contacto.nome,
