@@ -7,6 +7,7 @@ import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 const clientNavigation = [
   { label: "Dashboard", href: "/app", icon: "dashboard" },
   { label: "Pipeline", href: "/app/pipeline", icon: "pipeline" },
+  { label: "Agenda", href: "/app/agenda", icon: "agenda" },
   { label: "Analista Lexia", href: "/app/analista", icon: "analista" },
   { label: "Campanhas", href: "/app/campanhas", icon: "campanhas" },
   { label: "Clientes", href: "/app/clientes", icon: "clientes" },

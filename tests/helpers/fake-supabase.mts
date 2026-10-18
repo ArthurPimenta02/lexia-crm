@@ -42,6 +42,11 @@ function correspondeAosFiltros(linha: Linha, filtros: Filtro[]) {
 class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private readonly filtros: Filtro[] = [];
   private readonly diferencas: Filtro[] = [];
+  private readonly limites: {
+    coluna: string;
+    limite: "gte" | "lt";
+    valor: string;
+  }[] = [];
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
   private devolveLinhas = false;
   private limiteLinhas: number | null = null;
@@ -73,6 +78,23 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
 
   neq(coluna: string, valor: unknown) {
     this.diferencas.push({ coluna, valor });
+
+    return this;
+  }
+
+  /**
+   * Os limites comparam como texto, que é o que a Supabase faz com um
+   * `timestamptz` em ISO — e é por isso que a ordem alfabética do ISO
+   * importa. Comparar como datas aqui escondia um `gte` escrito ao contrário.
+   */
+  gte(coluna: string, valor: string) {
+    this.limites.push({ coluna, limite: "gte", valor });
+
+    return this;
+  }
+
+  lt(coluna: string, valor: string) {
+    this.limites.push({ coluna, limite: "lt", valor });
 
     return this;
   }
@@ -157,6 +179,18 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
       if (
         this.diferencas.some((filtro) => linha[filtro.coluna] === filtro.valor)
       ) {
+        return false;
+      }
+
+      const dentroDosLimites = this.limites.every(
+        ({ coluna, limite, valor }) => {
+          const actual = String(linha[coluna] ?? "");
+
+          return limite === "gte" ? actual >= valor : actual < valor;
+        },
+      );
+
+      if (!dentroDosLimites) {
         return false;
       }
 

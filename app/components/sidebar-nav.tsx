@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CalendarDays,
   CircleDot,
   FlaskConical,
   LayoutDashboard,
@@ -32,6 +33,7 @@ import { usePathname } from "next/navigation";
  */
 
 const icones: Record<string, LucideIcon> = {
+  agenda: CalendarDays,
   analista: Telescope,
   campanhas: Megaphone,
   clientes: Users,
