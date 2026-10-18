@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, MapPin, X } from "lucide-react";
+import { ExternalLink, MapPin, Phone, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -26,9 +26,22 @@ import type {
  * deixar de se ler, a célula mostra só o suficiente para procurar e o painel
  * mostra tudo para decidir.
  *
- * É também por isso que os eventos dentro da grelha do mês não são links: a
- * célula inteira é o botão que abre o painel, e um link dentro de um botão não
- * é HTML válido nem se consegue acertar com o dedo numa linha de 11px.
+ * É também por isso que os eventos dentro da grelha do mês não são links nem
+ * botões: a célula inteira é o botão que abre o painel, e um botão dentro de
+ * um botão não é HTML válido nem se consegue acertar com o dedo numa linha de
+ * 11px. No mês o caminho é célula → painel do dia → painel do evento.
+ *
+ * E o detalhe de um atendimento vive no painel do evento
+ * ------------------------------------------------------
+ * Um cartão de evento é um botão que abre o painel do evento. Há coisas que a
+ * tabela guarda e que nunca cabem num cartão de 224px — o telefone, o título
+ * que a pessoa escreveu no Google quando o nome do cliente vem à parte — e é
+ * aí que aparecem, com o link para o Google ao fundo.
+ *
+ * Os dois painéis podem estar abertos ao mesmo tempo (no mês: o do dia por
+ * baixo, o do evento por cima). Por isso o `Escape` só fecha o painel que está
+ * ao cimo: fechar os dois de uma vez deixava a pessoa onde não pediu para
+ * estar.
  *
  * O mês cabe no ecrã, mesmo ao telemóvel
  * --------------------------------------
@@ -160,6 +173,63 @@ export function nomeExecutor(executor: string) {
   return executor.charAt(0).toUpperCase() + executor.slice(1);
 }
 
+/**
+ * Quantos painéis estão abertos, e o que o fundo era antes do primeiro.
+ *
+ * O travão ao fundo tem de ser contado e não guardado em cada painel. Com dois
+ * painéis empilhados, cada um guardava o que encontrou — o de cima encontrava
+ * já `hidden` — e fechar o de cima primeiro deixava o de baixo a pensar que o
+ * fundo era para ficar travado. O fundo ficava travado para sempre.
+ */
+let painelsAbertos = 0;
+let overflowAntesDosPaineis = "";
+
+/**
+ * O que os dois painéis têm em comum: o `Escape` e o travão ao fundo.
+ *
+ * O fundo trava-se enquanto o painel está aberto porque, num telemóvel, rolar
+ * a grelha por trás do painel dava a sensação de que o toque não tinha sido
+ * registado.
+ *
+ * O `aoCimo` é para quando há dois painéis empilhados: ambos ouvem o teclado,
+ * e sem isto um `Escape` fechava o de baixo ao mesmo tempo que o de cima.
+ *
+ * O nome começa por `use` e não por `usar` porque o `react-hooks` reconhece um
+ * hook pelo nome: com `usarPainel` recusava-se a verificar as dependências.
+ */
+function usePainel(fechar: () => void, aoCimo: boolean) {
+  useEffect(() => {
+    const aoTeclar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape" && aoCimo) {
+        fechar();
+      }
+    };
+
+    document.addEventListener("keydown", aoTeclar);
+
+    return () => document.removeEventListener("keydown", aoTeclar);
+  }, [aoCimo, fechar]);
+
+  // Sem dependências de propósito: o travão é por painel aberto, e voltar a
+  // aplicá-lo a cada render só dava à conta oportunidades de se desencontrar.
+  useEffect(() => {
+    if (painelsAbertos === 0) {
+      overflowAntesDosPaineis = document.body.style.overflow;
+    }
+
+    painelsAbertos += 1;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      painelsAbertos -= 1;
+
+      if (painelsAbertos === 0) {
+        document.body.style.overflow = overflowAntesDosPaineis;
+      }
+    };
+  }, []);
+}
+
 function resumoDoDia(dia: DiaAgenda) {
   if (dia.eventos.length === 0) {
     return "Nada marcado neste dia.";
@@ -174,24 +244,47 @@ function resumoDoDia(dia: DiaAgenda) {
   }, ${doAgente} pelo agente.`;
 }
 
+/**
+ * Um evento do agente traz nome e serviço em colunas próprias; um escrito à
+ * mão só tem o título, que é o que a pessoa calhou de escrever no Google.
+ */
+const tituloDoEvento = (evento: EventoAgenda) =>
+  evento.nomeCliente ?? evento.titulo ?? "Sem título";
+
+const dinheiro = (valor: number, moeda: string) =>
+  new Intl.NumberFormat("pt-PT", {
+    currency: moeda,
+    maximumFractionDigits: 0,
+    style: "currency",
+  }).format(valor);
+
 function Evento({
+  abrirEvento,
   evento,
   mostrarExecutor,
   moeda,
   timeZone,
 }: {
+  abrirEvento: (id: string) => void;
   evento: EventoAgenda;
   mostrarExecutor: boolean;
   moeda: string | null;
   timeZone: string;
 }) {
   const doAgente = evento.origem === "agente";
-  // Um evento do agente traz nome e serviço em colunas próprias; um escrito à
-  // mão só tem o título, que é o que a pessoa calhou de escrever no Google.
-  const titulo = evento.nomeCliente ?? evento.titulo ?? "Sem título";
+  const titulo = tituloDoEvento(evento);
 
-  const conteudo = (
-    <>
+  return (
+    // O cartão abre o painel do evento em vez de ir direito ao Google. O que
+    // se quer, nove vezes em dez, é ver o telefone e o serviço — e para isso
+    // sair do painel para outro separador era caro demais.
+    <button
+      className={`block w-full rounded-xl border border-border bg-surface p-2.5 text-left transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
+        doAgente ? "border-l-2 border-l-primary" : ""
+      }`}
+      onClick={() => abrirEvento(evento.id)}
+      type="button"
+    >
       <div className="flex items-baseline justify-between gap-2">
         <p className="shrink-0 text-xs font-semibold text-foreground tabular-nums">
           {horas(evento, timeZone)}
@@ -215,11 +308,7 @@ function Evento({
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {evento.servico}
           {evento.valorPrevisto !== null && moeda
-            ? ` · ${new Intl.NumberFormat("pt-PT", {
-                currency: moeda,
-                maximumFractionDigits: 0,
-                style: "currency",
-              }).format(evento.valorPrevisto)}`
+            ? ` · ${dinheiro(evento.valorPrevisto, moeda)}`
             : ""}
         </p>
       ) : null}
@@ -236,30 +325,7 @@ function Evento({
           {nomeExecutor(evento.executor)}
         </p>
       ) : null}
-    </>
-  );
-
-  const classe = `block rounded-xl border border-border bg-surface p-2.5 ${
-    doAgente ? "border-l-2 border-l-primary" : ""
-  }`;
-
-  if (!evento.linkGoogle) {
-    return <div className={classe}>{conteudo}</div>;
-  }
-
-  return (
-    <a
-      className={`${classe} group transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]`}
-      href={evento.linkGoogle}
-      rel="noreferrer noopener"
-      target="_blank"
-    >
-      {conteudo}
-      <p className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-muted-foreground/60 group-hover:text-foreground">
-        <ExternalLink aria-hidden="true" className="h-3 w-3" />
-        Abrir no Google
-      </p>
-    </a>
+    </button>
   );
 }
 
@@ -277,7 +343,7 @@ function EventoCompacto({
   evento: EventoAgenda;
   timeZone: string;
 }) {
-  const titulo = evento.nomeCliente ?? evento.titulo ?? "Sem título";
+  const titulo = tituloDoEvento(evento);
   const hora = evento.diaInteiro
     ? null
     : new Intl.DateTimeFormat("pt-PT", {
@@ -347,42 +413,28 @@ const PONTOS_NO_DIA = 3;
  * O painel de um dia.
  *
  * Ao telemóvel sobe de baixo e ocupa o ecrã até 85% da altura, que é o gesto
- * que se espera de um painel num telefone. A partir do `sm:` centra-se. O
- * fundo trava-se enquanto está aberto: num telemóvel, rolar a grelha por trás
- * do painel dava a sensação de que o toque não tinha sido registado.
+ * que se espera de um painel num telefone. A partir do `sm:` centra-se.
  */
 function PainelDoDia({
+  abrirEvento,
   dia,
   executorEscolhido,
   fechar,
   linkDaSemana,
   moeda,
+  temEventoPorCima,
   timeZone,
 }: {
+  abrirEvento: (id: string) => void;
   dia: DiaAgenda;
   executorEscolhido: string;
   fechar: () => void;
   linkDaSemana: string | null;
   moeda: string | null;
+  temEventoPorCima: boolean;
   timeZone: string;
 }) {
-  useEffect(() => {
-    const aoTeclar = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") {
-        fechar();
-      }
-    };
-
-    const overflowAnterior = document.body.style.overflow;
-
-    document.addEventListener("keydown", aoTeclar);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", aoTeclar);
-      document.body.style.overflow = overflowAnterior;
-    };
-  }, [fechar]);
+  usePainel(fechar, !temEventoPorCima);
 
   return (
     <div
@@ -394,8 +446,8 @@ function PainelDoDia({
     >
       {/*
         O clique no fundo fecha, por isso o clique dentro do painel tem de ser
-        travado aqui — sem isto, carregar num evento fechava o painel antes de
-        o link do Google abrir.
+        travado aqui — sem isto, carregar num evento fechava este painel ao
+        mesmo tempo que abria o do evento.
       */}
       <div
         className="flex max-h-[85dvh] w-full flex-col rounded-t-3xl border border-border bg-surface shadow-xl sm:max-h-[86vh] sm:max-w-lg sm:rounded-2xl"
@@ -438,6 +490,7 @@ function PainelDoDia({
           ) : (
             dia.eventos.map((evento) => (
               <Evento
+                abrirEvento={abrirEvento}
                 evento={evento}
                 key={evento.id}
                 moeda={moeda}
@@ -456,6 +509,226 @@ function PainelDoDia({
             >
               Ver a semana deste dia
             </Link>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function LinhaDoEvento({
+  children,
+  rotulo,
+}: {
+  children: React.ReactNode;
+  rotulo: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-border/60 py-2.5 last:border-b-0 sm:flex-row sm:gap-4 sm:py-3">
+      <p className="shrink-0 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:w-28 sm:pt-0.5">
+        {rotulo}
+      </p>
+      <div className="min-w-0 flex-1 text-sm break-words text-foreground">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * O painel de um evento.
+ *
+ * Tem a mesma forma do painel do dia — sobe de baixo ao telemóvel, centra-se a
+ * partir do `sm:` — mas fica por cima dele, porque no mês chega-se aqui a
+ * partir dele e fechar este tem de devolver a pessoa ao dia que estava a ver.
+ *
+ * O telefone é a razão principal para isto existir: está na tabela desde o
+ * início e não aparecia em sítio nenhum do painel, e é o que se procura quando
+ * alguém não apareceu.
+ */
+function PainelDoEvento({
+  evento,
+  fechar,
+  moeda,
+  timeZone,
+}: {
+  evento: EventoAgenda;
+  fechar: () => void;
+  moeda: string | null;
+  timeZone: string;
+}) {
+  usePainel(fechar, true);
+
+  const doAgente = evento.origem === "agente";
+  const titulo = tituloDoEvento(evento);
+
+  /*
+   * A data lê-se do instante no fuso do cliente e não da chave do dia: este
+   * painel também abre a partir da semana, onde não há chave à mão, e um
+   * evento de dia inteiro está guardado à meia-noite local, por isso dá o
+   * mesmo dia nos dois caminhos.
+   */
+  const dataLonga = new Intl.DateTimeFormat("pt-PT", {
+    day: "numeric",
+    month: "long",
+    timeZone,
+    weekday: "long",
+    year: "numeric",
+  }).format(new Date(evento.inicio));
+
+  /*
+   * O título como está escrito no Google, quando é diferente do que já está
+   * em cima.
+   *
+   * Parece repetição e não é. No Detail o título traz o carro — "Lavagem
+   * Express — João Alexandre Narciso (Toyota C-HR GR)" — e o carro não está
+   * em coluna nenhuma. Na Miranda apanha os casos em que o título e o serviço
+   * não dizem o mesmo: a 2026-10-18 há uma marcação com `servico` a dizer
+   * "Consulta de Avaliação" e título a dizer "Limpieza". Sem esta linha, o
+   * painel escolhia um dos dois e escondia o desacordo.
+   *
+   * Nas marcações escritas à mão o título já é o que está em cima, por isso
+   * a linha não aparece.
+   */
+  const tituloNoGoogle =
+    evento.titulo && evento.titulo !== titulo ? evento.titulo : null;
+
+  const temDetalhe = Boolean(
+    evento.servico ||
+      evento.telefone ||
+      evento.localizacao ||
+      evento.executor ||
+      tituloNoGoogle ||
+      (evento.valorPrevisto !== null && moeda),
+  );
+
+  return (
+    <div
+      aria-labelledby="titulo-do-evento"
+      aria-modal="true"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+      onClick={fechar}
+      role="dialog"
+    >
+      <div
+        className="flex max-h-[85dvh] w-full flex-col rounded-t-3xl border border-border bg-surface shadow-xl sm:max-h-[86vh] sm:max-w-lg sm:rounded-2xl"
+        onClick={(clique) => clique.stopPropagation()}
+      >
+        <header className="flex shrink-0 items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                doAgente
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {doAgente ? "Marcado pelo agente" : "Marcado à mão"}
+            </span>
+
+            <h2
+              className="mt-1.5 text-base leading-tight font-semibold text-foreground"
+              id="titulo-do-evento"
+            >
+              {titulo}
+            </h2>
+
+            {/* `first-letter:uppercase` pela mesma razão do painel do dia. */}
+            <p className="mt-0.5 text-xs text-muted-foreground first-letter:uppercase">
+              {dataLonga} · {horas(evento, timeZone)}
+            </p>
+          </div>
+
+          <button
+            aria-label="Fechar"
+            autoFocus
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            onClick={fechar}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2 sm:px-5">
+          {temDetalhe ? (
+            <>
+              {evento.servico ? (
+                <LinhaDoEvento rotulo="Serviço">
+                  {evento.servico}
+                </LinhaDoEvento>
+              ) : null}
+
+              {evento.valorPrevisto !== null && moeda ? (
+                <LinhaDoEvento rotulo="Valor previsto">
+                  {dinheiro(evento.valorPrevisto, moeda)}
+                </LinhaDoEvento>
+              ) : null}
+
+              {evento.telefone ? (
+                <LinhaDoEvento rotulo="Telefone">
+                  {/*
+                    Um `tel:` e não texto seco: ao telemóvel é daqui que se
+                    liga a quem não apareceu, e é o único sítio do painel onde
+                    o número existe.
+                  */}
+                  <a
+                    className="inline-flex items-center gap-1.5 font-medium underline underline-offset-4"
+                    href={`tel:${evento.telefone}`}
+                  >
+                    <Phone aria-hidden="true" className="h-3.5 w-3.5" />
+                    {evento.telefone}
+                  </a>
+                </LinhaDoEvento>
+              ) : null}
+
+              {evento.localizacao ? (
+                <LinhaDoEvento rotulo="Onde">
+                  <span className="flex items-start gap-1.5">
+                    <MapPin
+                      aria-hidden="true"
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                    />
+                    <span className="min-w-0">{evento.localizacao}</span>
+                  </span>
+                </LinhaDoEvento>
+              ) : null}
+
+              {evento.executor ? (
+                <LinhaDoEvento rotulo="Quem faz">
+                  {nomeExecutor(evento.executor)}
+                </LinhaDoEvento>
+              ) : null}
+
+              {tituloNoGoogle ? (
+                <LinhaDoEvento rotulo="No Google">
+                  {tituloNoGoogle}
+                </LinhaDoEvento>
+              ) : null}
+            </>
+          ) : (
+            <p className="px-1 py-6 text-sm text-muted-foreground">
+              Este evento foi escrito à mão no Google e não tem mais nada
+              guardado além da hora e do título.
+            </p>
+          )}
+        </div>
+
+        {/*
+          O Google é a fonte da verdade, por isso é lá que se altera. Este link
+          é o que antes estava no cartão.
+        */}
+        {evento.linkGoogle ? (
+          <div className="shrink-0 border-t border-border px-4 py-3 sm:px-5">
+            <a
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline underline-offset-4"
+              href={evento.linkGoogle}
+              rel="noreferrer noopener"
+              target="_blank"
+            >
+              <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+              Abrir no Google para alterar
+            </a>
           </div>
         ) : null}
       </div>
@@ -563,12 +836,14 @@ function GrelhaMes({
 
 function GrelhaSemana({
   abrirDia,
+  abrirEvento,
   agenda,
   executorEscolhido,
   moeda,
   timeZone,
 }: {
   abrirDia: (chave: string) => void;
+  abrirEvento: (id: string) => void;
   agenda: AgendaResultado;
   executorEscolhido: string;
   moeda: string | null;
@@ -632,6 +907,7 @@ function GrelhaSemana({
               ) : (
                 dia.eventos.map((evento) => (
                   <Evento
+                    abrirEvento={abrirEvento}
                     evento={evento}
                     key={evento.id}
                     moeda={moeda}
@@ -660,6 +936,7 @@ export function AgendaPanel({
   timeZone: string;
 }) {
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
+  const [eventoAberto, setEventoAberto] = useState<string | null>(null);
 
   const ligacao = ({
     dia,
@@ -700,6 +977,12 @@ export function AgendaPanel({
    * o que lá está — ou não existe e o painel fecha-se sozinho.
    */
   const dia = agenda.dias.find((candidato) => candidato.chave === diaAberto);
+
+  // O evento guarda-se pelo identificador pela mesma razão, e procura-se em
+  // todos os dias porque na semana abre-se sem passar pelo painel do dia.
+  const evento = agenda.dias
+    .flatMap((candidato) => candidato.eventos)
+    .find((candidato) => candidato.id === eventoAberto);
 
   return (
     <div className="flex flex-col gap-4">
@@ -779,6 +1062,7 @@ export function AgendaPanel({
       ) : (
         <GrelhaSemana
           abrirDia={setDiaAberto}
+          abrirEvento={setEventoAberto}
           agenda={agenda}
           executorEscolhido={executorEscolhido}
           moeda={moeda}
@@ -801,11 +1085,12 @@ export function AgendaPanel({
           />
           Marcado à mão
         </span>
-        <span>Carrega num dia para ver os atendimentos.</span>
+        <span>Carrega num dia, ou num atendimento, para ver o detalhe.</span>
       </p>
 
       {dia ? (
         <PainelDoDia
+          abrirEvento={setEventoAberto}
           dia={dia}
           executorEscolhido={executorEscolhido}
           fechar={() => setDiaAberto(null)}
@@ -816,6 +1101,16 @@ export function AgendaPanel({
               ? ligacao({ dia: dia.chave, vista: "semana" })
               : null
           }
+          moeda={moeda}
+          temEventoPorCima={Boolean(evento)}
+          timeZone={timeZone}
+        />
+      ) : null}
+
+      {evento ? (
+        <PainelDoEvento
+          evento={evento}
+          fechar={() => setEventoAberto(null)}
           moeda={moeda}
           timeZone={timeZone}
         />
