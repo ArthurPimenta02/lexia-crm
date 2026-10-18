@@ -41,6 +41,7 @@ function correspondeAosFiltros(linha: Linha, filtros: Filtro[]) {
 
 class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private readonly filtros: Filtro[] = [];
+  private readonly diferencas: Filtro[] = [];
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
   private devolveLinhas = false;
   private limiteLinhas: number | null = null;
@@ -66,6 +67,12 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
 
   in(coluna: string, valores: unknown[]) {
     this.filtros.push({ coluna, valor: valores, valores });
+
+    return this;
+  }
+
+  neq(coluna: string, valor: unknown) {
+    this.diferencas.push({ coluna, valor });
 
     return this;
   }
@@ -144,6 +151,12 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private seleccionar() {
     const encontradas = this.base.linhasDe(this.tabela).filter((linha) => {
       if (!correspondeAosFiltros(linha, this.filtros)) {
+        return false;
+      }
+
+      if (
+        this.diferencas.some((filtro) => linha[filtro.coluna] === filtro.valor)
+      ) {
         return false;
       }
 
