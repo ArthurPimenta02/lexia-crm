@@ -36,6 +36,15 @@ as variáveis server-only `LEXIA_APP_URL`, `N8N_ANALYST_WEBHOOK_URL` e
 `N8N_ANALYST_WEBHOOK_SECRET`. O workflow e o procedimento de ativação estão no
 guia do n8n acima.
 
+A captura do webhook cru da Meta (`POST /api/webhooks/meta`) exige a migration
+`supabase/migrations/202610190011_fase17_webhooks_crus.sql` e a variável
+server-only `LEXIA_WEBHOOK_SECRET`, com 32 caracteres ou mais. Sem ela a rota
+responde `503` e não aceita nada — de propósito: uma rota de escrita aberta por
+uma variável em falta é pior do que uma rota que não existe. Quem chama não é a
+Meta; é um nó HTTP Request no início do Omnichannel de cada cliente, que manda
+uma cópia do corpo com `Authorization: Bearer` e o cabeçalho
+`x-lexia-cliente`.
+
 ## Validação
 
 ```bash
