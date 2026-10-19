@@ -4,11 +4,17 @@ import { ExternalLink, MapPin, Phone, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import {
+  NovaMarcacaoForm,
+  type MarcarAction,
+} from "@/app/components/agenda-marcar";
 import type {
   AgendaResultado,
   DiaAgenda,
   EventoAgenda,
 } from "@/lib/agenda/read";
+import type { ContactoParaEscolha } from "@/lib/clientes/read";
+import type { ServicoAgendavel } from "@/lib/servicos/read";
 
 /**
  * A semana — ou o mês — do dono.
@@ -65,17 +71,23 @@ import type {
  * quatro (o pico é 7 no Detail e 5 na Miranda). Com esse tecto, 97% dos dias
  * mostram tudo e o resto diz quantos faltam.
  *
- * Porque é que isto não deixa editar
- * -----------------------------------
+ * Marca-se aqui, mas altera-se no Google
+ * ---------------------------------------
  * A fonte da verdade das marcações é o Google, não esta tabela. São as
  * agendas do Google que os agentes de IA consultam para saber se uma hora
  * está livre, nos dois clientes. Gravar aqui uma marcação que o Google não
- * conhece punha o agente a oferecer a mesma hora a outra pessoa — e o erro
- * só aparecia quando as duas chegassem à porta.
+ * conhece punha o agente a oferecer a mesma hora a outra pessoa — e o erro só
+ * aparecia quando as duas chegassem à porta.
  *
- * Por isso cada evento leva o link para o Google, que é onde se altera. Não é
- * um remendo: é a única forma correcta enquanto não houver uma conta de
- * serviço do Google que deixe o painel escrever lá primeiro.
+ * O painel do dia marca por isso **pelo Google primeiro**: o formulário chama
+ * o workflow do n8n, que é quem tem a credencial da agenda, e só depois é que
+ * esta tabela recebe o espelho da marcação. É a ordem que mantém o agente e o
+ * painel a ver o mesmo.
+ *
+ * Desmarcar e remarcar é que continuam a viver no Google, e por isso cada
+ * evento leva o link. Não é um remendo: nenhum workflow cancela nem remarca
+ * hoje, e um botão aqui que não tivesse quem o atendesse do outro lado era
+ * pior do que não haver botão.
  *
  * A navegação entre períodos é por links e não por estado no navegador: o
  * período vive no endereço, por isso uma semana concreta pode ser guardada nos
@@ -410,10 +422,25 @@ const CABEM_NO_DIA = 4;
 const PONTOS_NO_DIA = 3;
 
 /**
+ * O que o painel do dia precisa para deixar marcar. `null` quando não dá —
+ * quando o cliente não tem catálogo de agendamento, ou quando a porta para o
+ * n8n ainda não está configurada.
+ */
+export type MarcarNaAgenda = {
+  action: MarcarAction;
+  contactos: ContactoParaEscolha[];
+  servicos: ServicoAgendavel[];
+};
+
+/**
  * O painel de um dia.
  *
  * Ao telemóvel sobe de baixo e ocupa o ecrã até 85% da altura, que é o gesto
  * que se espera de um painel num telefone. A partir do `sm:` centra-se.
+ *
+ * O formulário de marcar abre dentro da zona que rola, por cima da lista do
+ * dia e não em vez dela: quem está a escolher a hora quer ver o que já lá
+ * está sem ter de fechar o que estava a preencher.
  */
 function PainelDoDia({
   abrirEvento,
@@ -421,6 +448,7 @@ function PainelDoDia({
   executorEscolhido,
   fechar,
   linkDaSemana,
+  marcar,
   moeda,
   temEventoPorCima,
   timeZone,
@@ -430,10 +458,13 @@ function PainelDoDia({
   executorEscolhido: string;
   fechar: () => void;
   linkDaSemana: string | null;
+  marcar: MarcarNaAgenda | null;
   moeda: string | null;
   temEventoPorCima: boolean;
   timeZone: string;
 }) {
+  const [aMarcar, setAMarcar] = useState(false);
+
   usePainel(fechar, !temEventoPorCima);
 
   return (
@@ -483,6 +514,18 @@ function PainelDoDia({
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-5">
+          {marcar && aMarcar ? (
+            <NovaMarcacaoForm
+              action={marcar.action}
+              contactos={marcar.contactos}
+              dia={dia.chave}
+              fechar={() => setAMarcar(false)}
+              moeda={moeda}
+              servicos={marcar.servicos}
+              timeZone={timeZone}
+            />
+          ) : null}
+
           {dia.eventos.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-3 py-10 text-center text-sm text-muted-foreground">
               Dia livre.
@@ -501,14 +544,26 @@ function PainelDoDia({
           )}
         </div>
 
-        {linkDaSemana ? (
-          <div className="shrink-0 border-t border-border px-4 py-3 sm:px-5">
-            <Link
-              className="text-sm font-semibold text-foreground underline underline-offset-4"
-              href={linkDaSemana}
-            >
-              Ver a semana deste dia
-            </Link>
+        {marcar || linkDaSemana ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border px-4 py-3 sm:px-5">
+            {marcar && !aMarcar ? (
+              <button
+                className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                onClick={() => setAMarcar(true)}
+                type="button"
+              >
+                Marcar atendimento
+              </button>
+            ) : null}
+
+            {linkDaSemana ? (
+              <Link
+                className="text-sm font-semibold text-foreground underline underline-offset-4"
+                href={linkDaSemana}
+              >
+                Ver a semana deste dia
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -927,11 +982,13 @@ function GrelhaSemana({
 export function AgendaPanel({
   agenda,
   executorEscolhido,
+  marcar,
   moeda,
   timeZone,
 }: {
   agenda: AgendaResultado;
   executorEscolhido: string;
+  marcar: MarcarNaAgenda | null;
   moeda: string | null;
   timeZone: string;
 }) {
@@ -1101,6 +1158,7 @@ export function AgendaPanel({
               ? ligacao({ dia: dia.chave, vista: "semana" })
               : null
           }
+          marcar={marcar}
           moeda={moeda}
           temEventoPorCima={Boolean(evento)}
           timeZone={timeZone}
