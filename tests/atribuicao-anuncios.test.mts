@@ -20,11 +20,12 @@
  *    isto por igualdade exacta não dá erro; dá um número mais pequeno, que é
  *    pior porque passa por verdade.
  *
- * 4. Os números são um PISO. 13 contactos em 1.028 têm anúncio identificado,
- *    porque o Instagram Direct e o Messenger não enviam referral e é para lá
- *    que vai 76% do gasto. Um contacto cujo anúncio já não existe na Meta
- *    conta para o total de identificados — isso é verdade — mas não se atribui
- *    a campanha nenhuma.
+ * 4. Os números são um PISO. Medido desde 15/10/2026, que é quando a captura
+ *    começou a funcionar: 12 contactos em 40 têm anúncio identificado. Sobre o
+ *    histórico todo dá 13 em 1.028, e esse número engana — os antigos estão
+ *    vazios porque ninguém guardava, não porque a Meta não mandasse. Um
+ *    contacto cujo anúncio já não existe na Meta conta para o total de
+ *    identificados — isso é verdade — mas não se atribui a campanha nenhuma.
  *
  * E, como em todo o resto: estas leituras correm com o cliente autenticado, e
  * o isolamento é o `.eq("cliente_slug", …)` em cada consulta mais as policies.

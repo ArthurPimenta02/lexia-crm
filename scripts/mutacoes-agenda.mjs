@@ -34,6 +34,8 @@ const ADS = "lib/meta/ads.ts";
 const SINCRONIZAR = "lib/meta/sync.ts";
 const ATRIBUICAO = "lib/meta/atribuicao.ts";
 const CAMPANHAS = "lib/campaigns/read.ts";
+const LEITOR_WEBHOOK = "lib/meta/webhooks.ts";
+const ROTA_WEBHOOK = "app/api/webhooks/meta/route.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -44,6 +46,7 @@ const TESTE_ORDEM = "tests/pipeline-ordem-agendado.test.mts";
 const TESTE_EXPORTAR = "tests/exportar-csv.test.mts";
 const TESTE_AVISOS = "tests/avisos-sino.test.mts";
 const TESTE_ATRIBUICAO = "tests/atribuicao-anuncios.test.mts";
+const TESTE_WEBHOOK = "tests/webhook-cru-meta.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -1040,6 +1043,149 @@ const mutacoes = [
     para: `    conjunto_externo_id: anuncio.conjuntoExternoId,`,
     teste: TESTE_ATRIBUICAO,
   },
+  {
+    de: `    recolherDoWhatsApp(entry, achados);
+    recolherDoMessaging(entry, achados);`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "o leitor deixa de conhecer o formato do WhatsApp",
+    para: `    recolherDoMessaging(entry, achados);`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `    recolherDoWhatsApp(entry, achados);
+    recolherDoMessaging(entry, achados);`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "o leitor deixa de conhecer o formato do Instagram e do Messenger",
+    para: `    recolherDoWhatsApp(entry, achados);`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `      { caminho: "message.referral", cru: message?.referral },
+      { caminho: "messaging.referral", cru: messaging.referral },
+      { caminho: "postback.referral", cru: postback?.referral },`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "a conversa reaberta e o botão Começar deixam de trazer o anúncio",
+    para: `      { caminho: "message.referral", cru: message?.referral },`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        anuncioExternoId:
+          origemTipo?.toLowerCase() === "ad"
+            ? idDeAnuncio(referral.source_id)
+            : null,`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "o id de um post do WhatsApp passa por id de anúncio",
+    para: `        anuncioExternoId: idDeAnuncio(referral.source_id),`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `  return texto && /^\\d{1,32}$/.test(texto) ? texto : null;`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "o id do anúncio passa por número e perde o último dígito",
+    para: `  return texto && /^\\d{1,32}$/.test(texto) ? String(Number(texto)) : null;`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `  return objecto === "page" ? "messenger" : "desconhecido";`,
+    ficheiro: LEITOR_WEBHOOK,
+    nome: "o Messenger deixa de ser reconhecido como canal",
+    para: `  return "desconhecido";`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `    assertAutorizado(request);
+`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a rota aceita quem não traz o segredo",
+    para: ``,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `  if (!secret || secret.length < 32) {`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "um segredo de cinco letras passa por segredo",
+    para: `  if (!secret) {`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `  if (!slugValido.test(slug)) {`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a rota grava o webhook sem saber de que cliente é",
+    para: `  if (false) {`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `  if (Buffer.byteLength(texto) > maxCorpoBytes) {`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "um corpo de 200 KB entra na base de dados",
+    para: `  if (false) {`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        corpo,
+        impressao_digital: impressaoDigitalDoWebhook(texto),`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "o corpo vai para a base como texto em vez de JSON",
+    para: `        corpo: texto,
+        impressao_digital: impressaoDigitalDoWebhook(texto),`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        canal,
+        cliente_slug: clienteSlug,
+        corpo,`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a escrita deriva o anúncio e grava a interpretação",
+    para: `        anuncio_externo_id:
+          extrairReferraisDoWebhook(corpo)[0]?.anuncioExternoId ?? null,
+        canal,
+        cliente_slug: clienteSlug,
+        corpo,`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `    const { error } = await admin.from("lexia_webhooks_meta").upsert(`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a reentrega da Meta grava uma segunda cópia",
+    para: `    const { error } = await admin.from("lexia_webhooks_meta").insert(`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        onConflict: "cliente_slug,impressao_digital",`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a chave do conflito esquece a impressão e come o webhook seguinte",
+    para: `        onConflict: "cliente_slug",`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        onConflict: "cliente_slug,impressao_digital",`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a chave do conflito esquece o cliente e come o webhook da outra empresa",
+    para: `        onConflict: "impressao_digital",`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `      if (error.code === "23503") {`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "um slug inexistente devolve 500 em vez de dizer o que está mal",
+    para: `      if (false) {`,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        caminho: achado.caminho,`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a resposta deixa de dizer em que sítio estava o anúncio",
+    para: ``,
+    teste: TESTE_WEBHOOK,
+  },
+  {
+    de: `        origem_tipo: achado.origemTipo,`,
+    ficheiro: ROTA_WEBHOOK,
+    nome: "a resposta leva o identificador de quem enviou a mensagem",
+    para: `        origem_tipo: achado.origemTipo,
+        remetente: achado.remetenteExternoId,`,
+    teste: TESTE_WEBHOOK,
+  },
 ];
 
 function correr(teste) {
@@ -1068,6 +1214,7 @@ for (const teste of [
   TESTE_EXPORTAR,
   TESTE_AVISOS,
   TESTE_ATRIBUICAO,
+  TESTE_WEBHOOK,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }
