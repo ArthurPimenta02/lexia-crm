@@ -16,12 +16,20 @@ import { createClient } from "@/lib/supabase/server";
  * entre clientes. Um `createAdminClient()` aqui passava por cima dela.
  *
  * O QUE ESTES NÚMEROS SÃO E NÃO SÃO
- * Medido em 19/10/2026 no Detail: 13 de 1.028 contactos têm id de anúncio. Não
- * é porque os outros 1.015 não vieram de anúncio — é porque o Instagram Direct
- * e o Messenger não enviam referral, e 76% do gasto da conta vai justamente
- * para Instagram Direct. Só o clique-para-WhatsApp o manda. Qualquer contagem
- * por campanha é um PISO: serve para comparar campanhas entre si, nunca para
- * dizer que percentagem dos contactos veio de pago.
+ * Medido em 19/10/2026 no Detail, e só desde 15/10 — a data em que a captura
+ * da origem passou a funcionar: 12 de 40 contactos têm id de anúncio
+ * (WhatsApp 11 de 30, Instagram 1 de 2, Messenger 0 de 8). O mesmo cálculo
+ * sobre os 1.028 contactos de sempre dá 13, e esse número não diz nada: os
+ * restantes estão vazios porque ninguém guardava, não porque a Meta não
+ * mandasse.
+ *
+ * O Instagram MANDA referral — noutro formato, `ad_id` aninhado em
+ * `message.referral`, e só na primeira mensagem de uma conversa nova. Ver
+ * lib/meta/webhooks.ts, que sabe os quatro sítios onde ele pode estar.
+ *
+ * Mesmo assim, qualquer contagem por campanha é um PISO: serve para comparar
+ * campanhas entre si, nunca para dizer que percentagem dos contactos veio de
+ * pago. Aqui, "sem anúncio" significa "nenhum anúncio identificado".
  */
 
 export type AtribuicaoAnuncio = {
