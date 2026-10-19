@@ -1,11 +1,18 @@
 import { redirect } from "next/navigation";
 
-import { AgendaPanel } from "@/app/components/agenda-panel";
+import { marcarNaAgendaAction } from "@/app/app/agenda/actions";
+import {
+  AgendaPanel,
+  type MarcarNaAgenda,
+} from "@/app/components/agenda-panel";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getAgenda, VISTAS, type Vista } from "@/lib/agenda/read";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosAgendaveis } from "@/lib/servicos/read";
 
 export const metadata = {
   title: "Agenda",
@@ -57,6 +64,33 @@ export default async function AgendaPage({
     vista,
   });
 
+  /*
+   * Marcar só aparece quando as três condições se verificam, e as leituras só
+   * acontecem nesse caso.
+   *
+   * - `cliente_admin`: é o que a server action exige, e um formulário que
+   *   devolvia sempre "sessão sem permissão" era pior do que não existir.
+   * - `marcarEstaLigado()`: sem a porta para o n8n configurada não há como
+   *   escrever no Google, e escrever só nesta tabela punha o agente a oferecer
+   *   a mesma hora a outra pessoa.
+   * - serviços agendáveis: sem catálogo de agendamento não há duração nem
+   *   preço, e é a Miranda — que não tem `clientConfigs`.
+   */
+  const podeMarcar =
+    profile.role === "cliente_admin" && !agenda.erro && marcarEstaLigado();
+
+  const [contactos, servicos] = podeMarcar
+    ? await Promise.all([
+        getContactosParaEscolha(profile.cliente_slug),
+        getServicosAgendaveis(profile.cliente_slug),
+      ])
+    : [[], []];
+
+  const marcar: MarcarNaAgenda | null =
+    servicos.length > 0 && contactos.length > 0
+      ? { action: marcarNaAgendaAction, contactos, servicos }
+      : null;
+
   return (
     <div className="flex w-full flex-col gap-6">
       <PaginaCabecalho titulo="Agenda" />
@@ -69,6 +103,7 @@ export default async function AgendaPage({
         <AgendaPanel
           agenda={agenda}
           executorEscolhido={executor}
+          marcar={marcar}
           // Sem catálogo não se sabe a moeda, e escrever "EUR" para um
           // cliente de Boston era inventar. A Miranda não tem `valor_previsto`
           // em linha nenhuma, por isso não se perde nada.

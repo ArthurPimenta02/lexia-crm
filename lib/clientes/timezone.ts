@@ -178,6 +178,78 @@ export function instanteAoMeioDiaNoFuso(dia: string, timeZone: string) {
   return Number.isNaN(instante.getTime()) ? null : instante.toISOString();
 }
 
+/**
+ * O instante de uma hora concreta — `2026-10-25` às `09:00` — no fuso do
+ * cliente.
+ *
+ * Isto não podia ser o `instanteAoMeioDiaNoFuso`, e a diferença é mais do que
+ * a hora. Esse existe para registar um serviço que já aconteceu, onde só o dia
+ * importa e o meio-dia é uma almofada contra desvios. Aqui a hora **é** o
+ * dado: é o que vai bloquear a agenda do Martim, por isso tem de ficar certa
+ * ao minuto.
+ *
+ * Porque é que o desvio se mede duas vezes: no meio-dia uma passagem bastava,
+ * porque as mudanças de hora acontecem de madrugada e nunca mudam o desvio do
+ * meio-dia. Uma hora qualquer não tem essa folga. Às 01:30 do dia em que o
+ * relógio muda, o desvio do instante provisório e o do instante final são
+ * diferentes — a primeira passagem aterra do lado errado da mudança. A segunda
+ * passagem corrige. Horas que não existem (o relógio salta de 00:59 para
+ * 02:00) são recusadas em vez de aterrarem numa hora que ninguém escolheu.
+ */
+export function instanteNoFuso(dia: string, hora: string, timeZone: string) {
+  const diaPartido = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia.trim());
+  const horaPartida = /^(\d{2}):(\d{2})$/.exec(hora.trim());
+
+  if (!diaPartido || !horaPartida) {
+    return null;
+  }
+
+  const [, ano, mes, diaDoMes] = diaPartido.map(Number);
+  const [, horas, minutos] = horaPartida.map(Number);
+
+  if (horas > 23 || minutos > 59) {
+    return null;
+  }
+
+  const provisorio = Date.UTC(ano, mes - 1, diaDoMes, horas, minutos, 0);
+  const confirmacao = new Date(provisorio);
+
+  // `Date.UTC` transborda em silêncio — o dia 45 passa para o mês seguinte.
+  if (
+    confirmacao.getUTCFullYear() !== ano ||
+    confirmacao.getUTCMonth() !== mes - 1 ||
+    confirmacao.getUTCDate() !== diaDoMes
+  ) {
+    return null;
+  }
+
+  const primeiro = new Date(
+    provisorio - desvioEmMinutos(confirmacao, timeZone) * 60_000,
+  );
+  const instante = new Date(
+    provisorio - desvioEmMinutos(primeiro, timeZone) * 60_000,
+  );
+
+  if (Number.isNaN(instante.getTime())) {
+    return null;
+  }
+
+  // A prova: voltar a ler o instante no fuso tem de devolver a hora escolhida.
+  // Quando não devolve, a hora não existe naquele dia naquele fuso.
+  const voltaAtras = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    timeZone,
+  }).format(instante);
+
+  if (voltaAtras.replace("24:", "00:") !== `${hora.trim()}`) {
+    return null;
+  }
+
+  return instante.toISOString();
+}
+
 export function formatDateInTimezone(
   date: string | null,
   timeZone: string,

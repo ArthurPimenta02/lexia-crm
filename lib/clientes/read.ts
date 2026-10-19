@@ -443,6 +443,83 @@ export async function getClientes(
   return { clientes, deFora, historicoLigado: marcacoes !== null };
 }
 
+/** Um cliente como opção de escolha: o que basta para marcar no nome dele. */
+export type ContactoParaEscolha = {
+  id: string;
+  nome: string;
+  telefone: string;
+  telefoneDigitos: string;
+  viatura: string | null;
+};
+
+/**
+ * Os clientes que se podem escolher ao marcar, e mais nada.
+ *
+ * É de propósito que isto não é o `getClientes`. Esse lê os contactos, **todas
+ * as mensagens** do cliente e **todas as marcações** da outra base de dados,
+ * para calcular histórico e total gasto. Arrastar isso para a agenda era pagar
+ * três leituras grandes a cada abertura da página para encher uma caixa de
+ * texto.
+ *
+ * Medido a 2026-10-19: devolve 352 clientes no Detail e 98 na Miranda — 35 KB
+ * e 9 KB. Cabe todo no ecrã de uma vez, o que é a razão de não haver aqui
+ * pesquisa nenhuma no servidor: a escolha filtra-se no navegador, sem espera.
+ *
+ * O filtro é o mesmo da ficha de clientes, e pela mesma razão: `pareceTelefone`
+ * em vez do canal, senão entravam PSIDs da Meta disfarçados de telemóvel. Um
+ * cliente sem número não serve aqui de nada — é o número que liga a marcação
+ * ao histórico dele.
+ */
+export async function getContactosParaEscolha(
+  clienteSlug: string,
+): Promise<ContactoParaEscolha[]> {
+  const { data, error } = await fetchAllSupabaseRows<{
+    fundido_em: string | null;
+    id: string;
+    nome: string | null;
+    telefone: string | null;
+    viatura: string | null;
+  }>(async (from, to) => {
+    const admin = createAdminClient();
+    const result = await admin
+      .from("lexia_contactos")
+      .select("id, nome, telefone, viatura, fundido_em")
+      .eq("cliente_slug", clienteSlug)
+      .not("identificador_conversa", "like", "teste:%")
+      .range(from, to);
+
+    return { data: result.data ?? [], error: result.error };
+  });
+
+  if (error) {
+    console.error("[clientes] falha a ler os clientes para escolha", error);
+
+    return [];
+  }
+
+  const escolhas: ContactoParaEscolha[] = [];
+
+  for (const linha of data) {
+    const nome = (linha.nome ?? "").trim();
+
+    // Um contacto absorvido não é uma opção à parte: marcar no nome dele era
+    // escrever uma venda que a ficha do principal não vai mostrar.
+    if (linha.fundido_em || !nome || !pareceTelefone(linha.telefone)) {
+      continue;
+    }
+
+    escolhas.push({
+      id: linha.id,
+      nome,
+      telefone: String(linha.telefone),
+      telefoneDigitos: normalizarTelefone(linha.telefone),
+      viatura: linha.viatura?.trim() ? linha.viatura.trim() : null,
+    });
+  }
+
+  return escolhas.sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+}
+
 /**
  * Contactos com este número, para o aviso de duplicado.
  *

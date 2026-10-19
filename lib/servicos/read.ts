@@ -528,6 +528,123 @@ export async function getServicosExcluidos(
   return await lerCatalogoPorEstado(clienteSlug, false);
 }
 
+/** Um executor, no que interessa para marcar: se faz, e em quanto tempo. */
+export type ExecutorAgendavel = {
+  chave: string;
+  duracaoMinutos: number;
+  nome: string;
+};
+
+/** Um serviço que se pode pôr na agenda, com quem o faz e quanto custa. */
+export type ServicoAgendavel = {
+  executores: ExecutorAgendavel[];
+  id: string;
+  nome: string;
+  precoBase: number | null;
+};
+
+/**
+ * Os serviços que dá para marcar, lidos da tabela de agendamento.
+ *
+ * Não é o `getServicosSimples`, e a diferença não é cosmética. O `<select>` da
+ * ficha do cliente só precisa de um nome, porque lá regista-se uma venda que
+ * já aconteceu. Marcar precisa de três coisas que só a tabela de agendamento
+ * tem: **quem** faz o serviço, **quanto tempo** leva e **quanto** custa.
+ *
+ * A duração é o que decide a hora de fim do evento no Google. Vem daqui e não
+ * da coluna `duracao` do catálogo, que é texto livre e aceita coisas como
+ * "2 a 3 semanas" — inútil para somar minutos a uma hora.
+ *
+ * Um serviço que nenhum executor faça não é devolvido: oferecê-lo era deixar
+ * escolher uma opção que só podia acabar em erro.
+ */
+export async function getServicosAgendaveis(
+  clienteSlug: string,
+): Promise<ServicoAgendavel[]> {
+  const config = getServicosConfig(clienteSlug);
+
+  if (!config) {
+    return [];
+  }
+
+  const externo = createServicosClient(config);
+
+  if (!externo) {
+    return [];
+  }
+
+  const colunas = Array.from(
+    new Set([
+      "id",
+      "nome",
+      "preco_base",
+      "activo",
+      ...config.executores.flatMap((executor) => [
+        executor.duracaoColumn,
+        executor.executaColumn,
+      ]),
+    ]),
+  ).join(", ");
+
+  const { data, error } = await externo
+    .from(config.agendamentoTable)
+    .select(colunas)
+    .eq("activo", true);
+
+  if (error) {
+    console.error("[servicos] falha a ler os serviços agendáveis", error);
+
+    return [];
+  }
+
+  const servicos: ServicoAgendavel[] = [];
+
+  for (const linha of (data ?? []) as unknown as AgendamentoRow[]) {
+    const nome = String(linha.nome ?? "").trim();
+
+    if (!linha.id || !nome) {
+      continue;
+    }
+
+    const executores: ExecutorAgendavel[] = [];
+
+    for (const executor of config.executores) {
+      if (linha[executor.executaColumn] !== true) {
+        continue;
+      }
+
+      const duracao = toNumber(
+        linha[executor.duracaoColumn] as number | string | null,
+      );
+
+      // Sem duração não se sabe a que horas o trabalho acaba, e um evento sem
+      // fim no Google não bloqueia a agenda de ninguém.
+      if (!duracao || duracao <= 0) {
+        continue;
+      }
+
+      executores.push({
+        chave: executor.chave,
+        duracaoMinutos: Math.round(duracao),
+        nome: executor.nome,
+      });
+    }
+
+    if (executores.length === 0) {
+      continue;
+    }
+
+    servicos.push({
+      executores,
+      id: String(linha.id),
+      nome,
+      precoBase: toNumber(linha.preco_base),
+    });
+  }
+
+  return servicos.sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+}
+
 async function lerCatalogoPorEstado(
   clienteSlug: string,
   activo: boolean,
