@@ -26,9 +26,14 @@
  */
 
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
 import test, { mock } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mjs";
+
+const raiz = new URL("..", import.meta.url).pathname;
 
 const A = "empresa_a";
 const B = "empresa_b";
@@ -238,6 +243,17 @@ const { desmarcarAviso, marcarAvisosLidos } = await import(
   "@/lib/avisos/write"
 );
 const rota = await import("@/app/api/avisos/route");
+
+mock.module("next/navigation", {
+  namedExports: { usePathname: () => "/app/pipeline" },
+});
+mock.module("@/app/actions/auth", {
+  namedExports: { logoutAction: async () => undefined },
+});
+
+const { AppSidebar } = await import("@/app/components/app-sidebar");
+const { SinoAvisos } = await import("@/app/components/sino-avisos");
+const { GrupoMetricas } = await import("@/app/components/painel-ui");
 
 function comSessao(
   profile: {
@@ -792,4 +808,374 @@ test("sem sessão não se marca nada como lido", async () => {
 
   assert.equal(resposta.status, 401);
   assert.equal(base.linhasDe("lexia_avisos_lidos").length, 0);
+});
+
+/*
+ * O sino desenhado a sério.
+ *
+ * Os testes acima guardam o que o sino DIZ; estes guardam que ele está no
+ * ecrã — e, sobretudo, que está nos DOIS sítios. É a parte fácil de perder:
+ * a barra de cima é `lg:hidden` e o topo da barra lateral está fora do ecrã
+ * no telemóvel. Com o sino só num deles, metade dos ecrãs ficava sem ele e
+ * nenhum dos testes de leitura dava sinal.
+ */
+
+const items = [
+  { href: "/app", label: "Visão geral" },
+  { href: "/app/pipeline", label: "Pipeline" },
+];
+
+function desenharMoldura(comSino: boolean) {
+  return renderToStaticMarkup(
+    createElement(AppSidebar, { comSino, items, subtitle: "Painel do agente" }),
+  );
+}
+
+function sinos(html: string) {
+  return (html.match(/aria-label="Avisos/g) ?? []).length;
+}
+
+test("o sino está nos dois sítios: barra de cima e barra lateral", () => {
+  const html = desenharMoldura(true);
+
+  assert.equal(
+    sinos(html),
+    2,
+    "um só não chega: nenhum dos dois sítios se vê nos dois tamanhos de ecrã",
+  );
+  assert.match(
+    html,
+    /class="relative hidden lg:block"/,
+    "o da barra lateral tem de estar escondido no telemóvel, senão aparecem dois",
+  );
+  // O da barra de cima é o inverso: está lá sem classe nenhuma a esconder,
+  // porque é o próprio `<header>` que é `lg:hidden`.
+  assert.match(html, /<header[^>]*lg:hidden"><button[^>]*Abrir menu/);
+  assert.match(html, /class="relative"><button aria-expanded="false"/);
+});
+
+test("o painel de administração não leva sino", () => {
+  assert.equal(
+    sinos(desenharMoldura(false)),
+    0,
+    "a leitura é por cliente_slug e o administrador não tem nenhum: o sino abria sempre vazio",
+  );
+});
+
+function desenharSino(naoLidos: number) {
+  return renderToStaticMarkup(
+    createElement(SinoAvisos, {
+      estado: {
+        aCarregar: false,
+        avisos: [],
+        erro: null,
+        marcarTodos: () => undefined,
+        naoLidos,
+      },
+    }),
+  );
+}
+
+test("a bolinha diz quantos são, e acima de nove diz 9+", () => {
+  // O Detail tinha 13 avisos a 2026-10-19. Um "13" numa bolinha de 16 px
+  // transborda; o "9+" é o que cabe.
+  const html = desenharSino(13);
+
+  assert.match(html, /bg-danger[^"]*">9\+</);
+  assert.match(html, /aria-label="Avisos: 13 novos"/);
+  assert.match(desenharSino(1), /bg-danger[^"]*">1</);
+  assert.match(desenharSino(1), /aria-label="Avisos: 1 novo"/);
+});
+
+test("o painel de administração não vai à base buscar avisos", () => {
+  /*
+   * Esta afirma-se sobre o código-fonte e não sobre o desenho, porque é um
+   * efeito: o `renderToStaticMarkup` não corre `useEffect`, por isso não há
+   * maneira de ver daqui o pedido que se faz ou não se faz.
+   *
+   * O que está em jogo não é o ecrã — o sino não aparece no administrador de
+   * qualquer forma. É o pedido: com `useAvisos(true)`, cada página do painel
+   * de administração fazia um `/api/avisos` que só pode responder 401.
+   */
+  const fonte = readFileSync(`${raiz}app/components/app-sidebar.tsx`, "utf8");
+
+  assert.match(fonte, /useAvisos\(comSino\)/);
+});
+
+test("sem nada novo não há bolinha vermelha nenhuma", () => {
+  // O vermelho tem de significar alguma coisa. Aceso sempre, deixava de ser
+  // um aviso e passava a ser decoração.
+  const html = desenharSino(0);
+
+  assert.doesNotMatch(html, /bg-danger/);
+  assert.match(html, /aria-label="Avisos"/);
+});
+
+test("nada do conteúdo se desenha por cima da lista de avisos", () => {
+  /*
+   * A barra lateral tem `lg:translate-x-0`, e uma deslocação — qualquer uma,
+   * mesmo de zero — faz dela um contexto de empilhamento próprio. Com
+   * `z-auto`, o contexto inteiro ia parar ao nível dos elementos posicionados
+   * do `<main>`, que vem depois no documento e por isso ganhava. Via-se: os
+   * ícones de informação dos cartões do dashboard apareciam desenhados por
+   * cima da lista de avisos aberta.
+   */
+  const html = desenharMoldura(true);
+  const barra = html.match(/<aside class="([^"]*)"/)?.[1] ?? "";
+
+  assert.match(barra, /\btranslate-x-0\b/, "é isto que cria o contexto");
+  assert.match(barra, /\bz-50\b/);
+  assert.doesNotMatch(
+    barra,
+    /\blg:z-auto\b/,
+    "sem z no computador, a barra inteira passa para trás do conteúdo",
+  );
+});
+
+test("marcar como visto é ao fechar a lista, não ao abri-la", () => {
+  /*
+   * Mais uma do código-fonte: são dois manipuladores de eventos, e um desenho
+   * estático não clica em nada.
+   *
+   * Marcava-se ao abrir, e a lista nascia toda cinzenta — no instante em que
+   * aparecia, já nada lá estava por ler. O realce que separa o novo do velho
+   * apagava-se debaixo do olho de quem o ia ler.
+   */
+  const fonte = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
+
+  assert.match(
+    fonte,
+    /const fechar = useCallback\(\(\) => \{\n\s*setAberto\(false\);\n\s*marcarTodos\(\);/,
+    "fechar é que marca",
+  );
+  assert.doesNotMatch(
+    fonte,
+    /if \(vaiAbrir\) \{\n\s*marcarTodos\(\);/,
+    "abrir não pode marcar nada",
+  );
+  // Ir para a conversa também é fechar a lista: conta como vista.
+  assert.match(fonte, /onIr=\{fechar\}/);
+});
+
+test("a explicação do ⓘ não se desenha dentro do cartão que a corta", () => {
+  /*
+   * A faixa de métricas é um cartão só com `overflow-hidden`, e precisa dele:
+   * é o que corta as bordas a mais da última coluna. Um balão desenhado lá
+   * dentro, que se abre para cima, é um balão decapitado — era exactamente o
+   * que se via, uma ponta de preto a espreitar por baixo dos cartões.
+   *
+   * Daí o balão viver no fim do documento, fora do cartão. Aqui vê-se pelo
+   * que o cartão NÃO traz: o texto da explicação aparece uma vez só, no
+   * `aria-label` do botão. A versão partida trazia-o duas.
+   */
+  const explicacao = "De onde vem este numero.";
+  const html = renderToStaticMarkup(
+    createElement(GrupoMetricas, {
+      itens: [{ dica: explicacao, label: "Agendamentos", valor: 1 }],
+    }),
+  );
+
+  assert.match(html, /overflow-hidden/, "o cartão corta, e vai continuar a");
+  assert.equal(
+    html.split(explicacao).length - 1,
+    1,
+    "o balão não pode estar dentro do cartão: lá dentro fica cortado",
+  );
+  assert.match(html, new RegExp(`aria-label="${explicacao}"`));
+
+  const dica = readFileSync(`${raiz}app/components/dica.tsx`, "utf8");
+
+  assert.match(
+    dica,
+    /createPortal\(/,
+    "é o portal que tira o balão de dentro do cartão",
+  );
+  assert.match(dica, /document\.body,/);
+});
+
+test("a lista do computador abre para dentro do ecrã", () => {
+  /*
+   * Também esta se afirma sobre o código-fonte: a lista só existe depois de
+   * um clique, e um desenho estático não tem cliques.
+   *
+   * O que está em jogo são 64 píxeis. O sino da barra lateral está a 256 px da
+   * esquerda e a lista tem 320 de largo: encostada à direita do sino, começava
+   * em -64 e a primeira coluna de texto ficava fora do ecrã. O da barra de
+   * cima do telemóvel é o contrário — está encostado à direita do ecrã, e é
+   * para a esquerda que tem espaço.
+   */
+  const moldura = readFileSync(`${raiz}app/components/app-sidebar.tsx`, "utf8");
+  const sino = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
+
+  assert.match(
+    moldura,
+    /ancora="esquerda"\n\s*className="hidden lg:block"/,
+    "o sino da barra lateral é o único que precisa de abrir para a direita",
+  );
+  assert.doesNotMatch(
+    moldura,
+    /<SinoAvisos estado=\{avisos\} ancora/,
+    "o do telemóvel fica com o valor de origem",
+  );
+  assert.match(sino, /ancora === "direita" \? "right-0" : "left-0"/);
+});
+
+/*
+ * O guarda das cores.
+ *
+ * A lista de avisos saiu transparente em produção, com a navegação a
+ * atravessá-la. A causa não era o desenho: era `bg-card`, um nome que vem do
+ * shadcn/ui e que este projecto nunca definiu. O Tailwind não se queixa de um
+ * nome que não conhece — não gera a regra e segue em frente. O resultado é uma
+ * caixa sem fundo nenhum, e só se vê no ecrã de quem a abre.
+ *
+ * Este teste fecha a porta a toda a família do erro (`card`, `destructive`,
+ * `popover`, `accent`, `secondary`, `input`, `ring`, ...) e não só aos dois
+ * nomes de que me lembrei: compara o que o código usa com o que o
+ * `globals.css` declara, e com a paleta que vem de fábrica no Tailwind.
+ */
+
+const PALETA_DO_TAILWIND = new Set([
+  "amber",
+  "black",
+  "blue",
+  "current",
+  "cyan",
+  "emerald",
+  "fuchsia",
+  "gray",
+  "green",
+  "indigo",
+  "inherit",
+  "lime",
+  "neutral",
+  "orange",
+  "pink",
+  "purple",
+  "red",
+  "rose",
+  "sky",
+  "slate",
+  "stone",
+  "teal",
+  "transparent",
+  "violet",
+  "white",
+  "yellow",
+  "zinc",
+]);
+
+/**
+ * Palavras que vivem atrás dos mesmos prefixos sem serem cores: `text-sm` é
+ * tamanho de letra, `border-b` é um lado, `from-0%` é uma paragem de
+ * gradiente. Não há como separá-las pelo nome do prefixo, só pela lista.
+ */
+const NAO_SAO_CORES = new Set([
+  "auto",
+  "b",
+  "balance",
+  "base",
+  "center",
+  "clip",
+  "collapse",
+  "dashed",
+  "dotted",
+  "e",
+  "ellipsis",
+  "end",
+  "hidden",
+  "inherit",
+  "justify",
+  "l",
+  "left",
+  "lg",
+  "line-through",
+  "md",
+  "mono",
+  "none",
+  "nowrap",
+  "pretty",
+  "r",
+  "right",
+  "s",
+  "sans",
+  "sm",
+  "solid",
+  "start",
+  "t",
+  "wrap",
+  "x",
+  "xl",
+  "xs",
+  "y",
+]);
+
+function tokensDoTema() {
+  const css = readFileSync(`${raiz}app/globals.css`, "utf8");
+  const nomes = new Set<string>();
+
+  for (const [, nome] of css.matchAll(/--color-([a-z0-9-]+):/g)) {
+    nomes.add(nome);
+  }
+
+  return nomes;
+}
+
+function ficheirosDoPainel(pasta: string): string[] {
+  return readdirSync(pasta, { withFileTypes: true }).flatMap((entrada) => {
+    const caminho = `${pasta}/${entrada.name}`;
+
+    if (entrada.isDirectory()) {
+      return ficheirosDoPainel(caminho);
+    }
+
+    return entrada.name.endsWith(".tsx") ? [caminho] : [];
+  });
+}
+
+test("nenhum componente pinta com uma cor que o tema não tem", () => {
+  const tokens = tokensDoTema();
+
+  assert.ok(tokens.has("surface"), "o tema tem de declarar as suas cores");
+  assert.ok(
+    !tokens.has("card") && !tokens.has("destructive"),
+    "se um dia existirem, este teste deixa de proteger de nada",
+  );
+
+  const inventadas = new Map<string, string[]>();
+
+  for (const ficheiro of ficheirosDoPainel(`${raiz}app`)) {
+    const fonte = readFileSync(ficheiro, "utf8");
+
+    // O `(?<![\w/-])` deixa de fora os caminhos de importação: sem ele,
+    // `@/app/components/scroll-to-top` passava por um `to-top`.
+    for (const [, nome] of fonte.matchAll(
+      /(?<![\w/-])(?:bg|text|border|ring|fill|stroke|divide|outline|placeholder|caret|decoration|from|to|via|shadow)-([a-z][a-z0-9-]*)\b/g,
+    )) {
+      // `border-l-primary` é a cor de um lado; `-500` é um tom da paleta;
+      // `/10` é transparência. O que interessa é a raiz do nome.
+      const raizDoNome = nome
+        .replace(/^[btlrxyse]-(?=[a-z])/, "")
+        .replace(/-\d+$/, "");
+
+      if (
+        tokens.has(raizDoNome) ||
+        PALETA_DO_TAILWIND.has(raizDoNome) ||
+        NAO_SAO_CORES.has(raizDoNome)
+      ) {
+        continue;
+      }
+
+      inventadas.set(raizDoNome, [
+        ...(inventadas.get(raizDoNome) ?? []),
+        ficheiro.slice(raiz.length),
+      ]);
+    }
+  }
+
+  assert.deepEqual(
+    [...inventadas.entries()],
+    [],
+    "estes nomes de cor não existem no globals.css: o Tailwind não gera regra nenhuma e o elemento fica sem cor",
+  );
 });

@@ -117,8 +117,18 @@ export function AppSidebar({
         />
       ) : null}
 
+      {/*
+        O `z-50` vale também no computador, e isso não é um descuido.
+
+        O `lg:translate-x-0` faz desta barra um contexto de empilhamento
+        próprio — é o que qualquer deslocação faz. Com `z-auto`, esse contexto
+        inteiro caía ao mesmo nível dos elementos posicionados do `<main>`, e
+        aí quem decide é a ordem do documento: o `<main>` vem depois, logo
+        ganhava. Via-se na lista de avisos, com os ícones de informação dos
+        cartões desenhados por cima dela.
+      */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-[17rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 lg:static lg:z-auto lg:h-full lg:w-[17rem] lg:max-w-none lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-[17rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 lg:static lg:h-full lg:w-[17rem] lg:max-w-none lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="lexia-menu"
@@ -126,7 +136,11 @@ export function AppSidebar({
         <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-5 pb-4">
           <LexiaBrand compact tone="light" />
           {comSino ? (
-            <SinoAvisos className="hidden lg:block" estado={avisos} />
+            <SinoAvisos
+              ancora="esquerda"
+              className="hidden lg:block"
+              estado={avisos}
+            />
           ) : null}
           <button
             aria-label="Fechar menu"

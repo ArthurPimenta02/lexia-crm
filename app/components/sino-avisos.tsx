@@ -17,12 +17,12 @@ import type { Aviso, AvisosResultado, TipoDeAviso } from "@/lib/avisos/read";
  * avisos, cada página do produto fazia duas leituras iguais à base. O hook
  * corre uma vez na moldura e o estado desce para os dois.
  *
- * Porque é que o número desaparece ao abrir
- * ----------------------------------------
- * Abrir a lista é ver os avisos. Marcar como lido ao abrir é o que faz o sino
- * voltar a zero e, por isso, o que o mantém útil: um sino que está sempre
- * vermelho é um sino que ninguém lê. Os avisos continuam todos na lista — o
- * que se apaga é o realce, não a informação.
+ * Porque é que o número desaparece ao fechar
+ * ------------------------------------------
+ * Ver a lista é ver os avisos. Marcá-los como lidos é o que faz o sino voltar
+ * a zero e, por isso, o que o mantém útil: um sino que está sempre vermelho é
+ * um sino que ninguém lê. Os avisos continuam todos na lista — o que se apaga
+ * é o realce, não a informação.
  *
  * E se a situação mudar, o aviso volta: a chave de cada aviso carrega o
  * instante do facto, por isso uma mensagem nova é uma chave nova e acende o
@@ -171,14 +171,45 @@ function LinhaDoAviso({ aviso, onIr }: { aviso: Aviso; onIr: () => void }) {
 }
 
 type SinoAvisosProps = {
+  /**
+   * De que lado do sino é que a lista cresce.
+   *
+   * Na barra de cima do telemóvel o sino está encostado à direita do ecrã, por
+   * isso a lista tem de crescer para dentro — `direita`. Na barra lateral do
+   * computador o sino está a 256 px da esquerda e a lista tem 320: encostá-la
+   * à direita punha-a a começar em -64 px, ou seja, meia lista fora do ecrã.
+   * Daí `esquerda`, que a deixa passar por cima do conteúdo.
+   */
+  ancora?: "direita" | "esquerda";
   className?: string;
   estado: EstadoDosAvisos;
 };
 
-export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
+export function SinoAvisos({
+  ancora = "direita",
+  className = "",
+  estado,
+}: SinoAvisosProps) {
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
   const { aCarregar, avisos, erro, marcarTodos, naoLidos } = estado;
+
+  /**
+   * Fechar é o que marca tudo como visto — não abrir.
+   *
+   * Marcava-se ao abrir, e o resultado era uma lista que nascia toda cinzenta:
+   * no instante em que ela aparecia, já nada lá estava por ler, e o realce que
+   * distingue o novo do velho apagava-se debaixo do olho de quem o ia ler. A
+   * lista ficava com cinco linhas iguais e nenhuma pista do que mudou.
+   *
+   * Ao fechar, a conta é a mesma — o número volta a zero na mesma, porque
+   * fechar a lista é ter acabado de a ver — e enquanto ela está aberta o
+   * realce faz o trabalho dele.
+   */
+  const fechar = useCallback(() => {
+    setAberto(false);
+    marcarTodos();
+  }, [marcarTodos]);
 
   useEffect(() => {
     if (!aberto) {
@@ -187,12 +218,12 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
 
     const aoClicarFora = (evento: MouseEvent) => {
       if (!caixa.current?.contains(evento.target as Node)) {
-        setAberto(false);
+        fechar();
       }
     };
     const aoTeclar = (evento: KeyboardEvent) => {
       if (evento.key === "Escape") {
-        setAberto(false);
+        fechar();
       }
     };
 
@@ -203,20 +234,20 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
       document.removeEventListener("mousedown", aoClicarFora);
       document.removeEventListener("keydown", aoTeclar);
     };
-  }, [aberto]);
+  }, [aberto, fechar]);
 
   const abrir = () => {
-    const vaiAbrir = !aberto;
+    if (aberto) {
+      fechar();
 
-    setAberto(vaiAbrir);
-
-    if (vaiAbrir) {
-      marcarTodos();
+      return;
     }
+
+    setAberto(true);
   };
 
   return (
-    <div className={`relative ${className}`} ref={caixa}>
+    <div className={`relative ${className}`.trim()} ref={caixa}>
       <button
         aria-expanded={aberto}
         aria-label={
@@ -230,14 +261,18 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
       >
         <Bell aria-hidden="true" className="h-5 w-5" />
         {naoLidos > 0 ? (
-          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
             {naoLidos > 9 ? "9+" : naoLidos}
           </span>
         ) : null}
       </button>
 
       {aberto ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+        <div
+          className={`absolute z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-surface shadow-xl ${
+            ancora === "direita" ? "right-0" : "left-0"
+          }`}
+        >
           <div className="border-b border-border px-3 py-2">
             <p className="text-sm font-semibold text-foreground">Avisos</p>
             <p className="text-xs text-muted-foreground">
@@ -265,7 +300,7 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
                   <LinhaDoAviso
                     aviso={aviso}
                     key={aviso.chave}
-                    onIr={() => setAberto(false)}
+                    onIr={fechar}
                   />
                 ))}
               </ul>
