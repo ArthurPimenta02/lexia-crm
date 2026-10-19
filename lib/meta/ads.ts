@@ -38,6 +38,23 @@ const insightFields = [
 
 const campaignFields = ["id", "name", "objective", "status", "created_time"].join(",");
 
+/**
+ * Campos do anúncio, medidos contra act_713888634370334 em 19/10/2026: 73
+ * anúncios numa só página, todos com `adset` e `campaign` preenchidos.
+ *
+ * O `adset{...}` e o `campaign{...}` são expansões de campo: pedi-los aqui
+ * poupa duas voltas à API por anúncio. Valem a mesma regra do `insightFields`
+ * — um campo inválido faz a Meta recusar o pedido inteiro (#100), por isso não
+ * se acrescenta nada sem medir.
+ */
+const adFields = [
+  "id",
+  "name",
+  "status",
+  "adset{id,name}",
+  "campaign{id,name}",
+].join(",");
+
 /** Limite de páginas por pedido. 500 linhas/página cobre meses de histórico. */
 const maxPages = 20;
 const pageSize = 500;
@@ -200,6 +217,45 @@ export async function fetchMetaCampaigns(
       externalId: String(row.id),
       nome: row.name?.trim() || String(row.id),
       objectivo: row.objective ?? null,
+    }));
+}
+
+/**
+ * Um anúncio e a árvore a que pertence.
+ *
+ * É isto que dá nome ao `origem_source_id` que o agente guarda na ficha: o
+ * referral da Meta traz o id do ANÚNCIO, nunca o da campanha. Sem este
+ * espelho, o painel tem um número de 18 dígitos e mais nada.
+ */
+export type MetaAd = {
+  campanhaExternaId: string | null;
+  campanhaNome: string | null;
+  conjuntoExternoId: string | null;
+  conjuntoNome: string | null;
+  estado: string | null;
+  externalId: string;
+  nome: string;
+};
+
+export async function fetchMetaAds(config: MetaAdsConfig): Promise<MetaAd[]> {
+  const rows = await graphCollect<{
+    adset?: { id?: string; name?: string };
+    campaign?: { id?: string; name?: string };
+    id?: string;
+    name?: string;
+    status?: string;
+  }>(config, `${config.accountId}/ads`, { fields: adFields });
+
+  return rows
+    .filter((row): row is { id: string } & typeof row => Boolean(row.id))
+    .map((row) => ({
+      campanhaExternaId: row.campaign?.id ? String(row.campaign.id) : null,
+      campanhaNome: row.campaign?.name?.trim() || null,
+      conjuntoExternoId: row.adset?.id ? String(row.adset.id) : null,
+      conjuntoNome: row.adset?.name?.trim() || null,
+      estado: row.status ?? null,
+      externalId: String(row.id),
+      nome: row.name?.trim() || String(row.id),
     }));
 }
 

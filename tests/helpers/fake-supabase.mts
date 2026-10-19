@@ -48,6 +48,8 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     valor: string;
   }[] = [];
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
+  /** Colunas que o pedido exige preenchidas: `not(coluna, "is", null)`. */
+  private readonly exigeValor: string[] = [];
   private devolveLinhas = false;
   private limiteLinhas: number | null = null;
   private colunas: string | null = null;
@@ -106,13 +108,33 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     return this;
   }
 
-  /** Só suporta `not(coluna, "like", "prefixo%")`, que é o único uso no painel. */
-  not(coluna: string, operador: string, padrao: string) {
+  /**
+   * Suporta os dois usos que existem no painel: `not(coluna, "like",
+   * "prefixo%")` e `not(coluna, "is", null)`.
+   *
+   * O `is null` aplica-se a sério — null e string vazia ficam fora — porque é
+   * nele que se apoia a contagem por campanha: um duplo que o ignorasse
+   * deixava passar os contactos sem anúncio e inflava o número.
+   */
+  not(coluna: string, operador: string, padrao: unknown) {
+    if (operador === "is") {
+      if (padrao !== null) {
+        throw new Error('O duplo da Supabase só sabe fazer not(…, "is", null).');
+      }
+
+      this.exigeValor.push(coluna);
+
+      return this;
+    }
+
     if (operador !== "like") {
       throw new Error(`O duplo da Supabase não sabe fazer not(${operador}).`);
     }
 
-    this.negacoes.push({ coluna, prefixo: padrao.replace(/%$/, "") });
+    this.negacoes.push({
+      coluna,
+      prefixo: String(padrao).replace(/%$/, ""),
+    });
 
     return this;
   }
@@ -202,6 +224,14 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
       );
 
       if (!dentroDosLimites) {
+        return false;
+      }
+
+      if (
+        this.exigeValor.some(
+          (coluna) => linha[coluna] === null || linha[coluna] === undefined,
+        )
+      ) {
         return false;
       }
 

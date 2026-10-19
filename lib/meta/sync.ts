@@ -5,10 +5,12 @@ import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
+  fetchMetaAds,
   fetchMetaCampaigns,
   fetchMetaDailyInsights,
   getMetaAdsConfig,
   MetaAdsError,
+  type MetaAd,
   type MetaCampaign,
   type MetaDailyInsight,
 } from "./ads";
@@ -27,6 +29,7 @@ const defaultLookbackDays = 28;
 const maxLookbackDays = 730;
 
 export type MetaSyncResult = {
+  anuncios: number;
   ate: string;
   campanhas: number;
   clienteSlug: string;
@@ -94,6 +97,48 @@ function buildCampanhaRows(
   return [...porId.values()];
 }
 
+type AnuncioDimensao = {
+  anuncio_externo_id: string;
+  campanha_externa_id: string | null;
+  campanha_nome: string | null;
+  cliente_slug: string;
+  conjunto_externo_id: string | null;
+  conjunto_nome: string | null;
+  estado: string | null;
+  nome: string;
+  plataforma: "meta";
+  sincronizado_em: string;
+};
+
+/**
+ * Os anúncios não têm a segunda fonte que as campanhas têm.
+ *
+ * Em `buildCampanhaRows` os insights salvam a campanha apagada, porque o gasto
+ * dela continua a vir. Ao nível do anúncio não há esse resgate: um anúncio
+ * apagado desaparece de `/ads` e nada o traz de volta. É por isso que a linha
+ * gravada aqui NÃO é apagada quando deixa de vir — a sincronização é só
+ * upsert, nunca um delete do que falta. A ficha de um contacto de há três meses
+ * continua a saber de onde ele veio.
+ */
+function buildAnuncioRows(
+  clienteSlug: string,
+  anuncios: MetaAd[],
+  agora: string,
+): AnuncioDimensao[] {
+  return anuncios.map((anuncio) => ({
+    anuncio_externo_id: anuncio.externalId,
+    campanha_externa_id: anuncio.campanhaExternaId,
+    campanha_nome: anuncio.campanhaNome?.slice(0, 512) ?? null,
+    cliente_slug: clienteSlug,
+    conjunto_externo_id: anuncio.conjuntoExternoId,
+    conjunto_nome: anuncio.conjuntoNome?.slice(0, 512) ?? null,
+    estado: anuncio.estado,
+    nome: anuncio.nome.slice(0, 512),
+    plataforma: "meta",
+    sincronizado_em: agora,
+  }));
+}
+
 export type MetaSyncInput = {
   clienteSlug: string;
   lookbackDays?: number;
@@ -137,16 +182,39 @@ export async function syncMetaCampanhas(
   );
   const agora = agoraDate.toISOString();
 
-  const [campanhas, insights] = await Promise.all([
+  const [campanhas, insights, anuncios] = await Promise.all([
     fetchMetaCampaigns(config),
     fetchMetaDailyInsights(config, { since: desde, until: ate }),
+    fetchMetaAds(config),
   ]);
 
   const admin = createAdminClient();
+
+  // Os anúncios gravam-se antes da saída antecipada abaixo, e não dependem de
+  // haver gasto no intervalo pedido: o dicionário que dá nome à origem de uma
+  // ficha não tem nada a ver com a janela de 28 dias.
+  const anuncioRows = buildAnuncioRows(clienteSlug, anuncios, agora);
+
+  if (anuncioRows.length > 0) {
+    const { error: erroAnuncios } = await admin
+      .from("lexia_anuncios")
+      .upsert(anuncioRows, {
+        onConflict: "cliente_slug,plataforma,anuncio_externo_id",
+      });
+
+    if (erroAnuncios) {
+      throw new MetaAdsError(
+        `Não foi possível gravar os anúncios: ${erroAnuncios.message}`,
+        500,
+      );
+    }
+  }
+
   const campanhaRows = buildCampanhaRows(clienteSlug, campanhas, insights, agora);
 
   if (campanhaRows.length === 0) {
     return {
+      anuncios: anuncioRows.length,
       ate,
       campanhas: 0,
       clienteSlug,
@@ -219,6 +287,7 @@ export async function syncMetaCampanhas(
   }
 
   return {
+    anuncios: anuncioRows.length,
     ate,
     campanhas: campanhaRows.length,
     clienteSlug,

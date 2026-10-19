@@ -30,6 +30,10 @@ const AVISOS_ROTA = "app/api/avisos/route.ts";
 const MOLDURA = "app/components/app-sidebar.tsx";
 const SINO = "app/components/sino-avisos.tsx";
 const DICA = "app/components/dica.tsx";
+const ADS = "lib/meta/ads.ts";
+const SINCRONIZAR = "lib/meta/sync.ts";
+const ATRIBUICAO = "lib/meta/atribuicao.ts";
+const CAMPANHAS = "lib/campaigns/read.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -39,6 +43,7 @@ const TESTE_PIPELINE = "tests/pipeline-etapas.test.mts";
 const TESTE_ORDEM = "tests/pipeline-ordem-agendado.test.mts";
 const TESTE_EXPORTAR = "tests/exportar-csv.test.mts";
 const TESTE_AVISOS = "tests/avisos-sino.test.mts";
+const TESTE_ATRIBUICAO = "tests/atribuicao-anuncios.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -960,6 +965,81 @@ const mutacoes = [
       </span>`,
     teste: TESTE_AVISOS,
   },
+  {
+    de: `  "adset{id,name}",
+`,
+    ficheiro: ADS,
+    nome: "o pedido à Meta deixa de trazer o conjunto dentro do anúncio",
+    para: ``,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `  "campaign{id,name}",
+`,
+    ficheiro: ADS,
+    nome: "o pedido à Meta deixa de trazer a campanha dentro do anúncio",
+    para: ``,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `    .eq("cliente_slug", clienteSlug)
+    .eq("plataforma", "meta")
+    .in("anuncio_externo_id", ids);`,
+    ficheiro: ATRIBUICAO,
+    nome: "a ficha traduz o anúncio sem perguntar de que empresa ele é",
+    para: `    .eq("plataforma", "meta")
+    .in("anuncio_externo_id", ids);`,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `      const chave = chaveTelefone(marcacao.telefone_digitos);`,
+    ficheiro: CAMPANHAS,
+    nome: "a marcação só liga à ficha se o indicativo estiver igual nos dois",
+    para: `      const chave = marcacao.telefone_digitos;`,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `          .neq("estado", "cancelado")
+`,
+    ficheiro: CAMPANHAS,
+    nome: "a campanha fica com o crédito das marcações desmarcadas",
+    para: ``,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `    contactosComAnuncio += 1;
+
+    const campanhaId = campanhaPorAnuncio.get(anuncioId);
+
+    if (!campanhaId) {`,
+    ficheiro: CAMPANHAS,
+    nome: "o contacto do anúncio apagado deixa de contar como identificado",
+    para: `    const campanhaId = campanhaPorAnuncio.get(anuncioId);
+
+    if (!campanhaId) {`,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `    const { error: erroAnuncios } = await admin
+      .from("lexia_anuncios")
+      .upsert(anuncioRows, {`,
+    ficheiro: SINCRONIZAR,
+    nome: "a sincronização limpa o espelho antes de o reescrever",
+    para: `    await admin.from("lexia_anuncios").delete().eq("cliente_slug", clienteSlug);
+
+    const { error: erroAnuncios } = await admin
+      .from("lexia_anuncios")
+      .upsert(anuncioRows, {`,
+    teste: TESTE_ATRIBUICAO,
+  },
+  {
+    de: `    cliente_slug: clienteSlug,
+    conjunto_externo_id: anuncio.conjuntoExternoId,`,
+    ficheiro: SINCRONIZAR,
+    nome: "o anúncio gravado não diz de que empresa é",
+    para: `    conjunto_externo_id: anuncio.conjuntoExternoId,`,
+    teste: TESTE_ATRIBUICAO,
+  },
 ];
 
 function correr(teste) {
@@ -987,6 +1067,7 @@ for (const teste of [
   TESTE_ORDEM,
   TESTE_EXPORTAR,
   TESTE_AVISOS,
+  TESTE_ATRIBUICAO,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }

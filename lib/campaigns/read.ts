@@ -1,5 +1,6 @@
 import "server-only";
 
+import { chaveTelefone } from "@/lib/pipeline/etapas";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +24,7 @@ type CustoRow = {
 };
 
 type CampanhaRow = {
+  campanha_externa_id: string | null;
   estado: string | null;
   id: string;
   nome: string;
@@ -31,10 +33,17 @@ type CampanhaRow = {
 
 export type CampanhaResumo = {
   cliques: number;
+  /**
+   * Contactos do período cujo referral da Meta aponta para um anúncio desta
+   * campanha. É um PISO, não o total: ver `contarAtribuicaoPorCampanha`.
+   */
+  contactosAtribuidos: number;
   estado: string | null;
   gasto: number;
   id: string;
   impressoes: number;
+  /** Desses contactos, quantos chegaram a ter marcação. Também um piso. */
+  marcacoesAtribuidas: number;
   nome: string;
   objectivo: string | null;
 };
@@ -43,6 +52,13 @@ export type PainelCampanhas = {
   atualizadoEm: string | null;
   cliques: number;
   cliquesLink: number;
+  /**
+   * Quantos dos contactos novos do período trazem anúncio identificado.
+   *
+   * Serve para o ecrã poder dizer em quantos é que a atribuição por campanha se
+   * apoia. Sem este número, as contagens por campanha pareciam o total.
+   */
+  contactosComAnuncio: number;
   contactosNovos: number;
   cpm: number | null;
   ctr: number | null;
@@ -59,6 +75,7 @@ const painelVazio: PainelCampanhas = {
   atualizadoEm: null,
   cliques: 0,
   cliquesLink: 0,
+  contactosComAnuncio: 0,
   contactosNovos: 0,
   cpm: null,
   ctr: null,
@@ -133,6 +150,156 @@ async function contarContactosPorDia(
   }
 
   return porDia;
+}
+
+export type AtribuicaoPorCampanha = {
+  /** Contactos do período com anúncio desta campanha. */
+  contactos: number;
+  /** Desses, quantos já têm marcação na agenda. */
+  marcacoes: number;
+};
+
+/**
+ * Quantos contactos — e quantas marcações — cada campanha trouxe.
+ *
+ * COMO SE CHEGA AQUI, E PORQUE É UM PISO E NÃO UM TOTAL
+ * O referral da Meta traz o id do ANÚNCIO, e só quando a pessoa clica num
+ * anúncio de clique-para-WhatsApp. O Instagram Direct e o Messenger não o
+ * enviam, e 76% do gasto do Detail vai justamente para Instagram Direct.
+ * Medido a 2026-10-19: 13 contactos em 1.028 têm id de anúncio. Portanto o
+ * número aqui diz "pelo menos tantos", nunca "foram só estes".
+ *
+ * Porque serve ainda assim: a mesma regra falha igual para todas as campanhas,
+ * logo comparar campanhas entre si é legítimo. O que não é legítimo é dividir
+ * isto pelo total de contactos e chamar-lhe percentagem de pago.
+ *
+ * A LIGAÇÃO À MARCAÇÃO É PELOS ÚLTIMOS 9 DÍGITOS, com `chaveTelefone`. Medido:
+ * 16 de 19 marcações do Detail casam pelo número exacto e 18 pelos últimos 9 —
+ * o indicativo 351 não é escrito de forma consistente nos dois lados.
+ */
+async function contarAtribuicaoPorCampanha(
+  clienteSlug: string,
+  inicioIso: string,
+  fimIso: string,
+): Promise<{
+  contactosComAnuncio: number;
+  porCampanhaExterna: Map<string, AtribuicaoPorCampanha>;
+}> {
+  const vazio = {
+    contactosComAnuncio: 0,
+    porCampanhaExterna: new Map<string, AtribuicaoPorCampanha>(),
+  };
+  const supabase = await createClient();
+
+  const [contactosResultado, anunciosResultado, marcacoesResultado] =
+    await Promise.all([
+      fetchAllSupabaseRows<{
+        origem_source_id: string | null;
+        telefone_digitos: string | null;
+      }>((from, to) =>
+        supabase
+          .from("lexia_contactos")
+          .select("origem_source_id, telefone_digitos")
+          .eq("cliente_slug", clienteSlug)
+          .gte("criado_em", inicioIso)
+          .lte("criado_em", fimIso)
+          .not("origem_source_id", "is", null)
+          .range(from, to),
+      ),
+      // Todos os anúncios do cliente, e não só os do período: o contacto de
+      // hoje pode vir de um anúncio criado há meses.
+      fetchAllSupabaseRows<{
+        anuncio_externo_id: string | null;
+        campanha_externa_id: string | null;
+      }>((from, to) =>
+        supabase
+          .from("lexia_anuncios")
+          .select("anuncio_externo_id, campanha_externa_id")
+          .eq("cliente_slug", clienteSlug)
+          .eq("plataforma", "meta")
+          .range(from, to),
+      ),
+      // Todas as marcações, sem janela: a pessoa que falou hoje pode marcar
+      // para o mês que vem, e essa marcação é da campanha que a trouxe.
+      fetchAllSupabaseRows<{ telefone_digitos: string | null }>((from, to) =>
+        supabase
+          .from("lexia_agendamentos")
+          .select("telefone_digitos")
+          .eq("cliente_slug", clienteSlug)
+          .not("telefone_digitos", "is", null)
+          .neq("estado", "cancelado")
+          .range(from, to),
+      ),
+    ]);
+
+  if (contactosResultado.error || anunciosResultado.error) {
+    return vazio;
+  }
+
+  const campanhaPorAnuncio = new Map<string, string>();
+
+  for (const anuncio of anunciosResultado.data) {
+    if (anuncio.anuncio_externo_id && anuncio.campanha_externa_id) {
+      campanhaPorAnuncio.set(
+        anuncio.anuncio_externo_id,
+        anuncio.campanha_externa_id,
+      );
+    }
+  }
+
+  const telefonesComMarcacao = new Set<string>();
+
+  // Erro nas marcações não apaga a contagem de contactos: fica a coluna de
+  // marcações a zero, que é verdade na ausência de dados, e a de contactos
+  // continua a valer.
+  if (!marcacoesResultado.error) {
+    for (const marcacao of marcacoesResultado.data) {
+      const chave = chaveTelefone(marcacao.telefone_digitos);
+
+      if (chave) {
+        telefonesComMarcacao.add(chave);
+      }
+    }
+  }
+
+  const porCampanhaExterna = new Map<string, AtribuicaoPorCampanha>();
+  let contactosComAnuncio = 0;
+
+  for (const contacto of contactosResultado.data) {
+    const anuncioId = contacto.origem_source_id?.trim();
+
+    if (!anuncioId) {
+      continue;
+    }
+
+    contactosComAnuncio += 1;
+
+    const campanhaId = campanhaPorAnuncio.get(anuncioId);
+
+    if (!campanhaId) {
+      // Anúncio que a sincronização nunca viu — apagado na Meta antes da
+      // primeira passagem. Conta para o total de contactos com anúncio, porque
+      // isso é verdade, mas não há campanha a quem o atribuir.
+      continue;
+    }
+
+    const actual = porCampanhaExterna.get(campanhaId) ?? {
+      contactos: 0,
+      marcacoes: 0,
+    };
+
+    actual.contactos += 1;
+
+    const chave = chaveTelefone(contacto.telefone_digitos);
+
+    if (chave && telefonesComMarcacao.has(chave)) {
+      actual.marcacoes += 1;
+    }
+
+    porCampanhaExterna.set(campanhaId, actual);
+  }
+
+  return { contactosComAnuncio, porCampanhaExterna };
 }
 
 export type ResumoCampanhas = {
@@ -237,22 +404,24 @@ export async function getPainelCampanhas({
 }): Promise<PainelCampanhas> {
   const supabase = await createClient();
 
-  const [custosResultado, campanhasResultado, contactosPorDia] = await Promise.all([
-    supabase
-      .from("lexia_campanha_custos")
-      .select(
-        "campanha_id, cliques, cliques_link, dia, gasto, impressoes, moeda, sincronizado_em",
-      )
-      .eq("cliente_slug", clienteSlug)
-      .gte("dia", inicio)
-      .lte("dia", fim)
-      .order("dia", { ascending: true }),
-    supabase
-      .from("lexia_campanhas")
-      .select("estado, id, nome, objectivo")
-      .eq("cliente_slug", clienteSlug),
-    contarContactosPorDia(clienteSlug, inicioIso, fimIso, timezone),
-  ]);
+  const [custosResultado, campanhasResultado, contactosPorDia, atribuicao] =
+    await Promise.all([
+      supabase
+        .from("lexia_campanha_custos")
+        .select(
+          "campanha_id, cliques, cliques_link, dia, gasto, impressoes, moeda, sincronizado_em",
+        )
+        .eq("cliente_slug", clienteSlug)
+        .gte("dia", inicio)
+        .lte("dia", fim)
+        .order("dia", { ascending: true }),
+      supabase
+        .from("lexia_campanhas")
+        .select("campanha_externa_id, estado, id, nome, objectivo")
+        .eq("cliente_slug", clienteSlug),
+      contarContactosPorDia(clienteSlug, inicioIso, fimIso, timezone),
+      contarAtribuicaoPorCampanha(clienteSlug, inicioIso, fimIso),
+    ]);
 
   if (custosResultado.error || campanhasResultado.error) {
     return painelVazio;
@@ -264,6 +433,7 @@ export async function getPainelCampanhas({
   if (custos.length === 0) {
     return {
       ...painelVazio,
+      contactosComAnuncio: atribuicao.contactosComAnuncio,
       contactosNovos: [...contactosPorDia.values()].reduce(
         (total, valor) => total + valor,
         0,
@@ -308,12 +478,20 @@ export async function getPainelCampanhas({
     acumuladoPorDia.set(custo.dia, diaAtual);
 
     const campanha = porCampanhaId.get(custo.campanha_id);
+    // A atribuição vem indexada pelo id da campanha NA META, porque é esse que
+    // o anúncio carrega; aqui a chave é o uuid da nossa tabela. A dimensão é a
+    // ponte entre os dois.
+    const atribuida = campanha?.campanha_externa_id
+      ? atribuicao.porCampanhaExterna.get(campanha.campanha_externa_id)
+      : undefined;
     const resumo = acumuladoPorCampanha.get(custo.campanha_id) ?? {
       cliques: 0,
+      contactosAtribuidos: atribuida?.contactos ?? 0,
       estado: campanha?.estado ?? null,
       gasto: 0,
       id: custo.campanha_id,
       impressoes: 0,
+      marcacoesAtribuidas: atribuida?.marcacoes ?? 0,
       nome: campanha?.nome ?? "Campanha removida da Meta",
       objectivo: campanha?.objectivo ?? null,
     };
@@ -341,6 +519,7 @@ export async function getPainelCampanhas({
     atualizadoEm,
     cliques,
     cliquesLink,
+    contactosComAnuncio: atribuicao.contactosComAnuncio,
     contactosNovos,
     // CPM e CTR do período recalculam-se dos totais. Fazer a média das médias
     // diárias daria um número diferente e errado: cada dia tem peso distinto.

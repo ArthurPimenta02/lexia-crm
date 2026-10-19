@@ -145,6 +145,26 @@ function CampaignRanking({
             {formatNumber(campanha.impressoes)} impressões
             {campanha.estado ? ` · ${campanha.estado.toLowerCase()}` : ""}
           </p>
+          {/*
+            Quem chegou por esta campanha. Só aparece quando há alguém: uma
+            linha a dizer "0 contactos" em todas as campanhas fazia parecer que
+            a medição está avariada, quando o que acontece é que o Instagram
+            não manda os dados. O aviso abaixo do ranking explica-o uma vez.
+          */}
+          {campanha.contactosAtribuidos > 0 ? (
+            <p className="mt-1 text-xs font-medium text-emerald-700">
+              {formatNumber(campanha.contactosAtribuidos)}{" "}
+              {campanha.contactosAtribuidos === 1 ? "contacto" : "contactos"}{" "}
+              identificados
+              {campanha.marcacoesAtribuidas > 0
+                ? ` · ${formatNumber(campanha.marcacoesAtribuidas)} ${
+                    campanha.marcacoesAtribuidas === 1
+                      ? "marcação"
+                      : "marcações"
+                  }`
+                : ""}
+            </p>
+          ) : null}
         </div>
       ))}
     </div>
@@ -355,6 +375,23 @@ export function CampaignsPanel({
               calculado sobre <strong>todos</strong> os contactos novos, e não
               só sobre os que vieram de anúncio — serve para comparar períodos,
               não para afirmar o custo exacto de um lead pago.
+            </p>
+            {/*
+              O mesmo limite, agora aplicado aos números por campanha. Dizer
+              isto em voz alta é o que impede o dono de olhar para "3
+              contactos" e concluir que a campanha trouxe três pessoas.
+            */}
+            <p className="mt-3 text-sm leading-6 text-amber-900/90">
+              Os contactos identificados por campanha vêm da mesma limitação:{" "}
+              <strong>
+                {formatNumber(painel.contactosComAnuncio)} de{" "}
+                {formatNumber(painel.contactosNovos)}
+              </strong>{" "}
+              contactos novos do período trazem o anúncio de origem. Só o
+              clique-para-WhatsApp o envia. É um mínimo garantido, não um total:
+              vale para comparar campanhas entre si, porque a regra falha igual
+              em todas, e não vale para dizer que fatia dos contactos veio de
+              pago.
             </p>
           </div>
         </>
