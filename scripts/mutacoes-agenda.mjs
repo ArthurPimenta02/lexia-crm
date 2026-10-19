@@ -47,6 +47,7 @@ const TESTE_EXPORTAR = "tests/exportar-csv.test.mts";
 const TESTE_AVISOS = "tests/avisos-sino.test.mts";
 const TESTE_ATRIBUICAO = "tests/atribuicao-anuncios.test.mts";
 const TESTE_WEBHOOK = "tests/webhook-cru-meta.test.mts";
+const TESTE_TOKEN = "tests/token-meta-por-cliente.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -1186,6 +1187,82 @@ const mutacoes = [
         remetente: achado.remetenteExternoId,`,
     teste: TESTE_WEBHOOK,
   },
+  {
+    de: `  const token =
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();`,
+    ficheiro: ADS,
+    nome: "o token global ganha ao do cliente",
+    para: `  const token =
+    process.env.META_ADS_TOKEN?.trim() ||
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim();`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  const token =
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();`,
+    ficheiro: ADS,
+    nome: "o cliente deixa de poder ter token próprio",
+    para: `  const token = process.env.META_ADS_TOKEN?.trim();`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  const token =
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();`,
+    ficheiro: ADS,
+    nome: "o token global deixa de servir de recurso a quem já funciona",
+    para: `  const token = process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim();`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();`,
+    ficheiro: ADS,
+    nome: "um token só de espaços conta como configurado",
+    para: `    process.env[getMetaAdsTokenEnvName(clienteSlug)] ||
+    process.env.META_ADS_TOKEN?.trim();`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  return \`\${envPrefix(clienteSlug)}_META_ADS_TOKEN\`;`,
+    ficheiro: ADS,
+    nome: "o nome do token sai só do primeiro pedaço do slug",
+    para: `  return \`\${clienteSlug.toUpperCase().split("_")[0]}_META_ADS_TOKEN\`;`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  if (!temToken) {
+    emFalta.push(getMetaAdsTokenEnvName(clienteSlug));
+  }`,
+    ficheiro: ADS,
+    nome: "o painel nunca diz que falta o token",
+    para: ``,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  const temToken =
+    Boolean(process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim()) ||
+    Boolean(process.env.META_ADS_TOKEN?.trim());`,
+    ficheiro: ADS,
+    nome: "o painel pede um token a quem já funciona com o global",
+    para: `  const temToken = Boolean(
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim(),
+  );`,
+    teste: TESTE_TOKEN,
+  },
+  {
+    de: `  if (!process.env[getMetaAdsAccountEnvName(clienteSlug)]?.trim()) {
+    emFalta.push(getMetaAdsAccountEnvName(clienteSlug));
+  }`,
+    ficheiro: ADS,
+    nome: "o painel diz que falta a conta quando o que falta é o token",
+    para: `  if (!process.env[getMetaAdsAccountEnvName(clienteSlug)]?.trim()) {
+    emFalta.push(getMetaAdsTokenEnvName(clienteSlug));
+  }`,
+    teste: TESTE_TOKEN,
+  },
 ];
 
 function correr(teste) {
@@ -1215,6 +1292,7 @@ for (const teste of [
   TESTE_AVISOS,
   TESTE_ATRIBUICAO,
   TESTE_WEBHOOK,
+  TESTE_TOKEN,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }

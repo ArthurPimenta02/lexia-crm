@@ -653,13 +653,27 @@ DETAIL_BY_CORDEIRO_META_ADS_ACCOUNT_ID
 CRON_SECRET
 ```
 
-`META_ADS_TOKEN` é um token de system user, partilhado por todos os clientes;
-o que muda por cliente é `${SLUG}_META_ADS_ACCOUNT_ID`, na mesma convenção de
-prefixo do resto do repo. `getMetaAdsConfig` devolve `null` — e não um erro —
-quando a conta não está configurada: um cliente que ainda não anuncia não é uma
-avaria, e `/admin/campanhas` mostra "(sem conta ligada)" no selector e diz qual
-variável falta. `META_API_VERSION` tem de ser mantida à frente da depreciação
-(a v24.0 expirou em 06/10/2026); o padrão no código é `v26.0`.
+**São duas variáveis por cliente, não uma: a conta e o token.** Medido a
+19/10/2026 com `/me`, `/me/adaccounts` e `/debug_token`, o `META_ADS_TOKEN` que
+está em produção **não** é partilhado: é um system user (`Lexia AI Bot`) da app
+"Messenger Detail By Cordeiro", `/me/businesses` vem vazio e `/me/adaccounts`
+devolve uma única conta — `act_713888634370334`, do Detail. Um token assim não
+consegue ler a conta de anúncios de outro cliente, e não devia: partilhá-lo
+obrigaria o dono de um cliente a dar acesso ao negócio do outro.
+
+Por isso `${SLUG}_META_ADS_TOKEN` ganha ao `META_ADS_TOKEN` global, e o global
+fica só como recurso para não quebrar quem já está configurado. O
+`${SLUG}_META_ADS_ACCOUNT_ID` segue a mesma convenção de prefixo do resto do
+repo. **Nunca deduzir o nome à mão** — `miranda_skin_experts` dá
+`MIRANDA_SKIN_EXPERTS_META_ADS_ACCOUNT_ID`, não `MIRANDA_...`; executar
+`getMetaAdsAccountEnvName` / `getMetaAdsTokenEnvName`.
+
+`getMetaAdsConfig` devolve `null` — e não um erro — quando a conta não está
+configurada: um cliente que ainda não anuncia não é uma avaria, e
+`/admin/campanhas` mostra "(sem conta ligada)" no selector e diz, pelo
+`getMetaAdsVariaveisEmFalta`, quais das duas variáveis faltam.
+`META_API_VERSION` tem de ser mantida à frente da depreciação (a v24.0 expirou
+em 06/10/2026); o padrão no código é `v26.0`.
 
 `CRON_SECRET` é usada **apenas** pelo Vercel Cron de `/api/campanhas/cron`, que
 a injeta no `Authorization` sozinho. Não confundir com `LEXIA_CRON_SECRET`, que
