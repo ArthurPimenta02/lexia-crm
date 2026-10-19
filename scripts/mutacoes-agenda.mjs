@@ -24,6 +24,9 @@ const LEITURA_PIPELINE = "lib/pipeline/read.ts";
 const CSV = "lib/exportar/csv.ts";
 const COLUNAS = "lib/exportar/colunas.ts";
 const CLIENTES = "app/components/clientes-panel.tsx";
+const AVISOS = "lib/avisos/read.ts";
+const AVISOS_ESCRITA = "lib/avisos/write.ts";
+const AVISOS_ROTA = "app/api/avisos/route.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -32,6 +35,7 @@ const TESTE_SERVICOS = "tests/servicos-da-miranda.test.mts";
 const TESTE_PIPELINE = "tests/pipeline-etapas.test.mts";
 const TESTE_ORDEM = "tests/pipeline-ordem-agendado.test.mts";
 const TESTE_EXPORTAR = "tests/exportar-csv.test.mts";
+const TESTE_AVISOS = "tests/avisos-sino.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -559,6 +563,184 @@ const mutacoes = [
     para: `      disabled={aExportar}`,
     teste: TESTE_PIPELINE,
   },
+  {
+    de: `      chave: \`por_responder:\${conversa}:\${ultima.criadoEm}\`,`,
+    ficheiro: AVISOS,
+    nome: "a chave do aviso perde o instante e fica lida para sempre",
+    para: `      chave: \`por_responder:\${conversa}\`,`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      href: ficha
+        ? \`/app/conversas?conversa=\${encodeURIComponent(conversa)}\`
+        : null,`,
+    ficheiro: AVISOS,
+    nome: "o aviso de quem não tem ficha manda para um ecrã onde ela não existe",
+    para: `      href: \`/app/conversas?conversa=\${encodeURIComponent(conversa)}\`,`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    if (contacto.identificador_conversa && !contacto.fundido_em) {`,
+    ficheiro: AVISOS,
+    nome: "um contacto já fundido noutro volta a emprestar o nome ao aviso",
+    para: `    if (contacto.identificador_conversa) {`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    if (!conversa || conversa.startsWith("teste:")) {`,
+    ficheiro: AVISOS,
+    nome: "as simulações da área de testes passam a contar como gente à espera",
+    para: `    if (!conversa) {`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    if (ultima.direccao !== "recebida" || !ultima.criadoEm) {`,
+    ficheiro: AVISOS,
+    nome: "quem já teve resposta continua a aparecer como estando à espera",
+    para: `    if (!ultima.criadoEm) {`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      .gte("criado_em", desde)
+      .order("criado_em", { ascending: true }),`,
+    ficheiro: AVISOS,
+    nome: "as mensagens vêm da mais recente para a mais antiga",
+    para: `      .gte("criado_em", desde)
+      .order("criado_em", { ascending: false }),`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      .in("status", ["pendente", "em_atendimento"])`,
+    ficheiro: AVISOS,
+    nome: "os handoffs já resolvidos continuam a acender o sino",
+    para: `      .in("status", ["pendente", "em_atendimento", "resolvido"])`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      .eq("cliente_slug", clienteSlug)
+      .eq("estado", "confirmado")`,
+    ficheiro: AVISOS,
+    nome: "a agenda do sino lê-se sem o filtro da empresa",
+    para: `      .eq("estado", "confirmado")`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      .eq("estado", "confirmado")
+      .gte("inicio", agora.toISOString())`,
+    ficheiro: AVISOS,
+    nome: "uma marcação desmarcada volta a aparecer como atendimento de hoje",
+    para: `      .gte("inicio", agora.toISOString())`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    base.from("lexia_avisos_lidos").select("chave").eq("user_id", userId),`,
+    ficheiro: AVISOS,
+    nome: "o já-lido de uma pessoa conta como lido para todas",
+    para: `    base.from("lexia_avisos_lidos").select("chave"),`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const falha =
+    mensagens.error ?? contactos.error ?? handoffs.error ?? marcacoes.error;`,
+    ficheiro: AVISOS,
+    nome: "uma leitura falhada passa por sino vazio em vez de dizer que falhou",
+    para: `  const falha = null;`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const jaLidos = new Set((lidos.data ?? []).map((linha) => linha.chave));`,
+    ficheiro: AVISOS,
+    nome: "um erro na tabela do já-lido esconde quem está à espera",
+    para: `  if (lidos.error) {
+    return { ...vazio, erro: "Não foi possível ler os avisos." };
+  }
+
+  const jaLidos = new Set((lidos.data ?? []).map((linha) => linha.chave));`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    if (a.tipo === "marcacao") {
+      return (a.quando ?? "").localeCompare(b.quando ?? "");
+    }`,
+    ficheiro: AVISOS,
+    nome: "o atendimento de amanhã à noite fica por cima do da próxima hora",
+    para: ``,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    handoff: 1,
+    marcacao: 0,
+    por_responder: 2,`,
+    ficheiro: AVISOS,
+    nome: "as marcações deixam de vir à frente dos outros avisos",
+    para: `    handoff: 0,
+    marcacao: 1,
+    por_responder: 2,`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    naoLidos: avisos.filter((aviso) => !aviso.lido).length,`,
+    ficheiro: AVISOS,
+    nome: "o número do sino conta também os avisos já vistos",
+    para: `    naoLidos: avisos.length,`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      cliente_slug: clienteSlug,
+      user_id: userId,`,
+    ficheiro: AVISOS_ESCRITA,
+    nome: "o já-lido grava-se sem dizer de quem é",
+    para: `      cliente_slug: clienteSlug,
+      user_id: null,`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      !PREFIXOS.some((prefixo) => chave.startsWith(prefixo))`,
+    ficheiro: AVISOS_ESCRITA,
+    nome: "qualquer texto passa por chave de aviso e enche a tabela",
+    para: `      false`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    .eq("user_id", userId)
+    .eq("cliente_slug", clienteSlug)
+    .eq("chave", valida);`,
+    ficheiro: AVISOS_ESCRITA,
+    nome: "desmarcar um aviso desmarca-o para todas as contas",
+    para: `    .eq("cliente_slug", clienteSlug)
+    .eq("chave", valida);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    !isClientRole(profile.role) ||
+    profile.status !== "ativo" ||`,
+    ficheiro: AVISOS_ROTA,
+    nome: "um perfil suspenso ou de administração continua a ler avisos",
+    para: ``,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const resultado = await getAvisos(quem.clienteSlug, quem.userId);`,
+    ficheiro: AVISOS_ROTA,
+    nome: "a rota lê os avisos de uma pessoa e mostra o já-lido de outra",
+    para: `  const resultado = await getAvisos(quem.clienteSlug, quem.clienteSlug);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const resultado = await marcarAvisosLidos(
+    quem.clienteSlug,
+    quem.userId,
+    chaves,
+  );`,
+    ficheiro: AVISOS_ROTA,
+    nome: "marcar como lido grava na empresa que o pedido disser",
+    para: `  const resultado = await marcarAvisosLidos(
+    String(corpo.cliente_slug ?? quem.clienteSlug),
+    String(corpo.user_id ?? quem.userId),
+    chaves,
+  );`,
+    teste: TESTE_AVISOS,
+  },
 ];
 
 function correr(teste) {
@@ -585,6 +767,7 @@ for (const teste of [
   TESTE_PIPELINE,
   TESTE_ORDEM,
   TESTE_EXPORTAR,
+  TESTE_AVISOS,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }
