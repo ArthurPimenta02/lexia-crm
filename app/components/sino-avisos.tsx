@@ -171,11 +171,25 @@ function LinhaDoAviso({ aviso, onIr }: { aviso: Aviso; onIr: () => void }) {
 }
 
 type SinoAvisosProps = {
+  /**
+   * De que lado do sino é que a lista cresce.
+   *
+   * Na barra de cima do telemóvel o sino está encostado à direita do ecrã, por
+   * isso a lista tem de crescer para dentro — `direita`. Na barra lateral do
+   * computador o sino está a 256 px da esquerda e a lista tem 320: encostá-la
+   * à direita punha-a a começar em -64 px, ou seja, meia lista fora do ecrã.
+   * Daí `esquerda`, que a deixa passar por cima do conteúdo.
+   */
+  ancora?: "direita" | "esquerda";
   className?: string;
   estado: EstadoDosAvisos;
 };
 
-export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
+export function SinoAvisos({
+  ancora = "direita",
+  className = "",
+  estado,
+}: SinoAvisosProps) {
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
   const { aCarregar, avisos, erro, marcarTodos, naoLidos } = estado;
@@ -230,14 +244,18 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
       >
         <Bell aria-hidden="true" className="h-5 w-5" />
         {naoLidos > 0 ? (
-          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">
             {naoLidos > 9 ? "9+" : naoLidos}
           </span>
         ) : null}
       </button>
 
       {aberto ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+        <div
+          className={`absolute z-50 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-surface shadow-xl ${
+            ancora === "direita" ? "right-0" : "left-0"
+          }`}
+        >
           <div className="border-b border-border px-3 py-2">
             <p className="text-sm font-semibold text-foreground">Avisos</p>
             <p className="text-xs text-muted-foreground">

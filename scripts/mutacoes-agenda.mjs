@@ -754,7 +754,11 @@ const mutacoes = [
   },
   {
     de: `          {comSino ? (
-            <SinoAvisos className="hidden lg:block" estado={avisos} />
+            <SinoAvisos
+              ancora="esquerda"
+              className="hidden lg:block"
+              estado={avisos}
+            />
           ) : null}`,
     ficheiro: MOLDURA,
     nome: "o sino desaparece da barra lateral e o computador fica sem avisos",
@@ -762,10 +766,11 @@ const mutacoes = [
     teste: TESTE_AVISOS,
   },
   {
-    de: `            <SinoAvisos className="hidden lg:block" estado={avisos} />`,
+    de: `              className="hidden lg:block"
+`,
     ficheiro: MOLDURA,
     nome: "o sino da barra lateral deixa de se esconder e aparecem dois no telemóvel",
-    para: `            <SinoAvisos estado={avisos} />`,
+    para: ``,
     teste: TESTE_AVISOS,
   },
   {
@@ -787,6 +792,34 @@ const mutacoes = [
     ficheiro: SINO,
     nome: "treze avisos escrevem um 13 que não cabe na bolinha",
     para: `            {naoLidos}`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `border border-border bg-surface shadow-xl`,
+    ficheiro: SINO,
+    nome: "a lista sai transparente com a navegação a atravessá-la",
+    para: `border border-border bg-card shadow-xl`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `rounded-full bg-danger px-1`,
+    ficheiro: SINO,
+    nome: "a bolinha fica sem vermelho nenhum",
+    para: `rounded-full bg-destructive px-1`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `            ancora === "direita" ? "right-0" : "left-0"`,
+    ficheiro: SINO,
+    nome: "a lista da barra lateral começa 64 px fora do ecrã",
+    para: `            "right-0"`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `              ancora="esquerda"`,
+    ficheiro: MOLDURA,
+    nome: "o sino do computador abre para o lado onde não há ecrã",
+    para: `              ancora="direita"`,
     teste: TESTE_AVISOS,
   },
 ];

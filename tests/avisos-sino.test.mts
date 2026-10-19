@@ -26,7 +26,7 @@
  */
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test, { mock } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -880,9 +880,9 @@ test("a bolinha diz quantos são, e acima de nove diz 9+", () => {
   // transborda; o "9+" é o que cabe.
   const html = desenharSino(13);
 
-  assert.match(html, /bg-destructive[^"]*">9\+</);
+  assert.match(html, /bg-danger[^"]*">9\+</);
   assert.match(html, /aria-label="Avisos: 13 novos"/);
-  assert.match(desenharSino(1), /bg-destructive[^"]*">1</);
+  assert.match(desenharSino(1), /bg-danger[^"]*">1</);
   assert.match(desenharSino(1), /aria-label="Avisos: 1 novo"/);
 });
 
@@ -906,6 +906,193 @@ test("sem nada novo não há bolinha vermelha nenhuma", () => {
   // um aviso e passava a ser decoração.
   const html = desenharSino(0);
 
-  assert.doesNotMatch(html, /bg-destructive/);
+  assert.doesNotMatch(html, /bg-danger/);
   assert.match(html, /aria-label="Avisos"/);
+});
+
+test("a lista do computador abre para dentro do ecrã", () => {
+  /*
+   * Também esta se afirma sobre o código-fonte: a lista só existe depois de
+   * um clique, e um desenho estático não tem cliques.
+   *
+   * O que está em jogo são 64 píxeis. O sino da barra lateral está a 256 px da
+   * esquerda e a lista tem 320 de largo: encostada à direita do sino, começava
+   * em -64 e a primeira coluna de texto ficava fora do ecrã. O da barra de
+   * cima do telemóvel é o contrário — está encostado à direita do ecrã, e é
+   * para a esquerda que tem espaço.
+   */
+  const moldura = readFileSync(`${raiz}app/components/app-sidebar.tsx`, "utf8");
+  const sino = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
+
+  assert.match(
+    moldura,
+    /ancora="esquerda"\n\s*className="hidden lg:block"/,
+    "o sino da barra lateral é o único que precisa de abrir para a direita",
+  );
+  assert.doesNotMatch(
+    moldura,
+    /<SinoAvisos estado=\{avisos\} ancora/,
+    "o do telemóvel fica com o valor de origem",
+  );
+  assert.match(sino, /ancora === "direita" \? "right-0" : "left-0"/);
+});
+
+/*
+ * O guarda das cores.
+ *
+ * A lista de avisos saiu transparente em produção, com a navegação a
+ * atravessá-la. A causa não era o desenho: era `bg-card`, um nome que vem do
+ * shadcn/ui e que este projecto nunca definiu. O Tailwind não se queixa de um
+ * nome que não conhece — não gera a regra e segue em frente. O resultado é uma
+ * caixa sem fundo nenhum, e só se vê no ecrã de quem a abre.
+ *
+ * Este teste fecha a porta a toda a família do erro (`card`, `destructive`,
+ * `popover`, `accent`, `secondary`, `input`, `ring`, ...) e não só aos dois
+ * nomes de que me lembrei: compara o que o código usa com o que o
+ * `globals.css` declara, e com a paleta que vem de fábrica no Tailwind.
+ */
+
+const PALETA_DO_TAILWIND = new Set([
+  "amber",
+  "black",
+  "blue",
+  "current",
+  "cyan",
+  "emerald",
+  "fuchsia",
+  "gray",
+  "green",
+  "indigo",
+  "inherit",
+  "lime",
+  "neutral",
+  "orange",
+  "pink",
+  "purple",
+  "red",
+  "rose",
+  "sky",
+  "slate",
+  "stone",
+  "teal",
+  "transparent",
+  "violet",
+  "white",
+  "yellow",
+  "zinc",
+]);
+
+/**
+ * Palavras que vivem atrás dos mesmos prefixos sem serem cores: `text-sm` é
+ * tamanho de letra, `border-b` é um lado, `from-0%` é uma paragem de
+ * gradiente. Não há como separá-las pelo nome do prefixo, só pela lista.
+ */
+const NAO_SAO_CORES = new Set([
+  "auto",
+  "b",
+  "balance",
+  "base",
+  "center",
+  "clip",
+  "collapse",
+  "dashed",
+  "dotted",
+  "e",
+  "ellipsis",
+  "end",
+  "hidden",
+  "inherit",
+  "justify",
+  "l",
+  "left",
+  "lg",
+  "line-through",
+  "md",
+  "mono",
+  "none",
+  "nowrap",
+  "pretty",
+  "r",
+  "right",
+  "s",
+  "sans",
+  "sm",
+  "solid",
+  "start",
+  "t",
+  "wrap",
+  "x",
+  "xl",
+  "xs",
+  "y",
+]);
+
+function tokensDoTema() {
+  const css = readFileSync(`${raiz}app/globals.css`, "utf8");
+  const nomes = new Set<string>();
+
+  for (const [, nome] of css.matchAll(/--color-([a-z0-9-]+):/g)) {
+    nomes.add(nome);
+  }
+
+  return nomes;
+}
+
+function ficheirosDoPainel(pasta: string): string[] {
+  return readdirSync(pasta, { withFileTypes: true }).flatMap((entrada) => {
+    const caminho = `${pasta}/${entrada.name}`;
+
+    if (entrada.isDirectory()) {
+      return ficheirosDoPainel(caminho);
+    }
+
+    return entrada.name.endsWith(".tsx") ? [caminho] : [];
+  });
+}
+
+test("nenhum componente pinta com uma cor que o tema não tem", () => {
+  const tokens = tokensDoTema();
+
+  assert.ok(tokens.has("surface"), "o tema tem de declarar as suas cores");
+  assert.ok(
+    !tokens.has("card") && !tokens.has("destructive"),
+    "se um dia existirem, este teste deixa de proteger de nada",
+  );
+
+  const inventadas = new Map<string, string[]>();
+
+  for (const ficheiro of ficheirosDoPainel(`${raiz}app`)) {
+    const fonte = readFileSync(ficheiro, "utf8");
+
+    // O `(?<![\w/-])` deixa de fora os caminhos de importação: sem ele,
+    // `@/app/components/scroll-to-top` passava por um `to-top`.
+    for (const [, nome] of fonte.matchAll(
+      /(?<![\w/-])(?:bg|text|border|ring|fill|stroke|divide|outline|placeholder|caret|decoration|from|to|via|shadow)-([a-z][a-z0-9-]*)\b/g,
+    )) {
+      // `border-l-primary` é a cor de um lado; `-500` é um tom da paleta;
+      // `/10` é transparência. O que interessa é a raiz do nome.
+      const raizDoNome = nome
+        .replace(/^[btlrxyse]-(?=[a-z])/, "")
+        .replace(/-\d+$/, "");
+
+      if (
+        tokens.has(raizDoNome) ||
+        PALETA_DO_TAILWIND.has(raizDoNome) ||
+        NAO_SAO_CORES.has(raizDoNome)
+      ) {
+        continue;
+      }
+
+      inventadas.set(raizDoNome, [
+        ...(inventadas.get(raizDoNome) ?? []),
+        ficheiro.slice(raiz.length),
+      ]);
+    }
+  }
+
+  assert.deepEqual(
+    [...inventadas.entries()],
+    [],
+    "estes nomes de cor não existem no globals.css: o Tailwind não gera regra nenhuma e o elemento fica sem cor",
+  );
 });

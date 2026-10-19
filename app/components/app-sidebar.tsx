@@ -126,7 +126,11 @@ export function AppSidebar({
         <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-5 pb-4">
           <LexiaBrand compact tone="light" />
           {comSino ? (
-            <SinoAvisos className="hidden lg:block" estado={avisos} />
+            <SinoAvisos
+              ancora="esquerda"
+              className="hidden lg:block"
+              estado={avisos}
+            />
           ) : null}
           <button
             aria-label="Fechar menu"
