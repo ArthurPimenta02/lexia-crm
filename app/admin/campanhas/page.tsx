@@ -13,7 +13,7 @@ import {
   getInclusiveRangeEnd,
   getSearchValue,
 } from "@/lib/dashboard/date-range";
-import { getMetaAdsAccountEnvName, getMetaAdsConfig } from "@/lib/meta/ads";
+import { getMetaAdsConfig, getMetaAdsVariaveisEmFalta } from "@/lib/meta/ads";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 
@@ -116,6 +116,9 @@ export default async function AdminCampanhasPage({
   // Quem não tem conta ligada não é uma avaria: é um cliente que ainda não
   // anuncia. Dizer qual variável falta poupa a adivinhar a convenção do nome.
   const temContaLigada = getMetaAdsConfig(clienteSlug) !== null;
+  // Podem faltar duas: a conta e o token. Listar as duas evita o caminho em que
+  // alguém cria a conta, continua sem dados, e não sabe o que mais lhe falta.
+  const variaveisEmFalta = getMetaAdsVariaveisEmFalta(clienteSlug);
   const nomesSemConta = new Set(
     clientes
       .filter((cliente) => getMetaAdsConfig(cliente.slug) === null)
@@ -190,7 +193,11 @@ export default async function AdminCampanhasPage({
         vazioMensagem={
           temContaLigada
             ? 'Este cliente tem conta de anúncios ligada, mas ainda não há gasto gravado. Carrega em "Atualizar dados" para puxar o histórico da Meta.'
-            : `Este cliente não tem conta de anúncios ligada. Falta a variável de ambiente ${getMetaAdsAccountEnvName(clienteSlug)}.`
+            : `Este cliente não tem conta de anúncios ligada. ${
+                variaveisEmFalta.length > 1
+                  ? `Faltam as variáveis de ambiente ${variaveisEmFalta.join(" e ")}.`
+                  : `Falta a variável de ambiente ${variaveisEmFalta.join("")}.`
+              }`
         }
       />
     </div>

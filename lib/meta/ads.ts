@@ -6,8 +6,18 @@ import "server-only";
  * Só lê. Nada aqui cria, pausa ou altera anúncios: o token do system user
  * "Lexia AI Bot" é usado exclusivamente para espelhar números para o painel.
  *
- * O token é um só, da Lexia; a conta de anúncios é por cliente, no padrão
- * `${PREFIX}_META_ADS_ACCOUNT_ID` já usado em lib/metrics/external-client-metrics.ts.
+ * A conta de anúncios é por cliente, no padrão `${PREFIX}_META_ADS_ACCOUNT_ID`
+ * já usado em lib/metrics/external-client-metrics.ts.
+ *
+ * O TOKEN TAMBÉM PODE SER POR CLIENTE, E ISSO NÃO É UM LUXO
+ * Medido a 19/10/2026: o `META_ADS_TOKEN` que está em produção é um system user
+ * da app "Messenger Detail By Cordeiro" e `/me/adaccounts` devolve-lhe uma
+ * única conta — a do Detail. Um token assim não consegue ler a conta de outro
+ * cliente, e não devia: cada cliente tem o seu negócio na Meta, e partilhar um
+ * token obrigaria o dono de um a dar acesso ao negócio do outro.
+ *
+ * Por isso `${PREFIX}_META_ADS_TOKEN` ganha ao global. O global continua a
+ * servir de recurso para não quebrar quem já está configurado.
  */
 
 const graphBase = "https://graph.facebook.com";
@@ -93,12 +103,54 @@ export function getMetaAdsAccountEnvName(clienteSlug: string) {
 }
 
 /**
+ * Nome exacto da variável com o token deste cliente. Devolver o nome mesmo
+ * quando ela não existe é de propósito: é isto que o painel do admin mostra a
+ * quem tem de a criar.
+ */
+export function getMetaAdsTokenEnvName(clienteSlug: string) {
+  return `${envPrefix(clienteSlug)}_META_ADS_TOKEN`;
+}
+
+/**
+ * As variáveis que faltam para este cliente, pelo nome exacto, por ordem de
+ * quem as tem de criar.
+ *
+ * Existe porque dizer só "falta a conta de anúncios" manda a pessoa errada à
+ * procura: para um cliente com negócio próprio na Meta faltam DUAS coisas — a
+ * conta e um token que a consiga ler — e o painel tem de dizer as duas.
+ *
+ * O token do cliente só conta como em falta se também não houver global: quem
+ * já funciona com o global não deve ver um aviso a pedir-lhe uma variável nova.
+ */
+export function getMetaAdsVariaveisEmFalta(clienteSlug: string): string[] {
+  const emFalta: string[] = [];
+
+  if (!process.env[getMetaAdsAccountEnvName(clienteSlug)]?.trim()) {
+    emFalta.push(getMetaAdsAccountEnvName(clienteSlug));
+  }
+
+  const temToken =
+    Boolean(process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim()) ||
+    Boolean(process.env.META_ADS_TOKEN?.trim());
+
+  if (!temToken) {
+    emFalta.push(getMetaAdsTokenEnvName(clienteSlug));
+  }
+
+  return emFalta;
+}
+
+/**
  * Devolve `null` — e não um erro — quando o cliente não tem conta de anúncios
  * configurada. Um cliente sem Meta Ads não é uma avaria; é o caso normal de
  * quem ainda não anuncia, e o painel tem de saber mostrar "sem dados".
  */
 export function getMetaAdsConfig(clienteSlug: string): MetaAdsConfig | null {
-  const token = process.env.META_ADS_TOKEN?.trim();
+  // O token do cliente ganha ao global. Um cliente com negócio próprio na Meta
+  // tem de poder ter o seu, sem depender do token de outro cliente.
+  const token =
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();
   const accountIdRaw =
     process.env[getMetaAdsAccountEnvName(clienteSlug)]?.trim();
 
