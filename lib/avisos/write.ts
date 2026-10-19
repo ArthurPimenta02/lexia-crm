@@ -1,9 +1,10 @@
 import "server-only";
 
+import { MARCA_LIMPO } from "@/lib/avisos/read";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * O "já li isto" do sino.
+ * O "já li isto" e o "tira isto daqui" do sino.
  *
  * A autorização fica a cargo de quem chama, como no resto do produto: a rota
  * tira o `user_id` e o `cliente_slug` da sessão no servidor e passa-os para
@@ -53,19 +54,23 @@ function chavesValidas(chaves: string[]) {
   return [...limpas].slice(0, MAXIMO_DE_CHAVES);
 }
 
-export async function marcarAvisosLidos(
+/**
+ * A gravação que o lido e o limpo partilham. Só a marca os separa.
+ *
+ * A validação é sempre sobre a chave NUA — sem marca. É isso que impede uma
+ * chave já marcada de voltar a ser marcada (`limpo:limpo:handoff:…`), que não
+ * é um aviso de nada e nunca seria filtrado por ninguém.
+ */
+async function gravar(
   clienteSlug: string,
   userId: string,
   chaves: string[],
-): Promise<MarcarResultado> {
-  if (!clienteSlug || !userId) {
-    return { gravadas: 0, mensagem: "Sessão sem cliente.", ok: false };
-  }
-
+  marca = "",
+) {
   const paraGravar = chavesValidas(chaves);
 
   if (paraGravar.length === 0) {
-    return { gravadas: 0, mensagem: "Não há avisos para marcar.", ok: true };
+    return { gravadas: 0, ok: true };
   }
 
   const base = createAdminClient();
@@ -76,14 +81,28 @@ export async function marcarAvisosLidos(
   // que vale, e é a data dela que faz sentido guardar.
   const { error } = await base.from("lexia_avisos_lidos").upsert(
     paraGravar.map((chave) => ({
-      chave,
+      chave: `${marca}${chave}`,
       cliente_slug: clienteSlug,
       user_id: userId,
     })),
     { ignoreDuplicates: true, onConflict: "user_id,chave" },
   );
 
-  if (error) {
+  return { gravadas: error ? 0 : paraGravar.length, ok: !error };
+}
+
+export async function marcarAvisosLidos(
+  clienteSlug: string,
+  userId: string,
+  chaves: string[],
+): Promise<MarcarResultado> {
+  if (!clienteSlug || !userId) {
+    return { gravadas: 0, mensagem: "Sessão sem cliente.", ok: false };
+  }
+
+  const { gravadas, ok } = await gravar(clienteSlug, userId, chaves);
+
+  if (!ok) {
     return {
       gravadas: 0,
       mensagem: "Não foi possível marcar os avisos como lidos.",
@@ -91,7 +110,56 @@ export async function marcarAvisosLidos(
     };
   }
 
-  return { gravadas: paraGravar.length, mensagem: "Avisos marcados.", ok: true };
+  return {
+    gravadas,
+    mensagem: gravadas === 0 ? "Não há avisos para marcar." : "Avisos marcados.",
+    ok: true,
+  };
+}
+
+/**
+ * Limpar: o aviso sai da lista.
+ *
+ * Lido e limpo não são a mesma coisa, e a diferença é a razão de isto existir.
+ * Lido acontece sozinho — fechar o sino marca o que lá estava, e o aviso fica
+ * na lista, só sem realce. Isso é bom para quem quer ver o histórico e mau
+ * para quem abre o sino e encontra trinta linhas cinzentas por baixo das duas
+ * que importam. Limpar é o gesto de quem já tratou do assunto: a linha
+ * desaparece (ver `MARCA_LIMPO` em `read.ts`).
+ *
+ * O que não acontece: ninguém é apagado. O aviso sai da lista enquanto o facto
+ * for o mesmo. Escreva a pessoa outra vez, mude o handoff de estado, e a chave
+ * muda com o facto — o aviso volta, por ser outro.
+ */
+export async function limparAvisos(
+  clienteSlug: string,
+  userId: string,
+  chaves: string[],
+): Promise<MarcarResultado> {
+  if (!clienteSlug || !userId) {
+    return { gravadas: 0, mensagem: "Sessão sem cliente.", ok: false };
+  }
+
+  const { gravadas, ok } = await gravar(
+    clienteSlug,
+    userId,
+    chaves,
+    MARCA_LIMPO,
+  );
+
+  if (!ok) {
+    return {
+      gravadas: 0,
+      mensagem: "Não foi possível limpar os avisos.",
+      ok: false,
+    };
+  }
+
+  return {
+    gravadas,
+    mensagem: gravadas === 0 ? "Não há avisos para limpar." : "Avisos limpos.",
+    ok: true,
+  };
 }
 
 /**
