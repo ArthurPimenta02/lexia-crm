@@ -6,10 +6,12 @@ import {
 } from "@/lib/produtos/read";
 import {
   createServicosClient,
+  getServicosAgendaveisConfig,
   getServicosConfig,
   normalizarNomeServico,
   toNumber,
   type EscalaoConfig,
+  type ServicosAgendaveisConfig,
   type ServicosClientConfig,
 } from "@/lib/servicos/config";
 import { createClient } from "@/lib/supabase/server";
@@ -544,24 +546,130 @@ export type ServicoAgendavel = {
 };
 
 /**
- * Os serviços que dá para marcar, lidos da tabela de agendamento.
+ * Uma linha da tabela de serviços do cliente. Só o `id` e o `nome` se sabem
+ * pelo nome: tudo o resto tem o nome que a configuração do cliente disser.
+ */
+type LinhaAgendavel = {
+  id: string | number;
+  nome: string | null;
+} & Record<string, unknown>;
+
+/**
+ * As colunas que a tabela do cliente tem de dar para se poder marcar.
+ */
+function colunasAgendaveis(config: ServicosAgendaveisConfig) {
+  const extra =
+    config.executores.modo === "colunas"
+      ? config.executores.lista.flatMap((executor) => [
+          executor.duracaoColumn,
+          executor.executaColumn,
+        ])
+      : [config.executores.coluna, config.executores.duracaoColumn];
+
+  return Array.from(
+    new Set(["id", "nome", config.precoColumn, config.activoColumn, ...extra]),
+  ).join(", ");
+}
+
+/**
+ * Quem faz este serviço, e em quanto tempo, numa tabela com uma coluna
+ * booleana e uma de duração por pessoa.
+ */
+function executoresPorColuna(
+  linha: LinhaAgendavel,
+  executores: Extract<ServicosAgendaveisConfig["executores"], { modo: "colunas" }>,
+): ExecutorAgendavel[] {
+  const lidos: ExecutorAgendavel[] = [];
+
+  for (const executor of executores.lista) {
+    if (linha[executor.executaColumn] !== true) {
+      continue;
+    }
+
+    const duracao = toNumber(
+      linha[executor.duracaoColumn] as number | string | null,
+    );
+
+    // Sem duração não se sabe a que horas o trabalho acaba, e um evento sem
+    // fim no Google não bloqueia a agenda de ninguém.
+    if (!duracao || duracao <= 0) {
+      continue;
+    }
+
+    lidos.push({
+      chave: executor.chave,
+      duracaoMinutos: Math.round(duracao),
+      nome: executor.nome,
+    });
+  }
+
+  return lidos;
+}
+
+/**
+ * O mesmo, numa tabela que escreve o nome do profissional numa coluna de
+ * texto. Dá sempre zero ou um: cada linha é de uma pessoa.
+ *
+ * Um nome que não esteja na lista da configuração é ignorado em vez de passar.
+ * O que lá está é texto escrito à mão — um "samuel " com espaço a mais, ou uma
+ * profissional nova que ainda não tem agenda ligada, não pode virar um
+ * `executor` que o workflow do n8n depois não sabe encaminhar.
+ */
+function executoresPorTexto(
+  linha: LinhaAgendavel,
+  executores: Extract<ServicosAgendaveisConfig["executores"], { modo: "texto" }>,
+): ExecutorAgendavel[] {
+  const escrito = String(linha[executores.coluna] ?? "")
+    .trim()
+    .toLowerCase();
+
+  const executor = executores.lista.find(
+    (candidato) => candidato.valor.toLowerCase() === escrito,
+  );
+
+  if (!executor) {
+    return [];
+  }
+
+  const duracao = toNumber(
+    linha[executores.duracaoColumn] as number | string | null,
+  );
+
+  if (!duracao || duracao <= 0) {
+    return [];
+  }
+
+  return [
+    {
+      chave: executor.chave,
+      duracaoMinutos: Math.round(duracao),
+      nome: executor.nome,
+    },
+  ];
+}
+
+/**
+ * Os serviços que dá para marcar, lidos da Supabase do próprio cliente.
  *
  * Não é o `getServicosSimples`, e a diferença não é cosmética. O `<select>` da
  * ficha do cliente só precisa de um nome, porque lá regista-se uma venda que
- * já aconteceu. Marcar precisa de três coisas que só a tabela de agendamento
- * tem: **quem** faz o serviço, **quanto tempo** leva e **quanto** custa.
+ * já aconteceu. Marcar precisa de três coisas: **quem** faz o serviço,
+ * **quanto tempo** leva e **quanto** custa.
  *
  * A duração é o que decide a hora de fim do evento no Google. Vem daqui e não
  * da coluna `duracao` do catálogo, que é texto livre e aceita coisas como
  * "2 a 3 semanas" — inútil para somar minutos a uma hora.
  *
  * Um serviço que nenhum executor faça não é devolvido: oferecê-lo era deixar
- * escolher uma opção que só podia acabar em erro.
+ * escolher uma opção que só podia acabar em erro. Um serviço sem preço **é**
+ * devolvido, com `precoBase` a `null` — na Miranda há 4 sob avaliação, e
+ * esconder um serviço que ela vende por não ter preço de tabela era pior do
+ * que deixar o campo do valor vazio para ela escrever.
  */
 export async function getServicosAgendaveis(
   clienteSlug: string,
 ): Promise<ServicoAgendavel[]> {
-  const config = getServicosConfig(clienteSlug);
+  const config = getServicosAgendaveisConfig(clienteSlug);
 
   if (!config) {
     return [];
@@ -573,23 +681,10 @@ export async function getServicosAgendaveis(
     return [];
   }
 
-  const colunas = Array.from(
-    new Set([
-      "id",
-      "nome",
-      "preco_base",
-      "activo",
-      ...config.executores.flatMap((executor) => [
-        executor.duracaoColumn,
-        executor.executaColumn,
-      ]),
-    ]),
-  ).join(", ");
-
   const { data, error } = await externo
-    .from(config.agendamentoTable)
-    .select(colunas)
-    .eq("activo", true);
+    .from(config.tabela)
+    .select(colunasAgendaveis(config))
+    .eq(config.activoColumn, true);
 
   if (error) {
     console.error("[servicos] falha a ler os serviços agendáveis", error);
@@ -599,36 +694,17 @@ export async function getServicosAgendaveis(
 
   const servicos: ServicoAgendavel[] = [];
 
-  for (const linha of (data ?? []) as unknown as AgendamentoRow[]) {
+  for (const linha of (data ?? []) as unknown as LinhaAgendavel[]) {
     const nome = String(linha.nome ?? "").trim();
 
     if (!linha.id || !nome) {
       continue;
     }
 
-    const executores: ExecutorAgendavel[] = [];
-
-    for (const executor of config.executores) {
-      if (linha[executor.executaColumn] !== true) {
-        continue;
-      }
-
-      const duracao = toNumber(
-        linha[executor.duracaoColumn] as number | string | null,
-      );
-
-      // Sem duração não se sabe a que horas o trabalho acaba, e um evento sem
-      // fim no Google não bloqueia a agenda de ninguém.
-      if (!duracao || duracao <= 0) {
-        continue;
-      }
-
-      executores.push({
-        chave: executor.chave,
-        duracaoMinutos: Math.round(duracao),
-        nome: executor.nome,
-      });
-    }
+    const executores =
+      config.executores.modo === "colunas"
+        ? executoresPorColuna(linha, config.executores)
+        : executoresPorTexto(linha, config.executores);
 
     if (executores.length === 0) {
       continue;
@@ -638,7 +714,9 @@ export async function getServicosAgendaveis(
       executores,
       id: String(linha.id),
       nome,
-      precoBase: toNumber(linha.preco_base),
+      precoBase: toNumber(
+        linha[config.precoColumn] as number | string | null,
+      ),
     });
   }
 

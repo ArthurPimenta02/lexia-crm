@@ -433,6 +433,55 @@ export type MarcarNaAgenda = {
 };
 
 /**
+ * Marcar sem ter de abrir um dia primeiro.
+ *
+ * O botão do painel do dia continua a existir e serve para outra coisa: lá, o
+ * dia já está escolhido. Este abre com o dia de referência do período que está
+ * à vista, e o formulário tem o campo do dia para se mudar — é o caminho de
+ * quem chega à agenda já a saber que quer marcar.
+ */
+function PainelDeMarcar({
+  dia,
+  fechar,
+  marcar,
+  moeda,
+  timeZone,
+}: {
+  dia: string;
+  fechar: () => void;
+  marcar: MarcarNaAgenda;
+  moeda: string | null;
+  timeZone: string;
+}) {
+  usePainel(fechar, true);
+
+  return (
+    <div
+      aria-label="Marcar atendimento"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
+      onClick={fechar}
+      role="dialog"
+    >
+      <div
+        className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-t-3xl border border-border bg-surface p-3 shadow-xl sm:max-h-[86vh] sm:max-w-lg sm:rounded-2xl sm:p-4"
+        onClick={(evento) => evento.stopPropagation()}
+      >
+        <NovaMarcacaoForm
+          action={marcar.action}
+          contactos={marcar.contactos}
+          dia={dia}
+          fechar={fechar}
+          moeda={moeda}
+          servicos={marcar.servicos}
+          timeZone={timeZone}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
  * O painel de um dia.
  *
  * Ao telemóvel sobe de baixo e ocupa o ecrã até 85% da altura, que é o gesto
@@ -994,6 +1043,7 @@ export function AgendaPanel({
 }) {
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [eventoAberto, setEventoAberto] = useState<string | null>(null);
+  const [aMarcarDoTopo, setAMarcarDoTopo] = useState(false);
 
   const ligacao = ({
     dia,
@@ -1063,7 +1113,7 @@ export function AgendaPanel({
           outubro e carrega em "Semana" quer a semana em que está, não a
           semana do dia 1.
         */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Botao
             activo={agenda.vista === "semana"}
             href={ligacao({ dia: agenda.diaDeReferencia, vista: "semana" })}
@@ -1076,6 +1126,21 @@ export function AgendaPanel({
           >
             Mês
           </Botao>
+
+          {/*
+            Marcar fica aqui em cima e não só dentro do painel do dia: quem
+            chega à agenda a querer marcar tinha de adivinhar que o caminho
+            era abrir um dia primeiro.
+          */}
+          {marcar ? (
+            <button
+              className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              onClick={() => setAMarcarDoTopo(true)}
+              type="button"
+            >
+              Marcar atendimento
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -1144,6 +1209,16 @@ export function AgendaPanel({
         </span>
         <span>Carrega num dia, ou num atendimento, para ver o detalhe.</span>
       </p>
+
+      {marcar && aMarcarDoTopo ? (
+        <PainelDeMarcar
+          dia={agenda.diaDeReferencia}
+          fechar={() => setAMarcarDoTopo(false)}
+          marcar={marcar}
+          moeda={moeda}
+          timeZone={timeZone}
+        />
+      ) : null}
 
       {dia ? (
         <PainelDoDia
