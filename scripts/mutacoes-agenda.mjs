@@ -14,10 +14,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const MARCAR = "lib/agenda/marcar.ts";
 const ACCOES = "app/app/agenda/actions.ts";
+const CONFIG = "lib/servicos/config.ts";
 const FUSO = "lib/clientes/timezone.ts";
+const LEITURA = "lib/servicos/read.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
+const TESTE_MIRANDA = "tests/agenda-da-miranda.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -136,6 +139,89 @@ const mutacoes = [
     para: "",
     teste: TESTE_ACCAO,
   },
+  {
+    de: `    activoColumn: "ativo",
+    envPrefix: "MIRANDA",`,
+    ficheiro: CONFIG,
+    nome: "a Miranda é filtrada pela coluna do activo do Detail",
+    para: `    activoColumn: "activo",
+    envPrefix: "MIRANDA",`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `    precoColumn: "preco",
+    tabela: "servicos_miranda",`,
+    ficheiro: CONFIG,
+    nome: "o preço dela é lido da coluna de preço do Detail",
+    para: `    precoColumn: "preco_base",
+    tabela: "servicos_miranda",`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `        { chave: "Samuel", nome: "Samuel", valor: "Samuel" },`,
+    ficheiro: CONFIG,
+    nome: "a chave do Samuel passa a minúsculas, como no Detail",
+    para: `        { chave: "samuel", nome: "Samuel", valor: "Samuel" },`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `      coluna: "profissional",
+      duracaoColumn: "duracao_agenda_min",`,
+    ficheiro: CONFIG,
+    nome: "a duração dela é lida de outra coluna qualquer",
+    para: `      coluna: "profissional",
+      duracaoColumn: "duracao_minutos",`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `    clientConfigs[clienteSlug]?.moeda ??
+    agendaveisConfigs[clienteSlug]?.moeda ??
+    null`,
+    ficheiro: CONFIG,
+    nome: "a moeda de quem não vende serviços no painel vira euros",
+    para: `    clientConfigs[clienteSlug]?.moeda ?? "EUR"`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `  const executor = executores.lista.find(
+    (candidato) => candidato.valor.toLowerCase() === escrito,
+  );
+
+  if (!executor) {
+    return [];
+  }`,
+    ficheiro: LEITURA,
+    nome: "um profissional fora da lista passa a executor tal como está escrito",
+    para: `  const executor = executores.lista.find(
+    (candidato) => candidato.valor.toLowerCase() === escrito,
+  ) ?? { chave: escrito, nome: escrito, valor: escrito };`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `      precoBase: toNumber(
+        linha[config.precoColumn] as number | string | null,
+      ),`,
+    ficheiro: LEITURA,
+    nome: "um serviço sem preço de tabela é escondido de quem o vende",
+    para: `      precoBase:
+        toNumber(linha[config.precoColumn] as number | string | null) ?? 0,`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: `    Samuel: (dia) => (dia >= 1 && dia <= 6 ? [9, 22] : null),`,
+    ficheiro: MARCAR,
+    nome: "o horário dela volta às 10h–20h que ela declara",
+    para: `    Samuel: (dia) => (dia >= 1 && dia <= 6 ? [10, 20] : null),`,
+    teste: TESTE_MIRANDA,
+  },
+  {
+    de: "  const horario = horarioPorCliente[clienteSlug]?.[executor.chave] ?? null;",
+    ficheiro: MARCAR,
+    nome: "o horário é sempre o do Detail, seja qual for a empresa",
+    para:
+      "  const horario = horarioPorCliente.detail_by_cordeiro?.[executor.chave] ?? null;",
+    teste: TESTE_MIRANDA,
+  },
 ];
 
 function correr(teste) {
@@ -154,7 +240,7 @@ function correr(teste) {
 
 console.log("Antes de estragar nada:");
 
-for (const teste of [TESTE_ESCRITA, TESTE_ACCAO]) {
+for (const teste of [TESTE_ESCRITA, TESTE_ACCAO, TESTE_MIRANDA]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }
 

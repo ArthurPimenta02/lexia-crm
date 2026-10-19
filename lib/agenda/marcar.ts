@@ -100,15 +100,38 @@ const limiteDuracaoMinutos = 60 * 24 * 14;
 /**
  * As horas em que cada um trabalha, só para avisar.
  *
- * Copiadas do `janelaTrabalho` do `Validar Pedido` (lido pela API do n8n a
- * 2026-10-19): Martim de segunda a sexta 9–18 e sábado 9–13, Roberto de
- * segunda a sexta 9–17, nenhum dos dois ao domingo. Estão aqui em duplicado de
- * propósito — são o que gera a frase do aviso, e não o que decide se a
- * marcação passa. Quem decide é o dono.
+ * O Detail está copiado do `janelaTrabalho` do `Validar Pedido` (lido pela API
+ * do n8n a 2026-10-19): Martim de segunda a sexta 9–18 e sábado 9–13, Roberto
+ * de segunda a sexta 9–17, nenhum dos dois ao domingo.
+ *
+ * A Miranda não tem janela escrita em workflow nenhum, e a declarada não bate
+ * com a praticada. O `info_clinica_miranda` diz "segunda a sábado 10:00–20:00,
+ * domingo fechado" — mas das 172 marcações reais dela há 10 a começar às 9h e
+ * 8 a acabar depois das 21h. Com a janela declarada, uma em cada três
+ * marcações normais levava aviso, e um aviso que aparece sempre deixa de ser
+ * lido. Aqui está a janela praticada, 9–22, e o domingo fica a avisar porque
+ * são 4 de 172.
+ *
+ * É só o que gera a frase do aviso, e não o que decide se a marcação passa.
+ * Quem decide é o dono. Um cliente que não esteja aqui não leva aviso de
+ * horário nenhum: inventar que alguém "não trabalha neste dia" sem saber o
+ * horário dele era pior do que ficar calado.
  */
-const horarioPorExecutor: Record<string, (diaDaSemana: number) => number[] | null> = {
-  martim: (dia) => (dia >= 1 && dia <= 5 ? [9, 18] : dia === 6 ? [9, 13] : null),
-  roberto: (dia) => (dia >= 1 && dia <= 5 ? [9, 17] : null),
+type JanelaDeTrabalho = (diaDaSemana: number) => number[] | null;
+
+const horarioPorCliente: Record<
+  string,
+  Record<string, JanelaDeTrabalho | undefined> | undefined
+> = {
+  detail_by_cordeiro: {
+    martim: (dia) =>
+      dia >= 1 && dia <= 5 ? [9, 18] : dia === 6 ? [9, 13] : null,
+    roberto: (dia) => (dia >= 1 && dia <= 5 ? [9, 17] : null),
+  },
+  miranda_skin_experts: {
+    Bruna: (dia) => (dia >= 1 && dia <= 6 ? [9, 22] : null),
+    Samuel: (dia) => (dia >= 1 && dia <= 6 ? [9, 22] : null),
+  },
 };
 
 /**
@@ -291,18 +314,19 @@ export async function prepararNovaMarcacao({
 
   const avisos: AvisoDaMarcacao[] = [];
   const { diaDaSemana, horaDecimal } = diaEHoraNoFuso(inicioIso, timeZone);
-  const janela = horarioPorExecutor[executor.chave]?.(diaDaSemana) ?? null;
+  const horario = horarioPorCliente[clienteSlug]?.[executor.chave] ?? null;
+  const janela = horario?.(diaDaSemana) ?? null;
   const fimDecimal = horaDecimal + duracaoMinutos / 60;
 
   if (new Date(inicioIso).getTime() < Date.now()) {
     avisos.push({ texto: "Esta hora já passou." });
   }
 
-  if (!janela) {
+  if (horario && !janela) {
     avisos.push({
       texto: `${executor.nome} não trabalha neste dia da semana.`,
     });
-  } else if (horaDecimal < janela[0] || fimDecimal > janela[1]) {
+  } else if (janela && (horaDecimal < janela[0] || fimDecimal > janela[1])) {
     avisos.push({
       texto: `Fica fora do horário de ${executor.nome} (${janela[0]}h–${janela[1]}h).`,
     });

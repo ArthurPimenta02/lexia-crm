@@ -11,7 +11,7 @@ import { getAgenda, VISTAS, type Vista } from "@/lib/agenda/read";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
-import { getServicosConfig } from "@/lib/servicos/config";
+import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 
 export const metadata = {
@@ -73,8 +73,9 @@ export default async function AgendaPage({
    * - `marcarEstaLigado()`: sem a porta para o n8n configurada não há como
    *   escrever no Google, e escrever só nesta tabela punha o agente a oferecer
    *   a mesma hora a outra pessoa.
-   * - serviços agendáveis: sem catálogo de agendamento não há duração nem
-   *   preço, e é a Miranda — que não tem `clientConfigs`.
+   * - serviços agendáveis: sem a tabela de serviços do cliente descrita em
+   *   `getServicosAgendaveisConfig` não há duração, e sem duração não se sabe
+   *   a que horas o trabalho acaba.
    */
   const podeMarcar =
     profile.role === "cliente_admin" && !agenda.erro && marcarEstaLigado();
@@ -104,10 +105,9 @@ export default async function AgendaPage({
           agenda={agenda}
           executorEscolhido={executor}
           marcar={marcar}
-          // Sem catálogo não se sabe a moeda, e escrever "EUR" para um
-          // cliente de Boston era inventar. A Miranda não tem `valor_previsto`
-          // em linha nenhuma, por isso não se perde nada.
-          moeda={getServicosConfig(profile.cliente_slug)?.moeda ?? null}
+          // Sem cliente conhecido não se sabe a moeda, e escrever "EUR" por
+          // omissão punha um preço em euros no ecrã de quem cobra em dólares.
+          moeda={getMoedaDoCliente(profile.cliente_slug)}
           timeZone={timeZone}
         />
       )}
