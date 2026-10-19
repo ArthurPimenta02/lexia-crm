@@ -29,6 +29,7 @@ const AVISOS_ESCRITA = "lib/avisos/write.ts";
 const AVISOS_ROTA = "app/api/avisos/route.ts";
 const MOLDURA = "app/components/app-sidebar.tsx";
 const SINO = "app/components/sino-avisos.tsx";
+const DICA = "app/components/dica.tsx";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -820,6 +821,51 @@ const mutacoes = [
     ficheiro: MOLDURA,
     nome: "o sino do computador abre para o lado onde não há ecrã",
     para: `              ancora="direita"`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `transition-transform duration-200 lg:static lg:h-full`,
+    ficheiro: MOLDURA,
+    nome: "o conteúdo desenha-se por cima da lista de avisos aberta",
+    para: `transition-transform duration-200 lg:static lg:z-auto lg:h-full`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const fechar = useCallback(() => {
+    setAberto(false);
+    marcarTodos();
+  }, [marcarTodos]);`,
+    ficheiro: SINO,
+    nome: "a lista nasce toda cinzenta e esconde o que é novo",
+    para: `  const fechar = useCallback(() => {
+    setAberto(false);
+  }, []);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `                    onIr={fechar}`,
+    ficheiro: SINO,
+    nome: "sair pela conversa deixa o sino vermelho para sempre",
+    para: `                    onIr={() => setAberto(false)}`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `        ? createPortal(`,
+    ficheiro: DICA,
+    nome: "a explicação do ⓘ volta a ser cortada pelo cartão",
+    para: `        ? ((componente) => componente)(`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `        <Info aria-hidden="true" className="h-3.5 w-3.5" />
+      </button>`,
+    ficheiro: DICA,
+    nome: "o balão volta para dentro do cartão, à espera de ser decapitado",
+    para: `        <Info aria-hidden="true" className="h-3.5 w-3.5" />
+      </button>
+      <span className="pointer-events-none absolute bottom-full opacity-0">
+        {texto}
+      </span>`,
     teste: TESTE_AVISOS,
   },
 ];

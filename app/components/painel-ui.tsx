@@ -1,5 +1,8 @@
-import { Info } from "lucide-react";
 import type { ReactNode } from "react";
+
+import { Dica } from "@/app/components/dica";
+
+export { Dica };
 
 /**
  * As peças visuais do painel.
@@ -17,38 +20,6 @@ import type { ReactNode } from "react";
  * `bg-primary`) e não de valores escritos à mão. É isso que permite trocar a
  * cor de um cliente num sítio só.
  */
-
-/**
- * O `?` que guarda a explicação que antes era um parágrafo.
- *
- * No telemóvel o balão é uma barra fixa em baixo, e não uma bolha centrada
- * no ícone. Centrada não cabia: metade dos `?` deste painel vivem na coluna
- * direita das grelhas, a uns 320px da margem, e um balão de 240px centrado
- * aí sai cerca de 70px para fora do ecrã — ficava cortada exactamente a
- * explicação que justifica ter tirado o texto de baixo dos números. O CSS
- * não consegue escolher sozinho o lado onde há espaço, por isso em ecrã
- * estreito o balão deixa de apontar ao ícone e ocupa a largura toda, que
- * cabe sempre.
- */
-export function Dica({ texto }: { texto: string }) {
-  return (
-    <span className="group relative inline-flex shrink-0 align-middle">
-      <button
-        aria-label={texto}
-        className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition hover:text-foreground"
-        type="button"
-      >
-        <Info aria-hidden="true" className="h-3.5 w-3.5" />
-      </button>
-      <span
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-30 rounded-xl bg-foreground px-3 py-2 text-xs leading-relaxed font-normal text-background opacity-0 shadow-xl transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:absolute sm:inset-x-auto sm:bottom-full sm:left-1/2 sm:mb-2 sm:w-60 sm:-translate-x-1/2"
-      >
-        {texto}
-      </span>
-    </span>
-  );
-}
 
 /**
  * O cabeçalho de uma página.

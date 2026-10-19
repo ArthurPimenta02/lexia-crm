@@ -17,12 +17,12 @@ import type { Aviso, AvisosResultado, TipoDeAviso } from "@/lib/avisos/read";
  * avisos, cada página do produto fazia duas leituras iguais à base. O hook
  * corre uma vez na moldura e o estado desce para os dois.
  *
- * Porque é que o número desaparece ao abrir
- * ----------------------------------------
- * Abrir a lista é ver os avisos. Marcar como lido ao abrir é o que faz o sino
- * voltar a zero e, por isso, o que o mantém útil: um sino que está sempre
- * vermelho é um sino que ninguém lê. Os avisos continuam todos na lista — o
- * que se apaga é o realce, não a informação.
+ * Porque é que o número desaparece ao fechar
+ * ------------------------------------------
+ * Ver a lista é ver os avisos. Marcá-los como lidos é o que faz o sino voltar
+ * a zero e, por isso, o que o mantém útil: um sino que está sempre vermelho é
+ * um sino que ninguém lê. Os avisos continuam todos na lista — o que se apaga
+ * é o realce, não a informação.
  *
  * E se a situação mudar, o aviso volta: a chave de cada aviso carrega o
  * instante do facto, por isso uma mensagem nova é uma chave nova e acende o
@@ -194,6 +194,23 @@ export function SinoAvisos({
   const caixa = useRef<HTMLDivElement>(null);
   const { aCarregar, avisos, erro, marcarTodos, naoLidos } = estado;
 
+  /**
+   * Fechar é o que marca tudo como visto — não abrir.
+   *
+   * Marcava-se ao abrir, e o resultado era uma lista que nascia toda cinzenta:
+   * no instante em que ela aparecia, já nada lá estava por ler, e o realce que
+   * distingue o novo do velho apagava-se debaixo do olho de quem o ia ler. A
+   * lista ficava com cinco linhas iguais e nenhuma pista do que mudou.
+   *
+   * Ao fechar, a conta é a mesma — o número volta a zero na mesma, porque
+   * fechar a lista é ter acabado de a ver — e enquanto ela está aberta o
+   * realce faz o trabalho dele.
+   */
+  const fechar = useCallback(() => {
+    setAberto(false);
+    marcarTodos();
+  }, [marcarTodos]);
+
   useEffect(() => {
     if (!aberto) {
       return;
@@ -201,12 +218,12 @@ export function SinoAvisos({
 
     const aoClicarFora = (evento: MouseEvent) => {
       if (!caixa.current?.contains(evento.target as Node)) {
-        setAberto(false);
+        fechar();
       }
     };
     const aoTeclar = (evento: KeyboardEvent) => {
       if (evento.key === "Escape") {
-        setAberto(false);
+        fechar();
       }
     };
 
@@ -217,16 +234,16 @@ export function SinoAvisos({
       document.removeEventListener("mousedown", aoClicarFora);
       document.removeEventListener("keydown", aoTeclar);
     };
-  }, [aberto]);
+  }, [aberto, fechar]);
 
   const abrir = () => {
-    const vaiAbrir = !aberto;
+    if (aberto) {
+      fechar();
 
-    setAberto(vaiAbrir);
-
-    if (vaiAbrir) {
-      marcarTodos();
+      return;
     }
+
+    setAberto(true);
   };
 
   return (
@@ -283,7 +300,7 @@ export function SinoAvisos({
                   <LinhaDoAviso
                     aviso={aviso}
                     key={aviso.chave}
-                    onIr={() => setAberto(false)}
+                    onIr={fechar}
                   />
                 ))}
               </ul>

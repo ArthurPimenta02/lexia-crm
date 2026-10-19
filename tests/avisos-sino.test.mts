@@ -253,6 +253,7 @@ mock.module("@/app/actions/auth", {
 
 const { AppSidebar } = await import("@/app/components/app-sidebar");
 const { SinoAvisos } = await import("@/app/components/sino-avisos");
+const { GrupoMetricas } = await import("@/app/components/painel-ui");
 
 function comSessao(
   profile: {
@@ -908,6 +909,88 @@ test("sem nada novo não há bolinha vermelha nenhuma", () => {
 
   assert.doesNotMatch(html, /bg-danger/);
   assert.match(html, /aria-label="Avisos"/);
+});
+
+test("nada do conteúdo se desenha por cima da lista de avisos", () => {
+  /*
+   * A barra lateral tem `lg:translate-x-0`, e uma deslocação — qualquer uma,
+   * mesmo de zero — faz dela um contexto de empilhamento próprio. Com
+   * `z-auto`, o contexto inteiro ia parar ao nível dos elementos posicionados
+   * do `<main>`, que vem depois no documento e por isso ganhava. Via-se: os
+   * ícones de informação dos cartões do dashboard apareciam desenhados por
+   * cima da lista de avisos aberta.
+   */
+  const html = desenharMoldura(true);
+  const barra = html.match(/<aside class="([^"]*)"/)?.[1] ?? "";
+
+  assert.match(barra, /\btranslate-x-0\b/, "é isto que cria o contexto");
+  assert.match(barra, /\bz-50\b/);
+  assert.doesNotMatch(
+    barra,
+    /\blg:z-auto\b/,
+    "sem z no computador, a barra inteira passa para trás do conteúdo",
+  );
+});
+
+test("marcar como visto é ao fechar a lista, não ao abri-la", () => {
+  /*
+   * Mais uma do código-fonte: são dois manipuladores de eventos, e um desenho
+   * estático não clica em nada.
+   *
+   * Marcava-se ao abrir, e a lista nascia toda cinzenta — no instante em que
+   * aparecia, já nada lá estava por ler. O realce que separa o novo do velho
+   * apagava-se debaixo do olho de quem o ia ler.
+   */
+  const fonte = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
+
+  assert.match(
+    fonte,
+    /const fechar = useCallback\(\(\) => \{\n\s*setAberto\(false\);\n\s*marcarTodos\(\);/,
+    "fechar é que marca",
+  );
+  assert.doesNotMatch(
+    fonte,
+    /if \(vaiAbrir\) \{\n\s*marcarTodos\(\);/,
+    "abrir não pode marcar nada",
+  );
+  // Ir para a conversa também é fechar a lista: conta como vista.
+  assert.match(fonte, /onIr=\{fechar\}/);
+});
+
+test("a explicação do ⓘ não se desenha dentro do cartão que a corta", () => {
+  /*
+   * A faixa de métricas é um cartão só com `overflow-hidden`, e precisa dele:
+   * é o que corta as bordas a mais da última coluna. Um balão desenhado lá
+   * dentro, que se abre para cima, é um balão decapitado — era exactamente o
+   * que se via, uma ponta de preto a espreitar por baixo dos cartões.
+   *
+   * Daí o balão viver no fim do documento, fora do cartão. Aqui vê-se pelo
+   * que o cartão NÃO traz: o texto da explicação aparece uma vez só, no
+   * `aria-label` do botão. A versão partida trazia-o duas.
+   */
+  const explicacao = "De onde vem este numero.";
+  const html = renderToStaticMarkup(
+    createElement(GrupoMetricas, {
+      itens: [{ dica: explicacao, label: "Agendamentos", valor: 1 }],
+    }),
+  );
+
+  assert.match(html, /overflow-hidden/, "o cartão corta, e vai continuar a");
+  assert.equal(
+    html.split(explicacao).length - 1,
+    1,
+    "o balão não pode estar dentro do cartão: lá dentro fica cortado",
+  );
+  assert.match(html, new RegExp(`aria-label="${explicacao}"`));
+
+  const dica = readFileSync(`${raiz}app/components/dica.tsx`, "utf8");
+
+  assert.match(
+    dica,
+    /createPortal\(/,
+    "é o portal que tira o balão de dentro do cartão",
+  );
+  assert.match(dica, /document\.body,/);
 });
 
 test("a lista do computador abre para dentro do ecrã", () => {
