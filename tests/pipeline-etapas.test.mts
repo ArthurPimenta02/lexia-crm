@@ -10,6 +10,12 @@
  *
  * Por isso os testes aqui guardam a ORDEM das perguntas, que é a parte frágil,
  * e não os rótulos.
+ *
+ * A ordem mudou a 2026-10-19: "Agendado" passou a ganhar a "Por responder".
+ * O que protegia o cliente da véspera passou a ser o `porResponder`, que viaja
+ * com o cartão para qualquer coluna. Os testes abaixo guardam as duas metades
+ * dessa troca — a coluna E o aviso — porque sem a segunda a primeira esconde
+ * gente.
  */
 
 import assert from "node:assert/strict";
@@ -40,10 +46,10 @@ function factos(parciais: Partial<FactosDoCartao> = {}): FactosDoCartao {
   };
 }
 
-test("quem escreveu e espera resposta vem antes de tudo, marcação incluída", () => {
-  // O caso real: cliente com marcação amanhã pergunta hoje se pode mudar a
-  // hora. Se "Agendado" ganhasse, a pergunta ficava escondida numa coluna que
-  // parece resolvida.
+test("quem agendou aparece em Agendado mesmo tendo escrito hoje", () => {
+  // O caso real do Detail a 2026-10-19: o Thiago Correia tinha marcação a
+  // 02/11 e escreveu nesse dia. Ficava em "Por responder" e a coluna
+  // "Agendado" dizia zero — com a marcação à vista no cartão ao lado.
   const { etapa } = derivarEtapa(
     factos({
       marcacaoFutura: new Date("2026-10-19T09:00:00.000Z"),
@@ -53,11 +59,49 @@ test("quem escreveu e espera resposta vem antes de tudo, marcação incluída", 
     AGORA,
   );
 
-  assert.equal(etapa, "por_responder");
+  assert.equal(etapa, "agendado");
 });
 
-test("uma pergunta antiga deixa de ser urgente e cai para a marcação", () => {
-  const { etapa } = derivarEtapa(
+test("o cartão que muda de coluna leva o aviso de resposta consigo", () => {
+  // Esta é a outra metade da troca. Sem o `porResponder`, o cliente que
+  // pergunta na véspera se pode mudar a hora ficava escondido numa coluna que
+  // parece resolvida — que era exactamente a razão da ordem antiga.
+  const { etapa, porResponder, porque } = derivarEtapa(
+    factos({
+      marcacaoFutura: new Date("2026-10-19T09:00:00.000Z"),
+      ultimaFoiRecebida: true,
+      ultimaMensagemEm: haDias(0),
+    }),
+    AGORA,
+  );
+
+  assert.equal(etapa, "agendado");
+  assert.equal(porResponder, true);
+  assert.equal(
+    porque,
+    "Tem uma marcação por acontecer. Escreveu hoje e ainda não teve resposta.",
+  );
+});
+
+test("quem agendou e não escreveu nada não leva aviso nenhum", () => {
+  const { etapa, porResponder, porque } = derivarEtapa(
+    factos({
+      marcacaoFutura: new Date("2026-10-25T09:00:00.000Z"),
+      ultimaFoiRecebida: false,
+      ultimaMensagemEm: haDias(2),
+    }),
+    AGORA,
+  );
+
+  assert.equal(etapa, "agendado");
+  assert.equal(porResponder, false);
+  assert.equal(porque, "Tem uma marcação por acontecer.");
+});
+
+test("uma pergunta antiga deixa de contar como por responder", () => {
+  // Passados os 7 dias deixa de ser urgente: o cartão fica em "Agendado" sem
+  // aviso, senão o vermelho ficava aceso para sempre.
+  const { etapa, porResponder } = derivarEtapa(
     factos({
       marcacaoFutura: new Date("2026-10-25T09:00:00.000Z"),
       ultimaFoiRecebida: true,
@@ -67,6 +111,35 @@ test("uma pergunta antiga deixa de ser urgente e cai para a marcação", () => {
   );
 
   assert.equal(etapa, "agendado");
+  assert.equal(porResponder, false);
+});
+
+test("sem marcação, quem escreveu e espera continua na sua coluna", () => {
+  const { etapa, porResponder } = derivarEtapa(
+    factos({ ultimaFoiRecebida: true, ultimaMensagemEm: haDias(0) }),
+    AGORA,
+  );
+
+  assert.equal(etapa, "por_responder");
+  assert.equal(porResponder, true);
+});
+
+test("nenhuma outra coluna acende o aviso de resposta", () => {
+  // O aviso só pode existir em "Agendado" e em "Por responder". Se aparecesse
+  // num cartão de "Perdido" seria uma afirmação falsa a vermelho.
+  const casos: FactosDoCartao[] = [
+    factos({ ultimaMensagemEm: haDias(2) }),
+    factos({ marcacaoPassada: haDias(30), ultimaMensagemEm: haDias(20) }),
+    factos({ ultimaMensagemEm: haDias(20) }),
+    factos({ ultimaMensagemEm: haDias(60) }),
+    factos({ ultimaMensagemEm: null }),
+  ];
+
+  for (const entrada of casos) {
+    const { etapa, porResponder } = derivarEtapa(entrada, AGORA);
+
+    assert.equal(porResponder, false, `${etapa} não devia levar aviso`);
+  }
 });
 
 test("marcação por acontecer ganha ao tempo da conversa", () => {

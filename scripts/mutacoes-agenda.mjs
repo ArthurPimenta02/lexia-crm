@@ -18,11 +18,13 @@ const CONFIG = "lib/servicos/config.ts";
 const FUSO = "lib/clientes/timezone.ts";
 const LEITURA = "lib/servicos/read.ts";
 const PAINEL = "app/components/servicos-panel.tsx";
+const ETAPAS = "lib/pipeline/etapas.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
 const TESTE_MIRANDA = "tests/agenda-da-miranda.test.mts";
 const TESTE_SERVICOS = "tests/servicos-da-miranda.test.mts";
+const TESTE_PIPELINE = "tests/pipeline-etapas.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -326,6 +328,45 @@ const mutacoes = [
                       }`,
     teste: TESTE_SERVICOS,
   },
+  {
+    de: "  if (factos.marcacaoFutura) {",
+    ficheiro: ETAPAS,
+    nome: "a ordem antiga volta: quem escreveu hoje sai da coluna Agendado",
+    para: "  if (factos.marcacaoFutura && !porResponder) {",
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: "  const porResponder = factos.ultimaFoiRecebida && dias <= DIAS_ACTIVO;",
+    ficheiro: ETAPAS,
+    nome: "o aviso de resposta nunca acende",
+    para: "  const porResponder = false;",
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `      porque: "A conversa está viva.",
+      porResponder: false,`,
+    ficheiro: ETAPAS,
+    nome: "o aviso de resposta acende numa coluna onde não há ninguém à espera",
+    para: `      porque: "A conversa está viva.",
+      porResponder: true,`,
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `      porque: porResponder
+        ? \`Tem uma marcação por acontecer. \${semResposta}\`
+        : "Tem uma marcação por acontecer.",`,
+    ficheiro: ETAPAS,
+    nome: "o cartão agendado deixa de dizer que ninguém respondeu",
+    para: `      porque: "Tem uma marcação por acontecer.",`,
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: "  const porResponder = factos.ultimaFoiRecebida && dias <= DIAS_ACTIVO;",
+    ficheiro: ETAPAS,
+    nome: "o aviso fica aceso para sempre, sem o limite dos 7 dias",
+    para: "  const porResponder = factos.ultimaFoiRecebida;",
+    teste: TESTE_PIPELINE,
+  },
 ];
 
 function correr(teste) {
@@ -349,6 +390,7 @@ for (const teste of [
   TESTE_ACCAO,
   TESTE_MIRANDA,
   TESTE_SERVICOS,
+  TESTE_PIPELINE,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }
