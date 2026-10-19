@@ -263,42 +263,53 @@ export function ServicosPanel({
       .flatMap((servico) => servico.executores)
       .find((linha) => linha.chave === principal)?.nome ?? "executor";
 
+  const temEscaloes = painel.escaloes.length > 0;
+
   return (
     <>
-      <div className="rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex flex-col gap-3">
-            {leading}
-            {/*
-              A frase "A mostrar o preço de X" dizia o mesmo que o botão
-              aceso ao lado. O escalão escolhido lê-se no botão.
-            */}
-            <SeccaoTitulo>Escalão de viatura</SeccaoTitulo>
-          </div>
-
-          {painel.escaloes.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {opcoesEscalao.map((opcao) => {
-                const activo = opcao.chave === painel.escalaoActivo;
-
-                return (
-                  <Link
-                    className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
-                      activo
-                        ? "border-foreground bg-primary text-primary-foreground"
-                        : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted"
-                    }`}
-                    href={hrefEscalao(opcao.chave)}
-                    key={opcao.chave}
-                  >
-                    {opcao.label}
-                  </Link>
-                );
-              })}
+      {/*
+        A caixa de cima só existe por causa dos escalões de viatura, que são
+        uma coisa do Detail. Numa clínica de estética ficava uma barra vazia a
+        dizer "Escalão de viatura" por cima dos tratamentos de pele.
+      */}
+      {temEscaloes || leading ? (
+        <div className="rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex flex-col gap-3">
+              {leading}
+              {/*
+                A frase "A mostrar o preço de X" dizia o mesmo que o botão
+                aceso ao lado. O escalão escolhido lê-se no botão.
+              */}
+              {temEscaloes ? (
+                <SeccaoTitulo>Escalão de viatura</SeccaoTitulo>
+              ) : null}
             </div>
-          ) : null}
+
+            {temEscaloes ? (
+              <div className="flex flex-wrap gap-2">
+                {opcoesEscalao.map((opcao) => {
+                  const activo = opcao.chave === painel.escalaoActivo;
+
+                  return (
+                    <Link
+                      className={`inline-flex min-h-10 items-center rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                        activo
+                          ? "border-foreground bg-primary text-primary-foreground"
+                          : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted"
+                      }`}
+                      href={hrefEscalao(opcao.chave)}
+                      key={opcao.chave}
+                    >
+                      {opcao.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {painel.vazioMotivo ? (
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -382,7 +393,13 @@ export function ServicosPanel({
 
                 {servico.precosAlternativos.length > 0 ? (
                   <div className="mt-3 rounded-xl border border-border bg-surface-muted px-3 py-2.5">
-                    <SeccaoTitulo dica="Não variam com a viatura. A margem é calculada sobre o preço base.">
+                    <SeccaoTitulo
+                      dica={
+                        temEscaloes
+                          ? "Não variam com a viatura. A margem é calculada sobre o preço base."
+                          : "A margem é calculada sobre o preço base."
+                      }
+                    >
                       Outros preços deste serviço
                     </SeccaoTitulo>
                     <div className="mt-2 flex flex-wrap gap-2">
