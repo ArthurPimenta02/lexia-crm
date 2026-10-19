@@ -26,9 +26,14 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test, { mock } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mjs";
+
+const raiz = new URL("..", import.meta.url).pathname;
 
 const A = "empresa_a";
 const B = "empresa_b";
@@ -238,6 +243,16 @@ const { desmarcarAviso, marcarAvisosLidos } = await import(
   "@/lib/avisos/write"
 );
 const rota = await import("@/app/api/avisos/route");
+
+mock.module("next/navigation", {
+  namedExports: { usePathname: () => "/app/pipeline" },
+});
+mock.module("@/app/actions/auth", {
+  namedExports: { logoutAction: async () => undefined },
+});
+
+const { AppSidebar } = await import("@/app/components/app-sidebar");
+const { SinoAvisos } = await import("@/app/components/sino-avisos");
 
 function comSessao(
   profile: {
@@ -792,4 +807,105 @@ test("sem sessão não se marca nada como lido", async () => {
 
   assert.equal(resposta.status, 401);
   assert.equal(base.linhasDe("lexia_avisos_lidos").length, 0);
+});
+
+/*
+ * O sino desenhado a sério.
+ *
+ * Os testes acima guardam o que o sino DIZ; estes guardam que ele está no
+ * ecrã — e, sobretudo, que está nos DOIS sítios. É a parte fácil de perder:
+ * a barra de cima é `lg:hidden` e o topo da barra lateral está fora do ecrã
+ * no telemóvel. Com o sino só num deles, metade dos ecrãs ficava sem ele e
+ * nenhum dos testes de leitura dava sinal.
+ */
+
+const items = [
+  { href: "/app", label: "Visão geral" },
+  { href: "/app/pipeline", label: "Pipeline" },
+];
+
+function desenharMoldura(comSino: boolean) {
+  return renderToStaticMarkup(
+    createElement(AppSidebar, { comSino, items, subtitle: "Painel do agente" }),
+  );
+}
+
+function sinos(html: string) {
+  return (html.match(/aria-label="Avisos/g) ?? []).length;
+}
+
+test("o sino está nos dois sítios: barra de cima e barra lateral", () => {
+  const html = desenharMoldura(true);
+
+  assert.equal(
+    sinos(html),
+    2,
+    "um só não chega: nenhum dos dois sítios se vê nos dois tamanhos de ecrã",
+  );
+  assert.match(
+    html,
+    /class="relative hidden lg:block"/,
+    "o da barra lateral tem de estar escondido no telemóvel, senão aparecem dois",
+  );
+  // O da barra de cima é o inverso: está lá sem classe nenhuma a esconder,
+  // porque é o próprio `<header>` que é `lg:hidden`.
+  assert.match(html, /<header[^>]*lg:hidden"><button[^>]*Abrir menu/);
+  assert.match(html, /class="relative"><button aria-expanded="false"/);
+});
+
+test("o painel de administração não leva sino", () => {
+  assert.equal(
+    sinos(desenharMoldura(false)),
+    0,
+    "a leitura é por cliente_slug e o administrador não tem nenhum: o sino abria sempre vazio",
+  );
+});
+
+function desenharSino(naoLidos: number) {
+  return renderToStaticMarkup(
+    createElement(SinoAvisos, {
+      estado: {
+        aCarregar: false,
+        avisos: [],
+        erro: null,
+        marcarTodos: () => undefined,
+        naoLidos,
+      },
+    }),
+  );
+}
+
+test("a bolinha diz quantos são, e acima de nove diz 9+", () => {
+  // O Detail tinha 13 avisos a 2026-10-19. Um "13" numa bolinha de 16 px
+  // transborda; o "9+" é o que cabe.
+  const html = desenharSino(13);
+
+  assert.match(html, /bg-destructive[^"]*">9\+</);
+  assert.match(html, /aria-label="Avisos: 13 novos"/);
+  assert.match(desenharSino(1), /bg-destructive[^"]*">1</);
+  assert.match(desenharSino(1), /aria-label="Avisos: 1 novo"/);
+});
+
+test("o painel de administração não vai à base buscar avisos", () => {
+  /*
+   * Esta afirma-se sobre o código-fonte e não sobre o desenho, porque é um
+   * efeito: o `renderToStaticMarkup` não corre `useEffect`, por isso não há
+   * maneira de ver daqui o pedido que se faz ou não se faz.
+   *
+   * O que está em jogo não é o ecrã — o sino não aparece no administrador de
+   * qualquer forma. É o pedido: com `useAvisos(true)`, cada página do painel
+   * de administração fazia um `/api/avisos` que só pode responder 401.
+   */
+  const fonte = readFileSync(`${raiz}app/components/app-sidebar.tsx`, "utf8");
+
+  assert.match(fonte, /useAvisos\(comSino\)/);
+});
+
+test("sem nada novo não há bolinha vermelha nenhuma", () => {
+  // O vermelho tem de significar alguma coisa. Aceso sempre, deixava de ser
+  // um aviso e passava a ser decoração.
+  const html = desenharSino(0);
+
+  assert.doesNotMatch(html, /bg-destructive/);
+  assert.match(html, /aria-label="Avisos"/);
 });

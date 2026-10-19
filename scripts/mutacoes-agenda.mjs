@@ -27,6 +27,8 @@ const CLIENTES = "app/components/clientes-panel.tsx";
 const AVISOS = "lib/avisos/read.ts";
 const AVISOS_ESCRITA = "lib/avisos/write.ts";
 const AVISOS_ROTA = "app/api/avisos/route.ts";
+const MOLDURA = "app/components/app-sidebar.tsx";
+const SINO = "app/components/sino-avisos.tsx";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -739,6 +741,52 @@ const mutacoes = [
     String(corpo.user_id ?? quem.userId),
     chaves,
   );`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `        {comSino ? <SinoAvisos estado={avisos} /> : null}
+
+        <LexiaBrand compact showText={false} tone="light" />`,
+    ficheiro: MOLDURA,
+    nome: "o sino desaparece da barra de cima e o telemóvel fica sem avisos",
+    para: `        <LexiaBrand compact showText={false} tone="light" />`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `          {comSino ? (
+            <SinoAvisos className="hidden lg:block" estado={avisos} />
+          ) : null}`,
+    ficheiro: MOLDURA,
+    nome: "o sino desaparece da barra lateral e o computador fica sem avisos",
+    para: ``,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `            <SinoAvisos className="hidden lg:block" estado={avisos} />`,
+    ficheiro: MOLDURA,
+    nome: "o sino da barra lateral deixa de se esconder e aparecem dois no telemóvel",
+    para: `            <SinoAvisos estado={avisos} />`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const avisos = useAvisos(comSino);`,
+    ficheiro: MOLDURA,
+    nome: "cada sino lê os seus avisos e cada página vai duas vezes à base",
+    para: `  const avisos = useAvisos(true);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `        {naoLidos > 0 ? (`,
+    ficheiro: SINO,
+    nome: "a bolinha vermelha fica acesa mesmo sem nada novo",
+    para: `        {naoLidos >= 0 ? (`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `            {naoLidos > 9 ? "9+" : naoLidos}`,
+    ficheiro: SINO,
+    nome: "treze avisos escrevem um 13 que não cabe na bolinha",
+    para: `            {naoLidos}`,
     teste: TESTE_AVISOS,
   },
 ];

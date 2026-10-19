@@ -216,7 +216,7 @@ export function SinoAvisos({ className = "", estado }: SinoAvisosProps) {
   };
 
   return (
-    <div className={`relative ${className}`} ref={caixa}>
+    <div className={`relative ${className}`.trim()} ref={caixa}>
       <button
         aria-expanded={aberto}
         aria-label={
