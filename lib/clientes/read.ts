@@ -1,4 +1,8 @@
 import { normalizarTelefone, pareceTelefone } from "@/lib/clientes/telefone";
+import {
+  getAtribuicaoPorAnuncio,
+  type AtribuicaoAnuncio,
+} from "@/lib/meta/atribuicao";
 import { getServicosConfig, createServicosClient } from "@/lib/servicos/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
@@ -52,6 +56,15 @@ export type ContactoJunto = {
 };
 
 export type ClienteLinha = {
+  /**
+   * O anúncio exacto de onde a pessoa veio, com o conjunto e a campanha.
+   *
+   * Null na grande maioria, e isso não quer dizer "não veio de anúncio": o
+   * Instagram Direct e o Messenger não enviam referral, e é para lá que vai
+   * 76% do gasto do Detail. Só o clique-para-WhatsApp o manda. Ver
+   * `lib/meta/atribuicao.ts`.
+   */
+  anuncio: AtribuicaoAnuncio | null;
   canal: string;
   canais: string[];
   email: string | null;
@@ -114,6 +127,7 @@ type ContactoRow = {
   notas: string | null;
   origem_manual: string | null;
   origem_manual_nota: string | null;
+  origem_source_id: string | null;
   origem_tipo: string | null;
   telefone: string | null;
   viatura: string | null;
@@ -159,7 +173,7 @@ async function lerContactos(clienteSlug: string) {
     const result = await admin
       .from("lexia_contactos")
       .select(
-        "id, nome, telefone, canal, identificador_conversa, notas, fundido_em, criado_em, atualizado_em, email, morada, viatura, idade, idade_registada_em, origem_manual, origem_manual_nota, origem_tipo",
+        "id, nome, telefone, canal, identificador_conversa, notas, fundido_em, criado_em, atualizado_em, email, morada, viatura, idade, idade_registada_em, origem_manual, origem_manual_nota, origem_tipo, origem_source_id",
       )
       .eq("cliente_slug", clienteSlug)
       .not("identificador_conversa", "like", "teste:%")
@@ -250,6 +264,14 @@ export async function getClientes(
   }
 
   const contactos = contactosResultado.data;
+
+  // O dicionário dos anúncios pede-se depois de ter os contactos, porque é a
+  // lista de ids deles que diz o que perguntar. Uma leitura só para todos, e
+  // não uma por ficha: os 1.028 contactos do Detail resolvem-se em 13 ids.
+  const anuncios = await getAtribuicaoPorAnuncio(
+    clienteSlug,
+    contactos.map((contacto) => contacto.origem_source_id),
+  );
 
   // Mensagens por contacto: quantas e a mais recente.
   const mensagensPorContacto = new Map<
@@ -400,6 +422,9 @@ export async function getClientes(
     );
 
     clientes.push({
+      anuncio: contacto.origem_source_id
+        ? anuncios.get(contacto.origem_source_id.trim()) ?? null
+        : null,
       canal: contacto.canal ?? "desconhecido",
       canais: [
         ...new Set([

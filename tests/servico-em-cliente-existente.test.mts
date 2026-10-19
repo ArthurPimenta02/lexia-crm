@@ -51,6 +51,9 @@ let doCliente = new FakeSupabase({
 
 const configReal = await import("@/lib/servicos/config");
 
+// A ficha passou a saber de que anúncio veio a pessoa, e essa leitura é
+// "server-only". Sem isto o módulo recusa-se a carregar fora do Next.
+mock.module("server-only", { namedExports: {} });
 mock.module("next/cache", { namedExports: { revalidatePath: () => {} } });
 mock.module("@/lib/supabase/admin", {
   namedExports: { createAdminClient: () => central },

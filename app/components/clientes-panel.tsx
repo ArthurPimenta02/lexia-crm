@@ -720,25 +720,55 @@ function ServicoNaFichaForm({
 function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
   const capturada = getOrigemCapturadaLabel(cliente.origemCapturada);
   const manual = getCanalLabel(cliente.origemManual);
+  const anuncio = cliente.anuncio;
 
-  if (!capturada && !manual) {
+  if (!capturada && !manual && !anuncio) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      {capturada ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
-          {capturada}
-          <span className="font-normal text-emerald-700/80">confirmado</span>
-        </span>
-      ) : null}
-      {manual ? (
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-medium text-muted-foreground">
-          {manual}
-          {cliente.origemManualNota ? ` · ${cliente.origemManualNota}` : ""}
-          <span className="font-normal text-muted-foreground">indicado</span>
-        </span>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {capturada ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
+            {capturada}
+            <span className="font-normal text-emerald-700/80">confirmado</span>
+          </span>
+        ) : null}
+        {manual ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-medium text-muted-foreground">
+            {manual}
+            {cliente.origemManualNota ? ` · ${cliente.origemManualNota}` : ""}
+            <span className="font-normal text-muted-foreground">indicado</span>
+          </span>
+        ) : null}
+      </div>
+
+      {/*
+        O anúncio, quando a Meta o mandou. Em três linhas e não numa etiqueta:
+        os nomes que o cliente escreve no Gestor de Anúncios são compridos
+        — "FB+IG - advt+ ab [Lisboa 40km] 22-55 - Higien" — e numa etiqueta
+        redonda ficavam cortados logo no primeiro.
+      */}
+      {anuncio ? (
+        <dl className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-xs">
+          {[
+            { rotulo: "Campanha", valor: anuncio.campanhaNome },
+            { rotulo: "Conjunto", valor: anuncio.conjuntoNome },
+            { rotulo: "Criativo", valor: anuncio.criativoNome },
+          ]
+            .filter((linha) => linha.valor)
+            .map((linha) => (
+              <div className="flex gap-2 py-0.5" key={linha.rotulo}>
+                <dt className="w-20 shrink-0 text-emerald-700/80">
+                  {linha.rotulo}
+                </dt>
+                <dd className="min-w-0 font-medium break-words text-emerald-900">
+                  {linha.valor}
+                </dd>
+              </div>
+            ))}
+        </dl>
       ) : null}
     </div>
   );

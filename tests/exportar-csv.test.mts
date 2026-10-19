@@ -200,6 +200,7 @@ test("uma data que não existe não escreve lixo na célula", () => {
 
 function cliente(parciais: Partial<ClienteLinha> = {}): ClienteLinha {
   return {
+    anuncio: null,
     canais: ["whatsapp"],
     canal: "whatsapp",
     email: null,
