@@ -39,7 +39,9 @@ const vazio: AvisosResultado = { avisos: [], erro: null, naoLidos: 0 };
 
 export type EstadoDosAvisos = AvisosResultado & {
   aCarregar: boolean;
-  /** Chamado quando a lista é aberta. Marca tudo o que lá está como visto. */
+  /** Esvazia a lista: o que está lá dentro deixa de aparecer. */
+  limparTodos: () => void;
+  /** Chamado quando a lista é fechada. Marca tudo o que lá está como visto. */
   marcarTodos: () => void;
 };
 
@@ -120,7 +122,39 @@ export function useAvisos(activo: boolean): EstadoDosAvisos {
     });
   }, []);
 
-  return { ...resultado, aCarregar, marcarTodos };
+  /**
+   * Limpar é tirar da lista, não é marcar como visto.
+   *
+   * Ao fechar, o sino marca tudo como lido e os avisos ficam na lista sem
+   * realce — bom para ver o que passou, mau quando são trinta e as duas que
+   * importam ficam no fundo. Isto esvazia: o ecrã primeiro, a gravação atrás,
+   * pela mesma razão do `marcarTodos`. Se a gravação falhar, os avisos voltam
+   * na próxima página, e isso é melhor do que um botão que espera pelo
+   * servidor para fazer alguma coisa.
+   *
+   * O que NÃO se limpa é o facto. A chave de cada aviso carrega o instante do
+   * que aconteceu, por isso uma mensagem nova da mesma pessoa é uma chave nova
+   * e volta à lista. Limpar não cala ninguém para sempre.
+   */
+  const limparTodos = useCallback(() => {
+    setResultado((anterior) => {
+      if (anterior.avisos.length === 0) {
+        return anterior;
+      }
+
+      void fetch("/api/avisos", {
+        body: JSON.stringify({
+          limpar: anterior.avisos.map((aviso) => aviso.chave),
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }).catch(() => undefined);
+
+      return { ...anterior, avisos: [], naoLidos: 0 };
+    });
+  }, []);
+
+  return { ...resultado, aCarregar, limparTodos, marcarTodos };
 }
 
 /** "há 2 dias" já vem escrito do servidor; aqui só se mostra. */
@@ -192,7 +226,8 @@ export function SinoAvisos({
 }: SinoAvisosProps) {
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
-  const { aCarregar, avisos, erro, marcarTodos, naoLidos } = estado;
+  const { aCarregar, avisos, erro, limparTodos, marcarTodos, naoLidos } =
+    estado;
 
   /**
    * Fechar é o que marca tudo como visto — não abrir.
@@ -273,12 +308,28 @@ export function SinoAvisos({
             ancora === "direita" ? "right-0" : "left-0"
           }`}
         >
-          <div className="border-b border-border px-3 py-2">
-            <p className="text-sm font-semibold text-foreground">Avisos</p>
-            <p className="text-xs text-muted-foreground">
-              Quem está à espera, as passagens para a equipa e os atendimentos
-              das próximas 24 horas.
-            </p>
+          <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">Avisos</p>
+              <p className="text-xs text-muted-foreground">
+                Quem está à espera, as passagens para a equipa e os
+                atendimentos das próximas 24 horas.
+              </p>
+            </div>
+
+            {/*
+              Sem nada na lista, o botão não tem o que limpar — e um botão que
+              não faz nada é um botão a mentir.
+            */}
+            {avisos.length > 0 ? (
+              <button
+                className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                onClick={limparTodos}
+                type="button"
+              >
+                Limpar
+              </button>
+            ) : null}
           </div>
 
           <div className="max-h-[min(24rem,60vh)] overflow-y-auto">

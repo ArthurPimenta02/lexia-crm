@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Arranque a mao. O `pull_request` falhou-nos uma vez: o PR abriu e o GitHub
+  # nunca disparou nada, com zero execucoes em fila e a pagina de estado verde.
+  # Sem isto, a unica saida era passar por cima da regra do `main` — e a regra
+  # existe por uma razao. Daqui, corre-se o mesmo job no mesmo commit.
+  workflow_dispatch:
 
 # Cancela execucoes antigas do mesmo branch/PR quando um novo push chega.
 concurrency:

@@ -1,5 +1,9 @@
 import { getAvisos } from "@/lib/avisos/read";
-import { desmarcarAviso, marcarAvisosLidos } from "@/lib/avisos/write";
+import {
+  desmarcarAviso,
+  limparAvisos,
+  marcarAvisosLidos,
+} from "@/lib/avisos/write";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 export const runtime = "nodejs";
@@ -23,6 +27,15 @@ export const dynamic = "force-dynamic";
  * `getAvisos` e o `marcarAvisosLidos` correm com a `service_role`, que ignora
  * o RLS: é este par de linhas que separa uma empresa da outra.
  */
+
+/** Uma lista de chaves vinda de fora não é uma lista de textos até se provar. */
+function apenasTextos(valor: unknown): string[] {
+  return Array.isArray(valor)
+    ? valor.filter(
+        (candidata): candidata is string => typeof candidata === "string",
+      )
+    : [];
+}
 
 async function sessao() {
   const { profile, user } = await getLoggedInUserProfile();
@@ -71,7 +84,8 @@ export async function POST(request: Request) {
     // do que um 400 sobre JSON.
   }
 
-  // `desmarcar` é a chave única de um aviso; `chaves` é o "marcar todos".
+  // `desmarcar` é a chave única de um aviso; `limpar` tira avisos da lista;
+  // `chaves` é o "marcar todos como lidos".
   if (typeof corpo.desmarcar === "string") {
     const resultado = await desmarcarAviso(
       quem.clienteSlug,
@@ -82,16 +96,20 @@ export async function POST(request: Request) {
     return Response.json(resultado, { status: resultado.ok ? 200 : 400 });
   }
 
-  const chaves = Array.isArray(corpo.chaves)
-    ? corpo.chaves.filter(
-        (candidata): candidata is string => typeof candidata === "string",
-      )
-    : [];
+  if (Array.isArray(corpo.limpar)) {
+    const resultado = await limparAvisos(
+      quem.clienteSlug,
+      quem.userId,
+      apenasTextos(corpo.limpar),
+    );
+
+    return Response.json(resultado, { status: resultado.ok ? 200 : 400 });
+  }
 
   const resultado = await marcarAvisosLidos(
     quem.clienteSlug,
     quem.userId,
-    chaves,
+    apenasTextos(corpo.chaves),
   );
 
   return Response.json(resultado, { status: resultado.ok ? 200 : 400 });

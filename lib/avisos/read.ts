@@ -9,8 +9,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Três avisos, nenhum deles guardado em tabela: derivam-se todos de factos que
  * já estão na base. Guardá-los obrigava a mantê-los em sincronia com os factos
  * de que saem, e um aviso já resolvido que continua aceso é pior do que não
- * haver aviso nenhum. A única coisa que se guarda é o "já li isto", em
- * `lexia_avisos_lidos`.
+ * haver aviso nenhum. O que se guarda em `lexia_avisos_lidos` são os dois
+ * gestos de quem lê: o "já vi isto" e o "tira isto da minha frente".
  *
  * Porque é que isto não chama o `getPipeline`
  * -------------------------------------------
@@ -45,6 +45,31 @@ const DIAS_DE_JANELA = DIAS_ACTIVO + 1;
 
 /** Quanto para a frente se olha na agenda. */
 const HORAS_DE_AGENDA = 24;
+
+/**
+ * A marca de um aviso limpo, à frente da chave dele.
+ *
+ * Limpar não é o mesmo que ler. Lido tira o realce e deixa o aviso na lista —
+ * é o que acontece sozinho ao fechar o sino. Limpo tira-o da lista: a pessoa
+ * decidiu que já não quer aquilo à frente dos olhos, e a lista é dela.
+ *
+ * Porque é que isto é um prefixo na chave e não uma coluna
+ * -------------------------------------------------------
+ * Uma coluna `limpo_em` era mais arrumada, e seria a escolha se a tabela
+ * estivesse vazia. Não está: foi criada à mão no Supabase central, e qualquer
+ * coluna nova obriga a uma ida à consola antes de a funcionalidade existir
+ * para quem a pediu. Entre isso e um segundo espaço de nomes na coluna que já
+ * existe, ganha o que já funciona no dia em que é escrito.
+ *
+ * E a troca não é só conveniência: a unicidade da tabela é `(user_id, chave)`,
+ * portanto o prefixo dá de graça exactamente a regra certa — uma linha de lido
+ * e uma de limpo por aviso, por pessoa, sem nada que as deixe repetir.
+ *
+ * O limpo vale para a chave, e a chave carrega o instante do facto. Logo, um
+ * aviso limpo volta no dia em que a situação mudar: mensagem nova, chave nova,
+ * lista outra vez. Limpar não é apagar ninguém.
+ */
+export const MARCA_LIMPO = "limpo:";
 
 export type TipoDeAviso = "por_responder" | "handoff" | "marcacao";
 
@@ -175,7 +200,16 @@ export async function getAvisos(
 
   // Um erro só aqui não deve esconder os avisos: o pior que acontece é
   // aparecerem avisos já lidos. É melhor do que um sino em branco.
-  const jaLidos = new Set((lidos.data ?? []).map((linha) => linha.chave));
+  const jaLidos = new Set<string>();
+  const limpos = new Set<string>();
+
+  for (const linha of lidos.data ?? []) {
+    if (linha.chave.startsWith(MARCA_LIMPO)) {
+      limpos.add(linha.chave.slice(MARCA_LIMPO.length));
+    } else {
+      jaLidos.add(linha.chave);
+    }
+  }
 
   /** A ficha de cada conversa, quando existe. */
   const fichaPorConversa = new Map<
@@ -223,17 +257,23 @@ export async function getAvisos(
       continue;
     }
 
+    const chave = `por_responder:${conversa}:${ultima.criadoEm}`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }
+
     const ficha = fichaPorConversa.get(conversa);
     const telefone = ficha?.telefone ?? telefoneDaConversa(conversa);
 
     avisos.push({
-      chave: `por_responder:${conversa}:${ultima.criadoEm}`,
+      chave,
       // Sem ficha não há ecrã onde esta pessoa exista — nem Conversas, nem
       // Clientes, nem Pipeline. O aviso continua a valer: o número está aqui.
       href: ficha
         ? `/app/conversas?conversa=${encodeURIComponent(conversa)}`
         : null,
-      lido: jaLidos.has(`por_responder:${conversa}:${ultima.criadoEm}`),
+      lido: jaLidos.has(chave),
       porque: ficha
         ? `Escreveu ${hreferencia(ultima.criadoEm, agora)} e ainda não teve resposta.`
         : `Escreveu ${hreferencia(ultima.criadoEm, agora)} e ainda não teve resposta. Não tem ficha no painel.`,
@@ -244,15 +284,21 @@ export async function getAvisos(
   }
 
   for (const handoff of handoffs.data ?? []) {
+    const chave = `handoff:${handoff.id}:${handoff.status}`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }
+
     const estado =
       handoff.status === "em_atendimento"
         ? "Está com alguém da equipa"
         : "Está à espera de alguém da equipa";
 
     avisos.push({
-      chave: `handoff:${handoff.id}:${handoff.status}`,
+      chave,
       href: "/app/handoffs",
-      lido: jaLidos.has(`handoff:${handoff.id}:${handoff.status}`),
+      lido: jaLidos.has(chave),
       porque: handoff.motivo
         ? `${estado}. Motivo: ${handoff.motivo}`
         : `${estado}.`,
@@ -264,13 +310,19 @@ export async function getAvisos(
   }
 
   for (const marcacao of marcacoes.data ?? []) {
+    const chave = `marcacao:${marcacao.id}:${marcacao.inicio}`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }
+
     const quem = marcacao.nome_cliente ?? marcacao.telefone ?? "Sem nome";
     const oque = marcacao.servico ? ` · ${marcacao.servico}` : "";
 
     avisos.push({
-      chave: `marcacao:${marcacao.id}:${marcacao.inicio}`,
+      chave,
       href: "/app/agenda",
-      lido: jaLidos.has(`marcacao:${marcacao.id}:${marcacao.inicio}`),
+      lido: jaLidos.has(chave),
       porque: `${daquiA(marcacao.inicio, agora)}${oque}${
         marcacao.executor ? ` · ${marcacao.executor}` : ""
       }`,

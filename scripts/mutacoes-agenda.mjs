@@ -567,10 +567,10 @@ const mutacoes = [
     teste: TESTE_PIPELINE,
   },
   {
-    de: `      chave: \`por_responder:\${conversa}:\${ultima.criadoEm}\`,`,
+    de: `    const chave = \`por_responder:\${conversa}:\${ultima.criadoEm}\`;`,
     ficheiro: AVISOS,
     nome: "a chave do aviso perde o instante e fica lida para sempre",
-    para: `      chave: \`por_responder:\${conversa}\`,`,
+    para: `    const chave = \`por_responder:\${conversa}\`;`,
     teste: TESTE_AVISOS,
   },
   {
@@ -651,14 +651,14 @@ const mutacoes = [
     teste: TESTE_AVISOS,
   },
   {
-    de: `  const jaLidos = new Set((lidos.data ?? []).map((linha) => linha.chave));`,
+    de: `  const jaLidos = new Set<string>();`,
     ficheiro: AVISOS,
     nome: "um erro na tabela do já-lido esconde quem está à espera",
     para: `  if (lidos.error) {
     return { ...vazio, erro: "Não foi possível ler os avisos." };
   }
 
-  const jaLidos = new Set((lidos.data ?? []).map((linha) => linha.chave));`,
+  const jaLidos = new Set<string>();`,
     teste: TESTE_AVISOS,
   },
   {
@@ -733,15 +733,107 @@ const mutacoes = [
     de: `  const resultado = await marcarAvisosLidos(
     quem.clienteSlug,
     quem.userId,
-    chaves,
+    apenasTextos(corpo.chaves),
   );`,
     ficheiro: AVISOS_ROTA,
     nome: "marcar como lido grava na empresa que o pedido disser",
     para: `  const resultado = await marcarAvisosLidos(
     String(corpo.cliente_slug ?? quem.clienteSlug),
     String(corpo.user_id ?? quem.userId),
-    chaves,
+    apenasTextos(corpo.chaves),
   );`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    const resultado = await limparAvisos(
+      quem.clienteSlug,
+      quem.userId,
+      apenasTextos(corpo.limpar),
+    );`,
+    ficheiro: AVISOS_ROTA,
+    nome: "limpar grava na empresa e na pessoa que o pedido disser",
+    para: `    const resultado = await limparAvisos(
+      String(corpo.cliente_slug ?? quem.clienteSlug),
+      String(corpo.user_id ?? quem.userId),
+      apenasTextos(corpo.limpar),
+    );`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    if (linha.chave.startsWith(MARCA_LIMPO)) {
+      limpos.add(linha.chave.slice(MARCA_LIMPO.length));
+    } else {
+      jaLidos.add(linha.chave);
+    }`,
+    ficheiro: AVISOS,
+    nome: "o limpo passa a contar como lido e a lista nunca esvazia",
+    para: `    jaLidos.add(linha.chave);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    const chave = \`por_responder:\${conversa}:\${ultima.criadoEm}\`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }`,
+    ficheiro: AVISOS,
+    nome: "limpar quem está à espera não o tira da lista",
+    para: `    const chave = \`por_responder:\${conversa}:\${ultima.criadoEm}\`;`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    const chave = \`handoff:\${handoff.id}:\${handoff.status}\`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }`,
+    ficheiro: AVISOS,
+    nome: "limpar uma passagem para a equipa não a tira da lista",
+    para: `    const chave = \`handoff:\${handoff.id}:\${handoff.status}\`;`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `    const chave = \`marcacao:\${marcacao.id}:\${marcacao.inicio}\`;
+
+    if (limpos.has(chave)) {
+      continue;
+    }`,
+    ficheiro: AVISOS,
+    nome: "limpar um atendimento não o tira da lista",
+    para: `    const chave = \`marcacao:\${marcacao.id}:\${marcacao.inicio}\`;`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `  const { gravadas, ok } = await gravar(
+    clienteSlug,
+    userId,
+    chaves,
+    MARCA_LIMPO,
+  );`,
+    ficheiro: AVISOS_ESCRITA,
+    nome: "limpar grava um lido simples e o aviso fica onde estava",
+    para: `  const { gravadas, ok } = await gravar(clienteSlug, userId, chaves);`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `          limpar: anterior.avisos.map((aviso) => aviso.chave),`,
+    ficheiro: SINO,
+    nome: "o botão limpar faz o mesmo que fechar a lista já fazia",
+    para: `          chaves: anterior.avisos.map((aviso) => aviso.chave),`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `      return { ...anterior, avisos: [], naoLidos: 0 };`,
+    ficheiro: SINO,
+    nome: "clicar em limpar não muda nada no ecrã de quem clicou",
+    para: `      return anterior;`,
+    teste: TESTE_AVISOS,
+  },
+  {
+    de: `            {avisos.length > 0 ? (`,
+    ficheiro: SINO,
+    nome: "o botão de limpar aparece numa lista vazia, sem nada para limpar",
+    para: `            {true ? (`,
     teste: TESTE_AVISOS,
   },
   {

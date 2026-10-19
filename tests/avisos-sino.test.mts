@@ -239,7 +239,7 @@ mock.module("@/lib/auth/profile", {
 });
 
 const { getAvisos } = await import("@/lib/avisos/read");
-const { desmarcarAviso, marcarAvisosLidos } = await import(
+const { desmarcarAviso, limparAvisos, marcarAvisosLidos } = await import(
   "@/lib/avisos/write"
 );
 const rota = await import("@/app/api/avisos/route");
@@ -514,6 +514,154 @@ test("desmarcar faz o aviso voltar", async () => {
   );
 });
 
+/*
+ * Limpar.
+ *
+ * Lido e limpo saem da mesma tabela e não são a mesma coisa. Lido tira o
+ * realce e deixa a linha na lista; limpo tira a linha. Se alguém colapsar os
+ * dois num só, o botão "Limpar" deixa de limpar — o sino volta a zero, a lista
+ * fica exactamente com o mesmo tamanho, e quem clicou não vê diferença
+ * nenhuma. É esse o engano que estes testes guardam.
+ */
+
+test("limpar tira o aviso da lista, e não só o realce", async () => {
+  reiniciar();
+
+  const chave = "handoff:handoff-pendente:pendente";
+  const resultado = await limparAvisos(A, DONO, [chave]);
+
+  assert.equal(resultado.ok, true);
+  assert.equal(resultado.gravadas, 1);
+
+  const depois = await getAvisos(A, DONO, AGORA);
+
+  assert.equal(
+    depois.avisos.find((aviso) => aviso.chave === chave),
+    undefined,
+    "um aviso limpo que continua na lista é um botão que não fez nada",
+  );
+  assert.equal(depois.avisos.length, 6);
+  assert.equal(depois.naoLidos, 6);
+});
+
+test("limpar grava com a marca, para não se confundir com o lido", async () => {
+  reiniciar();
+
+  const chave = "marcacao:marcacao-proxima:2026-10-19T14:00:00.000Z";
+
+  await limparAvisos(A, DONO, [chave]);
+
+  assert.deepEqual(base.linhasDe("lexia_avisos_lidos"), [
+    {
+      chave: `limpo:${chave}`,
+      cliente_slug: A,
+      user_id: DONO,
+    },
+  ]);
+});
+
+test("ler e limpar o mesmo aviso são duas linhas, não uma a sobrepor a outra", async () => {
+  reiniciar();
+
+  const chave = "handoff:handoff-pendente:pendente";
+
+  await marcarAvisosLidos(A, DONO, [chave]);
+  await limparAvisos(A, DONO, [chave]);
+
+  assert.deepEqual(
+    base.linhasDe("lexia_avisos_lidos").map((linha) => linha.chave),
+    [chave, `limpo:${chave}`],
+    "a unicidade é (user_id, chave): com a marca, as duas cabem",
+  );
+
+  // E o que vale é o limpo: fora da lista está fora da lista.
+  const depois = await getAvisos(A, DONO, AGORA);
+
+  assert.ok(!depois.avisos.some((aviso) => aviso.chave === chave));
+});
+
+test("limpar uma chave já marcada não marca a marca", async () => {
+  reiniciar();
+
+  const resultado = await limparAvisos(A, DONO, [
+    "limpo:handoff:handoff-pendente:pendente",
+    "qualquer_coisa:1",
+  ]);
+
+  assert.equal(resultado.gravadas, 0);
+  assert.equal(
+    base.linhasDe("lexia_avisos_lidos").length,
+    0,
+    "`limpo:limpo:…` não é aviso nenhum e não filtraria nada",
+  );
+});
+
+test("limpar não é calar: a situação muda e o aviso volta", async () => {
+  reiniciar();
+
+  const antes = await getAvisos(A, DONO, AGORA);
+  const thiago = antes.avisos.find((aviso) =>
+    aviso.chave.includes("351925252340"),
+  );
+
+  assert.ok(thiago);
+
+  await limparAvisos(A, DONO, [thiago.chave]);
+
+  const limpo = await getAvisos(A, DONO, AGORA);
+
+  assert.ok(!limpo.avisos.some((aviso) => aviso.chave === thiago.chave));
+
+  // Escreve outra vez. A chave carrega o instante do facto: isto é outro
+  // aviso, e um aviso limpo não pode apagar os que ainda não aconteceram.
+  base
+    .linhasDe("lexia_mensagens")
+    .push(
+      mensagem(A, "whatsapp:351925252340", "2026-10-19T10:00:00.000Z", "recebida"),
+    );
+
+  const outraVez = await getAvisos(A, DONO, AGORA);
+  const novo = outraVez.avisos.find((aviso) =>
+    aviso.chave.includes("351925252340"),
+  );
+
+  assert.equal(
+    novo?.chave,
+    "por_responder:whatsapp:351925252340:2026-10-19T10:00:00.000Z",
+  );
+  assert.equal(novo?.lido, false);
+});
+
+test("limpar é de quem limpou, não da empresa", async () => {
+  reiniciar();
+
+  const chave = "handoff:handoff-pendente:pendente";
+
+  await limparAvisos(A, DONO, [chave]);
+
+  const doOutro = await getAvisos(A, OUTRO, AGORA);
+
+  assert.ok(
+    doOutro.avisos.some((aviso) => aviso.chave === chave),
+    "o Martim a limpar a lista dele não pode esconder o handoff do Roberto",
+  );
+});
+
+test("limpar as três famílias de aviso deixa a lista vazia", async () => {
+  reiniciar();
+
+  const { avisos } = await getAvisos(A, DONO, AGORA);
+
+  assert.equal(avisos.length, 7);
+
+  await limparAvisos(A, DONO, chavesDe(avisos));
+
+  const depois = await getAvisos(A, DONO, AGORA);
+
+  assert.deepEqual(depois.avisos, [], "é isto que o botão promete");
+  assert.equal(depois.naoLidos, 0);
+});
+
 test("marcar o mesmo aviso duas vezes não reescreve a primeira leitura", async () => {
   reiniciar();
 
@@ -766,6 +914,76 @@ test("desmarcar pela rota faz o aviso voltar", async () => {
   assert.equal(base.linhasDe("lexia_avisos_lidos").length, 0);
 });
 
+test("limpar pela rota grava com o slug da sessão", async () => {
+  reiniciar();
+
+  const chave = "handoff:handoff-pendente:pendente";
+  const resposta = await rota.POST(
+    pedido({
+      // De propósito, como no teste do lido: se a rota acreditasse no pedido,
+      // uma empresa limpava os avisos da outra.
+      cliente_slug: B,
+      limpar: [chave],
+      user_id: OUTRO,
+    }),
+  );
+
+  assert.equal(resposta.status, 200);
+  assert.deepEqual(base.linhasDe("lexia_avisos_lidos"), [
+    {
+      chave: `limpo:${chave}`,
+      cliente_slug: A,
+      user_id: DONO,
+    },
+  ]);
+});
+
+test("o que a rota limpou é o que a rota deixa de mostrar", async () => {
+  reiniciar();
+
+  const chave = "handoff:handoff-pendente:pendente";
+
+  await rota.POST(pedido({ limpar: [chave] }));
+
+  const corpo = (await (await rota.GET()).json()) as {
+    avisos: { chave: string }[];
+  };
+
+  assert.deepEqual(
+    corpo.avisos
+      .filter((aviso) => aviso.chave.startsWith("handoff:"))
+      .map((aviso) => aviso.chave),
+    ["handoff:handoff-em-curso:em_atendimento"],
+    "limpou-se um handoff: o outro fica, e o limpo não volta na leitura seguinte",
+  );
+});
+
+test("sem sessão não se limpa nada", async () => {
+  reiniciar();
+  comSessao(null, null);
+
+  const resposta = await rota.POST(
+    pedido({ limpar: ["handoff:handoff-pendente:pendente"] }),
+  );
+
+  assert.equal(resposta.status, 401);
+  assert.equal(base.linhasDe("lexia_avisos_lidos").length, 0);
+});
+
+test("uma lista de limpar com coisas que não são texto não estoura", async () => {
+  reiniciar();
+
+  const resposta = await rota.POST(
+    pedido({ limpar: [1, null, { chave: "x" }, "handoff:handoff-pendente:pendente"] }),
+  );
+
+  assert.equal(resposta.status, 200);
+  assert.deepEqual(
+    base.linhasDe("lexia_avisos_lidos").map((linha) => linha.chave),
+    ["limpo:handoff:handoff-pendente:pendente"],
+  );
+});
+
 test("um corpo sem jeito não escreve nada nem estoura", async () => {
   reiniciar();
 
@@ -869,6 +1087,7 @@ function desenharSino(naoLidos: number) {
         aCarregar: false,
         avisos: [],
         erro: null,
+        limparTodos: () => undefined,
         marcarTodos: () => undefined,
         naoLidos,
       },
@@ -955,6 +1174,36 @@ test("marcar como visto é ao fechar a lista, não ao abri-la", () => {
   );
   // Ir para a conversa também é fechar a lista: conta como vista.
   assert.match(fonte, /onIr=\{fechar\}/);
+});
+
+test("a lista tem um botão para a limpar, e ele só aparece com algo lá dentro", () => {
+  /*
+   * Do código-fonte, pela mesma razão das outras: a lista só existe depois de
+   * um clique e um desenho estático não clica em nada.
+   *
+   * O que está em jogo é a diferença entre limpar e marcar como lido. O botão
+   * tem de mandar `limpar` — se mandasse `chaves`, fazia o mesmo que fechar a
+   * lista já faz, e o dono clicava num botão que não muda nada no ecrã.
+   */
+  const fonte = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
+
+  assert.match(fonte, /onClick=\{limparTodos\}/);
+  assert.match(fonte, />\s*Limpar\s*</);
+  assert.match(
+    fonte,
+    /limpar: anterior\.avisos\.map\(\(aviso\) => aviso\.chave\)/,
+    "é o `limpar` que tira da lista; o `chaves` só marca como lido",
+  );
+  assert.match(
+    fonte,
+    /return \{ \.\.\.anterior, avisos: \[\], naoLidos: 0 \};/,
+    "o ecrã esvazia-se sem esperar pelo servidor",
+  );
+  assert.match(
+    fonte,
+    /\{avisos\.length > 0 \? \(\n\s*<button/,
+    "um botão de limpar numa lista vazia é um botão a mentir",
+  );
 });
 
 test("a explicação do ⓘ não se desenha dentro do cartão que a corta", () => {
