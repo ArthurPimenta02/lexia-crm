@@ -19,12 +19,15 @@ const FUSO = "lib/clientes/timezone.ts";
 const LEITURA = "lib/servicos/read.ts";
 const PAINEL = "app/components/servicos-panel.tsx";
 const ETAPAS = "lib/pipeline/etapas.ts";
+const QUADRO = "app/components/pipeline-panel.tsx";
+const LEITURA_PIPELINE = "lib/pipeline/read.ts";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
 const TESTE_MIRANDA = "tests/agenda-da-miranda.test.mts";
 const TESTE_SERVICOS = "tests/servicos-da-miranda.test.mts";
 const TESTE_PIPELINE = "tests/pipeline-etapas.test.mts";
+const TESTE_ORDEM = "tests/pipeline-ordem-agendado.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -367,6 +370,50 @@ const mutacoes = [
     para: "  const porResponder = factos.ultimaFoiRecebida;",
     teste: TESTE_PIPELINE,
   },
+  {
+    de: `        {cartao.porResponder && cartao.etapa !== "por_responder" ? (`,
+    ficheiro: QUADRO,
+    nome: "a etiqueta vermelha desaparece do cartão",
+    para: "        {false ? (",
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `        {cartao.porResponder && cartao.etapa !== "por_responder" ? (`,
+    ficheiro: QUADRO,
+    nome: "a etiqueta aparece em todos os cartões, esperem resposta ou não",
+    para: `        {cartao.etapa !== "por_responder" ? (`,
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `        {cartao.porResponder && cartao.etapa !== "por_responder" ? (`,
+    ficheiro: QUADRO,
+    nome: "a etiqueta repete-se dentro da coluna que já a tem no título",
+    para: "        {cartao.porResponder ? (",
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `          <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-semibold text-white">`,
+    ficheiro: QUADRO,
+    nome: "o aviso deixa de ser vermelho e passa a parecer uma etiqueta da IA",
+    para: `          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">`,
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `      if (a.porResponder !== b.porResponder) {
+        return a.porResponder ? -1 : 1;
+      }`,
+    ficheiro: LEITURA_PIPELINE,
+    nome: "quem espera resposta deixa de subir ao topo da coluna Agendado",
+    para: "",
+    teste: TESTE_ORDEM,
+  },
+  {
+    de: `        return a.porResponder ? -1 : 1;`,
+    ficheiro: LEITURA_PIPELINE,
+    nome: "quem espera resposta desce para o fundo da coluna Agendado",
+    para: `        return a.porResponder ? 1 : -1;`,
+    teste: TESTE_ORDEM,
+  },
 ];
 
 function correr(teste) {
@@ -391,6 +438,7 @@ for (const teste of [
   TESTE_MIRANDA,
   TESTE_SERVICOS,
   TESTE_PIPELINE,
+  TESTE_ORDEM,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }

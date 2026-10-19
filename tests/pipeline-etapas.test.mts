@@ -19,7 +19,9 @@
  */
 
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { mock } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   chaveTelefone,
@@ -28,6 +30,7 @@ import {
   rotularResultado,
   type FactosDoCartao,
 } from "@/lib/pipeline/etapas";
+import type { CartaoPipeline } from "@/lib/pipeline/read";
 
 const AGORA = new Date("2026-10-18T12:00:00.000Z");
 
@@ -256,4 +259,118 @@ test("só as etiquetas de vocabulário fechado da IA chegam ao cartão", () => {
   // escreve de duas maneiras não serve para filtrar nada.
   assert.equal(rotularResultado("obter_informacoes"), null);
   assert.equal(rotularResultado(null), null);
+});
+
+/**
+ * O quadro desenhado a sério.
+ *
+ * Os testes acima guardam a REGRA; estes guardam a outra metade da troca —
+ * que o aviso chega ao ecrã. Sem isto, alguém podia apagar a etiqueta
+ * vermelha do `pipeline-panel.tsx` e todos os testes de cima continuavam
+ * verdes, com o cliente da véspera outra vez escondido numa coluna que parece
+ * resolvida. É exactamente o cenário que a ordem antiga existia para evitar.
+ */
+
+mock.module("server-only", { namedExports: {} });
+
+const { PipelinePanel } = await import("@/app/components/pipeline-panel");
+
+function cartao(parciais: Partial<CartaoPipeline>): CartaoPipeline {
+  return {
+    canal: "whatsapp",
+    dias: 0,
+    etapa: "agendado",
+    id: "1",
+    identificadorConversa: "wa:1",
+    marcacaoEm: "2026-11-02T10:00:00.000Z",
+    marcacaoNome: "Thiago Correia",
+    marcacaoOrigem: "agente",
+    marcacaoServico: "Lavagem Detalhada",
+    mensagens: 22,
+    nome: "Thiago",
+    porque: "Tem uma marcação por acontecer.",
+    porResponder: false,
+    resultado: null,
+    telefone: "351925252340",
+    ultimaMensagemEm: "2026-10-19T09:00:00.000Z",
+    ...parciais,
+  };
+}
+
+function desenhar(cartoes: CartaoPipeline[]) {
+  return renderToStaticMarkup(
+    createElement(PipelinePanel, { cartoes, timeZone: "Europe/Lisbon" }),
+  );
+}
+
+/**
+ * Quantas etiquetas de aviso há no ecrã.
+ *
+ * Procura-se a etiqueta e não o texto: "Por responder" aparece sempre no
+ * título da coluna, e contar o texto dava um falso positivo em qualquer
+ * quadro. A marca da etiqueta é o fundo vermelho com letra branca.
+ */
+function avisos(html: string) {
+  return (html.match(/bg-red-500[^"]*text-white">Por responder</g) ?? []).length;
+}
+
+test("o cartão agendado de quem espera resposta leva o aviso vermelho", () => {
+  const html = desenhar([
+    cartao({
+      porque:
+        "Tem uma marcação por acontecer. Escreveu hoje e ainda não teve resposta.",
+      porResponder: true,
+    }),
+  ]);
+
+  // A etiqueta tem de estar no cartão, e a vermelho: é só isso que diz ao dono
+  // que a pessoa agendada está à espera dele.
+  assert.equal(avisos(html), 1);
+});
+
+test("o cartão agendado sem ninguém à espera não leva aviso nenhum", () => {
+  // O vermelho tem de significar alguma coisa. Aceso sempre, deixava de ser
+  // um aviso e passava a ser decoração.
+  const html = desenhar([cartao({ porResponder: false })]);
+
+  assert.equal(avisos(html), 0);
+});
+
+test("na coluna Por responder o aviso não se repete dentro do cartão", () => {
+  // Lá o título da coluna já o diz. A etiqueta dentro do cartão seria a mesma
+  // informação duas vezes na mesma peça de ecrã.
+  const html = desenhar([
+    cartao({
+      etapa: "por_responder",
+      marcacaoEm: null,
+      marcacaoNome: null,
+      marcacaoServico: null,
+      porque: "Escreveu hoje e ainda não teve resposta.",
+      porResponder: true,
+    }),
+  ]);
+
+  assert.equal(avisos(html), 0);
+  assert.match(html, /<h2[^>]*>Por responder<\/h2>/);
+});
+
+test("quem agendou aparece na coluna Agendado e não na Por responder", () => {
+  // O defeito que ele reportou, desenhado: a coluna "Agendado" dizia zero com
+  // a marcação à vista no cartão ao lado.
+  const html = desenhar([
+    cartao({
+      porque:
+        "Tem uma marcação por acontecer. Escreveu hoje e ainda não teve resposta.",
+      porResponder: true,
+    }),
+  ]);
+
+  // O contador de cada coluna, pela ordem do quadro: Por responder, Agendado,
+  // A decorrer, Cliente, A arrefecer. ("Perdido" começa fechado.)
+  const contadores = [...html.matchAll(/tabular-nums">(\d+)<\/span>/g)].map(
+    (m) => m[1],
+  );
+
+  assert.deepEqual(contadores.slice(0, 2), ["0", "1"]);
+  assert.match(html, /Lavagem Detalhada/);
 });
