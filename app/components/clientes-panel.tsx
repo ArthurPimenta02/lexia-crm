@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
+import { BotaoExportar } from "@/app/components/botao-exportar";
 import { ChannelBadge } from "@/app/components/channel-brand";
 import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
 import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/clientes/ficha";
 import type { ClienteLinha, ClientesDeFora } from "@/lib/clientes/read";
 import { formatDayInTimezone } from "@/lib/clientes/timezone";
+import { colunasDeClientes } from "@/lib/exportar/colunas";
 import {
   indicativoPorOmissao,
   indicativosTelefone,
@@ -1511,6 +1513,17 @@ export function ClientesPanel({
           <p className="text-xs text-muted-foreground">
             {filtrados.length} de {clientes.length} clientes
           </p>
+          {/*
+            Ao lado da contagem de propósito. O botão exporta `filtrados` — o
+            que a procura e os chips deixaram — e não os 939 todos, e é essa
+            contagem que está escrita aqui ao lado. Sem o número à vista, quem
+            filtrou e exportou não sabia o que ia no ficheiro.
+          */}
+          <BotaoExportar
+            assunto="clientes"
+            colunas={colunasDeClientes(moeda, mostrarViatura, timeZone)}
+            linhas={filtrados}
+          />
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
