@@ -29,7 +29,7 @@ import test, { mock } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mts";
+import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mjs";
 
 const SLUG = "miranda_skin_experts";
 const TABELA = "servicos_miranda";
