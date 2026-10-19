@@ -374,3 +374,40 @@ test("quem agendou aparece na coluna Agendado e não na Por responder", () => {
   assert.deepEqual(contadores.slice(0, 2), ["0", "1"]);
   assert.match(html, /Lavagem Detalhada/);
 });
+
+/**
+ * O ficheiro que sai do quadro é o quadro.
+ *
+ * "Perdido" começa fechado — são 780 dos 1012 cartões do Detail. Exportar os
+ * cartões todos em vez das colunas abertas mandava para o Excel quatro vezes
+ * mais linhas do que as que estão no ecrã, e a maior parte de contactos que o
+ * dono escolheu não estar a ver.
+ */
+test("a exportação do quadro leva as colunas abertas e não os perdidos escondidos", () => {
+  const html = desenhar([
+    cartao({ id: "1" }),
+    cartao({
+      dias: 400,
+      etapa: "perdido",
+      id: "2",
+      marcacaoEm: null,
+      marcacaoNome: null,
+      marcacaoServico: null,
+      porque: "Nunca trocou mensagens.",
+      ultimaMensagemEm: null,
+    }),
+  ]);
+
+  // O próprio botão diz quantas linhas vão sair, por isso a conta lê-se do
+  // ecrã — é a mesma frase que o dono vê antes de carregar.
+  assert.match(html, /Descarregar 1 linha em CSV/);
+  assert.doesNotMatch(html, /Descarregar 2 linhas em CSV/);
+});
+
+test("sem nada no quadro, o botão de exportar não deixa carregar", () => {
+  // Um ficheiro só com cabeçalhos descarregado sem aviso parece uma avaria.
+  const html = desenhar([]);
+
+  assert.match(html, /Não há linhas para exportar\./);
+  assert.match(html, /disabled=""/);
+});

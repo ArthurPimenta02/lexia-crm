@@ -8,12 +8,14 @@ import {
   NovaMarcacaoForm,
   type MarcarAction,
 } from "@/app/components/agenda-marcar";
+import { BotaoExportar } from "@/app/components/botao-exportar";
 import type {
   AgendaResultado,
   DiaAgenda,
   EventoAgenda,
 } from "@/lib/agenda/read";
 import type { ContactoParaEscolha } from "@/lib/clientes/read";
+import { colunasDaAgenda } from "@/lib/exportar/colunas";
 import type { ServicoAgendavel } from "@/lib/servicos/read";
 
 /**
@@ -1126,6 +1128,18 @@ export function AgendaPanel({
           >
             Mês
           </Botao>
+
+          {/*
+            Exporta o período que está no ecrã — a semana ou o mês, com o
+            filtro de executor já aplicado, porque é isso que `agenda.dias`
+            traz. Quem quer o mês inteiro carrega em "Mês" primeiro, que é a
+            mesma conta que já faz com os olhos.
+          */}
+          <BotaoExportar
+            assunto="agenda"
+            colunas={colunasDaAgenda(moeda, timeZone)}
+            linhas={agenda.dias.flatMap((candidato) => candidato.eventos)}
+          />
 
           {/*
             Marcar fica aqui em cima e não só dentro do painel do dia: quem

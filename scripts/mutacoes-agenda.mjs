@@ -21,6 +21,9 @@ const PAINEL = "app/components/servicos-panel.tsx";
 const ETAPAS = "lib/pipeline/etapas.ts";
 const QUADRO = "app/components/pipeline-panel.tsx";
 const LEITURA_PIPELINE = "lib/pipeline/read.ts";
+const CSV = "lib/exportar/csv.ts";
+const COLUNAS = "lib/exportar/colunas.ts";
+const CLIENTES = "app/components/clientes-panel.tsx";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
@@ -28,6 +31,7 @@ const TESTE_MIRANDA = "tests/agenda-da-miranda.test.mts";
 const TESTE_SERVICOS = "tests/servicos-da-miranda.test.mts";
 const TESTE_PIPELINE = "tests/pipeline-etapas.test.mts";
 const TESTE_ORDEM = "tests/pipeline-ordem-agendado.test.mts";
+const TESTE_EXPORTAR = "tests/exportar-csv.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -414,6 +418,147 @@ const mutacoes = [
     para: `        return a.porResponder ? 1 : -1;`,
     teste: TESTE_ORDEM,
   },
+
+  // --- A exportação ------------------------------------------------------
+  {
+    de: `const SEPARADOR = ";";`,
+    ficheiro: CSV,
+    nome: "o separador volta a ser a vírgula e o Excel em pt junta tudo numa coluna",
+    para: `const SEPARADOR = ",";`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `const BOM = "\\uFEFF";`,
+    ficheiro: CSV,
+    nome: "o ficheiro sai sem BOM e os acentos aparecem trocados no Windows",
+    para: `const BOM = "";`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `  return /^[=+\\-@\\t\\r]/.test(texto) ? \`'\${texto}\` : texto;`,
+    ficheiro: CSV,
+    nome: "uma fórmula escrita no nome do perfil passa intacta para o Excel",
+    para: `  return texto;`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    return \`"\${String(valor).replace(".", ",")}"\`;`,
+    ficheiro: CSV,
+    nome: "os decimais saem com ponto e as somas da folha dão zero",
+    para: `    return \`"\${String(valor)}"\`;`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `  return \`"\${desarmarFormula(valor).replace(/"/g, '""')}"\`;`,
+    ficheiro: CSV,
+    nome: "as aspas de dentro não se duplicam e a linha parte-se a meio",
+    para: `  return \`"\${desarmarFormula(valor)}"\`;`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    return valor ? '"Sim"' : '"Não"';`,
+    ficheiro: CSV,
+    nome: "o sim e o não saem em inglês de programador",
+    para: `    return \`"\${valor}"\`;`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `  return BOM + [cabecalho, ...corpo].join("\\r\\n") + "\\r\\n";`,
+    ficheiro: CSV,
+    nome: "as linhas acabam em \\n e algumas versões do Excel juntam tudo",
+    para: `  return BOM + [cabecalho, ...corpo].join("\\n") + "\\n";`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    timeZone: fuso,`,
+    ficheiro: CSV,
+    nome: "a data sai no fuso da máquina e não no do cliente",
+    para: `    timeZone: "UTC",`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `      cabecalho: moeda ? \`Valor (\${moeda})\` : "Valor",`,
+    ficheiro: COLUNAS,
+    nome: "sem moeda, o cabeçalho da agenda promete uma unidade chamada null",
+    para: `      cabecalho: \`Valor (\${moeda})\`,`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `      valor: (c) => (c.ultimaMensagemEm ? c.dias : null),`,
+    ficheiro: COLUNAS,
+    nome: "quem nunca falou leva 9 mil bilhões de dias e estraga a média",
+    para: `      valor: (c) => c.dias,`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    ...(mostrarViatura
+      ? [{ cabecalho: "Carro", valor: (c: ClienteLinha) => c.viatura }]
+      : []),`,
+    ficheiro: COLUNAS,
+    nome: "a coluna do carro aparece também na Miranda, sempre vazia",
+    para: `    { cabecalho: "Carro", valor: (c: ClienteLinha) => c.viatura },`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    { cabecalho: "Origem (anotada)", valor: (c) => c.origemManual },`,
+    ficheiro: COLUNAS,
+    nome: "as duas origens juntam-se numa e apaga-se a diferença entre facto e memória",
+    para: ``,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    { cabecalho: "À espera de resposta", valor: (c) => c.porResponder },`,
+    ficheiro: COLUNAS,
+    nome: "o aviso vermelho não viaja para o ficheiro",
+    para: ``,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `    { cabecalho: "Coluna", valor: (c) => ETAPA_ROTULO[c.etapa] },`,
+    ficheiro: COLUNAS,
+    nome: "a coluna sai com a chave da base em vez do rótulo do ecrã",
+    para: `    { cabecalho: "Coluna", valor: (c) => c.etapa },`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `  if (origem === "painel") {
+    return "Painel";
+  }`,
+    ficheiro: COLUNAS,
+    nome: "o que foi marcado pelo painel passa a contar como escrito à mão",
+    para: ``,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `            linhas={filtrados}`,
+    ficheiro: CLIENTES,
+    nome: "a exportação dos clientes ignora os filtros e leva a lista toda",
+    para: `            linhas={clientes}`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `          <BotaoExportar
+            assunto="clientes"`,
+    ficheiro: CLIENTES,
+    nome: "o botão de exportar desaparece do ecrã dos clientes",
+    para: `          <BotaoExportarApagado
+            assunto="clientes"`,
+    teste: TESTE_EXPORTAR,
+  },
+  {
+    de: `  const paraExportar = colunas.flatMap(({ cartoes: daColuna }) => daColuna);`,
+    ficheiro: QUADRO,
+    nome: "o quadro exporta os 780 perdidos escondidos junto com o que está à vista",
+    para: `  const paraExportar = cartoes;`,
+    teste: TESTE_PIPELINE,
+  },
+  {
+    de: `      disabled={aExportar || vazio}`,
+    ficheiro: "app/components/botao-exportar.tsx",
+    nome: "o botão deixa descarregar um ficheiro só com cabeçalhos",
+    para: `      disabled={aExportar}`,
+    teste: TESTE_PIPELINE,
+  },
 ];
 
 function correr(teste) {
@@ -439,6 +584,7 @@ for (const teste of [
   TESTE_SERVICOS,
   TESTE_PIPELINE,
   TESTE_ORDEM,
+  TESTE_EXPORTAR,
 ]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }

@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { BotaoExportar } from "@/app/components/botao-exportar";
 import { ChannelIcon } from "@/app/components/channel-brand";
 import { Dica } from "@/app/components/painel-ui";
+import { colunasDoPipeline } from "@/lib/exportar/colunas";
 import {
   ETAPA_DESCRICAO,
   ETAPA_ROTULO,
@@ -230,6 +232,12 @@ export function PipelinePanel({
 
   const perdidos = cartoes.filter((cartao) => cartao.etapa === "perdido").length;
 
+  // Exactamente o que está no quadro, pela ordem do quadro: com a procura
+  // aplicada, e com os perdidos só se estiverem abertos. Achatar as colunas
+  // em vez de refiltrar os cartões faz o ficheiro sair agrupado por coluna,
+  // que é como a pessoa está a olhar para eles.
+  const paraExportar = colunas.flatMap(({ cartoes: daColuna }) => daColuna);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -254,6 +262,12 @@ export function PipelinePanel({
         >
           {mostrarPerdidos ? "Esconder perdidos" : `Ver perdidos (${perdidos})`}
         </button>
+
+        <BotaoExportar
+          assunto="pipeline"
+          colunas={colunasDoPipeline(timeZone)}
+          linhas={paraExportar}
+        />
       </div>
 
       {/*
