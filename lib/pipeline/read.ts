@@ -92,6 +92,13 @@ export type CartaoPipeline = {
   nome: string | null;
   /** Em texto, porque é que o cartão está nesta coluna. */
   porque: string;
+  /**
+   * `true` quando escreveram e ainda ninguém respondeu.
+   *
+   * Vive ao lado da etapa e não dentro dela: um cartão com marcação fica em
+   * "Agendado", e é por este campo que o painel lhe põe o aviso vermelho.
+   */
+  porResponder: boolean;
   /** A etiqueta da IA. Separada da etapa, de propósito. */
   resultado: string | null;
   telefone: string | null;
@@ -314,7 +321,7 @@ export async function getPipeline(
       ultimaMensagemEm: ultimaEm,
     };
 
-    const { dias, etapa, porque } = derivarEtapa(factos, agora);
+    const { dias, etapa, porque, porResponder } = derivarEtapa(factos, agora);
 
     cartoes.push({
       canal: contacto.canal,
@@ -329,6 +336,7 @@ export async function getPipeline(
       mensagens: total.get(conversa) ?? 0,
       nome: contacto.nome,
       porque,
+      porResponder,
       resultado: rotularResultado(resultadoPorConversa.get(conversa)),
       telefone: contacto.telefone,
       ultimaMensagemEm: ultimaEm ? ultimaEm.toISOString() : null,
@@ -339,6 +347,13 @@ export async function getPipeline(
   // marcação mais próxima; nas outras é quem falou há menos tempo.
   cartoes.sort((a, b) => {
     if (a.etapa === "agendado" && b.etapa === "agendado") {
+      // Quem está à espera de resposta sobe ao topo da coluna. Sem isto, o
+      // aviso vermelho de quem escreveu hoje podia ficar no vigésimo cartão,
+      // fora da vista, e o cartão deixava de servir de aviso.
+      if (a.porResponder !== b.porResponder) {
+        return a.porResponder ? -1 : 1;
+      }
+
       return (a.marcacaoEm ?? "").localeCompare(b.marcacaoEm ?? "");
     }
 

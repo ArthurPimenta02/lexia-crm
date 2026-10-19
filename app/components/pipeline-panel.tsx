@@ -126,6 +126,17 @@ function Cartao({
       </p>
 
       <div className="flex flex-wrap items-center gap-1.5">
+        {/*
+          O aviso viaja com o cartão em vez de o prender à coluna "Por
+          responder". Quem agendou aparece em "Agendado", que é onde o dono o
+          vai procurar, e continua a ver a vermelho que ainda ninguém lhe
+          respondeu.
+        */}
+        {cartao.porResponder && cartao.etapa !== "por_responder" ? (
+          <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-semibold text-white">
+            Por responder
+          </span>
+        ) : null}
         {cartao.resultado ? (
           <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {cartao.resultado}

@@ -42,7 +42,8 @@ export const ETAPA_DESCRICAO: Record<Etapa, string> = {
   agendado: "Tem uma marcação por acontecer.",
   cliente: "Já foi atendido. Aqui ganha-se a repetição.",
   perdido: "Um mês sem dizer nada. Fica fora da vista até alguém o procurar.",
-  por_responder: "Escreveram e ainda ninguém respondeu.",
+  por_responder:
+    "Escreveram e ainda ninguém respondeu. Quem já tem marcação fica em Agendado, com o aviso vermelho no cartão.",
 };
 
 /**
@@ -112,6 +113,14 @@ export type EtapaDerivada = {
   etapa: Etapa;
   /** Em texto, porque é que este cartão caiu nesta coluna. */
   porque: string;
+  /**
+   * `true` quando escreveram e ainda ninguém respondeu — mesmo que o cartão
+   * esteja noutra coluna.
+   *
+   * É o que deixa "Agendado" ganhar sem esconder ninguém: o cartão muda de
+   * coluna mas leva o aviso consigo.
+   */
+  porResponder: boolean;
 };
 
 /**
@@ -119,12 +128,19 @@ export type EtapaDerivada = {
  *
  * A ordem das perguntas é a ordem da urgência, e é isso que a torna útil:
  *
- * 1. "Por responder" ganha a tudo. Alguém escreveu e está à espera — isso é
- *    mais urgente do que qualquer outra coisa que se saiba do cartão, mesmo
- *    que já tenha marcação. Um cliente que pergunta na véspera se pode mudar
- *    a hora não pode ficar escondido na coluna "Agendado".
- * 2. "Agendado" vem a seguir porque é um compromisso com data.
- * 3. Só depois é que o tempo decide.
+ * 1. "Agendado" ganha a tudo. É o único facto do cartão com data marcada, e
+ *    quem agendou tem de aparecer na coluna dos agendamentos — senão a coluna
+ *    mente. Medido a 2026-10-19: o Detail tinha exactamente um contacto com
+ *    marcação futura (Thiago Correia, 02/11) e ele estava em "Por responder"
+ *    porque escreveu nesse dia, o que deixava a coluna "Agendado" a zero com
+ *    uma marcação à vista no cartão ao lado.
+ * 2. Só depois é que o tempo decide: conversa viva, atendido, a arrefecer,
+ *    perdido.
+ *
+ * O que antes justificava pôr "Por responder" à frente continua garantido,
+ * mas pelo `porResponder` e não pela coluna: um cliente que pergunta na
+ * véspera se pode mudar a hora fica em "Agendado" **com o aviso de que está à
+ * espera de resposta**, em vez de desaparecer de uma coluna para a outra.
  *
  * `agora` entra por parâmetro e não se lê o relógio aqui dentro: sem isso o
  * resultado dependia do instante em que o teste corre.
@@ -135,24 +151,34 @@ export function derivarEtapa(
 ): EtapaDerivada {
   const referencia = factos.ultimaMensagemEm;
   const dias = referencia ? diasDesde(referencia, agora) : Number.MAX_SAFE_INTEGER;
+  const porResponder = factos.ultimaFoiRecebida && dias <= DIAS_ACTIVO;
+  const semResposta =
+    dias === 0
+      ? "Escreveu hoje e ainda não teve resposta."
+      : `Escreveu há ${dias} ${dias === 1 ? "dia" : "dias"} e ainda não teve resposta.`;
 
-  if (factos.ultimaFoiRecebida && dias <= DIAS_ACTIVO) {
+  if (factos.marcacaoFutura) {
     return {
       dias,
-      etapa: "por_responder",
-      porque:
-        dias === 0
-          ? "Escreveu hoje e ainda não teve resposta."
-          : `Escreveu há ${dias} ${dias === 1 ? "dia" : "dias"} e ainda não teve resposta.`,
+      etapa: "agendado",
+      porque: porResponder
+        ? `Tem uma marcação por acontecer. ${semResposta}`
+        : "Tem uma marcação por acontecer.",
+      porResponder,
     };
   }
 
-  if (factos.marcacaoFutura) {
-    return { dias, etapa: "agendado", porque: "Tem uma marcação por acontecer." };
+  if (porResponder) {
+    return { dias, etapa: "por_responder", porque: semResposta, porResponder };
   }
 
   if (dias <= DIAS_ACTIVO) {
-    return { dias, etapa: "a_decorrer", porque: "A conversa está viva." };
+    return {
+      dias,
+      etapa: "a_decorrer",
+      porque: "A conversa está viva.",
+      porResponder: false,
+    };
   }
 
   // Esta pergunta vem DEPOIS do tempo de propósito. Quem já foi atendido mas
@@ -160,7 +186,12 @@ export function derivarEtapa(
   // alguma coisa para fazer; "Cliente" é para quem foi atendido e está
   // sossegado.
   if (factos.marcacaoPassada) {
-    return { dias, etapa: "cliente", porque: "Já foi atendido." };
+    return {
+      dias,
+      etapa: "cliente",
+      porque: "Já foi atendido.",
+      porResponder: false,
+    };
   }
 
   if (dias <= DIAS_ARREFECER) {
@@ -168,6 +199,7 @@ export function derivarEtapa(
       dias,
       etapa: "a_arrefecer",
       porque: `Sem falar há ${dias} dias.`,
+      porResponder: false,
     };
   }
 
@@ -177,6 +209,7 @@ export function derivarEtapa(
     porque: referencia
       ? `Sem falar há ${dias} dias.`
       : "Nunca trocou mensagens.",
+    porResponder: false,
   };
 }
 
