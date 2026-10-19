@@ -44,7 +44,7 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private readonly diferencas: Filtro[] = [];
   private readonly limites: {
     coluna: string;
-    limite: "gte" | "lt";
+    limite: "gte" | "lt" | "lte";
     valor: string;
   }[] = [];
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
@@ -60,6 +60,7 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     private readonly operacao: Registo["operacao"],
     private readonly payload: unknown = null,
     private readonly conflito: string[] = [],
+    private readonly ignorarRepetidos = false,
   ) {
     this.devolveLinhas = operacao === "select";
   }
@@ -95,6 +96,12 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
 
   lt(coluna: string, valor: string) {
     this.limites.push({ coluna, limite: "lt", valor });
+
+    return this;
+  }
+
+  lte(coluna: string, valor: string) {
+    this.limites.push({ coluna, limite: "lte", valor });
 
     return this;
   }
@@ -186,7 +193,11 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
         ({ coluna, limite, valor }) => {
           const actual = String(linha[coluna] ?? "");
 
-          return limite === "gte" ? actual >= valor : actual < valor;
+          if (limite === "gte") {
+            return actual >= valor;
+          }
+
+          return limite === "lte" ? actual <= valor : actual < valor;
         },
       );
 
@@ -279,18 +290,30 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     }
 
     // upsert
-    const nova = this.payload as Linha;
-    const existente = linhas.find((linha) =>
-      this.conflito.every((coluna) => linha[coluna] === nova[coluna]),
-    );
+    const novas = (
+      Array.isArray(this.payload) ? this.payload : [this.payload]
+    ) as Linha[];
 
-    if (existente) {
-      Object.assign(existente, nova);
-    } else {
-      linhas.push({ ...nova });
+    for (const nova of novas) {
+      const existente = linhas.find((linha) =>
+        this.conflito.every((coluna) => linha[coluna] === nova[coluna]),
+      );
+
+      if (!existente) {
+        linhas.push({ ...nova });
+
+        continue;
+      }
+
+      // `ignoreDuplicates` deixa a linha que já lá estava em paz — é o que a
+      // Supabase faz com `ON CONFLICT DO NOTHING`. Sobrepor aqui escondia um
+      // `lido_em` a ser reescrito a cada abertura do sino.
+      if (!this.ignorarRepetidos) {
+        Object.assign(existente, nova);
+      }
     }
 
-    return { data: this.devolveLinhas ? [nova] : null, error: null };
+    return { data: this.devolveLinhas ? novas : null, error: null };
   }
 }
 
@@ -316,13 +339,17 @@ export class FakeSupabase {
       select: (colunas?: string) =>
         new Consulta(this, tabela, "select").select(colunas),
       update: (payload: Linha) => new Consulta(this, tabela, "update", payload),
-      upsert: (payload: Linha, opcoes?: { onConflict?: string }) =>
+      upsert: (
+        payload: Linha | Linha[],
+        opcoes?: { ignoreDuplicates?: boolean; onConflict?: string },
+      ) =>
         new Consulta(
           this,
           tabela,
           "upsert",
           payload,
           (opcoes?.onConflict ?? "").split(",").filter(Boolean),
+          opcoes?.ignoreDuplicates === true,
         ),
     };
   }

@@ -40,7 +40,11 @@ export default async function ClientAppLayout({
     // barra lateral — e o "Sair" — parada, por mais comprida que a página
     // seja.
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
-      <AppSidebar items={clientNavigation} subtitle="Painel do agente" />
+      <AppSidebar
+        comSino
+        items={clientNavigation}
+        subtitle="Painel do agente"
+      />
 
       <ScrollToTop alvoId="conteudo" />
 

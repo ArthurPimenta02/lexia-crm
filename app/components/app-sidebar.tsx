@@ -12,6 +12,7 @@ import {
   SidebarNav,
   type SidebarNavItem,
 } from "@/app/components/sidebar-nav";
+import { SinoAvisos, useAvisos } from "@/app/components/sino-avisos";
 
 /**
  * A moldura do painel: barra lateral no computador, gaveta no telemóvel.
@@ -31,14 +32,30 @@ import {
  */
 
 type AppSidebarProps = {
+  /** O sino. Fora no painel de administração, que não tem avisos. */
+  comSino?: boolean;
   items: SidebarNavItem[];
   subtitle: string;
 };
 
-export function AppSidebar({ items, subtitle }: AppSidebarProps) {
+export function AppSidebar({
+  comSino = false,
+  items,
+  subtitle,
+}: AppSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const paginaActual = items.find((item) => estaActivo(item.href, pathname));
+  /*
+   * Uma leitura só, partilhada pelos dois sinos.
+   *
+   * O sino tem de estar nos dois sítios porque nenhum dos dois se vê sempre:
+   * a barra de cima é `lg:hidden` e o topo da barra lateral está fora do ecrã
+   * no telemóvel enquanto a gaveta estiver fechada. Como os dois estão
+   * montados, o estado tem de vir de fora — senão cada página do produto
+   * fazia a mesma leitura duas vezes.
+   */
+  const avisos = useAvisos(comSino);
 
   useEffect(() => {
     if (!isOpen) {
@@ -86,6 +103,8 @@ export function AppSidebar({ items, subtitle }: AppSidebarProps) {
           </p>
         </div>
 
+        {comSino ? <SinoAvisos estado={avisos} /> : null}
+
         <LexiaBrand compact showText={false} tone="light" />
       </header>
 
@@ -106,6 +125,9 @@ export function AppSidebar({ items, subtitle }: AppSidebarProps) {
       >
         <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-5 pb-4">
           <LexiaBrand compact tone="light" />
+          {comSino ? (
+            <SinoAvisos className="hidden lg:block" estado={avisos} />
+          ) : null}
           <button
             aria-label="Fechar menu"
             className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground lg:hidden"
