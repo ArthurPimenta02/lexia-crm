@@ -17,10 +17,12 @@ const ACCOES = "app/app/agenda/actions.ts";
 const CONFIG = "lib/servicos/config.ts";
 const FUSO = "lib/clientes/timezone.ts";
 const LEITURA = "lib/servicos/read.ts";
+const PAINEL = "app/components/servicos-panel.tsx";
 
 const TESTE_ESCRITA = "tests/marcar-na-agenda.test.mts";
 const TESTE_ACCAO = "tests/marcar-pela-agenda-accao.test.mts";
 const TESTE_MIRANDA = "tests/agenda-da-miranda.test.mts";
+const TESTE_SERVICOS = "tests/servicos-da-miranda.test.mts";
 
 /** @type {{ de: string, ficheiro: string, nome: string, para: string, teste: string }[]} */
 const mutacoes = [
@@ -141,11 +143,11 @@ const mutacoes = [
   },
   {
     de: `    activoColumn: "ativo",
-    envPrefix: "MIRANDA",`,
+    catalogo: {`,
     ficheiro: CONFIG,
     nome: "a Miranda é filtrada pela coluna do activo do Detail",
     para: `    activoColumn: "activo",
-    envPrefix: "MIRANDA",`,
+    catalogo: {`,
     teste: TESTE_MIRANDA,
   },
   {
@@ -222,6 +224,108 @@ const mutacoes = [
       "  const horario = horarioPorCliente.detail_by_cordeiro?.[executor.chave] ?? null;",
     teste: TESTE_MIRANDA,
   },
+
+  // A aba Serviços de quem só tem a tabela de agendamento.
+  {
+    de: `  if (!config?.catalogo) {
+    return null;
+  }`,
+    ficheiro: LEITURA,
+    nome: "a aba dela volta a dizer que não tem catálogo ligado",
+    para: `  if (true) {
+    return null;
+  }`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    // Há dois `.eq(config.activoColumn, …)` no ficheiro; o `.replace` acerta
+    // no primeiro, que é o desta aba. O `.select(colunas)` desempata.
+    de: `    .select(colunas)
+    .eq(config.activoColumn, true);`,
+    ficheiro: LEITURA,
+    nome: "a aba dela filtra pela coluna `activo` do Detail",
+    para: `    .select(colunas)
+    .eq("activo", true);`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `    executorPrincipal: listaDeExecutores(config)[0]?.chave ?? null,
+    moeda: config.moeda,
+    servicos,
+    somenteLeitura: true,`,
+    ficheiro: LEITURA,
+    nome: "a aba dela deixa gravar por cima de colunas que não existem",
+    para: `    executorPrincipal: listaDeExecutores(config)[0]?.chave ?? null,
+    moeda: config.moeda,
+    servicos,
+    somenteLeitura: false,`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `    servicos: [],
+    somenteLeitura: false,`,
+    ficheiro: LEITURA,
+    nome: "um painel vazio tranca os botões de todos os clientes",
+    para: `    servicos: [],
+    somenteLeitura: true,`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `      custoProduto: null,
+      custoProdutoIncompleto: false,`,
+    ficheiro: LEITURA,
+    nome: "o custo de produto dela aparece como zero em vez de vazio",
+    para: `      custoProduto: 0,
+      custoProdutoIncompleto: false,`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `    const executores = listaDeExecutores(config).map<ExecutorLinha>(`,
+    ficheiro: LEITURA,
+    nome: "quem não faz o serviço desaparece do cartão",
+    para: `    const executores = agendaveis.map<ExecutorLinha>(`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `          euroPorHora:
+            preco !== null && horas !== null && horas > 0
+              ? arredondar(preco / horas)
+              : null,`,
+    ficheiro: LEITURA,
+    nome: "quem não faz o serviço aparece a render zero por hora",
+    para: `          euroPorHora:
+            preco !== null && horas !== null && horas > 0
+              ? arredondar(preco / horas)
+              : 0,`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `      ordemColumn: "prioridade_recomendacao",`,
+    ficheiro: CONFIG,
+    nome: "a ordem dela passa a ser a alfabética e não a que ela definiu",
+    para: `      ordemColumn: null,`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `  const temEscaloes = painel.escaloes.length > 0;`,
+    ficheiro: PAINEL,
+    nome: "a caixa do escalão de viatura volta a quem não tem viaturas",
+    para: `  const temEscaloes = true;`,
+    teste: TESTE_SERVICOS,
+  },
+  {
+    de: `                      dica={
+                        temEscaloes
+                          ? "Não variam com a viatura. A margem é calculada sobre o preço base."
+                          : "A margem é calculada sobre o preço base."
+                      }`,
+    ficheiro: PAINEL,
+    nome: "a dica dos outros preços volta a falar de viaturas",
+    para: `                      dica={
+                        "Não variam com a viatura. A margem é calculada sobre o preço base."
+                      }`,
+    teste: TESTE_SERVICOS,
+  },
 ];
 
 function correr(teste) {
@@ -240,7 +344,12 @@ function correr(teste) {
 
 console.log("Antes de estragar nada:");
 
-for (const teste of [TESTE_ESCRITA, TESTE_ACCAO, TESTE_MIRANDA]) {
+for (const teste of [
+  TESTE_ESCRITA,
+  TESTE_ACCAO,
+  TESTE_MIRANDA,
+  TESTE_SERVICOS,
+]) {
   console.log(`  ${correr(teste) ? "verde" : "VERMELHO"}  ${teste}`);
 }
 

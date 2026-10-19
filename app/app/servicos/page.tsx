@@ -54,7 +54,7 @@ export default async function ServicosPage({
         actionRepor={reporServicoAction}
         basePath="/app/servicos"
         painel={painel}
-        podeEditar={profile.role === "cliente_admin"}
+        podeEditar={profile.role === "cliente_admin" && !painel.somenteLeitura}
       />
     </div>
   );

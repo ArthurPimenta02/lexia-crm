@@ -130,6 +130,24 @@ export type ExecutoresPorTexto = {
 export type ServicosAgendaveisConfig = {
   /** A coluna booleana do serviço vivo. O Detail escreve `activo`; a Miranda, `ativo`. */
   activoColumn: string;
+  /**
+   * Colunas que só servem para **mostrar** o serviço na aba Serviços.
+   *
+   * `null` em quem já tem entrada no `clientConfigs`: esse painel lê o
+   * catálogo de venda a sério e não precisa deste atalho. Preenchido em quem
+   * só tem a tabela de agendamento — sem isto, o dono abria a aba Serviços e
+   * via "este cliente ainda não tem catálogo ligado ao painel" com 25
+   * serviços vivos na base dele.
+   */
+  catalogo: {
+    categoriaColumn: string | null;
+    descricaoColumn: string | null;
+    /** Por que ordem é que aparecem. Sem ela, ficam por ordem alfabética. */
+    ordemColumn: string | null;
+    /** jsonb com preços que não são o base (ex.: por número de sessões). */
+    precosVariantesColumn: string | null;
+    tipoPrecoColumn: string | null;
+  } | null;
   envPrefix: string;
   executores: ExecutoresPorColuna | ExecutoresPorTexto;
   moeda: string;
@@ -141,6 +159,9 @@ export type ServicosAgendaveisConfig = {
 const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
   detail_by_cordeiro: {
     activoColumn: "activo",
+    // O Detail tem entrada no `clientConfigs`: a aba Serviços dele lê o
+    // catálogo de venda, com margem e receita de produtos.
+    catalogo: null,
     envPrefix: "DETAIL_BY_CORDEIRO",
     executores: {
       lista: [
@@ -165,6 +186,13 @@ const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
   },
   miranda_skin_experts: {
     activoColumn: "ativo",
+    catalogo: {
+      categoriaColumn: "categoria",
+      descricaoColumn: "descricao",
+      ordemColumn: "prioridade_recomendacao",
+      precosVariantesColumn: "precos_variantes",
+      tipoPrecoColumn: "tipo_preco",
+    },
     envPrefix: "MIRANDA",
     executores: {
       coluna: "profissional",

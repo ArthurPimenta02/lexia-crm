@@ -5,7 +5,10 @@ import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { getServicosConfig } from "@/lib/servicos/config";
+import {
+  getServicosAgendaveisConfig,
+  getServicosConfig,
+} from "@/lib/servicos/config";
 import { getPainelServicos } from "@/lib/servicos/read";
 import { createClient } from "@/lib/supabase/server";
 
@@ -94,9 +97,15 @@ export default async function AdminServicosPage({
     escalao: escalaoPedido || undefined,
   });
 
+  // Quem só tem tabela de agendamento também aparece com serviços, só que
+  // sem deixar mexer — por isso não entra aqui.
   const semCatalogo = new Set(
     clientes
-      .filter((cliente) => getServicosConfig(cliente.slug) === null)
+      .filter(
+        (cliente) =>
+          getServicosConfig(cliente.slug) === null &&
+          !getServicosAgendaveisConfig(cliente.slug)?.catalogo,
+      )
       .map((cliente) => cliente.slug),
   );
 
@@ -153,7 +162,7 @@ export default async function AdminServicosPage({
         leading={selectorDeCliente}
         painel={painel}
         parametrosFixos={{ cliente: clienteSlug }}
-        podeEditar
+        podeEditar={!painel.somenteLeitura}
       />
     </div>
   );

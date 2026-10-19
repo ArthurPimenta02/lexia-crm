@@ -87,6 +87,15 @@ export type PainelServicos = {
   produtos: ProdutoLinha[];
   semReceita: number;
   servicos: ServicoLinha[];
+  /**
+   * O painel mostra mas não deixa mexer.
+   *
+   * É o caso de quem só tem tabela de agendamento: as escritas desta aba
+   * assumem as colunas do catálogo de venda do Detail (`valor`, `ordem`,
+   * `descricao_curta`, `preco_base` noutra tabela) e numa base que não as tem
+   * davam erro — ou, pior, escreviam metade.
+   */
+  somenteLeitura: boolean;
   vazioMotivo: string | null;
 };
 
@@ -120,6 +129,7 @@ function painelVazio(motivo: string | null, config?: ServicosClientConfig | null
     produtos: [],
     semReceita: 0,
     servicos: [],
+    somenteLeitura: false,
     vazioMotivo: motivo,
   };
 }
@@ -283,6 +293,153 @@ function arredondar(valor: number) {
   return Math.round(valor * 100) / 100;
 }
 
+/**
+ * O painel de Serviços de um cliente que só tem a tabela de agendamento.
+ *
+ * A Miranda tem **uma** tabela onde o Detail tem duas: o que ela vende e o
+ * que ela marca é a mesma linha. Não há catálogo de venda à parte, não há
+ * escalões de viatura, não há coluna de custo por profissional — e por isso
+ * também não há margem de produto, que é o que a aba calcula para o Detail.
+ *
+ * Mesmo assim mostra-se: ela tem 25 serviços vivos, com preço, profissional e
+ * duração, e esconder isso atrás de "ainda não tem catálogo ligado" era
+ * esconder dela o que ela própria lá pôs. O que não se faz é deixar editar
+ * — ver `somenteLeitura`.
+ */
+async function painelPelaTabelaDeAgendamento(
+  clienteSlug: string,
+): Promise<PainelServicos | null> {
+  const config = getServicosAgendaveisConfig(clienteSlug);
+
+  if (!config?.catalogo) {
+    return null;
+  }
+
+  const externo = createServicosClient(config);
+
+  if (!externo) {
+    return null;
+  }
+
+  const { catalogo } = config;
+  const colunas = Array.from(
+    new Set(
+      [
+        colunasAgendaveis(config),
+        catalogo.categoriaColumn,
+        catalogo.descricaoColumn,
+        catalogo.ordemColumn,
+        catalogo.precosVariantesColumn,
+        catalogo.tipoPrecoColumn,
+      ]
+        .filter((coluna): coluna is string => Boolean(coluna))
+        .flatMap((coluna) => coluna.split(", ")),
+    ),
+  ).join(", ");
+
+  const { data, error } = await externo
+    .from(config.tabela)
+    .select(colunas)
+    .eq(config.activoColumn, true);
+
+  if (error) {
+    console.error("[servicos] falha a ler a tabela de agendamento", error);
+
+    return {
+      ...painelVazio("Não foi possível ler o catálogo de serviços."),
+      moeda: config.moeda,
+      somenteLeitura: true,
+    };
+  }
+
+  const servicos: ServicoLinha[] = [];
+
+  for (const linha of (data ?? []) as unknown as LinhaAgendavel[]) {
+    const nome = String(linha.nome ?? "").trim();
+
+    if (!linha.id || !nome) {
+      continue;
+    }
+
+    const agendaveis =
+      config.executores.modo === "colunas"
+        ? executoresPorColuna(linha, config.executores)
+        : executoresPorTexto(linha, config.executores);
+
+    const preco = toNumber(linha[config.precoColumn] as number | string | null);
+    const variantes = catalogo.precosVariantesColumn
+      ? linha[catalogo.precosVariantesColumn]
+      : null;
+
+    // Cada pessoa da configuração aparece, faça ou não o serviço: é o mesmo
+    // que o Detail mostra, e é assim que se vê de relance quem é que está
+    // sobrecarregado com que tipo de trabalho.
+    const executores = listaDeExecutores(config).map<ExecutorLinha>(
+      (pessoa) => {
+        const agendavel = agendaveis.find(
+          (candidato) => candidato.chave === pessoa.chave,
+        );
+        const horas = agendavel ? agendavel.duracaoMinutos / 60 : null;
+
+        return {
+          chave: pessoa.chave,
+          duracaoMinutos: agendavel?.duracaoMinutos ?? null,
+          euroPorHora:
+            preco !== null && horas !== null && horas > 0
+              ? arredondar(preco / horas)
+              : null,
+          executa: Boolean(agendavel),
+          nome: pessoa.nome,
+        };
+      },
+    );
+
+    servicos.push({
+      agendamentoId: String(linha.id),
+      categoria: catalogo.categoriaColumn
+        ? ((linha[catalogo.categoriaColumn] as string | null) ?? null)
+        : null,
+      custoProduto: null,
+      custoProdutoIncompleto: false,
+      descricaoCurta: catalogo.descricaoColumn
+        ? ((linha[catalogo.descricaoColumn] as string | null) ?? null)
+        : null,
+      executores,
+      id: String(linha.id),
+      margem: null,
+      margemPercent: null,
+      moeda: config.moeda,
+      nome,
+      notas: null,
+      notasCatalogo: extrairNotasDoCatalogo(variantes),
+      ordem: catalogo.ordemColumn
+        ? (toNumber(linha[catalogo.ordemColumn] as number | string | null) ?? 0)
+        : 0,
+      preco,
+      precoBaseAgendamento: preco,
+      precoDivergente: false,
+      precoEstimado: false,
+      precoUnico: false,
+      precosAlternativos: extrairPrecosAlternativos(variantes, new Set(), preco),
+      receita: [],
+      tipoPreco: catalogo.tipoPrecoColumn
+        ? ((linha[catalogo.tipoPrecoColumn] as string | null) ?? null)
+        : null,
+    });
+  }
+
+  servicos.sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome, "pt"));
+
+  return {
+    ...painelVazio(servicos.length === 0 ? "Sem serviços activos." : null),
+    configurado: true,
+    executorPrincipal: listaDeExecutores(config)[0]?.chave ?? null,
+    moeda: config.moeda,
+    servicos,
+    somenteLeitura: true,
+  };
+}
+
 export async function getPainelServicos({
   clienteSlug,
   escalao,
@@ -293,9 +450,12 @@ export async function getPainelServicos({
   const config = getServicosConfig(clienteSlug);
 
   if (!config) {
-    return painelVazio(
-      "Este cliente ainda não tem catálogo de serviços ligado ao painel.",
-      null,
+    return (
+      (await painelPelaTabelaDeAgendamento(clienteSlug)) ??
+      painelVazio(
+        "Este cliente ainda não tem catálogo de serviços ligado ao painel.",
+        null,
+      )
     );
   }
 
@@ -500,6 +660,7 @@ export async function getPainelServicos({
     produtos,
     semReceita: servicos.filter((servico) => servico.receita.length === 0).length,
     servicos,
+    somenteLeitura: false,
     vazioMotivo: servicos.length === 0 ? "Sem serviços activos no catálogo." : null,
   };
 }
@@ -553,6 +714,14 @@ type LinhaAgendavel = {
   id: string | number;
   nome: string | null;
 } & Record<string, unknown>;
+
+/** Toda a gente da configuração, nos dois modos, pela ordem em que lá está. */
+function listaDeExecutores(config: ServicosAgendaveisConfig) {
+  return config.executores.lista.map((pessoa) => ({
+    chave: pessoa.chave,
+    nome: pessoa.nome,
+  }));
+}
 
 /**
  * As colunas que a tabela do cliente tem de dar para se poder marcar.
