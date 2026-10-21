@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -55,6 +56,8 @@ export default async function ClientSettingsPage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/configuracoes");
 
   const clienteSlug = profile.cliente_slug;
   const supabase = await createClient();

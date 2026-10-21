@@ -16,6 +16,7 @@ import {
   SimulatedHandoffCard,
   handoffGridClass,
 } from "@/app/components/handoff-cards";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
@@ -115,6 +116,8 @@ export default async function ClientHandoffsPage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/handoffs");
 
   if (!profile.cliente_slug) {
     redirect("/app");

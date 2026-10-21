@@ -25,6 +25,7 @@ import {
   formatDateInTimezone,
   getSelectedTimezone,
 } from "@/lib/clientes/timezone";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
@@ -187,6 +188,8 @@ export default async function ClientConversationsPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/conversas");
 
   if (!profile.cliente_slug || profile.status !== "ativo") {
     return (

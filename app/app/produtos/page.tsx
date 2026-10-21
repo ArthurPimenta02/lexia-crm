@@ -10,6 +10,7 @@ import {
 } from "@/app/app/produtos/actions";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import {
@@ -34,6 +35,8 @@ export default async function ProdutosPage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/produtos");
 
   if (!profile.cliente_slug) {
     redirect("/app");

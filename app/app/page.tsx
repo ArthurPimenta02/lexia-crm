@@ -16,6 +16,7 @@ import {
   Ranking,
   SeccaoTitulo,
 } from "@/app/components/painel-ui";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -144,6 +145,8 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app");
 
   if (!profile.cliente_slug) {
     redirect("/login");

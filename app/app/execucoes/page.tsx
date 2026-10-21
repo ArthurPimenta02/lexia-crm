@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   formatDateInTimezone,
@@ -154,6 +155,8 @@ export default async function ClientExecutionsPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/execucoes");
 
   if (!profile.cliente_slug) {
     redirect("/app");

@@ -50,6 +50,11 @@ const icones: Record<string, LucideIcon> = {
 export type SidebarNavItem = {
   href: string;
   icon?: string;
+  /**
+   * Ecrã fechado para este cliente. Continua à vista — é como ele sabe que o
+   * painel tem mais do que aquilo que lhe abriram — mas deixa de ser um link.
+   */
+  indisponivel?: boolean;
   label: string;
 };
 
@@ -97,6 +102,32 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
       {items.map((item) => {
         const activo = estaActivo(item.href, pathname);
         const Icone = icones[item.icon ?? ""] ?? CircleDot;
+
+        if (item.indisponivel) {
+          /*
+            Um `<span>`, não um `<Link>` desactivado: um `<a>` sem `href` ainda
+            aparece na tecla Tab e ainda se pode abrir em nova janela com o
+            botão do meio. O que não é link não se comporta como link.
+          */
+          return (
+            <span
+              aria-disabled="true"
+              className="flex min-h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-muted opacity-50"
+              key={item.href}
+              title="Ecrã indisponível nesta conta"
+            >
+              <Icone
+                aria-hidden="true"
+                className="h-[18px] w-[18px] shrink-0"
+                strokeWidth={1.8}
+              />
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
+              <span className="shrink-0 rounded border border-sidebar-border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
+                Indisponível
+              </span>
+            </span>
+          );
+        }
 
         return (
           <Link

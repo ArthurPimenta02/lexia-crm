@@ -9,6 +9,7 @@ import {
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
@@ -30,6 +31,8 @@ export default async function ClientesPage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/clientes");
 
   if (!profile.cliente_slug) {
     redirect("/app");

@@ -9,6 +9,7 @@ import {
 } from "@/app/app/servicos/actions";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelServicos } from "@/lib/servicos/read";
 
@@ -30,6 +31,8 @@ export default async function ServicosPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/servicos");
 
   if (!profile.cliente_slug) {
     redirect("/app");

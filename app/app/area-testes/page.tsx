@@ -8,6 +8,7 @@ import {
   type TestSession,
   type TestWorkflow,
 } from "@/app/app/area-testes/actions";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,6 +30,8 @@ export default async function ClientTestAreaPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/area-testes");
 
   if (!profile.cliente_slug) {
     redirect("/app");
