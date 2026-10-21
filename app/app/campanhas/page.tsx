@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CampaignsPanel } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
 import {
@@ -35,6 +36,8 @@ export default async function CampanhasPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/campanhas");
 
   if (!profile.cliente_slug) {
     redirect("/app");

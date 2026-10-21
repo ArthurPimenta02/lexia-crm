@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { PipelinePanel } from "@/app/components/pipeline-panel";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getPipeline } from "@/lib/pipeline/read";
@@ -20,6 +21,8 @@ export default async function PipelinePage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/pipeline");
 
   if (!profile.cliente_slug) {
     redirect("/app");

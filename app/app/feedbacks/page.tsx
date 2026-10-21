@@ -8,6 +8,7 @@ import {
   isLikelyImageUrl,
   parseFeedbackComentario,
 } from "@/app/components/feedback-conversation-utils";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   formatDateInTimezone,
@@ -62,6 +63,8 @@ export default async function ClientFeedbacksPage() {
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/feedbacks");
 
   if (!profile.cliente_slug) {
     redirect("/app");

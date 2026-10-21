@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
+import { ecraPermitido } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 const clientNavigation = [
@@ -34,6 +35,18 @@ export default async function ClientAppLayout({
     redirect("/admin");
   }
 
+  /*
+    Os ecrãs fechados para este cliente continuam na lista, marcados. Tirá-los
+    daria um menu curto e sem explicação; assim vê-se o painel todo e vê-se
+    também o que ainda não está aberto.
+
+    Isto é só o desenho. Quem recusa a entrada é a guarda de cada página.
+  */
+  const navegacao = clientNavigation.map((item) => ({
+    ...item,
+    indisponivel: !ecraPermitido(profile.cliente_slug, item.href),
+  }));
+
   return (
     // `h-dvh` + `overflow-hidden` fazem a moldura caber exactamente no ecrã:
     // a janela deixa de rolar e quem rola é o `<main>`. É o que mantém a
@@ -42,7 +55,7 @@ export default async function ClientAppLayout({
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
       <AppSidebar
         comSino
-        items={clientNavigation}
+        items={navegacao}
         subtitle="Painel do agente"
       />
 

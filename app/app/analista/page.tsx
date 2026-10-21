@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AnalystWorkspace } from "@/app/components/analyst-workspace";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,6 +10,7 @@ export default async function ClientAnalystPage() {
 
   if (!profile) redirect("/login");
   if (!isClientRole(profile.role)) redirect("/admin/analista");
+  exigirEcra(profile.cliente_slug, "/app/analista");
   if (!profile.cliente_slug) redirect("/login");
 
   const supabase = await createClient();

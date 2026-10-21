@@ -8,6 +8,7 @@ import {
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getAgenda, VISTAS, type Vista } from "@/lib/agenda/read";
+import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -39,6 +40,8 @@ export default async function AgendaPage({
   if (!isClientRole(profile.role)) {
     redirect("/admin");
   }
+
+  exigirEcra(profile.cliente_slug, "/app/agenda");
 
   if (!profile.cliente_slug) {
     redirect("/app");
