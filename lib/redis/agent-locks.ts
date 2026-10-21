@@ -9,11 +9,30 @@ import {
 
 export type AgentLockKind = "pausa_manual" | "pausa_eterna" | "status";
 
+/**
+ * Porque é que a trava `status` precisa de um motivo.
+ *
+ * Dois nós diferentes do n8n escrevem a MESMA chave `:status:` com o MESMO
+ * valor (`Desativado`): o `Set Intervenção Humana` do Omnichannel, quando o
+ * dono escreve na conversa, e o `Pausar Conversa` do Cérebro, quando o agente
+ * entrega a conversa à equipa. São duas situações muito diferentes e o painel
+ * chamava a ambas "Atendimento humano em curso" — o que é falso metade das
+ * vezes.
+ *
+ * O único sinal que os separa é o prazo com que cada nó grava a chave, porque
+ * o TTL que resta é sempre o do último a escrever. Quando os dois prazos do
+ * cliente são iguais, não há sinal nenhum e o painel não inventa: diz só que o
+ * agente está pausado.
+ */
+export type AgentLockReason = "handoff" | "intervencao" | "indeterminado";
+
 export type AgentLock = {
   canal: string;
   expiresAt: string | null;
   identificadorConversa: string;
   kind: AgentLockKind;
+  /** Só preenchido na trava `status`. */
+  reason: AgentLockReason | null;
   ttlSeconds: number | null;
   value: string;
 };
@@ -30,6 +49,10 @@ type AgentLocksClientConfig = {
   eternalPauseChannels: string[];
   namespacePrefix: string;
   namespaceSuffix: string;
+  // Prazos com que cada nó do n8n grava a chave `:status:`, em segundos.
+  // Ver `AgentLockReason`. Iguais = o painel não consegue distinguir.
+  statusTtlHandoff: number;
+  statusTtlIntervencao: number;
 };
 
 const clientConfigs: Record<string, AgentLocksClientConfig> = {
@@ -42,17 +65,25 @@ const clientConfigs: Record<string, AgentLocksClientConfig> = {
   // `eternalPauseChannels` fica vazio porque nenhum workflow do Detail escreve
   // `pausa_eterna` — oferecer o botão era prometer retomar uma trava que não
   // existe.
+  //
+  // Os `statusTtl*` foram lidos a 21/10/2026 nos workflows activos:
+  // `Set Intervenção Humana` (Omnichannel) e `Pausar Conversa` (Cérebro).
+  // No Detail os dois gravam 86400, por isso o painel nunca diz qual foi.
   detail_by_cordeiro: {
     envPrefix: "DETAIL",
     eternalPauseChannels: [],
     namespacePrefix: "lexia:detail_by_cordeiro:",
     namespaceSuffix: ":v1",
+    statusTtlHandoff: 86400,
+    statusTtlIntervencao: 86400,
   },
   miranda_skin_experts: {
     envPrefix: "MIRANDA",
     eternalPauseChannels: ["whatsapp"],
     namespacePrefix: "lexia:novo_cliente:",
     namespaceSuffix: ":v1",
+    statusTtlHandoff: 86400,
+    statusTtlIntervencao: 900,
   },
 };
 
@@ -88,6 +119,20 @@ export function hasAgentLocksIntegration(clienteSlug: string) {
 
 export function getAgentLocksClientSlugs() {
   return Object.keys(clientConfigs);
+}
+
+/** Só para o teste poder comparar os prazos com os dos workflows. */
+export function getStatusTtls(clienteSlug: string) {
+  const config = getConfig(clienteSlug);
+
+  if (!config) {
+    return null;
+  }
+
+  return {
+    statusTtlHandoff: config.statusTtlHandoff,
+    statusTtlIntervencao: config.statusTtlIntervencao,
+  };
 }
 
 export function isValidConversationId(value: string) {
@@ -195,6 +240,40 @@ async function scanLockKeys(
   return Array.from(keys).slice(0, maxLocks);
 }
 
+/**
+ * Quem gravou a trava `status`, deduzido do prazo que resta.
+ *
+ * O TTL que sobra é sempre o do último a escrever, e nunca pode ser maior do
+ * que o prazo com que foi gravado. Logo, um TTL acima do prazo mais curto só
+ * pode ter vindo do nó de prazo mais longo — isso é certeza, não palpite.
+ * Abaixo disso qualquer um dos dois serve de explicação, e aí devolvemos
+ * `indeterminado` em vez de escolher à sorte.
+ *
+ * Quando os dois prazos são iguais — é o caso do Detail — não é preciso ramo
+ * nenhum a dizê-lo: nenhum TTL consegue passar do prazo com que foi gravado,
+ * por isso a comparação nunca é verdadeira e sai sempre `indeterminado`.
+ */
+export function classifyStatusLock(
+  config: Pick<
+    AgentLocksClientConfig,
+    "statusTtlHandoff" | "statusTtlIntervencao"
+  >,
+  ttlSeconds: number | null,
+): AgentLockReason {
+  const { statusTtlHandoff: handoff, statusTtlIntervencao: intervencao } =
+    config;
+
+  if (ttlSeconds === null) {
+    return "indeterminado";
+  }
+
+  if (handoff > intervencao) {
+    return ttlSeconds > intervencao ? "handoff" : "indeterminado";
+  }
+
+  return ttlSeconds > handoff ? "intervencao" : "indeterminado";
+}
+
 function toLock(
   config: AgentLocksClientConfig,
   key: string,
@@ -211,6 +290,8 @@ function toLock(
   }
 
   const hasExpiry = Number.isFinite(ttlSeconds) && ttlSeconds >= 0;
+  const kind = match[2] as AgentLockKind;
+  const remaining = hasExpiry ? ttlSeconds : null;
 
   return {
     canal: match[1],
@@ -218,8 +299,9 @@ function toLock(
       ? new Date(now + ttlSeconds * 1000).toISOString()
       : null,
     identificadorConversa: match[3],
-    kind: match[2] as AgentLockKind,
-    ttlSeconds: hasExpiry ? ttlSeconds : null,
+    kind,
+    reason: kind === "status" ? classifyStatusLock(config, remaining) : null,
+    ttlSeconds: remaining,
     value: String(value),
   };
 }
