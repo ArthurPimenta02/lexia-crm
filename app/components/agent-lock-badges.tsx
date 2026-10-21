@@ -1,10 +1,31 @@
-import type { AgentLock } from "@/lib/redis/agent-locks";
+import type { AgentLock, AgentLockReason } from "@/lib/redis/agent-locks";
 
-const lockLabels: Record<AgentLock["kind"], string> = {
-  pausa_eterna: "Pausado após agendamento",
-  pausa_manual: "Pausado manualmente",
-  status: "Atendimento humano em curso",
+/*
+ * A trava `status` tem duas origens e uma só chave no Redis: o dono escreveu
+ * na conversa, ou o agente entregou a conversa à equipa. Dizer "atendimento
+ * humano em curso" nos dois casos era dar a razão errada metade das vezes —
+ * incluindo em conversas em que ninguém da equipa tinha aberto a boca.
+ *
+ * Quando o prazo não chega para separar os dois (ver `classifyStatusLock`), a
+ * etiqueta diz só o que é certo: o agente está parado e volta a tal hora.
+ */
+const statusLabels: Record<AgentLockReason, string> = {
+  handoff: "Handoff feito pelo agente",
+  indeterminado: "Agente pausado pela equipa",
+  intervencao: "Atendimento humano em curso",
 };
+
+function lockLabel(lock: AgentLock) {
+  if (lock.kind === "pausa_eterna") {
+    return "Pausado após agendamento";
+  }
+
+  if (lock.kind === "pausa_manual") {
+    return "Pausado manualmente";
+  }
+
+  return statusLabels[lock.reason ?? "indeterminado"];
+}
 
 /*
  * Três travas, três razões, uma só aparência.
@@ -77,7 +98,7 @@ export function AgentLockBadges({
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${lockDots[lock.kind]}`}
           />
           <span>
-            {lockLabels[lock.kind]}
+            {lockLabel(lock)}
             <span className="font-normal opacity-75">
               {" · "}
               {formatLockRemaining(lock.ttlSeconds)}
