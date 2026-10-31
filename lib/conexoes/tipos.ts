@@ -99,6 +99,13 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
         ajuda: "Normalmente o e-mail do dono da agenda.",
         exemplo: "nome@gmail.com",
       },
+      {
+        nome: "outras_agendas",
+        label: "Outras agendas (se houver mais de um profissional)",
+        segredo: false,
+        ajuda: "Nome=ID, separados por ponto e vírgula. O Detail usa a do Martim e a do Roberto.",
+        exemplo: "Roberto=…@group.calendar.google.com",
+      },
     ],
   },
   {
@@ -109,6 +116,13 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     campos: [
       { nome: "url", label: "URL REST (Upstash)", segredo: false },
       { nome: "token", label: "Token REST", segredo: true },
+      {
+        nome: "host",
+        label: "Endereço TCP",
+        segredo: false,
+        ajuda: "O que o n8n usa. Basta um dos dois jeitos: REST ou TCP.",
+      },
+      { nome: "password", label: "Senha TCP", segredo: true },
     ],
   },
   {
@@ -146,6 +160,19 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ],
   },
   {
+    tipo: "email_zoho",
+    titulo: "E-mail (Zoho)",
+    descricao: "Ler e responder a caixa de e-mail do cliente. É o que a Asteric usa.",
+    ambito: "cliente",
+    campos: [
+      { nome: "email", label: "Endereço de e-mail", segredo: false },
+      { nome: "api_domain", label: "Domínio da API", segredo: false, exemplo: "https://www.zohoapis.com" },
+      { nome: "client_id", label: "OAuth Client ID", segredo: false },
+      { nome: "client_secret", label: "OAuth Client Secret", segredo: true },
+      { nome: "refresh_token", label: "Refresh token", segredo: true },
+    ],
+  },
+  {
     tipo: "google_conta",
     titulo: "Conta Google da Lexia",
     descricao:
@@ -166,6 +193,12 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ambito: "cliente",
     campos: [
       { nome: "anthropic_api_key", label: "Anthropic", segredo: true },
+      {
+        nome: "anthropic_base_url",
+        label: "Endereço da Anthropic (Cloudflare)",
+        segredo: false,
+        ajuda: "O worker da Cloudflare que guarda o cache e economiza tokens.",
+      },
       { nome: "openai_api_key", label: "OpenAI", segredo: true },
       { nome: "gemini_api_key", label: "Google Gemini", segredo: true },
     ],
