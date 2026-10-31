@@ -1,5 +1,6 @@
 import "server-only";
 
+import { textoLegivelDaMensagem } from "@/lib/conversations/message-display";
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import type { LexiaUserRole } from "@/lib/auth/profile";
@@ -255,7 +256,7 @@ async function loadWorkflowHistory(
   if (error) throw new Error("Não foi possível carregar o histórico da análise.");
 
   const history = (data ?? []).reverse().map((message) => ({
-    content: String(message.conteudo ?? "").slice(0, 8000),
+    content: String(textoLegivelDaMensagem(message.conteudo) ?? "").slice(0, 8000),
     role: message.papel === "assistente" ? "assistant" : "user",
   }));
   const latest = history.at(-1);

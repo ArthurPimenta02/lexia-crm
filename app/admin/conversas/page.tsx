@@ -41,6 +41,7 @@ import {
   type DisplayConversationMessage,
 } from "@/lib/conversations/message-display";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
+import { assinarMidias } from "@/lib/conversations/media-urls";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminConversationsPageProps = {
@@ -383,7 +384,12 @@ export default async function AdminConversationsPage({
     selectedContact.identificador_conversa === requestedConversation,
   );
   const selectedMessages = selectedMessagesResult.data;
-  const displayMessages = prepareConversationMessages(selectedMessages);
+  // A mídia guardada no bucket privado ganha uma URL assinada aqui, no
+  // servidor, só para o cliente desta página (lib/conversations/media-urls.ts).
+  const displayMessages = await assinarMidias(
+    prepareConversationMessages(selectedMessages),
+    selectedClient.slug,
+  );
   const selectedSummary = selectedContact
     ? buildSummaries(selectedMessages).get(
         selectedContact.identificador_conversa,

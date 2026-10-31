@@ -1,5 +1,6 @@
 "use server";
 
+import { textoLegivelDaMensagem } from "@/lib/conversations/message-display";
 import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
@@ -124,7 +125,7 @@ export async function saveAdminConversationFeedback(
 
   const previousClientMessage =
     typeof previousMessageData?.conteudo === "string"
-      ? previousMessageData.conteudo
+      ? textoLegivelDaMensagem(previousMessageData.conteudo)
       : null;
 
   const { error: insertError } = await supabase.from("lexia_feedbacks").insert({
