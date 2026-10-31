@@ -263,6 +263,7 @@ Arquivos de referência:
 | `/admin/campanhas` | Campanhas da Meta com seleção explícita de cliente. | Sim |
 | `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
+| `/admin/turnos` | Turnos do agente em código (Fase 18): lista e passo a passo de cada resposta (`/admin/turnos/[id]`). Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
 | `/admin/feedbacks` | Triagem de feedbacks. | Sim |
@@ -833,6 +834,28 @@ Cliente e admin têm históricos isolados pela coluna `origem`.
 - `criado_em timestamptz`.
 
 O `run_id` correlaciona uma chamada da Área de Testes à linha gravada posteriormente pelo workflow.
+
+### `lexia_turnos` (Fase 18)
+
+Registo de cada turno do agente em código (repo `lexia-agente`, na VPS): o
+equivalente à tela de execuções do n8n. Quem escreve é `src/registo.ts` desse
+repo, com a service_role. Migration
+`supabase/migrations/202610310012_fase18_registo_de_turnos.sql`, rollback em
+`supabase/rollbacks/`.
+
+- `cliente_slug` (FK), `agente` (de quem é a inteligência que correu), `modo`
+  (`teste` | `sombra` | `producao`), `run_id`, `identificador_conversa`, `canal`.
+- `estado` (`respondido` | `parado` | `juntado_a_outra` | `erro`), `motivo`, `erro`.
+- `mensagem_cliente`, `mensagens` (balões), `rota`, `handoff`.
+- `resumo` (assunto, idioma, agentes, briefing, texto do Redator, travas, textos finais).
+- `ia` (cada chamada de modelo, com tokens e saída), `ferramentas` (o que pediu e recebeu),
+  `passos` (saída de cada nó por ordem, compactada; o histórico da conversa não é repetido).
+- `custo_usd`, `custo_sem_preco` (modelos sem preço na tabela do agente), `tokens`,
+  `duracao_ms`, `versao`, `iniciado_em`, `criado_em`.
+
+RLS ligado e nenhuma policy: traz prompts e regras internas, por isso só a
+service_role lê e escreve. A tela `/admin/turnos` lê do servidor depois de
+confirmar `lexia_admin`.
 
 ### `lexia_feedbacks`
 
