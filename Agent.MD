@@ -265,6 +265,7 @@ Arquivos de referência:
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/turnos` | Turnos do agente em código (Fase 18): lista e passo a passo de cada resposta (`/admin/turnos/[id]`). Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
 | `/admin/conexoes` | Conexões de cada agente (Fase 19): tokens de WhatsApp, Meta, Redis, bases, agenda; e as da Lexia (conta Google, IA de reserva). Segredos cifrados, nunca devolvidos ao navegador. Só `lexia_admin`. | Sim |
+| `/admin/bloqueios` | Contactos bloqueados por cliente (Fase 21): a agente em código não responde a quem está aqui. Adicionar (telefone ou IGSID/PSID) e desbloquear; o botão "Bloquear contacto" na conversa do admin grava o identificador da própria conversa. Só `lexia_admin`. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
 | `/admin/feedbacks` | Triagem de feedbacks. | Sim |
@@ -843,6 +844,24 @@ Cliente e admin têm históricos isolados pela coluna `origem`.
 - `criado_em timestamptz`.
 
 O `run_id` correlaciona uma chamada da Área de Testes à linha gravada posteriormente pelo workflow.
+
+### `lexia_bloqueios` (Fase 21)
+
+Contactos a quem o agente em código não responde. Substitui as listas escritas
+nos nós do n8n da Miranda ("Bloquear Contatos WhatsApp", "Contatos Bloqueados
+Meta"), que continuam a valer para o n8n até à virada. O bloqueio automático
+de quem está salvo na agenda do celular do responsável continua no código.
+Migration `supabase/migrations/202610310015_fase21_bloqueios.sql`, rollback em
+`supabase/rollbacks/`.
+
+- `cliente_slug` (FK), `canal` (`whatsapp` | `instagram` | `messenger`),
+  `identificador` (só dígitos: telefone com DDI, ou IGSID/PSID, o que vem
+  depois de `<canal>:` no `identificador_conversa`; `lib/bloqueios/identificador.ts`).
+- `nome`, `motivo` (opcionais), `criado_em`, `criado_por`. Único por
+  (cliente, canal, identificador).
+
+RLS ligado, sem policies, só a service_role. O agente lê com
+`estaBloqueado()` (`src/bloqueios.ts` do lexia-agente, cache de 60 s).
 
 ### `lexia_conexoes` (Fase 19)
 

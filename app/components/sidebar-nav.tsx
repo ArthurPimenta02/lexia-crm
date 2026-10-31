@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Ban,
   CalendarDays,
   CircleDot,
   FlaskConical,
@@ -49,6 +50,7 @@ const icones: Record<string, LucideIcon> = {
   testes: FlaskConical,
   turnos: Route,
   conexoes: PlugZap,
+  bloqueios: Ban,
 };
 
 export type SidebarNavItem = {
