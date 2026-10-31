@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Fragment, Suspense } from "react";
 
 import { saveAdminConversationFeedback } from "@/app/admin/conversas/actions";
+import { BloquearContacto } from "@/app/admin/conversas/bloquear-contacto";
 import {
   ChannelBadge,
   ChannelIcon,
@@ -687,6 +688,13 @@ export default async function AdminConversationsPage({
                           selectedTimezone.timeZone,
                         )}
                       </div>
+                      <Suspense fallback={null}>
+                        <BloquearContacto
+                          clienteSlug={selectedClient.slug}
+                          identificadorConversa={selectedContact.identificador_conversa}
+                          nome={selectedContact.nome}
+                        />
+                      </Suspense>
                       {profile.status === "ativo" ? (
                         <Suspense fallback={null}>
                           <ConversationAgentStatus
