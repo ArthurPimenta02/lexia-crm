@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import type React from "react";
 
 import {
   copiarSegredo,
@@ -13,6 +14,27 @@ const inicial: ConexaoState = { message: null, type: null };
 
 const classeInput =
   "h-10 w-full min-w-0 rounded-lg border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground";
+/**
+ * Atributos para o navegador e os gestores de senhas NÃO preencherem nada.
+ *
+ * Um campo de senha faz o navegador achar que o cartão é um login e
+ * preencher o campo de texto anterior com o e-mail guardado — aconteceu na URL
+ * do servidor. Por isso os campos de chave são `type="text"` com o texto
+ * escondido por CSS (`-webkit-text-security`): sem campo de senha não há
+ * "login" para preencher, e o `autoComplete="off"` volta a ser respeitado.
+ */
+const semAutopreencher = {
+  autoComplete: "off",
+  autoCorrect: "off",
+  autoCapitalize: "off",
+  spellCheck: false,
+  "data-1p-ignore": "true",
+  "data-lpignore": "true",
+  "data-bwignore": "true",
+  "data-form-type": "other",
+} as const;
+const textoEscondido = { WebkitTextSecurity: "disc" } as React.CSSProperties;
+
 const classeBotao =
   "inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-border-strong px-3 text-sm font-medium text-foreground transition hover:bg-muted active:scale-[0.98] disabled:opacity-60";
 
@@ -75,13 +97,14 @@ function SegredoGravado({
       <>
         <div className="flex gap-2">
           <input
-            autoComplete="off"
+            {...semAutopreencher}
             autoFocus
             className={classeInput}
             id={id}
             name={campo.nome}
             placeholder="cole a chave nova"
-            type="password"
+            style={textoEscondido}
+            type="text"
           />
           <button className={classeBotao} onClick={() => setTrocar(false)} type="button">
             Cancelar
@@ -139,7 +162,9 @@ export function ConexaoForm({
   return (
     <form
       action={formAction}
+      autoComplete="off"
       className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
+      data-form-type="other"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
@@ -172,13 +197,14 @@ export function ConexaoForm({
                 />
               ) : (
                 <input
-                  autoComplete="off"
+                  {...semAutopreencher}
                   className={classeInput}
                   defaultValue={campo.segredo ? "" : (campos[campo.nome] ?? "")}
                   id={id}
                   name={campo.nome}
                   placeholder={campo.exemplo ?? ""}
-                  type={campo.segredo ? "password" : "text"}
+                  style={campo.segredo ? textoEscondido : undefined}
+                  type="text"
                 />
               )}
               {campo.ajuda ? <p className="text-xs text-muted-foreground">{campo.ajuda}</p> : null}

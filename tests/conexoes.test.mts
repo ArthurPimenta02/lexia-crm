@@ -101,3 +101,10 @@ test("copiar um segredo exige lexia_admin antes de ler, e só campos de segredo"
   assert.ok(copiar.indexOf('"lexia_admin"') < copiar.indexOf('from("lexia_conexoes")'));
   assert.match(copiar, /c\.nome === campo && c\.segredo/);
 });
+
+test("nenhum campo das conexões é type=password (senão o navegador preenche o e-mail)", () => {
+  const fonte = readFileSync("app/admin/conexoes/conexao-form.tsx", "utf8");
+  assert.doesNotMatch(fonte, /type=\{?["'`]password/);
+  assert.doesNotMatch(fonte, /"password"/);
+  assert.match(fonte, /WebkitTextSecurity/);
+});
