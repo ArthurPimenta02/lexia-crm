@@ -15,6 +15,12 @@ export type DisplayConversationMessage = ConversationMessageRecord & {
   displayId: string;
   displayType: string;
   mediaUrl: string | null;
+  /**
+   * Caminho no bucket privado `lexia-midia` quando a mensagem foi gravada no
+   * formato de mídia guardada. A URL não vem daqui: é assinada no servidor
+   * (lib/conversations/media-urls.ts) e posta em `mediaUrl`.
+   */
+  mediaPath: string | null;
   partCount: number;
   partIndex: number;
   sourceMessageId: string;
@@ -23,7 +29,76 @@ export type DisplayConversationMessage = ConversationMessageRecord & {
 type MessagePart = Pick<
   DisplayConversationMessage,
   "content" | "displayType" | "mediaUrl"
->;
+> & { mediaPath?: string | null };
+
+/**
+ * Mídia guardada (Fase 20).
+ *
+ * O agente em código guarda o arquivo que o cliente mandou (áudio, imagem,
+ * vídeo, PDF) no bucket PRIVADO `lexia-midia` do Supabase central e grava em
+ * `lexia_mensagens.conteudo` uma linha de JSON:
+ *
+ *   {"midia":{"caminho":"<cliente>/<conversa>/<id>.<ext>","tipo":"audio","mime":"audio/ogg"},"texto":"<transcrição ou descrição>"}
+ *
+ * - `caminho` começa SEMPRE pelo slug do cliente: é isso que a assinatura
+ *   confere antes de gerar a URL, para um cliente nunca ver mídia de outro.
+ * - `texto` é o que a IA tirou do arquivo (transcrição do áudio, descrição da
+ *   imagem, texto do PDF) mais a legenda do cliente; aparece por baixo.
+ * - Os links do WhatsApp expiram; o bucket não. Por isso é este o formato.
+ */
+export const MIDIA_BUCKET = "lexia-midia";
+const caminhoValido = /^[a-z0-9_]+\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u;
+
+export type MidiaGuardada = {
+  caminho: string;
+  tipo: string;
+  mime: string | null;
+  texto: string | null;
+};
+
+export function parseMidiaGuardada(
+  conteudo: string | null | undefined,
+): MidiaGuardada | null {
+  const valor = conteudo?.trim();
+  if (!valor || !valor.startsWith('{"midia"')) {
+    return null;
+  }
+
+  try {
+    const dados = JSON.parse(valor) as {
+      midia?: { caminho?: unknown; tipo?: unknown; mime?: unknown };
+      texto?: unknown;
+    };
+    const caminho = dados.midia?.caminho;
+    if (
+      typeof caminho !== "string" ||
+      !caminhoValido.test(caminho) ||
+      caminho.split("/").some((parte) => parte === "." || parte === "..")
+    ) {
+      return null;
+    }
+
+    return {
+      caminho,
+      tipo: normalizeMessageType(
+        typeof dados.midia?.tipo === "string" ? dados.midia.tipo : null,
+      ),
+      mime: typeof dados.midia?.mime === "string" ? dados.midia.mime : null,
+      texto:
+        typeof dados.texto === "string" && dados.texto.trim()
+          ? dados.texto.trim()
+          : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** O texto legível de uma mensagem: no formato de mídia guardada, só o `texto`. */
+export function textoLegivelDaMensagem(conteudo: string | null | undefined) {
+  const midia = parseMidiaGuardada(conteudo);
+  return midia ? midia.texto : (conteudo ?? null);
+}
 
 const structuredContextPattern =
   /<Contexto(Imagem|Video)>([\s\S]*?)<\/Contexto\1>/giu;
@@ -142,6 +217,18 @@ function getStructuredMessageParts(
   message: ConversationMessageRecord,
   shouldSplitReceivedText: boolean,
 ) {
+  const guardada = parseMidiaGuardada(message.conteudo);
+  if (guardada) {
+    return [
+      {
+        content: guardada.texto,
+        displayType: guardada.tipo,
+        mediaUrl: null,
+        mediaPath: guardada.caminho,
+      },
+    ];
+  }
+
   const content = message.conteudo ?? "";
   const parts: MessagePart[] = [];
   const matches = [...content.matchAll(structuredContextPattern)];
@@ -248,6 +335,7 @@ export function expandConversationMessage(
   return safeParts.map<DisplayConversationMessage>((part, partIndex) => ({
     ...message,
     ...part,
+    mediaPath: part.mediaPath ?? null,
     displayId:
       safeParts.length === 1
         ? message.id

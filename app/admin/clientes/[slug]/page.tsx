@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { textoLegivelDaMensagem } from "@/lib/conversations/message-display";
 import { redirect } from "next/navigation";
 
 import {
@@ -223,7 +224,7 @@ function getMessagePreview(message: ConversationMessage | null | undefined) {
     return "Imagem";
   }
 
-  return message.conteudo || "Sem conteúdo.";
+  return textoLegivelDaMensagem(message.conteudo) || "Sem conteúdo.";
 }
 
 function InfoItem({

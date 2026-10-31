@@ -1,5 +1,6 @@
 import "server-only";
 
+import { textoLegivelDaMensagem } from "@/lib/conversations/message-display";
 import { createHash } from "node:crypto";
 
 import {
@@ -140,7 +141,8 @@ function normalizeSearchText(value: string) {
 }
 
 export function redactConversationText(value: string, maxLength = 700) {
-  const sanitized = value
+  // Mídia guardada (JSON com caminho no bucket): só o texto conta.
+  const sanitized = (textoLegivelDaMensagem(value) ?? "")
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[e-mail]")
     .replace(/https?:\/\/\S+/gi, "[link]")
     .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, "[telefone]")

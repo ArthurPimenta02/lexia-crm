@@ -862,6 +862,33 @@ RLS ligado, sem policies, só a service_role. A página não pede a coluna
 `segredos`; a acção decifra no servidor só para juntar com o que veio do
 formulário (campo de segredo em branco = manter o valor antigo).
 
+### Mídia guardada das conversas (Fase 20)
+
+Bucket **privado** `lexia-midia` no Supabase Storage central (migration
+`supabase/migrations/202610310014_fase20_midia_guardada.sql`, rollback em
+`supabase/rollbacks/`; o rollback exige esvaziar o bucket antes). Sem policies:
+só a service_role lê e escreve. Limite de 25 MB por arquivo.
+
+O agente em código guarda ali o áudio, imagem, vídeo ou PDF que o cliente
+mandou e grava em `lexia_mensagens.conteudo` uma linha de JSON:
+
+```
+{"midia":{"caminho":"<cliente_slug>/<conversa>/<id>.<ext>","tipo":"audio","mime":"audio/ogg"},"texto":"<transcrição/descrição + legenda>"}
+```
+
+- `caminho`: três partes, só `[A-Za-z0-9._-]` (a conversa com `:` vira `_`),
+  e a primeira é SEMPRE o slug do cliente. `parseMidiaGuardada`
+  (`lib/conversations/message-display.ts`) recusa qualquer outra forma.
+- As páginas de conversa (`/app/conversas`, `/admin/conversas`) chamam
+  `assinarMidias` (`lib/conversations/media-urls.ts`) no servidor: URL
+  assinada de 1 h, só para mensagens do cliente da página E caminhos que
+  começam por `<slug>/`. Bucket inexistente ou erro → "mídia indisponível",
+  sem rebentar.
+- O texto aparece por baixo do player/imagem. O analista e o feedback leem só
+  o `texto` (`textoLegivelDaMensagem`), nunca o JSON.
+- Mensagens antigas (texto, links do WhatsApp, blocos `<ContextoImagem>`)
+  aparecem como antes.
+
 ### `lexia_turnos` (Fase 18)
 
 Registo de cada turno do agente em código (repo `lexia-agente`, na VPS): o
