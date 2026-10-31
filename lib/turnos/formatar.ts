@@ -65,6 +65,8 @@ export type TurnoCompleto = TurnoLinha & {
     texto_do_redator?: unknown;
     travas?: string[];
     textos_finais?: string[];
+    /** Modo sombra: o que o n8n respondeu à mesma mensagem, para comparar. */
+    n8n_respondeu?: string[];
   } | null;
   ia: EventoIa[] | null;
   ferramentas: EventoFerramenta[] | null;

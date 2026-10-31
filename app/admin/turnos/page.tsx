@@ -28,11 +28,13 @@ type TurnosPageProps = {
   searchParams: Promise<{
     cliente?: string | string[];
     estado?: string | string[];
+    modo?: string | string[];
     conversa?: string | string[];
   }>;
 };
 
 const estados = ["", "respondido", "parado", "juntado_a_outra", "erro"];
+const modos = ["", "teste", "sombra", "producao"];
 
 function valor(v: string | string[] | undefined) {
   return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
@@ -48,6 +50,8 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
   const estadoPedido = valor(params.estado);
   const estado = estados.includes(estadoPedido) ? estadoPedido : "";
   const conversa = valor(params.conversa).trim();
+  const modoPedido = valor(params.modo);
+  const modo = modos.includes(modoPedido) ? modoPedido : "";
 
   const admin = createAdminClient();
   let query = admin
@@ -59,6 +63,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
     .limit(200);
   if (cliente) query = query.eq("cliente_slug", cliente);
   if (estado) query = query.eq("estado", estado);
+  if (modo) query = query.eq("modo", modo);
   if (conversa) query = query.eq("identificador_conversa", conversa);
 
   const [{ data, error }, { data: clientesData }] = await Promise.all([
@@ -114,7 +119,7 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
         replace
         scroll={false}
       >
-        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.5fr_auto]">
+        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1.5fr_auto]">
           <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
             Cliente
             <select
@@ -143,6 +148,19 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
                   {descreverEstado(e)}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+            Modo
+            <select
+              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              defaultValue={modo}
+              name="modo"
+            >
+              <option value="">Todos</option>
+              <option value="teste">Área de testes</option>
+              <option value="sombra">Sombra (real, não enviado)</option>
+              <option value="producao">Produção</option>
             </select>
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
