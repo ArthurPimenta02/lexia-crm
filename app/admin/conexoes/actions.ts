@@ -114,3 +114,36 @@ export async function salvarConexao(
   revalidatePath("/admin/conexoes");
   return { message: `${definicao.titulo}: gravado.`, type: "success" };
 }
+
+/**
+ * Devolve UM segredo, para o botão "Copiar". Só `lexia_admin`.
+ *
+ * É a única via por onde um segredo chega ao navegador, e só quando se
+ * clica: a página continua a não pedir a coluna `segredos`.
+ */
+export async function copiarSegredo(
+  clienteSlug: string,
+  tipo: string,
+  campo: string,
+): Promise<{ valor?: string; erro?: string }> {
+  const { profile, user } = await getLoggedInUserProfile();
+  if (!user || profile?.role !== "lexia_admin") return { erro: "Acesso não autorizado." };
+
+  const definicao = tipoConexao(tipo);
+  if (!definicao?.campos.some((c) => c.nome === campo && c.segredo)) {
+    return { erro: "Campo desconhecido." };
+  }
+
+  const slug = clienteSlug.trim() || null;
+  let consulta = createAdminClient().from("lexia_conexoes").select("segredos").eq("tipo", tipo);
+  consulta = slug ? consulta.eq("cliente_slug", slug) : consulta.is("cliente_slug", null);
+  const { data, error } = await consulta.maybeSingle();
+  if (error || !data?.segredos) return { erro: "Nada gravado neste campo." };
+
+  try {
+    const valor = decifrar(data.segredos)[campo];
+    return valor ? { valor } : { erro: "Nada gravado neste campo." };
+  } catch (erro) {
+    return { erro: erro instanceof Error ? erro.message : "Não foi possível ler o segredo." };
+  }
+}
