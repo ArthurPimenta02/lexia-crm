@@ -92,3 +92,12 @@ test("a migration fecha a tabela a quem não é service_role", () => {
   assert.match(sql, /revoke all on public\.lexia_conexoes from anon, authenticated/);
   assert.doesNotMatch(sql, /create policy/i);
 });
+
+test("copiar um segredo exige lexia_admin antes de ler, e só campos de segredo", () => {
+  const fonte = readFileSync("app/admin/conexoes/actions.ts", "utf8");
+  const copiar = fonte.slice(fonte.indexOf("export async function copiarSegredo"));
+  assert.ok(copiar.length > 0);
+  assert.ok(copiar.indexOf('"lexia_admin"') > 0);
+  assert.ok(copiar.indexOf('"lexia_admin"') < copiar.indexOf('from("lexia_conexoes")'));
+  assert.match(copiar, /c\.nome === campo && c\.segredo/);
+});
