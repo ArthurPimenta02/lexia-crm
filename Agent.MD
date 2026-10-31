@@ -264,6 +264,7 @@ Arquivos de referência:
 | `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/turnos` | Turnos do agente em código (Fase 18): lista e passo a passo de cada resposta (`/admin/turnos/[id]`). Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
+| `/admin/conexoes` | Conexões de cada agente (Fase 19): tokens de WhatsApp, Meta, Redis, bases, agenda; e as da Lexia (conta Google, IA de reserva). Segredos cifrados, nunca devolvidos ao navegador. Só `lexia_admin`. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
 | `/admin/feedbacks` | Triagem de feedbacks. | Sim |
@@ -680,6 +681,14 @@ em 06/10/2026); o padrão no código é `v26.0`.
 a injeta no `Authorization` sozinho. Não confundir com `LEXIA_CRON_SECRET`, que
 autoriza as rotas chamadas pelo n8n.
 
+### Conexões dos agentes (Fase 19)
+
+- `LEXIA_CONEXOES_CHAVE`: 32 bytes aleatórios em base64. Cifra os segredos de
+  `lexia_conexoes` (AES-256-GCM, `lib/conexoes/cifra.ts`). Tem de ser **igual**
+  na Vercel (Production) e no `.env.servidor` do agente em código na VPS. Sem
+  ela a tela de conexões não grava e o agente não lê. Trocá-la torna ilegíveis
+  todos os segredos já gravados: seria preciso gravá-los de novo.
+
 ### Analista Lexia (n8n ativo)
 
 ```text
@@ -834,6 +843,24 @@ Cliente e admin têm históricos isolados pela coluna `origem`.
 - `criado_em timestamptz`.
 
 O `run_id` correlaciona uma chamada da Área de Testes à linha gravada posteriormente pelo workflow.
+
+### `lexia_conexoes` (Fase 19)
+
+Tokens e configurações de que cada agente precisa. Migration
+`supabase/migrations/202610310013_fase19_conexoes.sql`, rollback em
+`supabase/rollbacks/` (o rollback apaga os tokens: só existem aqui).
+
+- `cliente_slug` (FK, **nulo = conexão da Lexia**, partilhada por todos), `tipo`
+  (catálogo em `lib/conexoes/tipos.ts`), único por (cliente, tipo).
+- `campos jsonb`: o que não é segredo (URL da uazapi, ID da agenda, ID da página).
+- `segredos text`: JSON dos segredos cifrado com `LEXIA_CONEXOES_CHAVE`
+  (`v1.<iv>.<tag>.<dados>`).
+- `finais jsonb`: 4 últimos caracteres de cada segredo, para a tela.
+- `atualizado_em`, `atualizado_por`.
+
+RLS ligado, sem policies, só a service_role. A página não pede a coluna
+`segredos`; a acção decifra no servidor só para juntar com o que veio do
+formulário (campo de segredo em branco = manter o valor antigo).
 
 ### `lexia_turnos` (Fase 18)
 

@@ -10,6 +10,7 @@ import {
   Megaphone,
   MessagesSquare,
   Package,
+  PlugZap,
   Route,
   SquareKanban,
   Star,
@@ -47,6 +48,7 @@ const icones: Record<string, LucideIcon> = {
   servicos: Wrench,
   testes: FlaskConical,
   turnos: Route,
+  conexoes: PlugZap,
 };
 
 export type SidebarNavItem = {
