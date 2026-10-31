@@ -129,9 +129,18 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
         <Linha label="Cliente disse">
           <div className="whitespace-pre-wrap">{t.mensagem_cliente || "—"}</div>
         </Linha>
-        <Linha label="Agente respondeu">
+        <Linha label={t.modo === "sombra" ? "Agente em código respondeu (não enviado)" : "Agente respondeu"}>
           <Baloes textos={enviados} />
         </Linha>
+        {t.modo === "sombra" ? (
+          <Linha label="O n8n respondeu (enviado ao cliente)">
+            {r.n8n_respondeu === undefined ? (
+              <span className="text-muted-foreground">não verificado</span>
+            ) : (
+              <Baloes textos={r.n8n_respondeu} />
+            )}
+          </Linha>
+        ) : null}
         {t.estado !== "respondido" ? (
           <Linha label="Porque não respondeu">
             <span className={t.estado === "erro" ? "text-danger" : ""}>{t.erro || t.motivo || "—"}</span>
