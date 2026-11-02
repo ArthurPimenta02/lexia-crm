@@ -99,6 +99,9 @@ export function ControleVista({
       minute: "2-digit",
     });
   const conversaAtual = resumos.find((r) => r.id === conversaId);
+  const custo24 = recentes.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
+  const respondidas24 = recentes.filter((t) => t.estado === "respondido").length;
+  const custoConversa = daConversa.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
   const n8n = turno?.modo === "sombra" ? textos(turno.resumo?.n8n_respondeu) : [];
 
   return (
@@ -116,7 +119,7 @@ export function ControleVista({
       <GrupoMetricas
         itens={[
           { label: "Conversas (24 h)", valor: conversas24.size },
-          { label: "Respostas (24 h)", valor: recentes.filter((t) => t.estado === "respondido").length },
+          { label: "Respostas (24 h)", valor: respondidas24 },
           {
             dica: "Mensagens a que o agente decidiu não responder: contacto bloqueado, conversa pausada, Samuel já respondeu, follow-up fora de horário.",
             label: "Não respondeu (24 h)",
@@ -126,7 +129,12 @@ export function ControleVista({
           {
             dica: "Custo de IA das últimas 24 h. Modelos sem preço na tabela não entram.",
             label: "Custo de IA (24 h)",
-            valor: formatarCusto(recentes.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0)),
+            valor: formatarCusto(custo24),
+          },
+          {
+            dica: "Custo de IA dividido pelas respostas enviadas nas últimas 24 h. Inclui o que não gerou resposta (follow-ups avaliados, mensagens juntadas).",
+            label: "Custo por resposta",
+            valor: respondidas24 ? formatarCusto(custo24 / respondidas24) : "—",
           },
         ]}
       />
@@ -183,7 +191,10 @@ export function ControleVista({
               conversaAtual ? (
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {CANAL[conversaAtual.ultimo.canal ?? ""] ?? conversaAtual.ultimo.canal} ·{" "}
-                  {conversaAtual.modos.map((m) => NOME_MODO[m] ?? m).join(", ")}
+                  {conversaAtual.modos.map((m) => NOME_MODO[m] ?? m).join(", ")} ·{" "}
+                  <span className="tabular-nums" title="Custo de IA de todas as respostas desta conversa">
+                    {formatarCusto(custoConversa)} nesta conversa
+                  </span>
                 </span>
               ) : null
             }
@@ -234,12 +245,16 @@ export function ControleVista({
                       </span>
                     )}
                     <span
-                      className={`text-[11px] ${ativo ? "font-medium text-positive" : "text-muted-foreground"} ${
-                        enviados.length ? "" : "hidden"
-                      }`}
+                      className={`text-[11px] tabular-nums ${ativo ? "font-medium text-positive" : "text-muted-foreground"}`}
                     >
-                      {t.rota === "followup" ? "Follow-up automático" : (ROTA[t.rota ?? ""] ?? "Carol")}
-                      {ativo ? " · aberta ao lado →" : ""}
+                      {enviados.length
+                        ? t.rota === "followup"
+                          ? "Follow-up automático"
+                          : (ROTA[t.rota ?? ""] ?? "Carol")
+                        : null}
+                      {enviados.length && Number(t.custo_usd) > 0 ? " · " : ""}
+                      {Number(t.custo_usd) > 0 ? formatarCusto(t.custo_usd) : ""}
+                      {ativo && enviados.length ? " · aberta ao lado →" : ""}
                     </span>
                   </Link>
                 </div>

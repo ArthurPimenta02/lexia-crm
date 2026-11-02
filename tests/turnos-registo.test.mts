@@ -41,8 +41,10 @@ test("a migration fecha a tabela a quem não é service_role", () => {
 });
 
 test("custo pequeno aparece em centavos, grande em dólares", () => {
-  assert.equal(formatarCusto(0.0834), "8,34¢");
-  assert.equal(formatarCusto("0.004"), "0,4¢");
+  assert.equal(formatarCusto(0.0834), "US$ 0,083");
+  assert.equal(formatarCusto(0.2534), "US$ 0,25");
+  assert.equal(formatarCusto("0.004"), "US$ 0,004");
+  assert.equal(formatarCusto(0.0004), "menos de US$ 0,001");
   assert.equal(formatarCusto(1.5), "US$ 1,50");
   assert.equal(formatarCusto(null), "—");
   assert.equal(formatarCusto("abc"), "—");
