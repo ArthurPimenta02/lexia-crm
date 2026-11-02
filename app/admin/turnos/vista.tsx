@@ -193,7 +193,7 @@ export function ControleVista({
                   {CANAL[conversaAtual.ultimo.canal ?? ""] ?? conversaAtual.ultimo.canal} ·{" "}
                   {conversaAtual.modos.map((m) => NOME_MODO[m] ?? m).join(", ")} ·{" "}
                   <span className="tabular-nums" title="Custo de IA de todas as respostas desta conversa">
-                    {formatarCusto(custoConversa)} no total
+                    {formatarCusto(custoConversa)} nesta conversa
                   </span>
                 </span>
               ) : null

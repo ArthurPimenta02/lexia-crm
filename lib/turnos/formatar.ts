@@ -90,13 +90,20 @@ export function descreverEstado(estado: string) {
   return ESTADOS[estado] ?? estado;
 }
 
-/** Custo em dólares; abaixo de 1 dólar aparece em centavos ("8,34¢"), que é a escala de um turno. */
+/**
+ * Custo em dólares, sempre com "US$" à frente (o "¢" lia-se como cêntimo de
+ * euro). De 10 centavos para cima, 2 casas ("US$ 0,25"); abaixo, 3 casas para
+ * não virar tudo "US$ 0,00" ("US$ 0,083"); abaixo de um décimo de centavo,
+ * "menos de US$ 0,001".
+ */
 export function formatarCusto(valor: number | string | null | undefined) {
   if (valor === null || valor === undefined || valor === "") return "—";
   const n = Number(valor);
   if (!Number.isFinite(n)) return "—";
-  if (n < 1) return `${(n * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}¢`;
-  return `US$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
+  if (n === 0) return "US$ 0,00";
+  if (n < 0.001) return "menos de US$ 0,001";
+  const casas = n < 0.1 ? 3 : 2;
+  return `US$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
 }
 
 export function formatarDuracao(ms: number | null | undefined) {
