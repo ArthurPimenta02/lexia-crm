@@ -12,6 +12,7 @@ const adminNavigation = [
   { label: "Produtos", href: "/admin/produtos", icon: "produtos" },
   { label: "Área de testes", href: "/admin/area-testes", icon: "testes" },
   { label: "Controle do agente", href: "/admin/turnos", icon: "turnos" },
+  { label: "Follow-ups e lembretes", href: "/admin/followups", icon: "followups" },
   { label: "Conexões", href: "/admin/conexoes", icon: "conexoes" },
   { label: "Bloqueios", href: "/admin/bloqueios", icon: "bloqueios" },
   { label: "Conversas", href: "/admin/conversas", icon: "conversas" },
