@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { agruparConversas, turnoEscolhido, type TurnoNaConversa } from "@/lib/turnos/controle";
 import type { TurnoCompleto } from "@/lib/turnos/formatar";
 import { inicioUltimas24h } from "@/lib/turnos/mapa";
+import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 
 /**
  * Controle do agente em código: o equivalente às execuções do n8n, mas por
@@ -155,6 +156,8 @@ export default async function ControlePage({ searchParams }: Props) {
   );
 
   return (
+    <>
+    <AtualizacaoAutomatica segundos={20} />
     <ControleVista
       conversaId={conversaId}
       daConversa={daConversa}
@@ -168,5 +171,6 @@ export default async function ControlePage({ searchParams }: Props) {
       ultimaProducao={(ultProd?.[0]?.criado_em as string | undefined) ?? null}
       ultimaSombra={(ultSombra?.[0]?.criado_em as string | undefined) ?? null}
     />
+    </>
   );
 }
