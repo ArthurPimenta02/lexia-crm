@@ -227,7 +227,8 @@ export function descreverFerramenta(nome: string) {
 }
 
 /** As ações que contam para quem lê: o resto (Redis, eventos internos) fica no detalhe técnico. */
-export type AcaoVisivel = { icone: string; texto: string; recusada?: string };
+export type TipoAcaoVisivel = "mensagem" | "aviso" | "agenda" | "arquivo" | "followup" | "cancelou" | "registo";
+export type AcaoVisivel = { icone: TipoAcaoVisivel; texto: string; recusada?: string };
 
 type AcaoGravada = { tipo?: string; resumo?: string; recusada?: string };
 
@@ -243,26 +244,26 @@ export function acoesVisiveis(acoes: unknown): AcaoVisivel[] {
         baloes += 1;
         break;
       case "aviso_equipe":
-        saida.push({ icone: "📲", texto: resumo || "Avisou a equipe", recusada });
+        saida.push({ icone: "aviso", texto: resumo || "Avisou a equipe", recusada });
         break;
       case "google_evento":
-        saida.push({ icone: "📅", texto: resumo || "Criou o evento na agenda", recusada });
+        saida.push({ icone: "agenda", texto: resumo || "Criou o evento na agenda", recusada });
         break;
       case "guardar_arquivo":
-        saida.push({ icone: "📎", texto: resumo || "Guardou a mídia do cliente", recusada });
+        saida.push({ icone: "arquivo", texto: resumo || "Guardou a mídia do cliente", recusada });
         break;
       case "gravar_tabela":
         if (/follow-up|agendamento|marca/i.test(resumo) && !/cancelar o follow-up/i.test(resumo)) {
-          saida.push({ icone: /follow-up/i.test(resumo) ? "⏰" : "🗂️", texto: legivelFollowup(resumo), recusada });
+          saida.push({ icone: /follow-up/i.test(resumo) ? "followup" : "registo", texto: legivelFollowup(resumo), recusada });
         } else if (/cancelar o follow-up/i.test(resumo)) {
-          saida.push({ icone: "⏹️", texto: "Cancelou o follow-up que estava marcado (o cliente respondeu)", recusada });
+          saida.push({ icone: "cancelou", texto: "Cancelou o follow-up que estava marcado (o cliente respondeu)", recusada });
         }
         break;
       default:
         break;
     }
   }
-  if (baloes) saida.unshift({ icone: "💬", texto: `Enviou ${baloes} ${baloes === 1 ? "balão" : "balões"} ao cliente` });
+  if (baloes) saida.unshift({ icone: "mensagem", texto: `Enviou ${baloes} ${baloes === 1 ? "balão" : "balões"} ao cliente` });
   return saida;
 }
 
@@ -362,7 +363,7 @@ export function montarFluxo(t: TurnoCompleto): LinhaFluxo[] | null {
   });
   // O envio do follow-up é feito pelo código e não deixa passo: conta a ação.
   const enviou = fases.find((f) => f.id === "fu_enviou");
-  if (enviou && enviou.estado === "nao_usado" && acoesVisiveis(t.resumo?.acoes).some((a) => a.icone === "💬")) {
+  if (enviou && enviou.estado === "nao_usado" && acoesVisiveis(t.resumo?.acoes).some((a) => a.icone === "mensagem")) {
     enviou.estado = "feito";
   }
   marcarFim(fases, t.estado, t.erro ?? t.motivo);
@@ -403,4 +404,9 @@ export function haQuanto(iso: string, agora = Date.now()) {
 /** Início da janela das métricas "últimas 24 h" (a página é renderizada no servidor a cada pedido). */
 export function inicioUltimas24h(agora = Date.now()) {
   return agora - 24 * 3600_000;
+}
+
+/** Atividade nas últimas `horas` (o ponto verde do cabeçalho). */
+export function ativoHa(iso: string | null, horas = 2, agora = Date.now()) {
+  return Boolean(iso) && agora - Date.parse(iso as string) <= horas * 3600_000;
 }

@@ -1,16 +1,20 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Card, CardTitulo, GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
-import { Fluxo, Legenda, OQueFez } from "@/app/admin/turnos/fluxo";
+import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import { Fluxo, OQueFez } from "@/app/admin/turnos/fluxo";
 import { formatDateInTimezone, getClientTimezone } from "@/lib/clientes/timezone";
 import { descreverEstado, formatarCusto, formatarDuracao, type TurnoCompleto } from "@/lib/turnos/formatar";
-import { acoesVisiveis, haQuanto, montarFluxo } from "@/lib/turnos/mapa";
+import { acoesVisiveis, ativoHa, haQuanto, montarFluxo } from "@/lib/turnos/mapa";
 import type { ResumoConversa, TurnoNaConversa } from "@/lib/turnos/controle";
 
 /**
  * O desenho do Controle do agente, sem acesso a dados: a página busca e passa
- * tudo por props. Separado para se poder ver com conversas reais sem login.
+ * tudo por props (assim também se vê com conversas reais sem login).
+ *
+ * Um painel com três colunas: conversas · a conversa como no WhatsApp · o
+ * caminho da resposta escolhida. O que o n8n respondeu (sombra) não entra no
+ * chat: fica numa secção fechada da resposta, para comparar quando se quiser.
  */
 
 const NOME_MODO: Record<string, string> = { producao: "Produção", sombra: "Sombra", teste: "Área de testes" };
@@ -22,6 +26,8 @@ const ROTA: Record<string, string> = {
   followup: "Follow-up",
   lembrete: "Lembrete",
 };
+
+const CANAL: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instagram", messenger: "Messenger" };
 
 function textos(v: unknown): string[] {
   return Array.isArray(v) ? v.map(String) : [];
@@ -40,6 +46,26 @@ export type ControleVistaProps = {
   ultimaProducao: string | null;
   ultimaSombra: string | null;
 };
+
+function Estado({ ultima, nome }: { ultima: string | null; nome: string }) {
+  const ativo = ativoHa(ultima);
+  return (
+    <span className="flex items-center gap-1.5">
+      <span aria-hidden className={`size-1.5 rounded-full ${ativo ? "bg-positive" : "bg-border-strong"}`} />
+      <span className="text-foreground">{nome}</span>
+      <span>{ultima ? haQuanto(ultima) : "sem atividade"}</span>
+    </span>
+  );
+}
+
+function CabecaColuna({ children, extra }: { children: ReactNode; extra?: ReactNode }) {
+  return (
+    <div className="flex min-h-12 items-center gap-2 border-b border-border px-4">
+      <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{children}</h2>
+      {extra}
+    </div>
+  );
+}
 
 export function ControleVista({
   filtros,
@@ -65,22 +91,23 @@ export function ControleVista({
     return `/admin/turnos?${q.toString()}`;
   };
   const nomeDe = (id: string) => nomes[id] ?? id.replace(/^(whatsapp|instagram|messenger):/, "");
-  const fusoDe = (t: { agente: string }) => getClientTimezone(t.agente);
   const hora = (t: { criado_em: string; agente: string }) =>
-    formatDateInTimezone(t.criado_em, fusoDe(t), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-
-  const estadoAgente = (u: string | null, nome: string) => {
-    return u ? `${nome}: última atividade ${haQuanto(u)}` : `${nome}: sem atividade`;
-  };
-
+    formatDateInTimezone(t.criado_em, getClientTimezone(t.agente), {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  const conversaAtual = resumos.find((r) => r.id === conversaId);
+  const n8n = turno?.modo === "sombra" ? textos(turno.resumo?.n8n_respondeu) : [];
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-5">
       <PaginaCabecalho
         acoes={
-          <div className="flex flex-col items-start gap-0.5 text-xs text-muted-foreground sm:items-end">
-            <span>{estadoAgente(ultimaProducao, "Produção")}</span>
-            <span>{estadoAgente(ultimaSombra, "Sombra")}</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <Estado nome="Produção" ultima={ultimaProducao} />
+            <Estado nome="Sombra" ultima={ultimaSombra} />
           </div>
         }
         titulo="Controle do agente"
@@ -106,138 +133,142 @@ export function ControleVista({
 
       {filtros}
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="@container min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,19,26,0.04)]">
+      <div className="grid min-w-0 @min-[720px]:grid-cols-[220px_minmax(0,1fr)] @min-[1040px]:grid-cols-[236px_minmax(0,1fr)_minmax(0,1.05fr)]">
         {/* Conversas */}
-        <Card className="min-w-0 self-start overflow-hidden">
-          <CardTitulo>Conversas</CardTitulo>
+        <div className="flex min-w-0 flex-col">
+          <CabecaColuna extra={<span className="text-xs text-muted-foreground tabular-nums">{resumos.length}</span>}>
+            Conversas
+          </CabecaColuna>
           {resumos.length === 0 ? (
-            <p className="px-5 pb-4 text-sm text-muted-foreground">Nenhuma conversa com estes filtros.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">Nenhuma conversa com estes filtros.</p>
           ) : (
-            <ul className="max-h-[75vh] overflow-y-auto">
+            <ul className="max-h-[72vh] overflow-y-auto py-1">
               {resumos.map((r) => {
                 const ativa = r.id === conversaId;
-                const ultimaFala = textos(r.ultimo.mensagens).at(-1) ?? r.ultimo.mensagem_cliente ?? r.ultimo.motivo ?? "";
+                const ultimaFala =
+                  textos(r.ultimo.mensagens).at(-1) ?? r.ultimo.mensagem_cliente ?? r.ultimo.motivo ?? "";
                 return (
                   <li key={r.id}>
                     <Link
-                      className={`block border-t border-border px-4 py-2.5 hover:bg-muted ${ativa ? "bg-primary-soft" : ""}`}
+                      aria-current={ativa ? "true" : undefined}
+                      className={`mx-1.5 block rounded-xl px-3 py-2.5 transition-colors duration-150 ${
+                        ativa ? "bg-primary-soft" : "hover:bg-muted"
+                      }`}
                       href={href({ conversa: r.id })}
                       scroll={false}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{nomeDe(r.id)}</span>
-                        {r.erros ? <span aria-label="com erro" className="size-2 rounded-full bg-danger" /> : null}
-                        <span className="shrink-0 text-[11px] text-muted-foreground">{haQuanto(r.ultimo.criado_em)}</span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
+                          {haQuanto(r.ultimo.criado_em)}
+                        </span>
                       </div>
-                      <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {r.ultimo.canal ?? "?"} · {r.modos.map((m) => NOME_MODO[m] ?? m).join(", ")}
+                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {r.erros ? <span aria-label="com erro" className="size-1.5 rounded-full bg-danger" /> : null}
+                        <span className="min-w-0 truncate">{ultimaFala}</span>
                       </div>
-                      <div className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{ultimaFala}</div>
                     </Link>
                   </li>
                 );
               })}
             </ul>
           )}
-        </Card>
+        </div>
 
         {/* A conversa */}
-        <Card className="min-w-0 self-start">
-          <CardTitulo dica="Cada bloco é uma vez em que a Carol recebeu mensagem e decidiu o que fazer. Clique num bloco para ver à direita o caminho que ela fez.">
+        <div className="flex min-w-0 flex-col border-t border-border @min-[720px]:border-t-0 @min-[720px]:border-l">
+          <CabecaColuna
+            extra={
+              conversaAtual ? (
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {CANAL[conversaAtual.ultimo.canal ?? ""] ?? conversaAtual.ultimo.canal} ·{" "}
+                  {conversaAtual.modos.map((m) => NOME_MODO[m] ?? m).join(", ")}
+                </span>
+              ) : null
+            }
+          >
             {conversaId ? nomeDe(conversaId) : "Conversa"}
-          </CardTitulo>
-          <div className="flex max-h-[75vh] flex-col gap-2 overflow-y-auto px-3 pb-4">
-            {daConversa.length === 0 ? (
-              <p className="px-2 text-sm text-muted-foreground">Escolha uma conversa.</p>
-            ) : null}
+          </CabecaColuna>
+          <div className="flex max-h-[72vh] flex-col gap-5 overflow-y-auto bg-background/60 px-4 py-5">
+            {daConversa.length === 0 ? <p className="text-sm text-muted-foreground">Escolha uma conversa.</p> : null}
             {daConversa.map((t) => {
               const ativo = t.id === turnoId;
               const enviados = textos(t.mensagens);
-              const n8n = textos(t.n8n);
               return (
-                <Link
-                  className={`block rounded-xl border p-2.5 transition-colors ${
-                    ativo ? "border-foreground bg-surface" : "border-transparent hover:border-border hover:bg-muted/50"
-                  }`}
-                  href={href({ conversa: conversaId, turno: t.id })}
-                  key={t.id}
-                  scroll={false}
-                >
-                  <div className="mb-1.5 flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-                    <span>{hora(t)}</span>
-                    <span>· {NOME_MODO[t.modo] ?? t.modo}</span>
-                    {t.rota ? <span>· {ROTA[t.rota] ?? t.rota}</span> : null}
-                  </div>
+                <div className="flex flex-col gap-1.5" key={t.id}>
+                  <p className="text-center text-[11px] text-muted-foreground tabular-nums">{hora(t)}</p>
                   {t.mensagem_cliente ? (
-                    <div className="mb-1.5 w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tl-sm bg-muted px-3 py-1.5 text-sm text-foreground">
+                    <p className="max-w-[80%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2 text-sm text-foreground">
                       {t.mensagem_cliente}
-                    </div>
-                  ) : t.rota === "followup" ? (
-                    <div className="mb-1.5 text-xs text-muted-foreground">Follow-up automático (o cliente não respondeu)</div>
+                    </p>
                   ) : null}
-                  {enviados.length ? (
-                    <div className="flex flex-col items-end gap-1">
-                      {enviados.map((m, i) => (
-                        <div
-                          className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tr-sm bg-primary-soft px-3 py-1.5 text-sm text-foreground"
+                  <Link
+                    aria-current={ativo ? "true" : undefined}
+                    className="group flex max-w-[80%] flex-col items-end gap-1 self-end rounded-2xl"
+                    href={href({ conversa: conversaId, turno: t.id })}
+                    scroll={false}
+                  >
+                    {enviados.length ? (
+                      enviados.map((m, i) => (
+                        <span
+                          className={`whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-sm text-primary-foreground transition-shadow duration-150 ${
+                            ativo
+                              ? "ring-2 ring-positive"
+                              : "group-hover:ring-2 group-hover:ring-border-strong"
+                          }`}
                           key={i}
                         >
                           {m}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={`text-xs ${t.estado === "erro" ? "text-danger" : "text-warning"}`}>
-                      {descreverEstado(t.estado)}
-                      {t.erro || t.motivo ? `: ${t.erro || t.motivo}` : ""}
-                    </div>
-                  )}
-                  {t.modo === "sombra" && n8n.length ? (
-                    <div className="mt-1.5 flex flex-col items-end gap-1">
-                      <span className="text-[11px] text-muted-foreground">o n8n enviou ao cliente:</span>
-                      {n8n.map((m, i) => (
-                        <div
-                          className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tr-sm border border-dashed border-border-strong px-3 py-1.5 text-xs text-muted-foreground"
-                          key={i}
-                        >
-                          {m}
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </Link>
+                        </span>
+                      ))
+                    ) : (
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs ${
+                          t.estado === "erro" ? "bg-danger/10 text-danger" : "bg-muted text-muted-foreground"
+                        } ${ativo ? "ring-2 ring-positive" : ""}`}
+                      >
+                        {t.rota === "followup" ? "Follow-up: " : ""}
+                        {descreverEstado(t.estado).toLowerCase()}
+                        {t.erro || t.motivo ? ` · ${t.erro || t.motivo}` : ""}
+                      </span>
+                    )}
+                    <span
+                      className={`text-[11px] ${ativo ? "font-medium text-positive" : "text-muted-foreground"} ${
+                        enviados.length ? "" : "hidden"
+                      }`}
+                    >
+                      {t.rota === "followup" ? "Follow-up automático" : (ROTA[t.rota ?? ""] ?? "Carol")}
+                      {ativo ? " · aberta ao lado →" : ""}
+                    </span>
+                  </Link>
+                </div>
               );
             })}
           </div>
-        </Card>
+        </div>
 
         {/* O caminho */}
-        <Card className="min-w-0 self-start">
-          <CardTitulo dica="As etapas por onde a Carol passou para esta resposta. Abra 'Ver os passos' numa etapa para ver o que cada nó devolveu, como no n8n.">
-            Como a Carol montou esta resposta
-          </CardTitulo>
+        <div className="flex min-w-0 flex-col border-t border-border @min-[720px]:col-span-2 @min-[1040px]:col-span-1 @min-[1040px]:border-t-0 @min-[1040px]:border-l">
+          <CabecaColuna
+            extra={
+              turno ? (
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                  {formatarDuracao(turno.duracao_ms)} · {formatarCusto(turno.custo_usd)}
+                </span>
+              ) : null
+            }
+          >
+            Como a Carol chegou a esta resposta
+          </CabecaColuna>
           {!turno ? (
-            <p className="px-5 pb-4 text-sm text-muted-foreground">Escolha uma resposta na conversa.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">Clique numa resposta da Carol.</p>
           ) : (
-            <div className="flex flex-col gap-4 px-5 pb-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-foreground">
-                  <span className={turno.estado === "erro" ? "text-danger" : turno.estado === "parado" ? "text-warning" : ""}>
-                    {descreverEstado(turno.estado)}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {hora(turno)} · {NOME_MODO[turno.modo] ?? turno.modo} · {formatarDuracao(turno.duracao_ms)} ·{" "}
-                    {formatarCusto(turno.custo_usd)}
-                  </span>
-                </p>
-                <Legenda />
-              </div>
-
+            <div className="flex max-h-[72vh] flex-col gap-6 overflow-y-auto px-5 py-5">
               {fluxo ? (
                 <Fluxo linhas={fluxo} />
               ) : (
-                <p className="rounded-xl border border-warning px-3 py-2 text-sm text-foreground">
+                <p className="text-sm text-muted-foreground">
                   {turno.erro || turno.motivo || "Este turno não guardou passos."}
                   {/^contacto bloqueado/.test(turno.motivo ?? "")
                     ? " Por privacidade, de contactos bloqueados não se guarda nada."
@@ -245,20 +276,52 @@ export function ControleVista({
                 </p>
               )}
 
-              <div>
-                <p className="mb-2 text-sm font-semibold text-foreground">O que ela fez</p>
-                <OQueFez acoes={acoesVisiveis(turno.resumo?.acoes)} sombra={turno.modo === "sombra"} />
+              <div className="border-t border-border pt-5">
+                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                  {turno.modo === "sombra" ? "O que ela teria feito" : "O que ela fez"}
+                </h3>
+                <OQueFez acoes={acoesVisiveis(turno.resumo?.acoes)} />
+                {turno.modo === "sombra" ? (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Sombra: nada disto saiu de verdade. Quem respondeu ao cliente foi o n8n.
+                  </p>
+                ) : null}
               </div>
 
+              {turno.modo === "sombra" ? (
+                <details className="border-t border-border pt-5">
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
+                    Comparar com o n8n
+                    <span className="ml-2 font-normal text-muted-foreground">
+                      {n8n.length ? `${n8n.length} ${n8n.length === 1 ? "balão enviado" : "balões enviados"}` : "não verificado"}
+                    </span>
+                  </summary>
+                  <div className="mt-3 flex flex-col items-end gap-1">
+                    {n8n.map((m, i) => (
+                      <p
+                        className="max-w-[90%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-muted px-3.5 py-2 text-sm text-foreground"
+                        key={i}
+                      >
+                        {m}
+                      </p>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    O registo do n8n pode trazer balões do turno anterior se as mensagens se cruzaram.
+                  </p>
+                </details>
+              ) : null}
+
               <Link
-                className="text-sm font-medium text-foreground underline-offset-2 hover:underline"
+                className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                 href={`/admin/turnos/${turno.id}`}
               >
-                Abrir o detalhe técnico completo →
+                Detalhe técnico completo
               </Link>
             </div>
           )}
-        </Card>
+        </div>
+      </div>
       </div>
     </section>
   );
