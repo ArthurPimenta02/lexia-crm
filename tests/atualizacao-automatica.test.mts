@@ -17,7 +17,7 @@ test("as telas ao vivo usam a atualização automática", () => {
     "app/admin/turnos/page.tsx",
     "app/admin/followups/page.tsx",
   ]) {
-    assert.match(ler(p), /<AtualizacaoAutomatica segundos=\{\d+\} \/>/, p);
+    assert.match(ler(p), /<AtualizacaoAutomatica segundos=\{\d+\} sinal=\{sinalDaTela\.bind\(null, "(conversas|handoffs|turnos|followups)"/, p);
   }
 });
 
@@ -26,4 +26,18 @@ test("não atualiza com a aba escondida nem com alguém a escrever", () => {
   assert.match(src, /visibilityState !== "visible"/);
   assert.match(src, /escrevendo\(\)/);
   assert.match(src, /router\.refresh\(\)/);
+});
+
+test("o sinal respeita o âmbito: cliente só vê o seu; Controle e Follow-ups só lexia_admin", () => {
+  const src = ler("lib/sinais/sinal-da-tela.ts");
+  assert.match(src, /^"use server";/);
+  assert.match(src, /const slug = admin \? clienteSlug \|\| null : profile\.cliente_slug;/);
+  assert.match(src, /if \(!admin\) return "";\n\n  if \(tela === "turnos"\)/);
+  assert.doesNotMatch(src, /\.(insert|update|upsert|delete)\(/);
+});
+
+test("só recarrega a página quando o sinal muda", () => {
+  const src = ler("app/components/atualizacao-automatica.tsx");
+  assert.match(src, /agora !== ultimo\.current\) pendente\.current = true/);
+  assert.match(src, /if \(pendente\.current && !escrevendo\(\)\)/);
 });

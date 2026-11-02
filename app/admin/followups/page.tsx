@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConsultaLinha, FollowupDetalhe, FollowupLinha, TurnoDoFollowup } from "@/lib/followups/leitura";
 import { agoraMs } from "@/lib/followups/leitura";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
+import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 
 /**
  * Follow-ups e lembretes do agente em código. Só `lexia_admin`.
@@ -119,7 +120,7 @@ export default async function FollowupsPage({ searchParams }: Props) {
 
   return (
     <>
-    <AtualizacaoAutomatica segundos={60} />
+    <AtualizacaoAutomatica segundos={30} sinal={sinalDaTela.bind(null, "followups", slug)} />
     <FollowupsVista
       agora={agora}
       baseLigada={Boolean(base)}
