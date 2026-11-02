@@ -42,6 +42,7 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { assinarMidias } from "@/lib/conversations/media-urls";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
+import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 
 type ConversationsPageProps = {
   searchParams: Promise<{
@@ -392,7 +393,7 @@ export default async function ClientConversationsPage({
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-2 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
-      <AtualizacaoAutomatica segundos={15} />
+      <AtualizacaoAutomatica segundos={5} sinal={sinalDaTela.bind(null, "conversas", null)} />
       <h1 className="sr-only">Conversas</h1>
 
       <ConversationFilterBar

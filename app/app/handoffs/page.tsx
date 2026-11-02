@@ -21,6 +21,7 @@ import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
+import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 
 type Handoff = {
   id: string;
@@ -160,7 +161,7 @@ export default async function ClientHandoffsPage() {
 
   return (
     <section className="flex w-full min-w-0 max-w-7xl flex-col gap-8">
-      <AtualizacaoAutomatica segundos={30} />
+      <AtualizacaoAutomatica segundos={15} sinal={sinalDaTela.bind(null, "handoffs", null)} />
       <PaginaCabecalho titulo="Handoffs" />
 
       {profile.status === "ativo" ? (

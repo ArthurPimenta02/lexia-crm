@@ -10,6 +10,7 @@ import { agruparConversas, turnoEscolhido, type TurnoNaConversa } from "@/lib/tu
 import type { TurnoCompleto } from "@/lib/turnos/formatar";
 import { inicioUltimas24h } from "@/lib/turnos/mapa";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
+import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 
 /**
  * Controle do agente em código: o equivalente às execuções do n8n, mas por
@@ -157,7 +158,7 @@ export default async function ControlePage({ searchParams }: Props) {
 
   return (
     <>
-    <AtualizacaoAutomatica segundos={20} />
+    <AtualizacaoAutomatica segundos={10} sinal={sinalDaTela.bind(null, "turnos", cliente || null)} />
     <ControleVista
       conversaId={conversaId}
       daConversa={daConversa}
