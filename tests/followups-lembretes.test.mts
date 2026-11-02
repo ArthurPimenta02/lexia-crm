@@ -37,3 +37,35 @@ test("a página só abre para lexia_admin e não escreve na base do cliente", ()
   assert.match(src, /profile\.role !== "lexia_admin"\) redirect\("\/app"\)/);
   assert.doesNotMatch(src, /\.(insert|update|upsert|delete)\(/);
 });
+
+import { explicarFollowup } from "../lib/followups/leitura";
+
+const fu = (extra: Record<string, unknown> = {}) => ({
+  id: "f1", canal: "whatsapp", identificador: "whatsapp:17815550000", nome_contacto: "Ana", etapa: 1, status: "agendado",
+  ultima_msg_cliente_em: "2026-01-10T10:00:00Z", ultima_msg_agente_em: "2026-01-10T10:05:00Z",
+  proxima_tentativa_em: "2026-01-10T15:00:00Z", tentativas_enviadas: 0, motivo_encerramento: null, motivo_juiz: null,
+  dia_combinado: null, atualizado_em: null, ...extra,
+});
+const d = (iso: string) => iso.slice(0, 16);
+
+test("follow-up marcado no WhatsApp: 1.ª de 2, sem janela da Meta", () => {
+  const e = explicarFollowup(fu(), d, agora);
+  assert.match(e.resumo, /^1\.ª de 2 tentativas · sai 2026-01-10T15:00 \(daqui a 3 h\)$/);
+  assert.ok(e.proximos.some((p) => p.includes("não há janela de 24 h")));
+  assert.ok(e.proximos.some((p) => p.includes("2.ª tentativa")));
+  assert.equal(e.alertas.length, 0);
+});
+
+test("Instagram: avisa quando a janela da Meta fecha antes do envio, e com dia combinado avisa o Samuel", () => {
+  const tarde = fu({ canal: "instagram", proxima_tentativa_em: "2026-01-11T12:00:00Z" });
+  assert.ok(explicarFollowup(tarde, d, agora).alertas[0].includes("vai encerrar sem enviar"));
+  const combinado = fu({ canal: "instagram", proxima_tentativa_em: "2026-01-11T12:00:00Z", dia_combinado: "2026-01-11T12:00:00Z" });
+  assert.ok(explicarFollowup(combinado, d, agora).alertas[0].includes("Samuel recebe um aviso"));
+});
+
+test("2.ª tentativa é a última; encerrado explica o motivo", () => {
+  assert.ok(explicarFollowup(fu({ etapa: 2 }), d, agora).proximos.some((p) => p.includes("última tentativa")));
+  const fim = explicarFollowup(fu({ status: "cancelado", motivo_encerramento: "nova mensagem na conversa" }), d, agora);
+  assert.equal(fim.tom, "fim");
+  assert.equal(fim.resumo, "Cancelado: o cliente respondeu");
+});

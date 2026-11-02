@@ -3,7 +3,18 @@ import type { ReactNode } from "react";
 
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
 import { formatDateInTimezone, getClientTimezone } from "@/lib/clientes/timezone";
-import { emQuanto, estadoDoLembrete, LEMBRETE, motivoLegivel, type ConsultaLinha, type FollowupLinha } from "@/lib/followups/leitura";
+import { Janela } from "@/app/admin/followups/janela";
+import {
+  emQuanto,
+  estadoDoLembrete,
+  explicarFollowup,
+  LEMBRETE,
+  motivoLegivel,
+  type ConsultaLinha,
+  type FollowupDetalhe,
+  type FollowupLinha,
+  type TurnoDoFollowup,
+} from "@/lib/followups/leitura";
 import { formatarCusto } from "@/lib/turnos/formatar";
 
 /**
@@ -34,6 +45,9 @@ export type FollowupsVistaProps = {
   consultas: ConsultaLinha[];
   turnos: TurnoEnviado[];
   nomes: Record<string, string>;
+  /** O follow-up aberto na janela (?fu=<id>) e as mensagens que já lhe saíram. */
+  selecionado?: FollowupDetalhe | null;
+  turnosDoSelecionado?: TurnoDoFollowup[];
 };
 
 const CANAL: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instagram", messenger: "Messenger" };
@@ -74,6 +88,8 @@ export function FollowupsVista({
   consultas,
   turnos,
   nomes,
+  selecionado = null,
+  turnosDoSelecionado = [],
 }: FollowupsVistaProps) {
   const fuso = getClientTimezone(cliente);
   const data = (iso: string | null) =>
@@ -85,6 +101,8 @@ export function FollowupsVista({
   const linkConversa = (id: string | null, turno?: string) =>
     id ? `/admin/turnos?conversa=${encodeURIComponent(id)}${turno ? `&turno=${turno}` : ""}` : "/admin/turnos";
 
+  const abrir = (id: string) => `/admin/followups?fu=${encodeURIComponent(id)}`;
+  const porConversa = new Map([...encerrados, ...marcados].map((f) => [f.identificador ?? "", f.id]));
   const desde24 = agora - 86400_000;
   const fuEnviados = turnos.filter((t) => t.rota === "followup" && t.estado === "respondido");
   const lemEnviados = turnos.filter((t) => t.rota === "lembrete" && t.estado === "respondido");
@@ -141,7 +159,8 @@ export function FollowupsVista({
                   <li key={f.id}>
                     <Link
                       className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 px-5 py-3 transition-colors duration-150 hover:bg-muted"
-                      href={linkConversa(f.identificador)}
+                      href={abrir(f.id)}
+                      scroll={false}
                     >
                       <span className="truncate text-sm font-medium text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
                       <span className="text-right text-sm text-foreground tabular-nums">{data(f.proxima_tentativa_em)}</span>
@@ -169,7 +188,12 @@ export function FollowupsVista({
                   <li key={t.id}>
                     <Link
                       className="block px-5 py-3 transition-colors duration-150 hover:bg-muted"
-                      href={linkConversa(t.identificador_conversa, t.id)}
+                      href={
+                        porConversa.get(t.identificador_conversa ?? "")
+                          ? abrir(porConversa.get(t.identificador_conversa ?? "")!)
+                          : linkConversa(t.identificador_conversa, t.id)
+                      }
+                      scroll={false}
                     >
                       <div className="flex items-baseline gap-3">
                         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
@@ -189,18 +213,24 @@ export function FollowupsVista({
             )}
           </Grupo>
 
-          <details className="group">
+          <details className="group" open={Boolean(selecionado && selecionado.status !== "agendado")}>
             <summary className="cursor-pointer list-none px-5 py-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
               Encerrados nos últimos 7 dias ({encerrados.length})
             </summary>
             <ul className="divide-y divide-border border-t border-border">
               {encerrados.map((f) => (
-                <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 px-5 py-2.5 text-sm" key={f.id}>
-                  <span className="truncate text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
-                  <span className="text-right text-xs text-muted-foreground tabular-nums">{data(f.atualizado_em)}</span>
-                  <span className="col-span-2 truncate text-xs text-muted-foreground">
-                    {f.status === "cancelado" ? "Cancelado" : "Encerrado"}: {motivoLegivel(f.motivo_encerramento)}
-                  </span>
+                <li key={f.id}>
+                  <Link
+                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 px-5 py-2.5 text-sm transition-colors duration-150 hover:bg-muted"
+                    href={abrir(f.id)}
+                    scroll={false}
+                  >
+                    <span className="truncate text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
+                    <span className="text-right text-xs text-muted-foreground tabular-nums">{data(f.atualizado_em)}</span>
+                    <span className="col-span-2 truncate text-xs text-muted-foreground">
+                      {f.status === "cancelado" ? "Cancelado" : "Encerrado"}: {motivoLegivel(f.motivo_encerramento)}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -273,6 +303,95 @@ export function FollowupsVista({
           </Grupo>
         </Seccao>
       </div>
+
+      {selecionado ? (
+        <Janela fechar="/admin/followups" titulo={nomeDe(selecionado.identificador, selecionado.nome_contacto)}>
+          <DetalheFollowup
+            agora={agora}
+            data={(iso) => data(iso)}
+            f={selecionado}
+            linkConversa={linkConversa(selecionado.identificador)}
+            turnos={turnosDoSelecionado}
+          />
+        </Janela>
+      ) : null}
     </section>
+  );
+}
+
+function Lista({ titulo, itens, tom = "" }: { titulo: string; itens: string[]; tom?: string }) {
+  if (!itens.length) return null;
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-foreground">{titulo}</h3>
+      <ul className={`flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed marker:text-border-strong ${tom || "text-foreground"}`}>
+        {itens.map((t, i) => (
+          <li key={i}>{t}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DetalheFollowup({
+  f,
+  turnos,
+  agora,
+  data,
+  linkConversa,
+}: {
+  f: FollowupDetalhe;
+  turnos: TurnoDoFollowup[];
+  agora: number;
+  data: (iso: string) => string;
+  linkConversa: string;
+}) {
+  const e = explicarFollowup(f, data, agora);
+  const cor = e.tom === "aviso" ? "text-warning" : e.tom === "fim" ? "text-muted-foreground" : "text-positive";
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="text-xs text-muted-foreground">
+          {CANAL[f.canal ?? ""] ?? f.canal} · {f.status === "agendado" ? "marcado" : f.status}
+        </p>
+        <p className={`mt-1 text-[15px] font-medium ${cor}`}>{e.resumo}</p>
+      </div>
+
+      <Lista itens={e.alertas} titulo="Atenção" tom="text-warning" />
+      <Lista itens={e.porque} titulo={f.status === "agendado" ? "Porque está marcado" : "Como terminou"} />
+      <Lista itens={e.proximos} titulo="O que acontece a seguir" />
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">Follow-ups já enviados a este contacto</h3>
+        {turnos.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum enviado pelo agente em código ainda.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {turnos.map((t) => {
+              const msgs = Array.isArray(t.mensagens) ? t.mensagens.map(String) : [];
+              return (
+                <li className="rounded-xl border border-border px-3.5 py-2.5" key={t.id}>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {data(t.criado_em)} · {t.estado === "respondido" ? "enviado" : "não enviado"} · {formatarCusto(t.custo_usd)}
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">{msgs.length ? msgs.join(" ") : motivoLegivel(t.motivo)}</p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-sm">
+        <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={linkConversa}>
+          Abrir a conversa no Controle do agente
+        </Link>
+        {f.status === "agendado" ? (
+          <Link className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href="/admin/bloqueios">
+            Para não enviar: bloquear o contacto
+          </Link>
+        ) : null}
+      </div>
+    </div>
   );
 }
