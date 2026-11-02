@@ -65,6 +65,8 @@ export type TurnoCompleto = TurnoLinha & {
     texto_do_redator?: unknown;
     travas?: string[];
     textos_finais?: string[];
+    /** O que o agente fez (produção) ou faria (sombra) no mundo real. */
+    acoes?: unknown[];
     /** Modo sombra: o que o n8n respondeu à mesma mensagem, para comparar. */
     n8n_respondeu?: string[];
   } | null;
