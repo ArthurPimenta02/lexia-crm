@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { FollowupsVista } from "@/app/admin/followups/vista";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ConsultaLinha, FollowupLinha } from "@/lib/followups/leitura";
+import type { ConsultaLinha, FollowupDetalhe, FollowupLinha, TurnoDoFollowup } from "@/lib/followups/leitura";
 import { agoraMs } from "@/lib/followups/leitura";
 
 /**
@@ -27,11 +27,15 @@ function baseDoCliente(envPrefix: string) {
   return createClient(url, chave, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
-export default async function FollowupsPage() {
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export default async function FollowupsPage({ searchParams }: Props) {
   const { profile } = await getLoggedInUserProfile();
   if (!profile) redirect("/login");
   if (profile.role !== "lexia_admin") redirect("/app");
 
+  const params = await searchParams;
+  const fuPedido = Array.isArray(params.fu) ? params.fu[0] : params.fu;
   const slug = "miranda_skin_experts";
   const cfg = CLIENTES[slug];
   const base = baseDoCliente(cfg.envPrefix);
@@ -80,6 +84,31 @@ export default async function FollowupsPage() {
       .limit(200),
   ]);
 
+  // A janela de detalhe: o follow-up pedido (só deste cliente) e o que já lhe saiu.
+  let selecionado: FollowupDetalhe | null = null;
+  let turnosDoSelecionado: TurnoDoFollowup[] = [];
+  if (base && fuPedido && /^[0-9a-f-]{36}$/i.test(fuPedido)) {
+    const { data: f } = await base
+      .from("lexia_followups")
+      .select("id, canal, identificador, nome_contacto, etapa, status, ultima_msg_cliente_em, ultima_msg_agente_em, proxima_tentativa_em, tentativas_enviadas, motivo_encerramento, motivo_juiz, dia_combinado, atualizado_em")
+      .eq("cliente_slug", slug)
+      .eq("id", fuPedido)
+      .maybeSingle();
+    selecionado = (f as FollowupDetalhe | null) ?? null;
+    if (selecionado?.identificador) {
+      const { data: ts } = await admin
+        .from("lexia_turnos")
+        .select("id, criado_em, estado, motivo, mensagens, custo_usd")
+        .eq("cliente_slug", slug)
+        .eq("modo", "producao")
+        .eq("rota", "followup")
+        .eq("identificador_conversa", selecionado.identificador)
+        .order("criado_em", { ascending: false })
+        .limit(20);
+      turnosDoSelecionado = (ts ?? []) as TurnoDoFollowup[];
+    }
+  }
+
   const ids = [...new Set((turnos.data ?? []).map((t) => t.identificador_conversa).filter(Boolean))] as string[];
   const { data: nomesData } = ids.length
     ? await admin.from("lexia_contactos").select("identificador_conversa, nome").in("identificador_conversa", ids)
@@ -98,6 +127,8 @@ export default async function FollowupsPage() {
       marcados={(marcados.data ?? []) as FollowupLinha[]}
       nomeCliente={cfg.nome}
       nomes={nomes}
+      selecionado={selecionado}
+      turnosDoSelecionado={turnosDoSelecionado}
       turnos={(turnos.data ?? []) as never}
     />
   );
