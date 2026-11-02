@@ -11,7 +11,7 @@ const adminNavigation = [
   { label: "Serviços", href: "/admin/servicos", icon: "servicos" },
   { label: "Produtos", href: "/admin/produtos", icon: "produtos" },
   { label: "Área de testes", href: "/admin/area-testes", icon: "testes" },
-  { label: "Turnos do agente", href: "/admin/turnos", icon: "turnos" },
+  { label: "Controle do agente", href: "/admin/turnos", icon: "turnos" },
   { label: "Conexões", href: "/admin/conexoes", icon: "conexoes" },
   { label: "Bloqueios", href: "/admin/bloqueios", icon: "bloqueios" },
   { label: "Conversas", href: "/admin/conversas", icon: "conversas" },

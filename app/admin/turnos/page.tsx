@@ -1,84 +1,72 @@
-import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { ControleVista } from "@/app/admin/turnos/vista";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  descreverEstado,
-  formatarCusto,
-  type TurnoLinha,
-} from "@/lib/turnos/formatar";
+import { agruparConversas, turnoEscolhido, type TurnoNaConversa } from "@/lib/turnos/controle";
+import type { TurnoCompleto } from "@/lib/turnos/formatar";
+import { inicioUltimas24h } from "@/lib/turnos/mapa";
 
 /**
- * Turnos do agente em código: o equivalente à tela de execuções do n8n.
+ * Controle do agente em código: o equivalente às execuções do n8n, mas por
+ * conversa. À esquerda as conversas, ao meio a conversa como no WhatsApp, à
+ * direita o caminho que o agente fez para a resposta escolhida, desenhado por
+ * etapas (lib/turnos/mapa.ts). O desenho está em ./vista.tsx.
  *
- * Cada linha é uma vez em que a agente recebeu uma mensagem e decidiu o que
- * fazer. A tabela `lexia_turnos` é fechada à service_role (traz prompts e
- * regras internas), por isso esta página só existe no admin e lê do servidor.
+ * Só `lexia_admin`: a tabela `lexia_turnos` traz prompts e regras internas, é
+ * fechada à service_role e esta página lê do servidor.
  */
 
-type TurnosPageProps = {
-  searchParams: Promise<{
-    cliente?: string | string[];
-    estado?: string | string[];
-    modo?: string | string[];
-    conversa?: string | string[];
-  }>;
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const estados = ["", "respondido", "parado", "juntado_a_outra", "erro"];
-const modos = ["", "teste", "sombra", "producao"];
+const modos = ["", "producao", "sombra", "teste"];
+const COLUNAS =
+  "id, cliente_slug, agente, modo, identificador_conversa, canal, estado, motivo, erro, mensagem_cliente, mensagens, rota, custo_usd, duracao_ms, criado_em";
 
 function valor(v: string | string[] | undefined) {
   return Array.isArray(v) ? (v[0] ?? "") : (v ?? "");
 }
 
-export default async function TurnosPage({ searchParams }: TurnosPageProps) {
+export default async function ControlePage({ searchParams }: Props) {
   const { profile } = await getLoggedInUserProfile();
   if (!profile) redirect("/login");
   if (profile.role !== "lexia_admin") redirect("/app");
 
   const params = await searchParams;
   const cliente = valor(params.cliente);
-  const estadoPedido = valor(params.estado);
-  const estado = estados.includes(estadoPedido) ? estadoPedido : "";
-  const conversa = valor(params.conversa).trim();
-  const modoPedido = valor(params.modo);
-  const modo = modos.includes(modoPedido) ? modoPedido : "";
+  const modo = modos.includes(valor(params.modo)) ? valor(params.modo) : "";
+  const so = valor(params.so) === "problemas" ? "problemas" : "";
 
   const admin = createAdminClient();
-  let query = admin
-    .from("lexia_turnos")
-    .select(
-      "id, cliente_slug, agente, modo, identificador_conversa, canal, estado, motivo, erro, mensagem_cliente, mensagens, custo_usd, duracao_ms, criado_em",
-    )
-    .order("criado_em", { ascending: false })
-    .limit(200);
-  if (cliente) query = query.eq("cliente_slug", cliente);
-  if (estado) query = query.eq("estado", estado);
-  if (modo) query = query.eq("modo", modo);
-  if (conversa) query = query.eq("identificador_conversa", conversa);
+  let lista = admin.from("lexia_turnos").select(COLUNAS).order("criado_em", { ascending: false }).limit(500);
+  if (cliente) lista = lista.eq("cliente_slug", cliente);
+  if (modo) lista = lista.eq("modo", modo);
 
-  const [{ data, error }, { data: clientesData }] = await Promise.all([
-    query,
+  const ultimoDe = (m: string) => {
+    let q = admin.from("lexia_turnos").select("criado_em").eq("modo", m).order("criado_em", { ascending: false }).limit(1);
+    if (cliente) q = q.eq("cliente_slug", cliente);
+    return q;
+  };
+
+  const [{ data, error }, { data: clientesData }, { data: ultProd }, { data: ultSombra }] = await Promise.all([
+    lista,
     admin.from("lexia_clientes").select("slug").order("slug"),
+    ultimoDe("producao"),
+    ultimoDe("sombra"),
   ]);
 
   if (error) {
     if (error.code === "42P01" || error.code === "PGRST205") {
       return (
         <section className="flex flex-col gap-6">
-          <PaginaCabecalho titulo="Turnos do agente" />
+          <PaginaCabecalho titulo="Controle do agente" />
           <p className="text-sm text-muted-foreground">
-            A tabela de turnos ainda não existe. Falta correr a migration da
-            Fase 18 no Supabase central.
+            A tabela de turnos ainda não existe. Falta correr a migration da Fase 18 no Supabase central.
           </p>
         </section>
       );
@@ -86,44 +74,47 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
     throw new Error("Não foi possível buscar os turnos.");
   }
 
-  const turnos = (data ?? []) as TurnoLinha[];
+  const turnos = (data ?? []) as TurnoNaConversa[];
   const clientes = (clientesData ?? []).map((c) => c.slug as string);
-  const custoTotal = turnos.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
+  const desde = inicioUltimas24h();
+  const recentes = turnos.filter((t) => Date.parse(t.criado_em) >= desde);
+  const resumos = agruparConversas(turnos, so === "problemas").slice(0, 80);
 
-  return (
-    <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Turnos do agente" />
+  const conversaId = valor(params.conversa).trim() || resumos[0]?.id || "";
+  const ids = [...new Set([...resumos.map((r) => r.id), conversaId].filter(Boolean))];
 
-      <GrupoMetricas
-        itens={[
-          { label: "Turnos listados", valor: turnos.length },
-          {
-            label: "Responderam",
-            valor: turnos.filter((t) => t.estado === "respondido").length,
-          },
-          {
-            label: "Com erro",
-            valor: turnos.filter((t) => t.estado === "erro").length,
-          },
-          {
-            dica: "Soma do custo de IA dos turnos listados. Modelos sem preço na tabela não entram.",
-            label: "Custo de IA",
-            valor: formatarCusto(custoTotal),
-          },
-        ]}
-      />
+  let daConversaQ = admin
+    .from("lexia_turnos")
+    .select(`${COLUNAS}, n8n:resumo->n8n_respondeu`)
+    .eq("identificador_conversa", conversaId)
+    .order("criado_em", { ascending: true })
+    .limit(200);
+  if (modo) daConversaQ = daConversaQ.eq("modo", modo);
+  if (cliente) daConversaQ = daConversaQ.eq("cliente_slug", cliente);
 
-      <Form
-        action="/admin/turnos"
-        className="rounded-2xl border border-border bg-surface p-5"
-        replace
-        scroll={false}
-      >
-        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_1.5fr_auto]">
-          <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+  const [{ data: nomesData }, { data: daConversaData }] = await Promise.all([
+    ids.length
+      ? admin.from("lexia_contactos").select("identificador_conversa, nome").in("identificador_conversa", ids)
+      : Promise.resolve({ data: [] as { identificador_conversa: string; nome: string | null }[] }),
+    conversaId ? daConversaQ : Promise.resolve({ data: [] as TurnoNaConversa[] }),
+  ]);
+  const nomes: Record<string, string> = {};
+  for (const n of (nomesData ?? []) as { identificador_conversa: string; nome: string | null }[]) {
+    if (n.nome) nomes[n.identificador_conversa] = n.nome;
+  }
+  const daConversa = (daConversaData ?? []) as TurnoNaConversa[];
+
+  const turnoId = turnoEscolhido(daConversa, valor(params.turno));
+  const { data: turnoData } = turnoId
+    ? await admin.from("lexia_turnos").select("*").eq("id", turnoId).maybeSingle()
+    : { data: null };
+
+  const filtros = (
+        <Form action="/admin/turnos" className="flex flex-wrap items-end gap-3" replace scroll={false}>
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Cliente
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
               defaultValue={cliente}
               name="cliente"
             >
@@ -135,108 +126,47 @@ export default async function TurnosPage({ searchParams }: TurnosPageProps) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-            Resultado
-            <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
-              defaultValue={estado}
-              name="estado"
-            >
-              <option value="">Todos</option>
-              {estados.filter(Boolean).map((e) => (
-                <option key={e} value={e}>
-                  {descreverEstado(e)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
             Modo
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
               defaultValue={modo}
               name="modo"
             >
               <option value="">Todos</option>
-              <option value="teste">Área de testes</option>
-              <option value="sombra">Sombra (real, não enviado)</option>
               <option value="producao">Produção</option>
+              <option value="sombra">Sombra (real, não enviado)</option>
+              <option value="teste">Área de testes</option>
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-            Conversa
-            <input
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
-              defaultValue={conversa}
-              name="conversa"
-              placeholder="identificador da conversa"
-            />
+          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+            Mostrar
+            <select
+              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              defaultValue={so}
+              name="so"
+            >
+              <option value="">Todas as conversas</option>
+              <option value="problemas">Só com erro</option>
+            </select>
           </label>
-          <div className="flex items-end">
-            <FormSubmitButton>Filtrar</FormSubmitButton>
-          </div>
-        </div>
-      </Form>
+          <FormSubmitButton>Filtrar</FormSubmitButton>
+        </Form>
+  );
 
-      {turnos.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhum turno com estes filtros.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-          <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="border-b border-border text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">Quando</th>
-                <th className="px-4 py-3 font-medium">Cliente disse</th>
-                <th className="px-4 py-3 font-medium">Agente respondeu</th>
-                <th className="px-4 py-3 font-medium">Resultado</th>
-                <th className="px-4 py-3 font-medium">Custo</th>
-                <th className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {turnos.map((t) => {
-                const resposta = Array.isArray(t.mensagens)
-                  ? (t.mensagens as unknown[]).map(String).join(" · ")
-                  : "";
-                return (
-                  <tr className="border-b border-border last:border-0 align-top" key={t.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {formatDateInTimezone(t.criado_em, getClientTimezone(t.agente))}
-                      <div className="text-xs">
-                        {t.modo} · {t.canal ?? "?"}
-                      </div>
-                    </td>
-                    <td className="max-w-[260px] px-4 py-3">
-                      <span className="line-clamp-3">{t.mensagem_cliente || "—"}</span>
-                    </td>
-                    <td className="max-w-[320px] px-4 py-3">
-                      <span className="line-clamp-3">
-                        {resposta || (t.erro ?? t.motivo ?? "—")}
-                      </span>
-                    </td>
-                    <td className={`whitespace-nowrap px-4 py-3 ${t.estado === "erro" ? "text-danger" : ""}`}>
-                      {descreverEstado(t.estado)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                      {formatarCusto(t.custo_usd)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link
-                        className="font-medium text-foreground underline-offset-2 hover:underline"
-                        href={`/admin/turnos/${t.id}`}
-                      >
-                        Ver passo a passo
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
+  return (
+    <ControleVista
+      conversaId={conversaId}
+      daConversa={daConversa}
+      filtroAtual={{ cliente, modo, so }}
+      filtros={filtros}
+      nomes={nomes}
+      recentes={recentes}
+      resumos={resumos}
+      turno={(turnoData as TurnoCompleto | null) ?? null}
+      turnoId={turnoId}
+      ultimaProducao={(ultProd?.[0]?.criado_em as string | undefined) ?? null}
+      ultimaSombra={(ultSombra?.[0]?.criado_em as string | undefined) ?? null}
+    />
   );
 }

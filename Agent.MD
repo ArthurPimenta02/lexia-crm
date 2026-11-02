@@ -263,7 +263,7 @@ Arquivos de referência:
 | `/admin/campanhas` | Campanhas da Meta com seleção explícita de cliente. | Sim |
 | `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
-| `/admin/turnos` | Turnos do agente em código (Fase 18): lista e passo a passo de cada resposta (`/admin/turnos/[id]`). Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
+| `/admin/turnos` | **Controle do agente** em código (Fase 18, redesenhada a 2026-11-01): métricas das últimas 24 h, conversas à esquerda, a conversa como no WhatsApp ao meio (na sombra, com o que o n8n enviou ao lado) e, à direita, o caminho da resposta escolhida desenhado por etapas como os nós do n8n (`lib/turnos/mapa.ts`; desenho em `app/admin/turnos/vista.tsx` e `fluxo.tsx`, sem acesso a dados). Detalhe técnico completo em `/admin/turnos/[id]`. Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
 | `/admin/conexoes` | Conexões de cada agente (Fase 19): tokens de WhatsApp, Meta, Redis, bases, agenda; e as da Lexia (conta Google, IA de reserva). Segredos cifrados, nunca devolvidos ao navegador. Só `lexia_admin`. | Sim |
 | `/admin/bloqueios` | Contactos bloqueados por cliente (Fase 21): a agente em código não responde a quem está aqui. Adicionar (telefone ou IGSID/PSID) e desbloquear; o botão "Bloquear contacto" na conversa do admin grava o identificador da própria conversa. Só `lexia_admin`. | Sim |
 | `/admin/conversas` | Conversas por cliente. | Sim |
