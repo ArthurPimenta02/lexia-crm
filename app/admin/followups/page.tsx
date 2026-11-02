@@ -6,6 +6,7 @@ import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ConsultaLinha, FollowupDetalhe, FollowupLinha, TurnoDoFollowup } from "@/lib/followups/leitura";
 import { agoraMs } from "@/lib/followups/leitura";
+import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 
 /**
  * Follow-ups e lembretes do agente em código. Só `lexia_admin`.
@@ -117,6 +118,8 @@ export default async function FollowupsPage({ searchParams }: Props) {
   for (const n of nomesData ?? []) if (n.nome) nomes[n.identificador_conversa] = n.nome;
 
   return (
+    <>
+    <AtualizacaoAutomatica segundos={60} />
     <FollowupsVista
       agora={agora}
       baseLigada={Boolean(base)}
@@ -131,5 +134,6 @@ export default async function FollowupsPage({ searchParams }: Props) {
       turnosDoSelecionado={turnosDoSelecionado}
       turnos={(turnos.data ?? []) as never}
     />
+    </>
   );
 }
