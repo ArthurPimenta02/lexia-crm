@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BellRing,
   Ban,
   CalendarDays,
   CircleDot,
@@ -49,6 +50,7 @@ const icones: Record<string, LucideIcon> = {
   servicos: Wrench,
   testes: FlaskConical,
   turnos: Route,
+  followups: BellRing,
   conexoes: PlugZap,
   bloqueios: Ban,
 };
