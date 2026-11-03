@@ -57,6 +57,10 @@ function GraficoArea() {
   const h = 160;
   const max = Math.max(...serie) * 1.1;
   const pts = serie.map((v, i) => [(i / (serie.length - 1)) * w, h - (v / max) * h] as const);
+  const meta = serie
+    .map((_, i) => [(i / (serie.length - 1)) * w, h - ((20 + i * 2.6) / max) * h] as const)
+    .map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(" ");
   const linha = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   return (
     <svg className="h-40 w-full" preserveAspectRatio="none" viewBox={`0 0 ${w} ${h}`}>
@@ -70,6 +74,7 @@ function GraficoArea() {
         <line key={p} stroke="var(--ds-linha)" strokeDasharray="3 4" x1="0" x2={w} y1={h * p} y2={h * p} />
       ))}
       <path d={`${linha} L${w},${h} L0,${h} Z`} fill="url(#ds-area)" />
+      <path d={meta} fill="none" stroke="var(--ds-mancha-2)" strokeDasharray="5 5" strokeWidth="2" vectorEffect="non-scaling-stroke" />
       <path d={linha} fill="none" stroke="var(--ds-acao)" strokeLinejoin="round" strokeWidth="2" vectorEffect="non-scaling-stroke" />
     </svg>
   );
@@ -91,7 +96,7 @@ function BarrasCanal() {
             className="w-full rounded-[8px]"
             style={{
               height: `${d.v * 1.6}px`,
-              background: i === 0 ? "var(--ds-acao)" : "var(--ds-acao-suave)",
+              background: i === 0 ? "var(--ds-acao)" : i === 1 ? "var(--ds-mancha-2)" : "var(--ds-acao-suave)",
             }}
           />
           <span className="ds-legenda">{d.r}</span>
@@ -157,7 +162,7 @@ function TelaExemplo() {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Barra de topo em vidro */}
           <header className="ds-vidro sticky top-0 z-10 flex items-center gap-3 px-6 py-3">
-            <div className="flex h-9 flex-1 items-center gap-2 rounded-[11px] bg-[rgb(var(--ds-tinta)/0.05)] px-3 text-[var(--ds-texto-3)] sm:max-w-xs">
+            <div className="flex h-9 flex-1 items-center gap-2 rounded-[11px] bg-[color-mix(in_oklab,var(--ds-texto)_5%,transparent)] px-3 text-[var(--ds-texto-3)] sm:max-w-xs">
               <Search size={15} />
               <span className="text-[0.8125rem]">Buscar lead, conversa…</span>
               <kbd className="ml-auto rounded-[5px] bg-[var(--ds-superficie)] px-1.5 text-[0.625rem] font-medium shadow-[0_0_0_1px_var(--ds-linha)]">⌘K</kbd>
@@ -240,7 +245,7 @@ function TelaExemplo() {
                   {conversas.map((c) => (
                     <li key={c.nome}>
                       <a
-                        className="flex items-center gap-3 rounded-[12px] px-3 py-2.5 transition-colors hover:bg-[rgb(var(--ds-tinta)/0.04)]"
+                        className="flex items-center gap-3 rounded-[12px] px-3 py-2.5 transition-colors hover:bg-[color-mix(in_oklab,var(--ds-texto)_4%,transparent)]"
                         href="#"
                       >
                         <div className="relative">
@@ -473,14 +478,14 @@ function Catalogo() {
 
 
 const paletas = [
-  { id: "menta", nome: "Menta", nota: "a do vídeo", cores: ["#f6f7f4", "#0f1110", "#2bb88a"] },
-  { id: "bubblegum", nome: "Bubblegum", nota: "sua referência 1", cores: ["#f0f0f0", "#4b3bff", "#f25cc4"] },
-  { id: "limao", nome: "Limão", nota: "sua referência 2", cores: ["#171717", "#fff21a", "#a668ff"] },
-  { id: "barro", nome: "Barro", nota: "terracota + oliva", cores: ["#f3efe7", "#c8532e", "#8c9a55"] },
-  { id: "cobalto", nome: "Cobalto", nota: "cobalto + coral", cores: ["#0b1340", "#2741ff", "#ff6b4a"] },
-  { id: "ameixa", nome: "Ameixa", nota: "ameixa + pêssego", cores: ["#2e1640", "#6b34a3", "#ffb38a"] },
-  { id: "petroleo", nome: "Petróleo", nota: "petróleo + laranja ácido", cores: ["#0e3b3a", "#ff6a13", "#eef2f0"] },
-  { id: "noite", nome: "Noite", nota: "escuro, lima + lilás", cores: ["#0c0d10", "#c6ff3d", "#b79cff"] },
+  { id: "oceano", nome: "Oceano", nota: "azul-petróleo + girassol", cores: ["#eef3f5", "#0b6e8c", "#ffc23d"] },
+  { id: "vinho", nome: "Vinho", nota: "bordô + dourado", cores: ["#f6f0ed", "#7a1e3a", "#d9a441"] },
+  { id: "matcha", nome: "Matcha", nota: "matcha + cacau", cores: ["#f2f3ea", "#5e7a2b", "#8a4b2f"] },
+  { id: "grafite", nome: "Grafite", nota: "grafite + laranja", cores: ["#edeef0", "#2b313c", "#ff5a1f"] },
+  { id: "lilas", nome: "Lilás", nota: "lilás + musgo", cores: ["#f3f0f7", "#6f5bb5", "#3f6b47"] },
+  { id: "cereja", nome: "Cereja", nota: "cereja + azul-céu", cores: ["#f2f6fb", "#d7264f", "#3d8bff"] },
+  { id: "marinho", nome: "Marinho", nota: "marinho + mostarda", cores: ["#f5f1e6", "#1c2b4a", "#e0a526"] },
+  { id: "esmeralda", nome: "Esmeralda", nota: "esmeralda + pêssego", cores: ["#f7f1eb", "#0f7b5f", "#ff9e7a"] },
 ] as const;
 
 type IdPaleta = (typeof paletas)[number]["id"];
@@ -514,10 +519,10 @@ function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; v
 type Modo = "claro" | "escuro";
 
 export function Vitrine() {
-  const [paleta, setPaleta] = useState<IdPaleta>("menta");
+  const [paleta, setPaleta] = useState<IdPaleta>("oceano");
   const [modo, setModo] = useState<Modo>("claro");
 
-  // A paleta vai no endereço (/design#noite) para dar para partilhar.
+  // A paleta vai no endereço (/design#oceano-escuro) para dar para partilhar.
   useEffect(() => {
     const ler = () => {
       const [h, m] = window.location.hash.slice(1).split("-");
@@ -535,7 +540,7 @@ export function Vitrine() {
     history.replaceState(null, "", `#${v}${m === "escuro" ? "-escuro" : ""}`);
   };
   return (
-    <div className="ds relative min-h-screen" data-modo={paleta === "noite" ? "escuro" : modo} data-paleta={paleta}>
+    <div className="ds relative min-h-screen" data-modo={modo} data-paleta={paleta}>
       <div aria-hidden className="ds-aurora" />
       <div className="relative z-[1] mx-auto flex max-w-[1320px] flex-col gap-10 px-4 py-12 sm:px-8">
         <header className="flex flex-col items-center gap-4 text-center">
@@ -559,7 +564,7 @@ export function Vitrine() {
                 { label: "☀︎ Claro", valor: "claro" },
                 { label: "☾ Escuro", valor: "escuro" },
               ]}
-              valor={paleta === "noite" ? "escuro" : modo}
+              valor={modo}
             />
           </div>
         </div>

@@ -10,33 +10,39 @@
  */
 
 .ds {
+  /* ===== As 3 cores da paleta. Tudo o resto sai delas. ===== */
+  --c1: #eef3f5;            /* fundo */
+  --c2: #0b6e8c;            /* principal: botões, barras, seleção */
+  --c3: #ffc23d;            /* destaque: palavras-chave, manchas, 2.ª série */
+  --c2-texto: #ffffff;      /* texto em cima da principal */
+  --c3-legivel: #b98100;    /* o destaque quando é texto sobre fundo claro */
+
   /* Superfícies */
-  --ds-fundo: #f6f7f4;
-  --ds-superficie: #ffffff;
-  --ds-superficie-2: #fafbf9;
-  --ds-linha: rgb(var(--ds-tinta) / 0.07);
-  --ds-linha-forte: rgb(var(--ds-tinta) / 0.12);
+  --ds-fundo: var(--c1);
+  --ds-superficie: color-mix(in oklab, var(--c1) 22%, white);
+  --ds-superficie-2: color-mix(in oklab, var(--c1) 55%, white);
+  --ds-linha: color-mix(in oklab, var(--ds-texto) 8%, transparent);
+  --ds-linha-forte: color-mix(in oklab, var(--ds-texto) 14%, transparent);
 
-  /* Texto */
-  --ds-texto: #0f1110;
-  --ds-texto-2: #5c625f;
-  --ds-texto-3: #9aa09d;
+  /* Texto: quase preto, puxado para a cor principal */
+  --ds-texto: color-mix(in oklab, var(--c2) 14%, #0d0f12);
+  --ds-texto-2: color-mix(in oklab, var(--ds-texto) 64%, var(--c1));
+  --ds-texto-3: color-mix(in oklab, var(--ds-texto) 40%, var(--c1));
 
-  /* Marca */
-  --ds-acao: #2bb88a;
-  --ds-acao-forte: #1f9a72;
-  --ds-acao-suave: #d6f2e7;
-  --ds-acao-fundo: #eefaf5;
-  --ds-botao: #0f1110;
-  --ds-botao-texto: #ffffff;
-  --ds-acao-texto: #ffffff;
-  --ds-destaque: var(--ds-acao);
-  --ds-positivo: #1f9a72;
-  --ds-tinta: 17 20 18;
-  --ds-vidro: rgb(255 255 255 / 0.72);
-  --ds-mancha-1: #2bb88a;
-  --ds-mancha-2: #7896f0;
-  --ds-mancha-3: #f5aa82;
+  /* Ação e destaque */
+  --ds-acao: var(--c2);
+  --ds-acao-forte: color-mix(in oklab, var(--c2) 84%, black);
+  --ds-acao-suave: color-mix(in oklab, var(--c2) 20%, var(--ds-superficie));
+  --ds-acao-fundo: color-mix(in oklab, var(--c2) 9%, var(--ds-superficie));
+  --ds-acao-texto: var(--c2-texto);
+  --ds-botao: var(--c2);
+  --ds-botao-texto: var(--c2-texto);
+  --ds-destaque: var(--c3-legivel);
+  --ds-positivo: #1f8a5f;
+  --ds-vidro: color-mix(in oklab, var(--ds-superficie) 74%, transparent);
+  --ds-mancha-1: var(--c2);
+  --ds-mancha-2: var(--c3);
+  --ds-mancha-3: var(--c3);
 
   /* Estados */
   --ds-alerta: #c2410c;
@@ -81,151 +87,70 @@
 
 
 /* ================================================================
- * Paletas em avaliação. Cada uma só reescreve tokens; as peças não
- * mudam. A escolhida vira o valor de origem do `.ds`.
+ * Paletas: cada uma são 3 cores (fundo, principal, destaque) e o
+ * texto que fica legível em cima delas. Tudo o resto é calculado.
  * ================================================================ */
-
-/* 2. Bubblegum — referência 1 (violeta galáctico + rosa chiclete) */
-.ds[data-paleta="bubblegum"] {
-  --ds-fundo: #f0f0f0;
-  --ds-botao: #121218; --ds-botao-texto: #ffffff;
-  --ds-acao: #4b3bff; --ds-acao-forte: #3a2be0; --ds-acao-suave: #dcd8ff; --ds-acao-fundo: #efedff; --ds-acao-texto: #ffffff;
-  --ds-destaque: #f25cc4;
-  --ds-mancha-1: #ff6ad5; --ds-mancha-2: #4b3bff; --ds-mancha-3: #ff9be3;
-  --ds-tinta: 18 18 24; --ds-texto: #121218; --ds-texto-2: #5d5d6b;
+.ds[data-paleta="oceano"] {
+  --c1: #eef3f5; --c2: #0b6e8c; --c3: #ffc23d; --c2-texto: #ffffff; --c3-legivel: #b98100;
+  --c2-escuro: #3fb5d6; --c2-escuro-texto: #04151b; --c3-escuro: #ffc23d;
+}
+.ds[data-paleta="vinho"] {
+  --c1: #f6f0ed; --c2: #7a1e3a; --c3: #d9a441; --c2-texto: #ffffff; --c3-legivel: #9c6c12;
+  --c2-escuro: #e0668a; --c2-escuro-texto: #1a050c; --c3-escuro: #e8b95a;
+}
+.ds[data-paleta="matcha"] {
+  --c1: #f2f3ea; --c2: #5e7a2b; --c3: #8a4b2f; --c2-texto: #ffffff; --c3-legivel: #8a4b2f;
+  --c2-escuro: #a9c76a; --c2-escuro-texto: #11160a; --c3-escuro: #d9946e;
+}
+.ds[data-paleta="grafite"] {
+  --c1: #edeef0; --c2: #2b313c; --c3: #ff5a1f; --c2-texto: #ffffff; --c3-legivel: #e2470e;
+  --c2-escuro: #e8eaee; --c2-escuro-texto: #111317; --c3-escuro: #ff7a45;
+}
+.ds[data-paleta="lilas"] {
+  --c1: #f3f0f7; --c2: #6f5bb5; --c3: #3f6b47; --c2-texto: #ffffff; --c3-legivel: #3f6b47;
+  --c2-escuro: #a99be8; --c2-escuro-texto: #120d24; --c3-escuro: #8fc79a;
+}
+.ds[data-paleta="cereja"] {
+  --c1: #f2f6fb; --c2: #d7264f; --c3: #3d8bff; --c2-texto: #ffffff; --c3-legivel: #2f6bff;
+  --c2-escuro: #ff6683; --c2-escuro-texto: #1a0309; --c3-escuro: #7db0ff;
+}
+.ds[data-paleta="marinho"] {
+  --c1: #f5f1e6; --c2: #1c2b4a; --c3: #e0a526; --c2-texto: #ffffff; --c3-legivel: #a8740a;
+  --c2-escuro: #8ea6d9; --c2-escuro-texto: #0a1122; --c3-escuro: #f2be4a;
+}
+.ds[data-paleta="esmeralda"] {
+  --c1: #f7f1eb; --c2: #0f7b5f; --c3: #ff9e7a; --c2-texto: #ffffff; --c3-legivel: #d9562b;
+  --c2-escuro: #3fd1a6; --c2-escuro-texto: #03140f; --c3-escuro: #ffb59a;
 }
 
-/* 3. Limão — referência 2 (limão + preto carvão + lavanda elétrica) */
-.ds[data-paleta="limao"] {
-  --ds-fundo: #f4f3ec;
-  --ds-botao: #171717; --ds-botao-texto: #fff21a;
-  --ds-acao: #a668ff; --ds-acao-forte: #8a4beb; --ds-acao-suave: #e9dcff; --ds-acao-fundo: #f4edff; --ds-acao-texto: #ffffff;
-  --ds-destaque: #8a4beb;
-  --ds-mancha-1: #fff21a; --ds-mancha-2: #a668ff; --ds-mancha-3: #fff21a;
-  --ds-tinta: 23 23 23; --ds-texto: #171717; --ds-texto-2: #5f5e58;
-}
-
-/* 4. Barro — terracota + oliva sobre papel quente */
-.ds[data-paleta="barro"] {
-  --ds-fundo: #f3efe7; --ds-superficie: #fffdf9; --ds-superficie-2: #faf6f0;
-  --ds-botao: #2b2620; --ds-botao-texto: #ffffff;
-  --ds-acao: #c8532e; --ds-acao-forte: #a8411f; --ds-acao-suave: #f2d5c7; --ds-acao-fundo: #fbeee7; --ds-acao-texto: #ffffff;
-  --ds-destaque: #c8532e; --ds-positivo: #5f7a2e;
-  --ds-mancha-1: #c8532e; --ds-mancha-2: #8c9a55; --ds-mancha-3: #e8b86b;
-  --ds-tinta: 34 29 24; --ds-texto: #221d18; --ds-texto-2: #6b6258; --ds-texto-3: #a39a8f;
-  --ds-vidro: rgb(255 253 249 / 0.74);
-}
-
-/* 5. Cobalto — azul cobalto + coral */
-.ds[data-paleta="cobalto"] {
-  --ds-fundo: #f2f3f7;
-  --ds-botao: #0b1340; --ds-botao-texto: #ffffff;
-  --ds-acao: #2741ff; --ds-acao-forte: #1b30d6; --ds-acao-suave: #d6dcff; --ds-acao-fundo: #eef0ff; --ds-acao-texto: #ffffff;
-  --ds-destaque: #ff6b4a;
-  --ds-mancha-1: #2741ff; --ds-mancha-2: #ff6b4a; --ds-mancha-3: #9ab0ff;
-  --ds-tinta: 11 19 64; --ds-texto: #0b1340; --ds-texto-2: #5a6080;
-}
-
-/* 6. Ameixa — roxo ameixa + pêssego */
-.ds[data-paleta="ameixa"] {
-  --ds-fundo: #f7f1ec;
-  --ds-botao: #2e1640; --ds-botao-texto: #ffffff;
-  --ds-acao: #6b34a3; --ds-acao-forte: #532683; --ds-acao-suave: #e6d9f2; --ds-acao-fundo: #f4eef9; --ds-acao-texto: #ffffff;
-  --ds-destaque: #e8774a;
-  --ds-mancha-1: #ffb38a; --ds-mancha-2: #b48ae0; --ds-mancha-3: #ffd3b8;
-  --ds-tinta: 31 22 38; --ds-texto: #1f1626; --ds-texto-2: #66596f;
-}
-
-/* 7. Petróleo — verde petróleo + laranja ácido */
-.ds[data-paleta="petroleo"] {
-  --ds-fundo: #eef2f0;
-  --ds-botao: #0e3b3a; --ds-botao-texto: #ffffff;
-  --ds-acao: #ff6a13; --ds-acao-forte: #e2560a; --ds-acao-suave: #ffe0cc; --ds-acao-fundo: #fff2e9; --ds-acao-texto: #ffffff;
-  --ds-destaque: #ff6a13; --ds-positivo: #0e7a6f;
-  --ds-mancha-1: #1f7a73; --ds-mancha-2: #ff8a3d; --ds-mancha-3: #7fb8b0;
-  --ds-tinta: 14 40 39; --ds-texto: #0f2423; --ds-texto-2: #566866;
-}
-
-/* 8. Noite — modo escuro, lima elétrica + lilás */
-.ds[data-paleta="noite"] {
-  --ds-fundo: #0c0d10; --ds-superficie: #16181d; --ds-superficie-2: #1b1e24;
-  --ds-linha: rgb(255 255 255 / 0.08); --ds-linha-forte: rgb(255 255 255 / 0.14);
-  --ds-botao: #c6ff3d; --ds-botao-texto: #0c0d10;
-  --ds-acao: #c6ff3d; --ds-acao-forte: #b4f02a; --ds-acao-suave: #2c3618; --ds-acao-fundo: #1e2412; --ds-acao-texto: #0c0d10;
-  --ds-destaque: #b79cff; --ds-positivo: #6ee7a0;
-  --ds-perigo-fundo: #3a1717; --ds-alerta-fundo: #3a2414; --ds-ouro-fundo: #33280f;
-  --ds-mancha-1: #8b6cff; --ds-mancha-2: #3dd6ff; --ds-mancha-3: #c6ff3d;
-  --ds-tinta: 255 255 255; --ds-texto: #f3f4f6; --ds-texto-2: #a1a6b0; --ds-texto-3: #6b7180;
-  --ds-vidro: rgb(22 24 29 / 0.72);
-  --ds-sombra-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
-  color-scheme: dark;
-}
-.ds[data-paleta="noite"] .ds-selo-verde { color: var(--ds-acao); }
-
-
-/* ================================================================
- * Modo escuro: vale para qualquer paleta. Primeiro os neutros, depois
- * a cor de ação de cada paleta afinada para fundo escuro (mais clara,
- * para manter o contraste).
- * ================================================================ */
+/* ---------- Modo escuro: o mesmo trio, sobre um quase-preto tingido pela principal ---------- */
 .ds[data-modo="escuro"] {
-  --ds-fundo: #0c0d10; --ds-superficie: #16181d; --ds-superficie-2: #1b1e24;
-  --ds-linha: rgb(255 255 255 / 0.08); --ds-linha-forte: rgb(255 255 255 / 0.14);
-  --ds-tinta: 255 255 255; --ds-texto: #f3f4f6; --ds-texto-2: #a1a6b0; --ds-texto-3: #6b7180;
-  --ds-botao: #f3f4f6; --ds-botao-texto: #0c0d10;
+  --ds-fundo: color-mix(in oklab, var(--c2) 9%, #08090b);
+  --ds-superficie: color-mix(in oklab, var(--c2) 7%, #14161a);
+  --ds-superficie-2: color-mix(in oklab, var(--c2) 9%, #191b20);
+  --ds-texto: color-mix(in oklab, var(--c1) 70%, white);
+  --ds-texto-2: color-mix(in oklab, var(--ds-texto) 62%, var(--ds-fundo));
+  --ds-texto-3: color-mix(in oklab, var(--ds-texto) 40%, var(--ds-fundo));
+  --ds-acao: var(--c2-escuro);
+  --ds-acao-forte: color-mix(in oklab, var(--c2-escuro) 85%, white);
+  --ds-acao-suave: color-mix(in oklab, var(--c2-escuro) 24%, var(--ds-superficie));
+  --ds-acao-fundo: color-mix(in oklab, var(--c2-escuro) 13%, var(--ds-superficie));
+  --ds-acao-texto: var(--c2-escuro-texto);
+  --ds-botao: var(--c2-escuro);
+  --ds-botao-texto: var(--c2-escuro-texto);
+  --ds-destaque: var(--c3-escuro);
+  --ds-mancha-1: var(--c2-escuro);
+  --ds-mancha-2: var(--c3-escuro);
+  --ds-mancha-3: var(--c3-escuro);
   --ds-positivo: #6ee7a0;
-  --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717; --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
+  --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717;
+  --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
   --ds-ouro: #f5c04a; --ds-ouro-fundo: #33280f;
-  --ds-vidro: rgb(22 24 29 / 0.72);
   --ds-sombra-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
   --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 .ds[data-modo="escuro"] .ds-selo-verde { color: var(--ds-acao); }
-
-.ds[data-paleta="noite"][data-modo="escuro"] {
-  --ds-botao: #c6ff3d; --ds-botao-texto: #0c0d10;
-}
-.ds[data-paleta="menta"][data-modo="escuro"] {
-  --ds-acao: #34c995; --ds-acao-forte: #4fd9a8; --ds-acao-suave: #173d30; --ds-acao-fundo: #102a21; --ds-acao-texto: #06140f;
-  --ds-destaque: #4fd9a8;
-}
-.ds[data-paleta="bubblegum"][data-modo="escuro"] {
-  --ds-fundo: #0d0c16; --ds-superficie: #16152a; --ds-superficie-2: #1c1a33;
-  --ds-acao: #7b6dff; --ds-acao-forte: #9a8fff; --ds-acao-suave: #2b2766; --ds-acao-fundo: #1d1a45; --ds-acao-texto: #ffffff;
-  --ds-destaque: #ff7fd6; --ds-vidro: rgb(22 21 42 / 0.72);
-}
-.ds[data-paleta="limao"][data-modo="escuro"] {
-  --ds-fundo: #0e0e0c; --ds-superficie: #181816; --ds-superficie-2: #1e1e1b;
-  --ds-botao: #fff21a; --ds-botao-texto: #171717;
-  --ds-acao: #b78bff; --ds-acao-forte: #c9a6ff; --ds-acao-suave: #33264d; --ds-acao-fundo: #241b38; --ds-acao-texto: #120a1f;
-  --ds-destaque: #fff21a; --ds-vidro: rgb(24 24 22 / 0.72);
-}
-.ds[data-paleta="barro"][data-modo="escuro"] {
-  --ds-fundo: #13100d; --ds-superficie: #1d1915; --ds-superficie-2: #231e19;
-  --ds-botao: #f3efe7; --ds-botao-texto: #13100d;
-  --ds-acao: #e0704a; --ds-acao-forte: #ec8a66; --ds-acao-suave: #4a2a1e; --ds-acao-fundo: #2e1d15; --ds-acao-texto: #ffffff;
-  --ds-destaque: #e8b86b; --ds-positivo: #a7c26a;
-  --ds-texto: #f3efe7; --ds-texto-2: #b3a99c; --ds-texto-3: #7d7368; --ds-vidro: rgb(29 25 21 / 0.72);
-}
-.ds[data-paleta="cobalto"][data-modo="escuro"] {
-  --ds-fundo: #080b1a; --ds-superficie: #10142a; --ds-superficie-2: #151a33;
-  --ds-acao: #5b70ff; --ds-acao-forte: #7d8dff; --ds-acao-suave: #1f2a6b; --ds-acao-fundo: #151d4d; --ds-acao-texto: #ffffff;
-  --ds-destaque: #ff8a6e; --ds-vidro: rgb(16 20 42 / 0.72);
-}
-.ds[data-paleta="ameixa"][data-modo="escuro"] {
-  --ds-fundo: #110b16; --ds-superficie: #1a1322; --ds-superficie-2: #20182a;
-  --ds-botao: #ffb38a; --ds-botao-texto: #1a0f12;
-  --ds-acao: #a87ae0; --ds-acao-forte: #bf98ec; --ds-acao-suave: #3a2752; --ds-acao-fundo: #2a1c3c; --ds-acao-texto: #ffffff;
-  --ds-destaque: #ffb38a; --ds-vidro: rgb(26 19 34 / 0.72);
-}
-.ds[data-paleta="petroleo"][data-modo="escuro"] {
-  --ds-fundo: #061413; --ds-superficie: #0d1f1e; --ds-superficie-2: #122625;
-  --ds-botao: #ff7a2a; --ds-botao-texto: #1a0b02;
-  --ds-acao: #ff7a2a; --ds-acao-forte: #ff9450; --ds-acao-suave: #4a2610; --ds-acao-fundo: #2f1a0c; --ds-acao-texto: #1a0b02;
-  --ds-destaque: #ff9450; --ds-positivo: #5fd3c4; --ds-vidro: rgb(13 31 30 / 0.72);
-}
 
 /* ---------- Tipografia ---------- */
 
@@ -379,7 +304,7 @@
 }
 @media (hover: hover) {
   .ds-botao-fantasma:not(:disabled):hover {
-    background: rgb(var(--ds-tinta) / 0.05);
+    background: color-mix(in oklab, var(--ds-texto) 5%, transparent);
     color: var(--ds-texto);
   }
 }
@@ -410,7 +335,7 @@
   background: currentColor;
 }
 .ds-selo-verde { background: var(--ds-acao-fundo); color: var(--ds-acao-forte); }
-.ds-selo-neutro { background: rgb(var(--ds-tinta) / 0.05); color: var(--ds-texto-2); }
+.ds-selo-neutro { background: color-mix(in oklab, var(--ds-texto) 5%, transparent); color: var(--ds-texto-2); }
 .ds-selo-alerta { background: var(--ds-alerta-fundo); color: var(--ds-alerta); }
 .ds-selo-perigo { background: var(--ds-perigo-fundo); color: var(--ds-perigo); }
 .ds-selo-ouro {
@@ -455,7 +380,7 @@
   padding: 3px;
   gap: 2px;
   border-radius: 11px;
-  background: rgb(var(--ds-tinta) / 0.05);
+  background: color-mix(in oklab, var(--ds-texto) 5%, transparent);
 }
 .ds-trilho > button {
   height: 1.875rem;
@@ -479,7 +404,7 @@
   width: 2.25rem;
   height: 1.375rem;
   border-radius: 999px;
-  background: rgb(var(--ds-tinta) / 0.14);
+  background: color-mix(in oklab, var(--ds-texto) 14%, transparent);
   transition: background-color 200ms var(--ds-curva);
   flex-shrink: 0;
   min-height: 0 !important;
@@ -555,7 +480,7 @@
 .ds-barra {
   height: 6px;
   border-radius: 999px;
-  background: rgb(var(--ds-tinta) / 0.06);
+  background: color-mix(in oklab, var(--ds-texto) 6%, transparent);
   overflow: hidden;
 }
 .ds-barra > span {
@@ -597,10 +522,10 @@
   transition: background-color 160ms var(--ds-curva), color 160ms var(--ds-curva);
 }
 @media (hover: hover) {
-  .ds-nav-item:hover { background: rgb(var(--ds-tinta) / 0.04); color: var(--ds-texto); }
+  .ds-nav-item:hover { background: color-mix(in oklab, var(--ds-texto) 4%, transparent); color: var(--ds-texto); }
 }
 .ds-nav-item[aria-current="page"] {
-  background: rgb(var(--ds-tinta) / 0.06);
+  background: color-mix(in oklab, var(--ds-texto) 6%, transparent);
   color: var(--ds-texto);
 }
 
