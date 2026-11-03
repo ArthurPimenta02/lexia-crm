@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AnalystWorkspace } from "@/app/components/analyst-workspace";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminAnalystPageProps = {
@@ -16,6 +17,7 @@ export default async function AdminAnalystPage({
   if (!profile) redirect("/login");
   if (profile.role !== "lexia_admin") redirect("/app/analista");
 
+  const t = await getT();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lexia_clientes")
@@ -24,7 +26,7 @@ export default async function AdminAnalystPage({
     .order("nome", { ascending: true });
 
   if (error) {
-    throw new Error("Não foi possível carregar os clientes.");
+    throw new Error(t("Não foi possível carregar os clientes."));
   }
 
   const clients = (data ?? []).map((client) => ({
@@ -35,8 +37,8 @@ export default async function AdminAnalystPage({
   if (clients.length === 0) {
     return (
       <section className="max-w-3xl">
-        <h1 className="text-3xl font-semibold text-foreground">Analista Lexia</h1>
-        <p className="mt-3 text-muted-foreground">Nenhum cliente ativo encontrado.</p>
+        <h1 className="text-3xl font-semibold text-foreground">{t("Analista Lexia")}</h1>
+        <p className="mt-3 text-muted-foreground">{t("Nenhum cliente ativo encontrado.")}</p>
       </section>
     );
   }

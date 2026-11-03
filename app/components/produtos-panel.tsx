@@ -16,7 +16,9 @@ import type {
   ProdutoLinha,
   ServicosPorProduto,
 } from "@/lib/produtos/read";
-import { formatDayInTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import type { ServicoSimples } from "@/lib/servicos/read";
 
 /**
@@ -28,8 +30,8 @@ import type { ServicoSimples } from "@/lib/servicos/read";
  * produto ultimamente.
  */
 
-function formatMoney(valor: number, moeda: string, casas = 2) {
-  return new Intl.NumberFormat("pt-PT", {
+function formatMoney(valor: number, moeda: string, locale: string, casas = 2) {
+  return new Intl.NumberFormat(locale, {
     currency: moeda,
     maximumFractionDigits: casas,
     minimumFractionDigits: casas,
@@ -37,10 +39,24 @@ function formatMoney(valor: number, moeda: string, casas = 2) {
   }).format(valor);
 }
 
-function formatQuantidade(valor: number) {
-  return new Intl.NumberFormat("pt-PT", {
+function formatQuantidade(valor: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     maximumFractionDigits: 3,
   }).format(valor);
+}
+
+/** Dia do movimento no fuso do cliente, escrito à maneira do idioma. */
+function formatDia(data: string | null, timeZone: string, locale: string) {
+  if (!data) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).format(new Date(data));
 }
 
 /**
@@ -50,48 +66,56 @@ function formatQuantidade(valor: number) {
  * um não é um ritmo, e um número aqui seria lido como se fosse. Dizer quantas
  * execuções faltam é mais honesto e diz-lhe o que fazer.
  */
-function legendaDaDuracao(produto: ProdutoLinha) {
+function legendaDaDuracao(produto: ProdutoLinha, t: FuncaoT, locale: string) {
   if (produto.saidasRegistadas < 2) {
     return produto.saidasRegistadas === 0
-      ? "Ainda não registaste nenhum serviço com este produto."
-      : "Falta mais uma execução registada para haver ritmo de consumo.";
+      ? t("Você ainda não registrou nenhum serviço com este produto.")
+      : t("Falta mais uma execução registrada para haver ritmo de consumo.");
   }
 
   if (produto.diasRestantes === null) {
-    return "Sem consumo medido.";
+    return t("Sem consumo medido.");
   }
 
   if (produto.stock <= 0) {
-    return "Acabou. O stock está a zero ou negativo.";
+    return t("Acabou. O estoque está zerado ou negativo.");
   }
 
-  return `Ao ritmo de ${formatQuantidade(produto.consumoPorDia ?? 0)} ${
-    produto.unidade
-  } por dia, medido desde a primeira saída.`;
+  return t(
+    "No ritmo de {quantidade} {unidade} por dia, medido desde a primeira saída.",
+    {
+      quantidade: formatQuantidade(produto.consumoPorDia ?? 0, locale),
+      unidade: produto.unidade,
+    },
+  );
 }
 
 function MovimentoItem({
+  locale,
   moeda,
   movimento,
+  t,
   timeZone,
   unidade,
 }: {
+  locale: string;
   moeda: string;
   movimento: MovimentoLinha;
+  t: FuncaoT;
   timeZone: string;
   unidade: string;
 }) {
   const etiqueta =
     movimento.tipo === "compra"
-      ? "Compra"
+      ? t("Compra")
       : movimento.tipo === "consumo"
-        ? (movimento.servicoNome ?? "Consumo")
-        : "Ajuste";
+        ? (movimento.servicoNome ?? t("Consumo"))
+        : t("Ajuste");
 
   return (
     <li className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border py-1.5 last:border-b-0">
       <span className="text-xs text-muted-foreground">
-        {formatDayInTimezone(movimento.ocorridoEm, timeZone)}
+        {formatDia(movimento.ocorridoEm, timeZone, locale)}
       </span>
       <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
         {etiqueta}
@@ -99,20 +123,20 @@ function MovimentoItem({
       </span>
       <span
         className={`text-xs font-semibold ${
-          movimento.quantidade < 0 ? "text-red-700" : "text-emerald-700"
+          movimento.quantidade < 0 ? "text-danger" : "text-positive"
         }`}
       >
         {movimento.quantidade > 0 ? "+" : ""}
-        {formatQuantidade(movimento.quantidade)} {unidade}
+        {formatQuantidade(movimento.quantidade, locale)} {unidade}
         {movimento.custoTotal === null
           ? ""
-          : ` · ${formatMoney(movimento.custoTotal, moeda)}`}
+          : ` · ${formatMoney(movimento.custoTotal, moeda, locale)}`}
       </span>
     </li>
   );
 }
 
-export function ProdutosPanel({
+export async function ProdutosPanel({
   actionAjuste,
   actionCompra,
   actionCriar,
@@ -150,12 +174,15 @@ export function ProdutosPanel({
   /** O fuso do cliente: as datas dos movimentos são escritas nele. */
   timeZone: string;
 }) {
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+
   // O que está a acabar primeiro aparece primeiro: é a única ordem que faz
   // este ecrã valer uma visita de manhã. Sem previsão vai para o fim, por
   // nome, em vez de se fingir que dura para sempre.
   const ordenados = [...produtos].sort((a, b) => {
     if (a.diasRestantes === null && b.diasRestantes === null) {
-      return a.nome.localeCompare(b.nome, "pt");
+      return a.nome.localeCompare(b.nome, locale);
     }
 
     if (a.diasRestantes === null) {
@@ -175,7 +202,7 @@ export function ProdutosPanel({
 
       {podeEditar ? (
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <SeccaoTitulo>Novo produto</SeccaoTitulo>
+          <SeccaoTitulo>{t("Novo produto")}</SeccaoTitulo>
           <div className="mt-3">
             <CriarProdutoForm action={actionCriar} clienteSlug={clienteSlug} />
           </div>
@@ -185,7 +212,7 @@ export function ProdutosPanel({
       {ordenados.length === 0 ? (
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <p className="text-sm text-muted-foreground">
-            Ainda não há produtos. Cria o primeiro acima.
+            {t("Ainda não há produtos. Crie o primeiro acima.")}
           </p>
         </div>
       ) : (
@@ -216,13 +243,13 @@ export function ProdutosPanel({
                   <div className="shrink-0 text-right">
                     <p
                       className={`text-2xl font-semibold tracking-tight ${
-                        produto.stock <= 0 ? "text-red-700" : "text-foreground"
+                        produto.stock <= 0 ? "text-danger" : "text-foreground"
                       }`}
                     >
-                      {formatQuantidade(produto.stock)} {produto.unidade}
+                      {formatQuantidade(produto.stock, locale)} {produto.unidade}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      em stock
+                      {t("em estoque")}
                     </p>
                   </div>
                 </div>
@@ -230,46 +257,49 @@ export function ProdutosPanel({
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
                   <div>
                     <dt className="text-muted-foreground">
-                      Custo por {produto.unidade}
+                      {t("Custo por {unidade}", { unidade: produto.unidade })}
                     </dt>
                     <dd className="mt-0.5 text-sm font-semibold text-foreground">
                       {produto.custoUnitario === null
                         ? "—"
-                        : formatMoney(produto.custoUnitario, moeda, 4)}
+                        : formatMoney(produto.custoUnitario, moeda, locale, 4)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground">Valor do stock</dt>
+                    <dt className="text-muted-foreground">
+                      {t("Valor do estoque")}
+                    </dt>
                     <dd className="mt-0.5 text-sm font-semibold text-foreground">
                       {produto.custoUnitario === null
                         ? "—"
                         : formatMoney(
                             produto.custoUnitario * produto.stock,
                             moeda,
+                            locale,
                           )}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground">Dura mais</dt>
+                    <dt className="text-muted-foreground">{t("Dura mais")}</dt>
                     <dd className="mt-0.5 text-sm font-semibold text-foreground">
                       {produto.diasRestantes === null
                         ? "—"
-                        : `${produto.diasRestantes} ${
-                            produto.diasRestantes === 1 ? "dia" : "dias"
-                          }`}
+                        : produto.diasRestantes === 1
+                          ? t("{n} dia", { n: produto.diasRestantes })
+                          : t("{n} dias", { n: produto.diasRestantes })}
                     </dd>
                   </div>
                 </dl>
 
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {legendaDaDuracao(produto)}
+                  {legendaDaDuracao(produto, t, locale)}
                 </p>
 
                 {produto.custoUnitario === null ? (
-                  <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                    Sem compra registada, este produto não tem preço, e os
-                    serviços que o usam ficam sem custo e sem margem. Registra
-                    em baixo quanto pagaste pela última vez que o compraste.
+                  <p className="mt-3 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning">
+                    {t(
+                      "Sem compra registrada, este produto não tem preço, e os serviços que o usam ficam sem custo e sem margem. Registre abaixo quanto você pagou da última vez que o comprou.",
+                    )}
                   </p>
                 ) : null}
 
@@ -309,14 +339,16 @@ export function ProdutosPanel({
                 {produto.movimentos.length > 0 ? (
                   <div className="mt-4 border-t border-border pt-4">
                     <p className="text-xs font-semibold text-muted-foreground">
-                      Últimos movimentos
+                      {t("Últimos movimentos")}
                     </p>
                     <ul className="mt-2">
                       {produto.movimentos.map((movimento) => (
                         <MovimentoItem
                           key={movimento.id}
+                          locale={locale}
                           moeda={moeda}
                           movimento={movimento}
+                          t={t}
                           timeZone={timeZone}
                           unidade={produto.unidade}
                         />
@@ -344,8 +376,12 @@ export function ProdutosPanel({
 
       {podeEditar && excluidos.length > 0 ? (
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <SeccaoTitulo dica="O stock e as compras destes produtos continuam guardados. Repor traz o produto de volta, mas não as quantidades por serviço.">
-            Excluídos
+          <SeccaoTitulo
+            dica={t(
+              "O estoque e as compras destes produtos continuam guardados. Restaurar traz o produto de volta, mas não as quantidades por serviço.",
+            )}
+          >
+            {t("Excluídos")}
           </SeccaoTitulo>
           <ul className="mt-3 flex flex-col gap-2">
             {excluidos.map((produto) => (

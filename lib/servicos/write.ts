@@ -6,6 +6,7 @@ import {
   normalizarNomeServico,
   toNumber,
 } from "@/lib/servicos/config";
+import { mensagemCom, type TextoDaMensagem } from "@/lib/catalogo/mensagem";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -25,27 +26,40 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 export type GravarServicoResultado = {
+  /** Já em pt-BR; a server action traduz com `texto` antes de a mostrar. */
   mensagem: string;
   ok: boolean;
+  texto?: TextoDaMensagem;
 };
 
 const limiteValor = 1_000_000;
 
-function validarValor(bruto: string, etiqueta: string) {
+/**
+ * Valida o preço. Os erros já são a mensagem inteira que vai para o ecrã
+ * (e a chave da tradução): juntar um pedaço traduzido a outro partia a ordem
+ * das palavras noutras línguas.
+ */
+function validarPreco(bruto: string) {
   const normalizado = bruto.trim().replace(",", ".");
 
   if (normalizado === "") {
-    return { erro: `Preenche o ${etiqueta}.`, valor: null };
+    return { erro: "Notas salvas, mas o preço não: preencha o preço.", valor: null };
   }
 
   const valor = Number(normalizado);
 
   if (!Number.isFinite(valor) || valor < 0) {
-    return { erro: `O ${etiqueta} tem de ser um número igual ou maior que zero.`, valor: null };
+    return {
+      erro: "Notas salvas, mas o preço não: tem de ser um número igual ou maior que zero.",
+      valor: null,
+    };
   }
 
   if (valor > limiteValor) {
-    return { erro: `O ${etiqueta} está fora do intervalo aceitável.`, valor: null };
+    return {
+      erro: "Notas salvas, mas o preço não: está fora do intervalo aceitável.",
+      valor: null,
+    };
   }
 
   return { erro: null, valor: Math.round(valor * 100) / 100 };
@@ -76,7 +90,7 @@ export async function gravarPrecoENotas({
 
   if (!externo) {
     return {
-      mensagem: "Credenciais da base de dados do cliente não configuradas.",
+      mensagem: "Credenciais do banco de dados do cliente não configuradas.",
       ok: false,
     };
   }
@@ -84,7 +98,7 @@ export async function gravarPrecoENotas({
   const notas = notasBruto.trim();
 
   if (notas.length > 2000) {
-    return { mensagem: "As notas são demasiado longas.", ok: false };
+    return { mensagem: "As notas estão longas demais.", ok: false };
   }
 
   // O serviço tem de existir no catálogo do cliente. É esta leitura que
@@ -123,7 +137,7 @@ export async function gravarPrecoENotas({
   if (erroNotas) {
     console.error("[servicos] falha a gravar as notas do serviço", erroNotas);
 
-    return { mensagem: "Não foi possível gravar as notas.", ok: false };
+    return { mensagem: "Não foi possível salvar as notas.", ok: false };
   }
 
   const precoPedido = precoBruto.trim();
@@ -131,14 +145,17 @@ export async function gravarPrecoENotas({
   if (precoPedido === "") {
     revalidatePath(caminhoParaRevalidar);
 
-    return { mensagem: `Notas de "${servico.nome}" gravadas.`, ok: true };
+    return {
+      ...mensagemCom('Notas de "{nome}" salvas.', { nome: String(servico.nome) }),
+      ok: true,
+    };
   }
 
-  const preco = validarValor(precoPedido, "preço");
+  const preco = validarPreco(precoPedido);
 
   if (preco.erro || preco.valor === null) {
     return {
-      mensagem: `Notas gravadas, mas o preço não: ${preco.erro}`,
+      mensagem: preco.erro ?? "Notas salvas, mas o preço não foi alterado.",
       ok: false,
     };
   }
@@ -148,7 +165,10 @@ export async function gravarPrecoENotas({
   if (precoAnterior !== null && precoAnterior === preco.valor) {
     revalidatePath(caminhoParaRevalidar);
 
-    return { mensagem: `Notas de "${servico.nome}" gravadas.`, ok: true };
+    return {
+      ...mensagemCom('Notas de "{nome}" salvas.', { nome: String(servico.nome) }),
+      ok: true,
+    };
   }
 
   const resultadoPreco = await sincronizarPreco({
@@ -248,7 +268,7 @@ async function definirEstadoDoServico({
 
   if (!externo) {
     return {
-      mensagem: "Credenciais da base de dados do cliente não configuradas.",
+      mensagem: "Credenciais do banco de dados do cliente não configuradas.",
       ok: false,
     };
   }
@@ -272,7 +292,6 @@ async function definirEstadoDoServico({
   }
 
   const nome = String(servico.nome);
-  const verbo = activo ? "reposto" : "excluído";
 
   const { error: erroCatalogo } = await externo
     .from(config.catalogoTable)
@@ -283,7 +302,12 @@ async function definirEstadoDoServico({
     console.error("[servicos] falha a mudar o estado no catálogo", erroCatalogo);
 
     return {
-      mensagem: `"${nome}" não foi ${verbo}: o catálogo recusou a escrita.`,
+      ...mensagemCom(
+        activo
+          ? '"{nome}" não foi restaurado: o catálogo recusou a gravação.'
+          : '"{nome}" não foi excluído: o catálogo recusou a gravação.',
+        { nome },
+      ),
       ok: false,
     };
   }
@@ -299,7 +323,12 @@ async function definirEstadoDoServico({
     revalidatePath(caminhoParaRevalidar);
 
     return {
-      mensagem: `"${nome}" ficou ${verbo} no catálogo, mas não foi possível confirmar a linha de agendamento. Verifica ${config.agendamentoTable} na Supabase.`,
+      ...mensagemCom(
+        activo
+          ? '"{nome}" foi restaurado no catálogo, mas não foi possível confirmar a linha de agendamento. Verifique {tabela} no Supabase.'
+          : '"{nome}" foi excluído no catálogo, mas não foi possível confirmar a linha de agendamento. Verifique {tabela} no Supabase.',
+        { nome, tabela: config.agendamentoTable },
+      ),
       ok: false,
     };
   }
@@ -314,7 +343,12 @@ async function definirEstadoDoServico({
     revalidatePath(caminhoParaRevalidar);
 
     return {
-      mensagem: `"${nome}" ${verbo}. Não tinha linha em ${config.agendamentoTable}, por isso só o catálogo mudou.`,
+      ...mensagemCom(
+        activo
+          ? '"{nome}" restaurado. Não tinha linha em {tabela}, por isso só o catálogo mudou.'
+          : '"{nome}" excluído. Não tinha linha em {tabela}, por isso só o catálogo mudou.',
+        { nome, tabela: config.agendamentoTable },
+      ),
       ok: true,
     };
   }
@@ -333,15 +367,23 @@ async function definirEstadoDoServico({
     );
 
     return {
-      mensagem: `"${nome}" ficou ${verbo} no catálogo, mas a tabela de agendamento recusou a escrita. Verifica ${config.agendamentoTable} na Supabase.`,
+      ...mensagemCom(
+        activo
+          ? '"{nome}" foi restaurado no catálogo, mas a tabela de agendamento recusou a gravação. Verifique {tabela} no Supabase.'
+          : '"{nome}" foi excluído no catálogo, mas a tabela de agendamento recusou a gravação. Verifique {tabela} no Supabase.',
+        { nome, tabela: config.agendamentoTable },
+      ),
       ok: false,
     };
   }
 
   return {
-    mensagem: activo
-      ? `"${nome}" reposto: volta a ser vendido pelo agente e a aceitar marcações.`
-      : `"${nome}" excluído: sai do painel e o agente deixa de o vender. Podes repô-lo em baixo.`,
+    ...mensagemCom(
+      activo
+        ? '"{nome}" restaurado: volta a ser vendido pelo agente e a aceitar agendamentos.'
+        : '"{nome}" excluído: sai do painel e o agente deixa de vendê-lo. Você pode restaurá-lo logo abaixo.',
+      { nome },
+    ),
     ok: true,
   };
 }
@@ -383,7 +425,7 @@ async function sincronizarPreco({
     console.error("[servicos] falha a gravar o preço no catálogo", erroCatalogo);
 
     return {
-      mensagem: "Notas gravadas, mas o preço não foi alterado.",
+      mensagem: "Notas salvas, mas o preço não foi alterado.",
       ok: false,
     };
   }
@@ -416,8 +458,9 @@ async function sincronizarPreco({
     return await reverterCatalogo({
       config,
       externo,
-      mensagem: `Preço não alterado: "${nome}" não tem linha em ${config.agendamentoTable}, e mudar só o catálogo punha o agente a vender um preço que o agendamento não cobra.`,
+      mensagem: 'Preço não alterado: "{nome}" não tem linha em {tabela}, e mudar só o catálogo faria o agente vender um preço que o agendamento não cobra.',
       precoAnterior,
+      variaveis: { nome, tabela: config.agendamentoTable },
       servicoId,
     });
   }
@@ -436,14 +479,16 @@ async function sincronizarPreco({
     return await reverterCatalogo({
       config,
       externo,
-      mensagem: "Preço não alterado: a tabela de agendamento recusou a escrita.",
+      mensagem: "Preço não alterado: a tabela de agendamento recusou a gravação.",
       precoAnterior,
       servicoId,
     });
   }
 
   return {
-    mensagem: `"${nome}" gravado: preço actualizado nas duas tabelas do cliente.`,
+    ...mensagemCom('"{nome}" salvo: preço atualizado nas duas tabelas do cliente.', {
+      nome,
+    }),
     ok: true,
   };
 }
@@ -454,12 +499,15 @@ async function reverterCatalogo({
   mensagem,
   precoAnterior,
   servicoId,
+  variaveis,
 }: {
   config: NonNullable<ReturnType<typeof getServicosConfig>>;
   externo: NonNullable<ReturnType<typeof createServicosClient>>;
   mensagem: string;
   precoAnterior: number | null;
   servicoId: string;
+  /** Quando a `mensagem` é uma chave com `{nome}` e afins. */
+  variaveis?: Record<string, string>;
 }): Promise<GravarServicoResultado> {
   const { error } = await externo
     .from(config.catalogoTable)
@@ -471,10 +519,12 @@ async function reverterCatalogo({
 
     return {
       mensagem:
-        "O preço ficou gravado só no catálogo e não foi possível desfazer. Verifica o serviço na Supabase antes de voltar a gravar.",
+        "O preço ficou salvo só no catálogo e não foi possível desfazer. Verifique o serviço no Supabase antes de salvar de novo.",
       ok: false,
     };
   }
 
-  return { mensagem, ok: false };
+  return variaveis
+    ? { ...mensagemCom(mensagem, variaveis), ok: false }
+    : { mensagem, ok: false };
 }

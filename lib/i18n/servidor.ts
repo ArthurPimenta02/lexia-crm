@@ -11,9 +11,14 @@ import { criarT, type FuncaoT } from "./traduzir";
 
 /** O idioma de quem está a ver: a escolha guardada, senão o do navegador. */
 export const getIdioma = cache(async (): Promise<Idioma> => {
-  const escolhido = (await cookies()).get(COOKIE_IDIOMA)?.value;
-  if (eIdioma(escolhido)) return escolhido;
-  return idiomaDoNavegador((await headers()).get("accept-language"));
+  try {
+    const escolhido = (await cookies()).get(COOKIE_IDIOMA)?.value;
+    if (eIdioma(escolhido)) return escolhido;
+    return idiomaDoNavegador((await headers()).get("accept-language"));
+  } catch {
+    // Fora de um pedido (testes, tarefas agendadas): idioma padrão.
+    return idiomaDoNavegador(null);
+  }
 });
 
 /** Para componentes de servidor: `const t = await getT();` */
@@ -23,6 +28,10 @@ export async function getT(): Promise<FuncaoT> {
 
 /** O tema escolhido neste navegador (claro por omissão). */
 export const getTema = cache(async (): Promise<Tema> => {
-  const escolhido = (await cookies()).get(COOKIE_TEMA)?.value;
-  return eTema(escolhido) ? escolhido : TEMA_PADRAO;
+  try {
+    const escolhido = (await cookies()).get(COOKIE_TEMA)?.value;
+    return eTema(escolhido) ? escolhido : TEMA_PADRAO;
+  } catch {
+    return TEMA_PADRAO;
+  }
 });

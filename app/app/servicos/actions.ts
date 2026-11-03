@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzirResultado } from "@/lib/catalogo/traduzir-resultado";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   definirReceita,
@@ -56,23 +57,25 @@ export async function gravarServicoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return gravarPrecoENotas({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    notasBruto: String(formData.get("notas") ?? ""),
-    precoBruto: String(formData.get("preco") ?? ""),
-    servicoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await gravarPrecoENotas({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      notasBruto: String(formData.get("notas") ?? ""),
+      precoBruto: String(formData.get("preco") ?? ""),
+      servicoId,
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function definirReceitaAction(
@@ -82,24 +85,26 @@ export async function definirReceitaAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!produtoId || !servicoId) {
-    return { mensagem: "Produto ou serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto ou serviço não identificado.", ok: false });
   }
 
-  return definirReceita({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    servicoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await definirReceita({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      servicoId,
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function registarExecucaoAction(
@@ -109,21 +114,23 @@ export async function registarExecucaoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return registarExecucao({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    servicoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await registarExecucao({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      servicoId,
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function excluirServicoAction(
@@ -133,20 +140,22 @@ export async function excluirServicoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return excluirServico({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    servicoId,
-  });
+  return traduzirResultado(
+    await excluirServico({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      servicoId,
+    }),
+  );
 }
 
 export async function reporServicoAction(
@@ -156,18 +165,20 @@ export async function reporServicoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return reporServico({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    servicoId,
-  });
+  return traduzirResultado(
+    await reporServico({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      servicoId,
+    }),
+  );
 }

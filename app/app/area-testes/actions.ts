@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 export type TestSession = {
@@ -67,10 +68,11 @@ type ClientContext =
     };
 
 async function getClientContext(): Promise<ClientContext> {
+  const t = await getT();
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile || !isClientRole(profile.role) || !profile.cliente_slug) {
-    return { error: "Acesso não autorizado." };
+    return { error: t("Acesso não autorizado.") };
   }
 
   return { clienteSlug: profile.cliente_slug, userId: user.id };
@@ -132,6 +134,7 @@ function getAgentResponseText(execution: Pick<TestExecution, "mensagens" | "resp
 }
 
 export async function createTestSession(): Promise<ActionResult<TestSession>> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -156,7 +159,7 @@ export async function createTestSession(): Promise<ActionResult<TestSession>> {
   if (error) {
     return {
       data: null,
-      error: "Não foi possível criar a sessão de teste.",
+      error: t("Não foi possível criar a sessão de teste."),
     };
   }
 
@@ -168,6 +171,7 @@ export async function createTestSession(): Promise<ActionResult<TestSession>> {
 export async function deleteTestSession(
   sessionId: string,
 ): Promise<DeleteResult> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -175,7 +179,7 @@ export async function deleteTestSession(
   }
 
   if (!sessionId) {
-    return { ok: false, error: "Sessão de teste inválida." };
+    return { ok: false, error: t("Sessão de teste inválida.") };
   }
 
   let supabaseAdmin: ReturnType<typeof createAdminClient>;
@@ -188,7 +192,7 @@ export async function deleteTestSession(
       error:
         error instanceof Error
           ? error.message
-          : "Não foi possível criar o client admin do Supabase.",
+          : t("Não foi possível criar o client admin do Supabase."),
     };
   }
 
@@ -201,7 +205,7 @@ export async function deleteTestSession(
     .maybeSingle();
 
   if (sessionError || !session) {
-    return { ok: false, error: "Sessão de teste não encontrada." };
+    return { ok: false, error: t("Sessão de teste não encontrada.") };
   }
 
   const { data: executions, error: executionsLookupError } = await supabaseAdmin
@@ -214,7 +218,7 @@ export async function deleteTestSession(
   if (executionsLookupError) {
     return {
       ok: false,
-      error: "Não foi possível buscar execuções da sessão.",
+      error: t("Não foi possível buscar execuções da sessão."),
     };
   }
 
@@ -230,7 +234,7 @@ export async function deleteTestSession(
     if (feedbackError) {
       return {
         ok: false,
-        error: "Não foi possível excluir feedbacks da sessão.",
+        error: t("Não foi possível excluir feedbacks da sessão."),
       };
     }
   }
@@ -243,7 +247,7 @@ export async function deleteTestSession(
     .eq("origem", "painel_cliente");
 
   if (executionsError) {
-    return { ok: false, error: "Não foi possível excluir execuções." };
+    return { ok: false, error: t("Não foi possível excluir execuções.") };
   }
 
   const testConversationId = `teste:${sessionId}`;
@@ -255,7 +259,7 @@ export async function deleteTestSession(
     .eq("identificador_conversa", testConversationId);
 
   if (messagesError) {
-    return { ok: false, error: "Não foi possível excluir mensagens." };
+    return { ok: false, error: t("Não foi possível excluir mensagens.") };
   }
 
   const { error: contactsError } = await supabaseAdmin
@@ -265,7 +269,7 @@ export async function deleteTestSession(
     .eq("identificador_conversa", testConversationId);
 
   if (contactsError) {
-    return { ok: false, error: "Não foi possível excluir contacto." };
+    return { ok: false, error: t("Não foi possível excluir contato.") };
   }
 
   const { error: deleteSessionError } = await supabaseAdmin
@@ -276,7 +280,7 @@ export async function deleteTestSession(
     .eq("origem", "painel_cliente");
 
   if (deleteSessionError) {
-    return { ok: false, error: "Não foi possível excluir a sessão." };
+    return { ok: false, error: t("Não foi possível excluir a sessão.") };
   }
 
   revalidatePath("/app/area-testes");
@@ -290,6 +294,7 @@ export async function deleteTestSession(
 export async function getSessionExecutions(
   sessionId: string,
 ): Promise<ActionResult<TestExecution[]>> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -310,7 +315,7 @@ export async function getSessionExecutions(
   if (error) {
     return {
       data: null,
-      error: "Não foi possível buscar as mensagens da sessão.",
+      error: t("Não foi possível buscar as mensagens da sessão."),
     };
   }
 
@@ -321,6 +326,7 @@ export async function getExecutionByRunId(
   sessionId: string,
   runId: string,
 ): Promise<ActionResult<TestExecution | null>> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -342,7 +348,7 @@ export async function getExecutionByRunId(
   if (error) {
     return {
       data: null,
-      error: "Não foi possível buscar a resposta do agente.",
+      error: t("Não foi possível buscar a resposta do agente."),
     };
   }
 
@@ -354,6 +360,7 @@ export async function sendTestMessage(
   messageText: string,
   workflowId: string,
 ): Promise<ActionResult<{ runId: string }>> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -363,11 +370,11 @@ export async function sendTestMessage(
   const message = messageText.trim();
 
   if (!sessionId || !message) {
-    return { data: null, error: "Digite uma mensagem para enviar." };
+    return { data: null, error: t("Digite uma mensagem para enviar.") };
   }
 
   if (!workflowId) {
-    return { data: null, error: "Selecione um workflow para testar." };
+    return { data: null, error: t("Selecione um workflow para testar.") };
   }
 
   const supabase = await createClient();
@@ -380,7 +387,7 @@ export async function sendTestMessage(
     .maybeSingle();
 
   if (sessionError || !session) {
-    return { data: null, error: "Sessão de teste não encontrada." };
+    return { data: null, error: t("Sessão de teste não encontrada.") };
   }
 
   const { data: workflow, error: workflowError } = await supabase
@@ -394,7 +401,7 @@ export async function sendTestMessage(
   if (workflowError) {
     return {
       data: null,
-      error: "Não foi possível buscar o workflow ativo.",
+      error: t("Não foi possível buscar o workflow ativo."),
     };
   }
 
@@ -403,7 +410,7 @@ export async function sendTestMessage(
   if (!activeWorkflow?.webhook_url) {
     return {
       data: null,
-      error: "Nenhum workflow ativo configurado para este cliente.",
+      error: t("Nenhum workflow ativo configurado para este cliente."),
     };
   }
 
@@ -431,7 +438,7 @@ export async function sendTestMessage(
   if (!response.ok) {
     return {
       data: null,
-      error: "Não foi possível enviar a mensagem ao workflow.",
+      error: t("Não foi possível enviar a mensagem ao workflow."),
     };
   }
 
@@ -443,6 +450,7 @@ export async function saveExecutionFeedback(
   avaliacao: FeedbackRating,
   comentario?: string,
 ): Promise<ActionResult<TestFeedback>> {
+  const t = await getT();
   const context = await getClientContext();
 
   if (context.error) {
@@ -456,7 +464,7 @@ export async function saveExecutionFeedback(
   ];
 
   if (!validRatings.includes(avaliacao)) {
-    return { data: null, error: "Avaliação inválida." };
+    return { data: null, error: t("Avaliação inválida.") };
   }
 
   const supabase = await createClient();
@@ -469,7 +477,7 @@ export async function saveExecutionFeedback(
     .maybeSingle();
 
   if (executionError || !execution) {
-    return { data: null, error: "Execução de teste não encontrada." };
+    return { data: null, error: t("Execução de teste não encontrada.") };
   }
 
   const testExecution = execution as Pick<
@@ -500,7 +508,7 @@ export async function saveExecutionFeedback(
     .maybeSingle();
 
   if (existingError) {
-    return { data: null, error: "Não foi possível buscar feedback existente." };
+    return { data: null, error: t("Não foi possível buscar feedback existente.") };
   }
 
   const query = existingFeedback
@@ -515,7 +523,7 @@ export async function saveExecutionFeedback(
     .single();
 
   if (error) {
-    return { data: null, error: "Não foi possível salvar o feedback." };
+    return { data: null, error: t("Não foi possível salvar o feedback.") };
   }
 
   revalidatePath("/app/area-testes");

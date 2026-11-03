@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LexiaBrand } from "@/app/components/lexia-brand";
+import { getT } from "@/lib/i18n/servidor";
 
 /**
  * O ecrã de endereço inexistente.
@@ -9,17 +10,19 @@ import { LexiaBrand } from "@/app/components/lexia-brand";
  * tem a marca, não tem forma de voltar ao painel e parece uma avaria do
  * servidor. Quem escreve mal um endereço precisa de uma porta de saída.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const t = await getT();
+
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-background px-6 text-center">
       <LexiaBrand tone="light" />
 
       <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Esta página não existe
+          {t("Esta página não existe")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          O endereço pode ter mudado ou estar mal escrito.
+          {t("O endereço pode ter mudado ou estar escrito errado.")}
         </p>
       </div>
 
@@ -27,7 +30,7 @@ export default function NotFound() {
         className="h-10 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
         href="/"
       >
-        Voltar ao início
+        {t("Voltar ao início")}
       </Link>
     </main>
   );

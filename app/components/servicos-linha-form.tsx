@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { GravarServicoResultado } from "@/lib/servicos/write";
 
 /**
@@ -43,9 +44,10 @@ export function ServicosLinhaForm({
     GravarServicoResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   const inputClass =
-    "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
+    "ds-campo disabled:bg-surface-muted disabled:text-muted-foreground";
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -56,46 +58,46 @@ export function ServicosLinhaForm({
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
-          Preço base ({moeda})
+          {t("Preço base ({moeda})", { moeda })}
           <input
-            className={`${inputClass} w-32`}
+            className={`${inputClass} w-32!`}
             defaultValue={precoEditavel && preco !== null ? String(preco) : ""}
             disabled={!podeEditar || !precoEditavel}
             inputMode="decimal"
             min="0"
             name="preco"
-            placeholder={precoEditavel ? "0,00" : "só no escalão base"}
+            placeholder={precoEditavel ? t("0,00") : t("só no escalão base")}
             step="0.01"
             type="number"
           />
         </label>
 
         <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
-          Notas
+          {t("Notas")}
           <input
             className={`${inputClass} w-full`}
             defaultValue={notas ?? ""}
             disabled={!podeEditar}
             maxLength={2000}
             name="notas"
-            placeholder="ex.: 1/3 de frasco de cerâmico"
+            placeholder={t("ex.: 1/3 de frasco de cerâmico")}
             type="text"
           />
         </label>
 
         {podeEditar ? (
           <FormSubmitButton
-            className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-            pendingLabel="A gravar..."
+            className="ds-botao ds-botao-primario"
+            pendingLabel={t("Salvando...")}
           >
-            Gravar
+            {t("Salvar")}
           </FormSubmitButton>
         ) : null}
       </div>
 
       {resultado ? (
         <p
-          className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
           role="status"
         >
           {resultado.mensagem}

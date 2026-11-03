@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Dica } from "@/app/components/dica";
+import { Tr } from "@/app/components/idioma";
 
 export { Dica };
 
@@ -42,7 +43,7 @@ export function PaginaCabecalho({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <h1 className="min-w-0 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="ds-titulo-1 min-w-0 text-foreground">
         {titulo}
       </h1>
       {acoes ? (
@@ -63,7 +64,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
+      className={`rounded-[20px] border border-border bg-surface shadow-[var(--ds-sombra-1)] ${className}`}
     >
       {children}
     </div>
@@ -150,7 +151,7 @@ export function GrupoMetricas({ itens }: { itens: ItemMetrica[] }) {
   const colunas = colunasPorContagem[itens.length] ?? "lg:grid-cols-4";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,19,26,0.04)]">
+    <div className="overflow-hidden rounded-[20px] border border-border bg-surface shadow-[var(--ds-sombra-1)]">
       <div
         className={`-mr-px -mb-px grid grid-cols-2 sm:grid-cols-3 ${colunas}`}
       >
@@ -163,14 +164,14 @@ export function GrupoMetricas({ itens }: { itens: ItemMetrica[] }) {
               key={item.label}
             >
               <div className="flex items-start gap-1">
-                <p className="min-w-0 text-[13px] leading-tight text-muted-foreground">
+                <p className="ds-sobretitulo min-w-0 leading-tight">
                   {item.label}
                 </p>
                 {item.dica ? <Dica texto={item.dica} /> : null}
               </div>
 
               <p
-                className={`mt-2.5 text-[1.6rem] leading-none font-semibold tracking-tight tabular-nums ${
+                className={`ds-numero mt-2.5 text-[1.6rem] ${
                   porLigar ? "text-muted-foreground/50" : "text-foreground"
                 }`}
               >
@@ -179,7 +180,7 @@ export function GrupoMetricas({ itens }: { itens: ItemMetrica[] }) {
 
               {porLigar ? (
                 <p className="mt-2 text-xs font-medium text-warning">
-                  Por ligar
+                  <Tr>Não conectado</Tr>
                 </p>
               ) : item.nota ? (
                 <p className="mt-2 line-clamp-2 text-xs leading-snug text-muted-foreground">
@@ -254,7 +255,7 @@ export function HorariosDePico({
   if (peakCells.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Sem mensagens recebidas no período.
+        <Tr>Sem mensagens recebidas no período.</Tr>
       </p>
     );
   }

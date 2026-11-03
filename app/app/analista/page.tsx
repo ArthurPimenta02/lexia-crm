@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AnalystWorkspace } from "@/app/components/analyst-workspace";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ClientAnalystPage() {
@@ -21,7 +22,8 @@ export default async function ClientAnalystPage() {
     .maybeSingle();
 
   if (error || !client) {
-    throw new Error("Não foi possível carregar o cliente do Analista Lexia.");
+    const t = await getT();
+    throw new Error(t("Não foi possível carregar o cliente do Analista Lexia."));
   }
 
   return (

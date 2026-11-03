@@ -24,10 +24,7 @@ import {
   getConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
 import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
-import {
-  formatDateInTimezone,
-  getSelectedTimezone,
-} from "@/lib/clientes/timezone";
+import { getSelectedTimezone } from "@/lib/clientes/timezone";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
@@ -42,6 +39,9 @@ import {
 } from "@/lib/conversations/message-display";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { assinarMidias } from "@/lib/conversations/media-urls";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
@@ -178,10 +178,37 @@ function getConversationHref(
   return `/admin/conversas?${params.toString()}`;
 }
 
-function getConversationCountText(count: number, searchQuery: string) {
-  const label = searchQuery ? "resultado" : "conversa";
+function getConversationCountText(
+  count: number,
+  searchQuery: string,
+  t: FuncaoT,
+) {
+  if (searchQuery) {
+    return count === 1
+      ? t("{n} resultado", { n: count })
+      : t("{n} resultados", { n: count });
+  }
 
-  return `${count} ${label}${count === 1 ? "" : "s"}`;
+  return count === 1
+    ? t("{n} conversa", { n: count })
+    : t("{n} conversas", { n: count });
+}
+
+/** Data e hora no idioma de quem vê, no fuso escolhido na barra. */
+function formatarData(
+  date: string | null,
+  timeZone: string,
+  locale: string,
+  semData: string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: "short", timeStyle: "short" },
+) {
+  if (!date) {
+    return semData;
+  }
+
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(
+    new Date(date),
+  );
 }
 
 function normalizeConversationSearch(value: string | null) {
@@ -196,6 +223,8 @@ export default async function AdminConversationsPage({
   searchParams,
 }: AdminConversationsPageProps) {
   const { profile, user } = await getLoggedInUserProfile();
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   if (!user || !profile) {
     redirect("/login");
@@ -403,7 +432,7 @@ export default async function AdminConversationsPage({
   return (
     <section className="flex w-full min-w-0 flex-col gap-2 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
       <AtualizacaoAutomatica segundos={5} sinal={sinalDaTela.bind(null, "conversas", selectedClient?.slug ?? null)} />
-      <h1 className="sr-only">Conversas</h1>
+      <h1 className="sr-only">{t("Conversas")}</h1>
 
       <ConversationFilterBar
         basePath="/admin/conversas"
@@ -418,16 +447,16 @@ export default async function AdminConversationsPage({
             scroll={false}
           >
             <label className="sr-only" htmlFor="cliente">
-              Cliente
+              {t("Cliente")}
             </label>
             <select
-              className="h-9 min-w-0 max-w-56 rounded-lg border border-border bg-surface px-2.5 text-sm text-foreground outline-none transition focus:border-border-strong"
+              className="ds-campo h-9 min-w-0 max-w-56 px-2.5"
               defaultValue={selectedClient?.slug ?? ""}
               id="cliente"
               name="cliente"
             >
               {clients.length === 0 ? (
-                <option value="">Nenhum cliente activo</option>
+                <option value="">{t("Nenhum cliente ativo")}</option>
               ) : null}
               {clients.map((client) => (
                 <option key={client.id} value={client.slug}>
@@ -450,10 +479,10 @@ export default async function AdminConversationsPage({
               </>
             ) : null}
             <FormSubmitButton
-              className="h-9 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground transition hover:opacity-90"
+              className="ds-botao ds-botao-primario ds-botao-p"
               pendingLabel="..."
             >
-              Selecionar
+              {t("Selecionar")}
             </FormSubmitButton>
           </Form>
         }
@@ -465,28 +494,29 @@ export default async function AdminConversationsPage({
 
       {!selectedClient ? (
         <div className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
-          Nenhum cliente activo disponível.
+          {t("Nenhum cliente ativo disponível.")}
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside
-            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface/90 shadow-[0_14px_36px_rgba(0,0,0,0.05)] backdrop-blur ${
+            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface/90 shadow-sm backdrop-blur ${
               isChatOpenOnMobile ? "max-lg:hidden" : ""
             }`}
           >
             <div className="border-b border-border bg-surface/95 px-3 py-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold">Conversas</h2>
+                  <h2 className="text-sm font-semibold">{t("Conversas")}</h2>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {getConversationCountText(
                       sortedContacts.length,
                       searchQuery,
+                      t,
                     )}
                   </p>
                 </div>
                 <span className="text-[11px] text-muted-foreground/60">
-                  Mais recentes
+                  {t("Mais recentes")}
                 </span>
               </div>
             </div>
@@ -513,7 +543,7 @@ export default async function AdminConversationsPage({
                     <Link
                       className={`rounded-[14px] border px-3 py-2.5 transition ${
                         isSelected
-                          ? "border-foreground bg-primary text-primary-foreground shadow-[0_16px_32px_rgba(0,0,0,0.16)]"
+                          ? "border-foreground bg-primary text-primary-foreground shadow-lg"
                           : "border-transparent bg-surface text-foreground shadow-sm hover:border-border hover:shadow-md"
                       }`}
                       href={getConversationHref(
@@ -535,17 +565,15 @@ export default async function AdminConversationsPage({
                           <ChannelIcon channel={contact.canal} />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">
-                              {contact.nome || contact.telefone || "Sem nome"}
+                              {contact.nome || contact.telefone || t("Sem nome")}
                             </p>
                             {isOutsidePeriod ? (
                               <p
                                 className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                  isSelected
-                                    ? "text-amber-300"
-                                    : "text-amber-700"
+                                  isSelected ? "text-primary-foreground" : "text-warning"
                                 }`}
                               >
-                                Fora do período
+                                {t("Fora do período")}
                               </p>
                             ) : null}
                             {/*
@@ -560,7 +588,7 @@ export default async function AdminConversationsPage({
                                     : "text-muted-foreground"
                                 }`}
                               >
-                                {contact.telefone ?? "Sem telefone"}
+                                {contact.telefone ?? t("Sem telefone")}
                               </p>
                             ) : null}
                           </div>
@@ -579,8 +607,9 @@ export default async function AdminConversationsPage({
                         }`}
                       >
                         {summary
-                          ? getConversationMessagePreview(summary.lastMessage)
-                          : "Abrir histórico completo"}
+                          ? summary.lastMessage?.content ||
+                            t(getConversationMessagePreview(summary.lastMessage))
+                          : t("Abrir histórico completo")}
                       </p>
 
                       <div
@@ -592,13 +621,17 @@ export default async function AdminConversationsPage({
                       >
                         <span>
                           {summary
-                            ? `${summary.messageCount} mensagens`
-                            : "Histórico disponível"}
+                            ? summary.messageCount === 1
+                              ? t("{n} mensagem", { n: summary.messageCount })
+                              : t("{n} mensagens", { n: summary.messageCount })
+                            : t("Histórico disponível")}
                         </span>
                         <span className="shrink-0">
-                          {formatDateInTimezone(
+                          {formatarData(
                             lastActivity,
                             selectedTimezone.timeZone,
+                            locale,
+                            t("Sem data"),
                           )}
                         </span>
                       </div>
@@ -608,15 +641,17 @@ export default async function AdminConversationsPage({
               ) : (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                   {searchQuery
-                    ? `Nenhuma conversa encontrada para “${searchQuery}”.`
-                    : "Não há conversas com mensagens neste período."}
+                    ? t("Nenhuma conversa encontrada para “{busca}”.", {
+                      busca: searchQuery,
+                    })
+                    : t("Não há conversas com mensagens neste período.")}
                 </div>
               )}
             </div>
           </aside>
 
           <section
-            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_14px_36px_rgba(0,0,0,0.05)] ${
+            className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm ${
               isChatOpenOnMobile
                 ? "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:h-dvh max-lg:rounded-none max-lg:border-0"
                 : "max-lg:hidden"
@@ -628,7 +663,7 @@ export default async function AdminConversationsPage({
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="flex min-w-0 items-center gap-2 lg:gap-3">
                       <Link
-                        aria-label="Voltar para a lista de conversas"
+                        aria-label={t("Voltar para a lista de conversas")}
                         className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
                         href={getFilterHref(
                           selectedClient.slug,
@@ -660,13 +695,13 @@ export default async function AdminConversationsPage({
                       */}
                       <ChannelIcon channel={selectedContact.canal} size="lg" />
                       <span className="sr-only">
-                        {getChannelLabel(selectedContact.canal)}
+                        {t(getChannelLabel(selectedContact.canal))}
                       </span>
                       <div className="min-w-0">
                         <h2 className="truncate text-[15px] leading-tight font-semibold">
                           {selectedContact.nome ||
                             selectedContact.telefone ||
-                            "Conversa"}
+                            t("Conversa")}
                         </h2>
                         {/*
                           Sem nome o título já é o próprio número, ou o PSID do
@@ -675,7 +710,7 @@ export default async function AdminConversationsPage({
                         */}
                         {selectedContact.nome ? (
                           <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
-                            {selectedContact.telefone ?? "Sem telefone"}
+                            {selectedContact.telefone ?? t("Sem telefone")}
                           </p>
                         ) : null}
                         <p className="sr-only">
@@ -685,10 +720,12 @@ export default async function AdminConversationsPage({
                     </div>
                     <div className="flex min-w-0 flex-col gap-1.5 md:items-end">
                       <div className="text-xs text-muted-foreground max-lg:hidden">
-                        {formatDateInTimezone(
+                        {formatarData(
                           selectedSummary?.lastActivityAt ??
                             selectedContact.atualizado_em,
                           selectedTimezone.timeZone,
+                          locale,
+                          t("Sem data"),
                         )}
                       </div>
                       <Suspense fallback={null}>
@@ -718,9 +755,11 @@ export default async function AdminConversationsPage({
                 </div>
 
                 {selection.requestedIsOutsidePeriod ? (
-                  <p className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900 lg:px-4">
-                    Esta conversa está fora do período filtrado ({range.label}),
-                    mas o histórico completo está aqui.
+                  <p className="shrink-0 border-b border-warning/20 bg-warning-soft px-3 py-1.5 text-[11px] text-warning lg:px-4">
+                    {t(
+                      "Esta conversa está fora do período filtrado ({periodo}), mas o histórico completo está aqui.",
+                      { periodo: t(range.label) },
+                    )}
                   </p>
                 ) : null}
 
@@ -749,9 +788,11 @@ export default async function AdminConversationsPage({
                         <Fragment key={message.displayId}>
                           {dayKey !== previousDayKey ? (
                             <ConversationDaySeparator
-                              label={formatDateInTimezone(
+                              label={formatarData(
                                 message.criado_em,
                                 selectedTimezone.timeZone,
+                                locale,
+                                t("Sem data"),
                                 {
                                   day: "2-digit",
                                   month: "long",
@@ -781,7 +822,7 @@ export default async function AdminConversationsPage({
                     })
                   ) : (
                     <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-                      Esta conversa ainda não tem mensagens registadas.
+                      {t("Esta conversa ainda não tem mensagens registradas.")}
                     </div>
                   )}
                 </ScrollToBottomPanel>
@@ -789,8 +830,8 @@ export default async function AdminConversationsPage({
             ) : (
               <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
                 {selection.requestedIsMissing
-                  ? "Não encontrámos esta conversa neste cliente. Escolhe uma da lista."
-                  : "Selecciona uma conversa para visualizar as mensagens."}
+                  ? t("Não encontramos esta conversa neste cliente. Escolha uma da lista.")
+                  : t("Selecione uma conversa para visualizar as mensagens.")}
               </div>
             )}
           </section>

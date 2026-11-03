@@ -41,3 +41,13 @@ export function IdiomaProvider({
 export function useIdioma() {
   return useContext(Contexto);
 }
+
+/**
+ * Traduz um texto fixo em qualquer componente, de servidor ou de cliente:
+ * `<Tr>Sem mensagens no período.</Tr>`. Serve para peças partilhadas que
+ * não podem usar o hook. O teste de idiomas lê estas chaves também.
+ */
+export function Tr({ children }: { children: string }) {
+  const { t } = useContext(Contexto);
+  return <>{t(children.replace(/\s+/g, " ").trim())}</>;
+}

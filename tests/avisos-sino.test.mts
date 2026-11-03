@@ -387,9 +387,9 @@ test("só os handoffs em aberto entram", async () => {
   ]);
   assert.equal(
     handoffs[0]?.porque,
-    "Está à espera de alguém da equipa. Motivo: Pediu para falar com uma pessoa",
+    "Está esperando alguém da equipe. Motivo: Pediu para falar com uma pessoa",
   );
-  assert.equal(handoffs[1]?.porque, "Está com alguém da equipa.");
+  assert.equal(handoffs[1]?.porque, "Está com alguém da equipe.");
 });
 
 test("a marcação que começa primeiro vem primeiro", async () => {
@@ -1188,7 +1188,7 @@ test("a lista tem um botão para a limpar, e ele só aparece com algo lá dentro
   const fonte = readFileSync(`${raiz}app/components/sino-avisos.tsx`, "utf8");
 
   assert.match(fonte, /onClick=\{limparTodos\}/);
-  assert.match(fonte, />\s*Limpar\s*</);
+  assert.match(fonte, />\s*(Limpar|\{t\("Limpar"\)\})\s*</);
   assert.match(
     fonte,
     /limpar: anterior\.avisos\.map\(\(aviso\) => aviso\.chave\)/,

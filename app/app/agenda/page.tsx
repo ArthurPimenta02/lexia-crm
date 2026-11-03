@@ -12,12 +12,15 @@ import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { getT } from "@/lib/i18n/servidor";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 
-export const metadata = {
-  title: "Agenda",
-};
+export async function generateMetadata() {
+  const t = await getT();
+
+  return { title: t("Agenda") };
+}
 
 const primeiro = (valor: string | string[] | undefined) =>
   (Array.isArray(valor) ? valor[0] : valor) ?? "";
@@ -47,6 +50,7 @@ export default async function AgendaPage({
     redirect("/app");
   }
 
+  const t = await getT();
   const params = await searchParams;
   const executor = primeiro(params.executor);
   const timeZone = getClientTimezone(profile.cliente_slug);
@@ -97,11 +101,11 @@ export default async function AgendaPage({
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <PaginaCabecalho titulo="Agenda" />
+      <PaginaCabecalho titulo={t("Agenda")} />
 
       {agenda.erro ? (
         <p className="rounded-2xl border border-border bg-surface px-4 py-6 text-sm text-muted-foreground">
-          {agenda.erro}
+          {t(agenda.erro)}
         </p>
       ) : (
         <AgendaPanel

@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzirResultado } from "@/lib/catalogo/traduzir-resultado";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   criarProduto,
@@ -61,17 +62,19 @@ export async function criarProdutoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
-  return criarProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    nomeBruto: String(formData.get("nome") ?? ""),
-    notasBruto: String(formData.get("notas") ?? ""),
-    unidadeBruta: String(formData.get("unidade") ?? ""),
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await criarProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      nomeBruto: String(formData.get("nome") ?? ""),
+      notasBruto: String(formData.get("notas") ?? ""),
+      unidadeBruta: String(formData.get("unidade") ?? ""),
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function registarCompraAdminAction(
@@ -81,23 +84,25 @@ export async function registarCompraAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return registarCompra({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    custoTotalBruto: String(formData.get("custo_total") ?? ""),
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await registarCompra({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      custoTotalBruto: String(formData.get("custo_total") ?? ""),
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function registarAjusteAdminAction(
@@ -107,24 +112,26 @@ export async function registarAjusteAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return registarAjuste({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    direccao: String(formData.get("direccao") ?? ""),
-    notaBruta: String(formData.get("nota") ?? ""),
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await registarAjuste({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      direccao: String(formData.get("direccao") ?? ""),
+      notaBruta: String(formData.get("nota") ?? ""),
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function excluirProdutoAdminAction(
@@ -134,21 +141,23 @@ export async function excluirProdutoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return excluirProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    produtoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await excluirProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      produtoId,
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function reporProdutoAdminAction(
@@ -158,21 +167,23 @@ export async function reporProdutoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return reporProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    produtoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await reporProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      produtoId,
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 /**
@@ -186,22 +197,24 @@ export async function definirReceitaDoProdutoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!produtoId || !servicoId) {
-    return { mensagem: "Produto ou serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto ou serviço não identificado.", ok: false });
   }
 
-  return definirReceita({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    servicoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await definirReceita({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      servicoId,
+      userId: autorizado.userId,
+    }),
+  );
 }

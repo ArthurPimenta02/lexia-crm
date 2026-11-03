@@ -9,10 +9,9 @@ import {
   PaginaCabecalho,
 } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   descreverEstado,
@@ -53,9 +52,9 @@ function Baloes({ textos }: { textos: string[] }) {
   if (!textos.length) return <span className="text-muted-foreground">—</span>;
   return (
     <div className="flex flex-col gap-2">
-      {textos.map((t, i) => (
+      {textos.map((texto, i) => (
         <div className="w-fit max-w-full whitespace-pre-wrap rounded-2xl bg-muted px-3 py-2" key={i}>
-          {t}
+          {texto}
         </div>
       ))}
     </div>
@@ -67,6 +66,10 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
   if (!profile) redirect("/login");
   if (profile.role !== "lexia_admin") redirect("/app");
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const duracao = (ms: number | null | undefined) => formatarDuracao(ms, locale);
+
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
@@ -75,17 +78,17 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
     .select("*")
     .eq("id", id)
     .maybeSingle();
-  if (error) throw new Error("Não foi possível buscar o turno.");
+  if (error) throw new Error(t("Não foi possível buscar o turno."));
   if (!data) notFound();
 
-  const t = data as TurnoCompleto;
-  const fuso = getClientTimezone(t.agente);
-  const r = t.resumo ?? {};
-  const enviados = Array.isArray(t.mensagens) ? (t.mensagens as unknown[]).map(String) : [];
+  const turno = data as TurnoCompleto;
+  const fuso = getClientTimezone(turno.agente);
+  const r = turno.resumo ?? {};
+  const enviados = Array.isArray(turno.mensagens) ? (turno.mensagens as unknown[]).map(String) : [];
   const redator = textosDoRedator(r.texto_do_redator);
-  const ia = t.ia ?? [];
-  const ferramentas = t.ferramentas ?? [];
-  const passos = t.passos ?? [];
+  const ia = turno.ia ?? [];
+  const ferramentas = turno.ferramentas ?? [];
+  const passos = turno.passos ?? [];
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
@@ -94,101 +97,109 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
           <Link
             className="text-sm font-medium text-foreground underline-offset-2 hover:underline"
             href={
-              t.identificador_conversa
-                ? `/admin/turnos?conversa=${encodeURIComponent(t.identificador_conversa)}`
+              turno.identificador_conversa
+                ? `/admin/turnos?conversa=${encodeURIComponent(turno.identificador_conversa)}`
                 : "/admin/turnos"
             }
           >
-            {t.identificador_conversa ? "Outros turnos desta conversa" : "Voltar aos turnos"}
+            {turno.identificador_conversa ? t("Outros turnos desta conversa") : t("Voltar aos turnos")}
           </Link>
         }
-        titulo="Passo a passo do turno"
+        titulo={t("Passo a passo do turno")}
       />
 
       <GrupoMetricas
         itens={[
-          { label: "Resultado", valor: descreverEstado(t.estado) },
-          { label: "Quando", valor: formatDateInTimezone(t.criado_em, fuso) },
+          { label: t("Resultado"), valor: descreverEstado(turno.estado, t) },
           {
-            dica: "Do momento em que a mensagem chegou até a resposta estar pronta, incluindo a espera por mais mensagens do cliente.",
-            label: "Duração",
-            valor: formatarDuracao(t.duracao_ms),
+            label: t("Quando"),
+            valor: new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short", timeZone: fuso }).format(
+              new Date(turno.criado_em),
+            ),
           },
           {
-            dica: t.custo_sem_preco?.length
-              ? `Não inclui ${t.custo_sem_preco.join(", ")}: sem preço na tabela.`
-              : "Custo das chamadas de IA deste turno.",
-            label: "Custo de IA",
-            valor: formatarCusto(t.custo_usd),
+            dica: t("Do momento em que a mensagem chegou até a resposta ficar pronta, incluindo a espera por mais mensagens do cliente."),
+            label: t("Duração"),
+            valor: duracao(turno.duracao_ms),
+          },
+          {
+            dica: turno.custo_sem_preco?.length
+              ? t("Não inclui {modelos}: sem preço na tabela.", { modelos: turno.custo_sem_preco.join(", ") })
+              : t("Custo das chamadas de IA deste turno."),
+            label: t("Custo de IA"),
+            valor: formatarCusto(turno.custo_usd, locale, t),
           },
         ]}
       />
 
       <Card>
-        <CardTitulo>A conversa</CardTitulo>
-        <Linha label="Cliente disse">
-          <div className="whitespace-pre-wrap">{t.mensagem_cliente || "—"}</div>
+        <CardTitulo>{t("A conversa")}</CardTitulo>
+        <Linha label={t("Cliente disse")}>
+          <div className="whitespace-pre-wrap">{turno.mensagem_cliente || "—"}</div>
         </Linha>
-        <Linha label={t.modo === "sombra" ? "Agente em código respondeu (não enviado)" : "Agente respondeu"}>
+        <Linha label={turno.modo === "sombra" ? t("Agente em código respondeu (não enviado)") : t("Agente respondeu")}>
           <Baloes textos={enviados} />
         </Linha>
-        {t.modo === "sombra" ? (
-          <Linha label="O n8n respondeu (enviado ao cliente)">
+        {turno.modo === "sombra" ? (
+          <Linha label={t("O n8n respondeu (enviado ao cliente)")}>
             {r.n8n_respondeu === undefined ? (
-              <span className="text-muted-foreground">não verificado</span>
+              <span className="text-muted-foreground">{t("não verificado")}</span>
             ) : (
               <Baloes textos={r.n8n_respondeu} />
             )}
           </Linha>
         ) : null}
-        {t.estado !== "respondido" ? (
-          <Linha label="Porque não respondeu">
-            <span className={t.estado === "erro" ? "text-danger" : ""}>{t.erro || t.motivo || "—"}</span>
+        {turno.estado !== "respondido" ? (
+          <Linha label={t("Por que não respondeu")}>
+            <span className={turno.estado === "erro" ? "text-danger" : ""}>{turno.erro || turno.motivo || "—"}</span>
           </Linha>
         ) : null}
-        {t.handoff?.necessario ? (
-          <Linha label="Chamou a equipe">
-            Prioridade {t.handoff.prioridade ?? "normal"}: {t.handoff.motivo}
-            {t.handoff.resumo_para_equipa ? (
-              <div className="mt-1 text-muted-foreground">{t.handoff.resumo_para_equipa}</div>
+        {turno.handoff?.necessario ? (
+          <Linha label={t("Chamou a equipe")}>
+            {t("Prioridade {prioridade}: {motivo}", {
+              motivo: turno.handoff.motivo ?? "",
+              prioridade: turno.handoff.prioridade ?? t("normal"),
+            })}
+            {turno.handoff.resumo_para_equipa ? (
+              <div className="mt-1 text-muted-foreground">{turno.handoff.resumo_para_equipa}</div>
             ) : null}
           </Linha>
         ) : null}
-        <Linha label="Conversa · canal · modo">
-          {t.identificador_conversa ?? "—"} · {t.canal ?? "?"} · {t.modo}
+        <Linha label={t("Conversa · canal · modo")}>
+          {turno.identificador_conversa ?? "—"} · {turno.canal ?? "?"} · {turno.modo}
         </Linha>
       </Card>
 
       <Card>
-        <CardTitulo dica="O que a agente entendeu e decidiu antes de escrever. A trava é uma regra em código que corta ou troca a resposta, por exemplo um preço que não está no catálogo.">
-          Como ela decidiu
+        <CardTitulo dica={t("O que a agente entendeu e decidiu antes de escrever. A trava é uma regra em código que corta ou troca a resposta, por exemplo um preço que não está no catálogo.")}>
+          {t("Como ela decidiu")}
         </CardTitulo>
-        <Linha label="Assunto entendido">
+        <Linha label={t("Assunto entendido")}>
           {r.assunto ?? "—"}
           {r.trava_roteamento ? (
-            <span className="text-muted-foreground"> (forçado pela regra: {r.trava_roteamento})</span>
+            <span className="text-muted-foreground"> {t("(forçado pela regra: {regra})", { regra: r.trava_roteamento })}</span>
           ) : null}
         </Linha>
-        <Linha label="Idioma">{r.idioma ?? "—"}</Linha>
-        <Linha label="Agentes que pensaram">{r.agentes?.length ? r.agentes.join(" → ") : "—"}</Linha>
+        <Linha label={t("Idioma")}>{r.idioma ?? "—"}</Linha>
+        <Linha label={t("Agentes que pensaram")}>{r.agentes?.length ? r.agentes.join(" → ") : "—"}</Linha>
         {r.briefing ? (
           <>
-            <Linha label="Objetivo do turno">{r.briefing.objectivo || "—"}</Linha>
-            <Linha label="Factos que podia usar">
-              {r.briefing.factos?.length ? <Bloco>{legivel(r.briefing.factos)}</Bloco> : "nenhum"}
+            <Linha label={t("Objetivo do turno")}>{r.briefing.objectivo || "—"}</Linha>
+            <Linha label={t("Fatos que podia usar")}>
+              {r.briefing.factos?.length ? <Bloco>{legivel(r.briefing.factos)}</Bloco> : t("nenhum")}
             </Linha>
-            <Linha label="Pergunta a fazer">{r.briefing.pergunta_a_fazer || "—"}</Linha>
+            <Linha label={t("Pergunta a fazer")}>{r.briefing.pergunta_a_fazer || "—"}</Linha>
             {r.briefing.notas_para_redator?.length ? (
-              <Linha label="Notas ao Redator">
+              <Linha label={t("Notas ao Redator")}>
                 <Bloco>{legivel(r.briefing.notas_para_redator)}</Bloco>
               </Linha>
             ) : null}
           </>
         ) : null}
-        <Linha label="O Redator escreveu">
+        <Linha label={t("O Redator escreveu")}>
           <Baloes textos={redator} />
         </Linha>
-        <Linha label="Travas que agiram">
+        <Linha label={t("Travas que agiram")}>
           {r.travas?.length ? (
             <ul className="list-disc pl-5 text-danger">
               {r.travas.map((x, i) => (
@@ -196,14 +207,14 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
               ))}
             </ul>
           ) : (
-            "nenhuma"
+            t("nenhuma")
           )}
         </Linha>
       </Card>
 
       <Card>
-        <CardTitulo dica="Cada vez que um modelo de IA foi chamado, e cada consulta que ele fez (catálogo, agenda, promoções).">
-          IA e consultas
+        <CardTitulo dica={t("Cada vez que um modelo de IA foi chamado, e cada consulta que ele fez (catálogo, agenda, promoções).")}>
+          {t("IA e consultas")}
         </CardTitulo>
         {ia.map((e, i) => (
           <details className="border-t border-border px-5 py-3 text-sm" key={`ia-${i}`}>
@@ -211,7 +222,11 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
               <span className="font-medium">{e.agente}</span>
               <span className="text-muted-foreground">
                 {" "}
-                · {e.modelo} · {formatarDuracao(e.ms)} · {e.tokens.entrada + e.tokens.cache + e.tokens.gravado} tokens lidos, {e.tokens.saida} escritos
+                · {e.modelo} · {duracao(e.ms)} ·{" "}
+                {t("{lidos} tokens lidos, {escritos} escritos", {
+                  escritos: e.tokens.saida.toLocaleString(locale),
+                  lidos: (e.tokens.entrada + e.tokens.cache + e.tokens.gravado).toLocaleString(locale),
+                })}
               </span>
             </summary>
             <div className="mt-2">
@@ -223,34 +238,37 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
           <details className="border-t border-border px-5 py-3 text-sm" key={`f-${i}`}>
             <summary className="cursor-pointer">
               <span className="font-medium">{f.nome}</span>
-              <span className="text-muted-foreground"> · pedida por {f.agente} · {formatarDuracao(f.ms)}</span>
-              {f.erro ? <span className="text-danger"> · erro</span> : null}
+              <span className="text-muted-foreground">
+                {" "}
+                · {t("pedida por {agente}", { agente: f.agente })} · {duracao(f.ms)}
+              </span>
+              {f.erro ? <span className="text-danger"> · {t("erro")}</span> : null}
             </summary>
             <div className="mt-2 grid gap-2">
-              <div className="text-xs text-muted-foreground">Pediu</div>
+              <div className="text-xs text-muted-foreground">{t("Pediu")}</div>
               <Bloco>{legivel(f.entrada)}</Bloco>
-              <div className="text-xs text-muted-foreground">Recebeu</div>
+              <div className="text-xs text-muted-foreground">{t("Recebeu")}</div>
               <Bloco>{f.erro ? f.erro : legivel(f.saida)}</Bloco>
             </div>
           </details>
         ))}
         {!ia.length && !ferramentas.length ? (
           <p className="border-t border-border px-5 py-3 text-sm text-muted-foreground">
-            Nenhuma IA correu neste turno.
+            {t("Nenhuma IA rodou neste turno.")}
           </p>
         ) : null}
       </Card>
 
       <Card>
-        <CardTitulo dica="A saída de cada passo, na ordem em que correu. É o mesmo que a tela de execuções do n8n mostra. O histórico da conversa não é repetido aqui.">
-          Detalhe técnico ({passos.length} passos)
+        <CardTitulo dica={t("A saída de cada passo, na ordem em que rodou. É o mesmo que a tela de execuções do n8n mostra. O histórico da conversa não é repetido aqui.")}>
+          {t("Detalhe técnico ({n} passos)", { n: passos.length })}
         </CardTitulo>
         {passos.map((p, i) => (
           <details className="border-t border-border px-5 py-2 text-sm" key={i}>
             <summary className="cursor-pointer">
               <span className="text-muted-foreground">{p.workflow} · </span>
               {p.no}
-              <span className="text-muted-foreground"> · {formatarDuracao(p.ms)}</span>
+              <span className="text-muted-foreground"> · {duracao(p.ms)}</span>
             </summary>
             <div className="mt-2">
               <Bloco>{legivel(p.saida)}</Bloco>
@@ -258,8 +276,8 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
           </details>
         ))}
         <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
-          Versão do agente: {t.versao ?? "—"}
-          {t.run_id ? ` · teste ${t.run_id}` : ""}
+          {t("Versão do agente: {versao}", { versao: turno.versao ?? "—" })}
+          {turno.run_id ? ` · ${t("teste {id}", { id: turno.run_id })}` : ""}
         </p>
       </Card>
     </section>

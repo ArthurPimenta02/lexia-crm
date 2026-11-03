@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,12 +55,13 @@ export async function updateHandoffStatus(
 }
 
 export async function deleteClientSimulatedHandoff(executionId: string) {
+  const t = await getT();
   const clienteSlug = await getClientSlug();
 
   if (!clienteSlug || !executionId) {
     return {
       ok: false,
-      error: "Não foi possível excluir o handoff simulado.",
+      error: t("Não foi possível excluir o handoff simulado."),
     };
   }
 
@@ -86,7 +88,7 @@ export async function deleteClientSimulatedHandoff(executionId: string) {
     .maybeSingle();
 
   if (executionError || !execution) {
-    return { ok: false, error: "Handoff simulado não encontrado." };
+    return { ok: false, error: t("Handoff simulado não encontrado.") };
   }
 
   const { error: feedbackError } = await supabaseAdmin
@@ -98,7 +100,7 @@ export async function deleteClientSimulatedHandoff(executionId: string) {
   if (feedbackError) {
     return {
       ok: false,
-      error: "Não foi possível excluir feedbacks do simulado.",
+      error: t("Não foi possível excluir feedbacks do simulado."),
     };
   }
 
@@ -112,7 +114,7 @@ export async function deleteClientSimulatedHandoff(executionId: string) {
   if (deleteError) {
     return {
       ok: false,
-      error: "Não foi possível excluir o handoff simulado.",
+      error: t("Não foi possível excluir o handoff simulado."),
     };
   }
 

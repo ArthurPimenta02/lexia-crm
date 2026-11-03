@@ -10,6 +10,7 @@ import {
 } from "@/app/app/area-testes/actions";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientTestAreaPageProps = {
@@ -37,6 +38,7 @@ export default async function ClientTestAreaPage({
     redirect("/app");
   }
 
+  const t = await getT();
   const { session } = await searchParams;
   const supabase = await createClient();
   const [
@@ -58,11 +60,11 @@ export default async function ClientTestAreaPage({
   ]);
 
   if (sessionsError) {
-    throw new Error("Não foi possível buscar as sessões de teste.");
+    throw new Error(t("Não foi possível buscar as sessões de teste."));
   }
 
   if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows ativos.");
+    throw new Error(t("Não foi possível buscar os workflows ativos."));
   }
 
   const sessions = (sessionsData ?? []) as TestSession[];
@@ -86,7 +88,7 @@ export default async function ClientTestAreaPage({
     : { data: [], error: null };
 
   if (executionsError) {
-    throw new Error("Não foi possível buscar as mensagens da sessão.");
+    throw new Error(t("Não foi possível buscar as mensagens da sessão."));
   }
 
   const executions = (executionsData ?? []) as TestExecution[];
@@ -101,12 +103,12 @@ export default async function ClientTestAreaPage({
     : { data: [], error: null };
 
   if (feedbacksError) {
-    throw new Error("Não foi possível buscar os feedbacks da sessão.");
+    throw new Error(t("Não foi possível buscar os feedbacks da sessão."));
   }
 
   return (
     <section className="flex w-full max-w-7xl flex-col gap-6">
-      <PaginaCabecalho titulo="Área de testes" />
+      <PaginaCabecalho titulo={t("Área de testes")} />
 
       <TestChat
         executions={executions}

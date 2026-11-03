@@ -7,6 +7,7 @@ import {
   getConversationLocks,
   hasAgentLocksIntegration,
 } from "@/lib/redis/agent-locks";
+import { getT } from "@/lib/i18n/servidor";
 
 // Linha compacta do cabeçalho da conversa. Deve ser renderizada dentro de
 // <Suspense> para que lentidão ou falha do Redis nunca bloqueie o histórico.
@@ -33,8 +34,12 @@ export async function ConversationAgentStatus({
   }
 
   if (error) {
+    const t = await getT();
+
     return (
-      <p className="text-xs text-muted-foreground">Estado do agente indisponível.</p>
+      <p className="text-xs text-muted-foreground">
+        {t("Status do agente indisponível.")}
+      </p>
     );
   }
 

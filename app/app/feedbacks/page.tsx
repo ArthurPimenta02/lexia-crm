@@ -10,10 +10,10 @@ import {
 } from "@/app/components/feedback-conversation-utils";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientFeedback = {
@@ -26,15 +26,37 @@ type ClientFeedback = {
   criado_em: string | null;
 };
 
-function formatLabel(value: string | null) {
+/*
+ * Os valores (`erro_grave`, `pendente`…) vêm da base. Os conhecidos têm
+ * tradução no dicionário; um valor novo aparece tal como está.
+ */
+function formatLabel(value: string | null, t: FuncaoT) {
   if (!value) {
-    return "Sem valor";
+    return t("Sem valor");
   }
 
-  return value.replaceAll("_", " ");
+  return t(value.replaceAll("_", " "));
 }
 
-function FeedbackResponse({ text }: { text: string | null }) {
+/** Data e hora no idioma de quem vê, no fuso do cliente. */
+function formatarData(
+  date: string | null,
+  timeZone: string,
+  locale: string,
+  semData: string,
+) {
+  if (!date) {
+    return semData;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(date));
+}
+
+function FeedbackResponse({ t, text }: { t: FuncaoT; text: string | null }) {
   if (isLikelyImageUrl(text)) {
     return (
       <a
@@ -43,13 +65,16 @@ function FeedbackResponse({ text }: { text: string | null }) {
         rel="noreferrer"
         target="_blank"
       >
-        Ver imagem marcada
+        {t("Ver imagem marcada")}
       </a>
     );
   }
 
   return (
-    <ExpandableText emptyText="Resposta marcada não registada." text={text} />
+    <ExpandableText
+      emptyText={t("Resposta marcada não registrada.")}
+      text={text}
+    />
   );
 }
 
@@ -70,6 +95,8 @@ export default async function ClientFeedbacksPage() {
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -88,7 +115,7 @@ export default async function ClientFeedbacksPage() {
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Feedbacks" />
+      <PaginaCabecalho titulo={t("Feedbacks")} />
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         {feedbacks.length > 0 ? (
@@ -102,22 +129,22 @@ export default async function ClientFeedbacksPage() {
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[140px] border-b border-border px-3 py-3 font-medium">
-                    Categoria
+                    {t("Categoria")}
                   </th>
                   <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
-                    Mensagem do cliente
+                    {t("Mensagem do cliente")}
                   </th>
                   <th className="w-[260px] border-b border-border px-3 py-3 font-medium">
-                    Resposta do agente
+                    {t("Resposta do agente")}
                   </th>
                   <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
-                    Comentário
+                    {t("Comentário")}
                   </th>
                   <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
-                    Estado
+                    {t("Status")}
                   </th>
                 </tr>
               </thead>
@@ -139,21 +166,21 @@ export default async function ClientFeedbacksPage() {
                   return (
                     <tr className="border-b border-border" key={feedback.id}>
                       <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
-                        {formatDateInTimezone(feedback.criado_em, timeZone)}
+                        {formatarData(feedback.criado_em, timeZone, locale, t("Sem data"))}
                       </td>
                       <td className="break-words px-3 py-3 align-top font-medium text-foreground">
                         <div className="flex flex-col gap-2">
-                          <span>{formatLabel(feedback.avaliacao)}</span>
+                          <span>{formatLabel(feedback.avaliacao, t)}</span>
                           {parsedComentario.categoria ? (
-                            <span className="inline-flex w-fit rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                              {parsedComentario.categoria}
+                            <span className="ds-selo ds-selo-perigo w-fit">
+                              {t(parsedComentario.categoria)}
                             </span>
                           ) : null}
                         </div>
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         <ExpandableText
-                          emptyText="Mensagem do cliente não registada."
+                          emptyText={t("Mensagem do cliente não registrada.")}
                           text={feedback.mensagem_cliente}
                         />
                         {conversationTarget ? (
@@ -161,35 +188,35 @@ export default async function ClientFeedbacksPage() {
                             className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
                             href={conversationTarget}
                           >
-                            Abrir na conversa
+                            {t("Abrir na conversa")}
                           </Link>
                         ) : null}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                        <FeedbackResponse text={feedback.resposta_agente} />
+                        <FeedbackResponse t={t} text={feedback.resposta_agente} />
                         {conversationTarget ? (
                           <Link
                             className="mt-2 block text-xs font-medium text-foreground underline-offset-2 hover:underline"
                             href={conversationTarget}
                           >
-                            Ver conversa
+                            {t("Ver conversa")}
                           </Link>
                         ) : null}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         <ExpandableText
-                          emptyText="Sem comentário"
+                          emptyText={t("Sem comentário")}
                           text={commentText}
                         />
                         {parsedComentario.conversa ? (
                           <p className="mt-2 text-xs text-muted-foreground">
-                            Conversa relacionada
+                            {t("Conversa relacionada")}
                           </p>
                         ) : null}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                        <span className="rounded-full border border-border bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                          {formatLabel(feedback.status)}
+                        <span className="ds-selo ds-selo-neutro">
+                          {formatLabel(feedback.status, t)}
                         </span>
                       </td>
                     </tr>
@@ -200,7 +227,7 @@ export default async function ClientFeedbacksPage() {
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há feedbacks registados.
+            {t("Ainda não há feedbacks registrados.")}
           </div>
         )}
       </div>

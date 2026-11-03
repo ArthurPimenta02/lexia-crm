@@ -4,7 +4,14 @@
  * Quem escreve é o repo lexia-agente (src/registo.ts). Aqui só se traduz o
  * que está gravado para linguagem de quem não é técnico: o Arthur abre esta
  * tela quando um cliente reclama e precisa de perceber o que a agente fez.
+ *
+ * As funções que escrevem texto recebem o `t` do idioma de quem vê; sem ele
+ * escrevem em português do Brasil (o texto-fonte).
  */
+
+import { criarT, type FuncaoT } from "../i18n/traduzir";
+
+const PT_BR = criarT(null);
 
 export type TurnoLinha = {
   id: string;
@@ -86,8 +93,8 @@ const ESTADOS: Record<string, string> = {
   erro: "Erro",
 };
 
-export function descreverEstado(estado: string) {
-  return ESTADOS[estado] ?? estado;
+export function descreverEstado(estado: string, t: FuncaoT = PT_BR) {
+  return ESTADOS[estado] ? t(ESTADOS[estado]) : estado;
 }
 
 /**
@@ -96,20 +103,25 @@ export function descreverEstado(estado: string) {
  * não virar tudo "US$ 0,00" ("US$ 0,083"); abaixo de um décimo de centavo,
  * "menos de US$ 0,001".
  */
-export function formatarCusto(valor: number | string | null | undefined) {
+export function formatarCusto(
+  valor: number | string | null | undefined,
+  locale = "pt-BR",
+  t: FuncaoT = PT_BR,
+) {
   if (valor === null || valor === undefined || valor === "") return "—";
   const n = Number(valor);
   if (!Number.isFinite(n)) return "—";
-  if (n === 0) return "US$ 0,00";
-  if (n < 0.001) return "menos de US$ 0,001";
-  const casas = n < 0.1 ? 3 : 2;
-  return `US$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
+  const dolares = (v: number, casas: number) =>
+    `US$ ${v.toLocaleString(locale, { minimumFractionDigits: casas, maximumFractionDigits: casas })}`;
+  if (n === 0) return dolares(0, 2);
+  if (n < 0.001) return t("menos de {valor}", { valor: dolares(0.001, 3) });
+  return dolares(n, n < 0.1 ? 3 : 2);
 }
 
-export function formatarDuracao(ms: number | null | undefined) {
+export function formatarDuracao(ms: number | null | undefined, locale = "pt-BR") {
   if (ms === null || ms === undefined) return "—";
   if (ms < 1000) return `${ms} ms`;
-  return `${(ms / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} s`;
+  return `${(ms / 1000).toLocaleString(locale, { maximumFractionDigits: 1 })} s`;
 }
 
 /** JSON legível; texto fica como está. */

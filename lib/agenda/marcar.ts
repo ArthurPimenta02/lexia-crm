@@ -83,16 +83,33 @@ export type MarcacaoPreparada = {
  */
 export type AvisoDaMarcacao = {
   texto: string;
+  /**
+   * O mesmo aviso como chave do dicionário e variáveis, para o painel o
+   * mostrar no idioma de quem está a ver. O `texto` continua a existir, em
+   * pt-BR e já preenchido, porque é o que os testes e os logs leem.
+   */
+  frase?: FraseParaTraduzir;
+};
+
+/** Um texto com variáveis, para o painel traduzir com `t(chave, variaveis)`. */
+export type FraseParaTraduzir = {
+  chave: string;
+  variaveis?: Record<string, string | number>;
 };
 
 export type PreparacaoDaMarcacao = {
   avisos: AvisoDaMarcacao[];
   erro: string | null;
+  /** Só quando o erro tem variáveis; sem isto, o `erro` já é a chave. */
+  erroFrase?: FraseParaTraduzir;
   marcacao: MarcacaoPreparada | null;
 };
 
-function recusar(mensagem: string): PreparacaoDaMarcacao {
-  return { avisos: [], erro: mensagem, marcacao: null };
+function recusar(
+  mensagem: string,
+  erroFrase?: FraseParaTraduzir,
+): PreparacaoDaMarcacao {
+  return { avisos: [], erro: mensagem, erroFrase, marcacao: null };
 }
 
 const limiteDuracaoMinutos = 60 * 24 * 14;
@@ -181,15 +198,15 @@ export async function prepararNovaMarcacao({
   const hora = campos.horaBruto.trim();
 
   if (!contactoId) {
-    return recusar("Escolhe o cliente.");
+    return recusar("Escolha o cliente.");
   }
 
   if (!servicoId) {
-    return recusar("Escolhe o serviço.");
+    return recusar("Escolha o serviço.");
   }
 
   if (!dia || !hora) {
-    return recusar("Escolhe o dia e a hora.");
+    return recusar("Escolha o dia e a hora.");
   }
 
   // A leitura por `cliente_slug` e `id` é, ao mesmo tempo, a autorização sobre
@@ -210,21 +227,21 @@ export async function prepararNovaMarcacao({
   }
 
   if (!contacto) {
-    return recusar("Cliente não encontrado.");
+    return recusar("Cliente não encontrado na base.");
   }
 
   const nomeCliente = (contacto.nome ?? "").trim();
   const telefone = normalizarTelefone(contacto.telefone);
 
   if (!nomeCliente) {
-    return recusar("Esta ficha não tem nome. Põe o nome primeiro.");
+    return recusar("Esta ficha não tem nome. Coloque o nome primeiro.");
   }
 
   // Sem número não há ponte. A marcação ficava na agenda sem nunca aparecer na
   // ficha do cliente nem no total gasto, que é a razão de ser disto tudo.
   if (!pareceTelefone(telefone)) {
     return recusar(
-      "Esta ficha não tem um número de telefone a sério, e é o número que liga a marcação ao histórico. Põe o número primeiro.",
+      "Esta ficha não tem um número de telefone válido, e é o número que liga o agendamento ao histórico. Coloque o número primeiro.",
     );
   }
 
@@ -232,7 +249,7 @@ export async function prepararNovaMarcacao({
 
   if (servicos.length === 0) {
     return recusar(
-      "Não há serviços agendáveis configurados para este cliente, por isso não há nada para marcar.",
+      "Não há serviços agendáveis configurados para este cliente, então não há nada para agendar.",
     );
   }
 
@@ -253,10 +270,14 @@ export async function prepararNovaMarcacao({
   );
 
   if (!executor) {
+    const nomes = servico.executores.map((linha) => linha.nome);
+
     return recusar(
-      `Escolhe quem faz o serviço. "${servico.nome}" é feito por ${servico.executores
-        .map((linha) => linha.nome)
-        .join(" ou ")}.`,
+      `Escolha quem faz o serviço. "${servico.nome}" é feito por ${nomes.join(" ou ")}.`,
+      {
+        chave: 'Escolha quem faz o serviço. "{servico}" é feito por {executores}.',
+        variaveis: { executores: nomes.join(" / "), servico: servico.nome },
+      },
     );
   }
 
@@ -278,7 +299,7 @@ export async function prepararNovaMarcacao({
     duracaoMinutos <= 0 ||
     duracaoMinutos > limiteDuracaoMinutos
   ) {
-    return recusar("A duração tem de ser um número de minutos acima de zero.");
+    return recusar("A duração precisa ser um número de minutos acima de zero.");
   }
 
   const fimIso = new Date(
@@ -292,7 +313,7 @@ export async function prepararNovaMarcacao({
     const numero = Number(valorBruto.replace(",", "."));
 
     if (!Number.isFinite(numero) || numero < 0 || numero > 1_000_000) {
-      return recusar("O valor tem de ser um número igual ou maior que zero.");
+      return recusar("O valor precisa ser um número igual ou maior que zero.");
     }
 
     valor = Math.round(numero * 100) / 100;
@@ -301,7 +322,7 @@ export async function prepararNovaMarcacao({
   const titulo = campos.tituloBruto.trim().slice(0, 500);
 
   if (titulo === "") {
-    return recusar("Escreve o nome do evento.");
+    return recusar("Escreva o nome do evento.");
   }
 
   const observacoes = campos.observacoesBruto.trim().slice(0, 4000);
@@ -319,22 +340,37 @@ export async function prepararNovaMarcacao({
   const fimDecimal = horaDecimal + duracaoMinutos / 60;
 
   if (new Date(inicioIso).getTime() < Date.now()) {
-    avisos.push({ texto: "Esta hora já passou." });
+    avisos.push({ frase: { chave: "Esta hora já passou." }, texto: "Esta hora já passou." });
   }
 
   if (horario && !janela) {
     avisos.push({
+      frase: {
+        chave: "{executor} não trabalha neste dia da semana.",
+        variaveis: { executor: executor.nome },
+      },
       texto: `${executor.nome} não trabalha neste dia da semana.`,
     });
   } else if (janela && (horaDecimal < janela[0] || fimDecimal > janela[1])) {
     avisos.push({
+      frase: {
+        chave: "Fica fora do horário de {executor} ({inicio}h–{fim}h).",
+        variaveis: { executor: executor.nome, fim: janela[1], inicio: janela[0] },
+      },
       texto: `Fica fora do horário de ${executor.nome} (${janela[0]}h–${janela[1]}h).`,
     });
   }
 
   if (duracaoMinutos > 8 * 60) {
+    const horasSeguidas = Math.round((duracaoMinutos / 60) * 10) / 10;
+
     avisos.push({
-      texto: `São ${(duracaoMinutos / 60).toFixed(1)} horas seguidas — este serviço costuma ser feito em mais do que um dia.`,
+      frase: {
+        chave:
+          "São {horas} horas seguidas — este serviço costuma ser feito em mais de um dia.",
+        variaveis: { horas: horasSeguidas },
+      },
+      texto: `São ${(duracaoMinutos / 60).toFixed(1)} horas seguidas — este serviço costuma ser feito em mais de um dia.`,
     });
   }
 
@@ -428,7 +464,7 @@ export async function marcarNaAgenda({
   if (!config) {
     return {
       conflitos: [],
-      erro: "A marcação pelo painel ainda não está ligada ao n8n.",
+      erro: "O agendamento pelo painel ainda não está ligado ao n8n.",
       linkGoogle: null,
       ok: false,
     };
@@ -470,7 +506,7 @@ export async function marcarNaAgenda({
 
     return {
       conflitos: [],
-      erro: "A agenda não respondeu a tempo. Confirma no Google se a marcação entrou antes de tentares outra vez.",
+      erro: "A agenda não respondeu a tempo. Confirma no Google se o agendamento entrou antes de tentar de novo.",
       linkGoogle: null,
       ok: false,
     };
@@ -481,7 +517,7 @@ export async function marcarNaAgenda({
 
     return {
       conflitos: [],
-      erro: "A agenda recusou a marcação. Tenta outra vez dentro de um instante.",
+      erro: "A agenda recusou o agendamento. Tente de novo daqui a pouco.",
       linkGoogle: null,
       ok: false,
     };
@@ -499,7 +535,7 @@ export async function marcarNaAgenda({
   } catch {
     return {
       conflitos: [],
-      erro: "A agenda respondeu uma coisa que não se consegue ler. Confirma no Google antes de tentares outra vez.",
+      erro: "A agenda respondeu algo que não dá para ler. Confirma no Google antes de tentar de novo.",
       linkGoogle: null,
       ok: false,
     };
@@ -519,7 +555,7 @@ export async function marcarNaAgenda({
       conflitos: [],
       erro:
         corpo?.mensagem?.trim() ||
-        "A agenda não confirmou a marcação. Confirma no Google antes de tentares outra vez.",
+        "A agenda não confirmou o agendamento. Confirma no Google antes de tentar de novo.",
       linkGoogle: null,
       ok: false,
     };

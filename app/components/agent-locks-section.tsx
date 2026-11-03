@@ -9,6 +9,7 @@ import {
   handoffCardClass,
   handoffGridClass,
 } from "@/app/components/handoff-cards";
+import { getT } from "@/lib/i18n/servidor";
 import { listAgentLocks, type AgentLock } from "@/lib/redis/agent-locks";
 import { createClient } from "@/lib/supabase/server";
 
@@ -131,6 +132,7 @@ export async function AgentLocksSection({
   sufixo?: string;
 }) {
   const { error, isConfigured, locks } = await listAgentLocks(clienteSlug);
+  const t = await getT();
 
   if (!isConfigured) {
     return null;
@@ -149,14 +151,16 @@ export async function AgentLocksSection({
     <section className="flex w-full min-w-0 flex-col gap-4">
       <HandoffSectionHeader
         count={error ? undefined : groups.length}
-        dica="Conversas em que o agente não está a responder agora. Retome quando o atendimento humano terminar."
+        dica={t(
+          "Conversas em que o agente não está respondendo agora. Retome quando o atendimento humano terminar.",
+        )}
         sufixo={sufixo}
-        title="Agente pausado"
+        title={t("Agente pausado")}
       />
 
       {error ? (
         <HandoffEmptyState>
-          {error} Tente novamente em instantes.
+          {t(error)} {t("Tente novamente em instantes.")}
         </HandoffEmptyState>
       ) : groups.length > 0 ? (
         <div className={handoffGridClass}>
@@ -164,7 +168,7 @@ export async function AgentLocksSection({
             const contact = contacts.get(group.identificadorConversa);
             const canal = contact?.canal ?? group.canal;
             const name =
-              contact?.nome || contact?.telefone || "Contacto sem nome";
+              contact?.nome || contact?.telefone || t("Contato sem nome");
             const canAct =
               Boolean(contact) ||
               group.locks.some((lock) => lock.kind !== "status");
@@ -205,12 +209,12 @@ export async function AgentLocksSection({
                     />
                   ) : (
                     <span className="text-xs text-muted-foreground">
-                      Volta sozinho quando o prazo terminar.
+                      {t("Volta sozinho quando o prazo terminar.")}
                     </span>
                   )}
                   {contact ? (
                     <Link
-                      className="inline-flex h-10 items-center justify-center rounded-full border border-border px-4 text-sm font-semibold text-muted-foreground transition hover:border-foreground hover:text-foreground sm:h-9 sm:text-xs"
+                      className="ds-botao ds-botao-secundario ds-botao-p w-full sm:w-auto"
                       href={getConversationHref(
                         conversationsPath,
                         clienteSlug,
@@ -218,7 +222,7 @@ export async function AgentLocksSection({
                         group,
                       )}
                     >
-                      Abrir conversa
+                      {t("Abrir conversa")}
                     </Link>
                   ) : null}
                 </div>
@@ -228,7 +232,7 @@ export async function AgentLocksSection({
         </div>
       ) : (
         <HandoffEmptyState>
-          O agente está ativo em todas as conversas.
+          {t("O agente está ativo em todas as conversas.")}
         </HandoffEmptyState>
       )}
     </section>

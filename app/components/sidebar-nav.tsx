@@ -25,6 +25,8 @@ import Link from "next/link";
 import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useIdioma } from "@/app/components/idioma";
+
 /**
  * A navegação do painel.
  *
@@ -100,6 +102,7 @@ export function estaActivo(href: string, pathname: string) {
 
 export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
+  const { t } = useIdioma();
 
   return (
     <nav className="flex flex-col gap-1">
@@ -122,7 +125,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
               aria-disabled="true"
               className="flex min-h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-muted opacity-50"
               key={item.href}
-              title="Ecrã indisponível nesta conta"
+              title={t("Tela indisponível nesta conta")}
             >
               <Icone
                 aria-hidden="true"
@@ -131,7 +134,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
               />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               <span className="shrink-0 rounded border border-sidebar-border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
-                Indisponível
+                {t("Indisponível")}
               </span>
             </span>
           );

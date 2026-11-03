@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import {
+  Fragment,
+  useActionState,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { BotaoExportar } from "@/app/components/botao-exportar";
 import { ChannelBadge } from "@/app/components/channel-brand";
 import { ConfirmSubmitButton } from "@/app/components/confirm-submit-button";
 import { buildAppConversationHref } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import { SeccaoTitulo } from "@/app/components/painel-ui";
 import {
   canaisDeAquisicao,
@@ -16,7 +23,6 @@ import {
   getOrigemCapturadaLabel,
 } from "@/lib/clientes/ficha";
 import type { ClienteLinha, ClientesDeFora } from "@/lib/clientes/read";
-import { formatDayInTimezone } from "@/lib/clientes/timezone";
 import { colunasDeClientes } from "@/lib/exportar/colunas";
 import {
   indicativoPorOmissao,
@@ -24,6 +30,7 @@ import {
   montarTelefone,
 } from "@/lib/clientes/telefone";
 import type { GravarClienteResultado } from "@/lib/clientes/write";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 
 /**
  * A ficha de clientes.
@@ -60,29 +67,259 @@ type Filtro = "duplicados" | "parados" | "semNotas" | "todos";
 const diasParaParado = 90;
 const porPagina = 25;
 
+// `ds-campo` traz a largura a 100%; quem precisa de menos usa `max-w-…`,
+// porque o `w-…` do Tailwind perde para a classe do design system.
 const inputClass =
-  "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
+  "ds-campo outline-none disabled:bg-surface-muted disabled:text-muted-foreground";
 
 const labelTexto = "text-xs font-semibold text-muted-foreground";
 
 const labelClass = `flex flex-col gap-1.5 ${labelTexto}`;
 
-const botaoPrimario =
-  "inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60";
+const botaoPrimario = "ds-botao ds-botao-primario";
 
-const botaoDiscreto =
-  "inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-border-strong hover:bg-surface-muted disabled:opacity-60";
+const botaoDiscreto = "ds-botao ds-botao-secundario ds-botao-p";
 
 const cartao =
   "rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
 
-function formatMoeda(valor: number, moeda: string) {
-  return new Intl.NumberFormat("pt-PT", {
+/** A moeda é a do cliente; só o formato segue o idioma de quem está a ver. */
+function formatMoeda(valor: number, moeda: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: moeda,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
     style: "currency",
   }).format(valor);
+}
+
+/**
+ * O dia, no fuso do cliente e no formato do idioma.
+ *
+ * O `formatDayInTimezone` de `lib/clientes/timezone` tem o pt-PT fixo e é
+ * usado por outras telas; aqui só muda o locale, o fuso fica igual.
+ */
+function formatarDia(data: string | null, timeZone: string, locale: string) {
+  if (!data) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone,
+    year: "numeric",
+  }).format(new Date(data));
+}
+
+/**
+ * Troca `{nome}` num texto já traduzido por um pedaço de ecrã (um negrito,
+ * por exemplo). Deixa a frase inteira no dicionário, em vez de a partir em
+ * pedaços que noutra língua ficavam na ordem errada.
+ */
+function comNos(texto: string, nos: Record<string, ReactNode>) {
+  return texto.split(/(\{\w+\})/g).map((parte, indice) => {
+    const nome = /^\{(\w+)\}$/.exec(parte)?.[1];
+
+    return (
+      <Fragment key={indice}>
+        {nome !== undefined && nome in nos ? nos[nome] : parte}
+      </Fragment>
+    );
+  });
+}
+
+/**
+ * As mensagens que o servidor devolve, no idioma de quem está a ver.
+ *
+ * Nascem em `lib/clientes/write.ts`, `marcacao.ts` e `telefone.ts`, escritas
+ * em pt-PT, e os testes dessas funções comparam-nas assim. Em vez de mexer
+ * nelas, traduzem-se aqui, onde são desenhadas. Uma mensagem que não esteja
+ * nesta lista aparece como veio — nunca em branco.
+ */
+function traduzirMensagem(mensagem: string, t: FuncaoT): string {
+  switch (mensagem) {
+    case "Escreve o nome do cliente.":
+      return t("Escreva o nome do cliente.");
+    case "O nome é demasiado comprido.":
+      return t("O nome é longo demais.");
+    case "Nome inválido.":
+      return t("Nome inválido.");
+    case "Telefone inválido.":
+      return t("Telefone inválido.");
+    case "Campos inválidos.":
+      return t("Campos inválidos.");
+    case "Escreve o telefone do cliente.":
+      return t("Digite o telefone do cliente.");
+    case "Escolhe o país do número.":
+      return t("Escolha o país do número.");
+    case "O email é demasiado comprido.":
+      return t("O email é longo demais.");
+    case "A morada é demasiado comprido.":
+      return t("O endereço é longo demais.");
+    case "O carro é demasiado comprido.":
+      return t("O carro é longo demais.");
+    case "As notas é demasiado comprido.":
+      return t("As notas são longas demais.");
+    case "A explicação do canal é demasiado comprido.":
+      return t("A explicação do canal é longa demais.");
+    case "A idade tem de ser um número entre 1 e 120.":
+      return t("A idade tem que ser um número entre 1 e 120.");
+    case "Esse canal de aquisição não existe.":
+      return t("Esse canal de aquisição não existe.");
+    case "Escolheste 'Outro': escreve de onde veio.":
+      return t("Você escolheu 'Outro': escreva de onde veio.");
+    case "Este número já está no painel. Abre a ficha dele em vez de criar outra.":
+      return t("Este número já está no painel. Abra a ficha dele em vez de criar outra.");
+    case "Já existe um contacto com este número.":
+      return t("Já existe um contato com este número.");
+    case "Este número já está no painel. Abre a ficha dele.":
+      return t("Este número já está no painel. Abra a ficha dele.");
+    case "Não foi possível criar o cliente.":
+      return t("Não foi possível criar o cliente.");
+    case "Não foi possível ler a ficha do cliente.":
+      return t("Não foi possível ler a ficha do cliente.");
+    case "Cliente não encontrado.":
+      return t("Cliente não encontrado.");
+    case "Esta ficha não tem um número de telefone a sério, e é o número que liga o serviço ao histórico. Põe o número primeiro.":
+      return t(
+        "Esta ficha não tem um número de telefone de verdade, e é o número que liga o serviço ao histórico. Coloque o número primeiro.",
+      );
+    case "Escolhe o serviço que foi feito e a data.":
+      return t("Escolha o serviço que foi feito e a data.");
+    case "Não foi possível gravar a ficha.":
+      return t("Não foi possível salvar a ficha.");
+    case "Ficha gravada.":
+      return t("Ficha salva.");
+    case "Escolhe dois contactos diferentes.":
+      return t("Escolha dois contatos diferentes.");
+    case "Não foi possível juntar os contactos.":
+      return t("Não foi possível juntar os contatos.");
+    case "Contacto não encontrado.":
+      return t("Contato não encontrado.");
+    case "Esse contacto já está junto a outro. Junta ao contacto principal.":
+      return t("Esse contato já está junto a outro. Junte ao contato principal.");
+    case "Esse contacto já tem outros juntos a ele. Separa-os primeiro, ou junta na outra direcção.":
+      return t(
+        "Esse contato já tem outros juntos a ele. Separe-os primeiro, ou junte na outra direção.",
+      );
+    case "Não foi possível separar os contactos.":
+      return t("Não foi possível separar os contatos.");
+    case "Contactos separados.":
+      return t("Contatos separados.");
+    case "Escolhe o serviço que foi feito.":
+      return t("Escolha o serviço que foi feito.");
+    case "Escolhe a data do serviço.":
+      return t("Escolha a data do serviço.");
+    case "Este cliente não tem agenda de serviços ligada.":
+      return t("Este cliente não tem agenda de serviços conectada.");
+    case "A data do serviço não é válida.":
+      return t("A data do serviço não é válida.");
+    case "A data do serviço não pode ser no futuro. Aqui regista-se o que já foi feito — para marcar, usa a agenda.":
+      return t(
+        "A data do serviço não pode ser no futuro. Aqui se registra o que já foi feito — para agendar, use a agenda.",
+      );
+    case "O ticket tem de ser um número igual ou maior que zero.":
+      return t("O ticket tem que ser um número igual ou maior que zero.");
+    case "Esse executor não existe.":
+      return t("Esse profissional não existe.");
+    case "Credenciais da base de dados do cliente não configuradas.":
+      return t("Credenciais do banco de dados do cliente não configuradas.");
+    case "Não foi possível confirmar o serviço.":
+      return t("Não foi possível confirmar o serviço.");
+    case "Serviço desconhecido.":
+      return t("Serviço desconhecido.");
+    case "Não foi possível ler o que este cliente já comprou, por isso não se registou nada. Tenta outra vez.":
+      return t(
+        "Não foi possível ler o que este cliente já comprou, então nada foi registrado. Tente de novo.",
+      );
+    case "a agenda do cliente recusou a escrita":
+      return t("a agenda do cliente recusou a gravação");
+  }
+
+  let m: RegExpExecArray | null;
+
+  if ((m = /^Já existem (\d+) contactos com este número\.$/.exec(mensagem))) {
+    return t("Já existem {n} contatos com este número.", { n: m[1] });
+  }
+
+  if (
+    (m =
+      /^Este número já está no painel como "(.*)"\. Abre a ficha dele em vez de criar outra\.$/.exec(
+        mensagem,
+      ))
+  ) {
+    return t(
+      'Este número já está no painel como "{nome}". Abra a ficha dele em vez de criar outra.',
+      { nome: m[1] },
+    );
+  }
+
+  if (
+    (m =
+      /^(.*) ficou no painel, mas o serviço não foi registado: (.*)\. O contacto está criado — não o cries outra vez\.$/.exec(
+        mensagem,
+      ))
+  ) {
+    return t(
+      "{nome} ficou no painel, mas o serviço não foi registrado: {erro}. O contato está criado — não o crie de novo.",
+      { erro: traduzirMensagem(m[2], t), nome: m[1] },
+    );
+  }
+
+  if ((m = /^(.*) ficou no painel, com "(.*)" no histórico\.$/.exec(mensagem))) {
+    return t('{nome} ficou no painel, com "{servico}" no histórico.', {
+      nome: m[1],
+      servico: m[2],
+    });
+  }
+
+  if ((m = /^(.*) ficou no painel\.$/.exec(mensagem))) {
+    return t("{nome} ficou no painel.", { nome: m[1] });
+  }
+
+  if ((m = /^(.*) já tem um serviço registado\.$/.exec(mensagem))) {
+    return t("{nome} já tem um serviço registrado.", {
+      nome: m[1] === "Este cliente" ? t("Este cliente") : m[1],
+    });
+  }
+
+  if ((m = /^(.*) já tem (\d+) serviços registados\.$/.exec(mensagem))) {
+    return t("{nome} já tem {n} serviços registrados.", {
+      n: m[2],
+      nome: m[1] === "Este cliente" ? t("Este cliente") : m[1],
+    });
+  }
+
+  if ((m = /^O serviço não foi registado: (.*)\.$/.exec(mensagem))) {
+    return t("O serviço não foi registrado: {erro}.", {
+      erro: traduzirMensagem(m[1], t),
+    });
+  }
+
+  if ((m = /^"(.*)" entrou no histórico\.$/.exec(mensagem))) {
+    return t('"{servico}" entrou no histórico.', { servico: m[1] });
+  }
+
+  if ((m = /^Contactos juntos em "(.*)"\.$/.exec(mensagem))) {
+    return t('Contatos juntos em "{nome}".', {
+      nome: m[1] === "o principal" ? t("o principal") : m[1],
+    });
+  }
+
+  if (
+    (m =
+      /^Isso não parece um número de telefone: ficaram (\d+) dígitos e um número tem entre (\d+) e (\d+)\. Escreve só o número, sem o indicativo — o país escolhe-se ao lado\.$/.exec(
+        mensagem,
+      ))
+  ) {
+    return t(
+      "Isso não parece um número de telefone: ficaram {n} dígitos e um número tem entre {min} e {max}. Digite só o número, sem o código do país — o país se escolhe ao lado.",
+      { max: m[3], min: m[2], n: m[1] },
+    );
+  }
+
+  return mensagem;
 }
 
 function diasDesde(iso: string | null) {
@@ -96,16 +333,18 @@ function diasDesde(iso: string | null) {
 }
 
 function Mensagem({ resultado }: { resultado: GravarClienteResultado | null }) {
+  const { t } = useIdioma();
+
   if (!resultado) {
     return null;
   }
 
   return (
     <p
-      className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+      className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
       role="status"
     >
-      {resultado.mensagem}
+      {traduzirMensagem(resultado.mensagem, t)}
     </p>
   );
 }
@@ -119,6 +358,7 @@ function Mensagem({ resultado }: { resultado: GravarClienteResultado | null }) {
  * entrou na base e o aviso de duplicado deixou de o apanhar.
  */
 function CampoTelefone() {
+  const { t } = useIdioma();
   const [indicativo, setIndicativo] = useState(indicativoPorOmissao);
   const [numero, setNumero] = useState("");
   const montado = montarTelefone(indicativo, numero);
@@ -126,25 +366,25 @@ function CampoTelefone() {
 
   return (
     <div className="flex min-w-64 flex-1 flex-col gap-1.5">
-      <span className={labelTexto}>Telefone</span>
+      <span className={labelTexto}>{t("Telefone")}</span>
 
       <div className="flex gap-2">
         <select
-          aria-label="Indicativo do país"
-          className={`${inputClass} w-36 shrink-0`}
+          aria-label={t("Código do país")}
+          className={`${inputClass} max-w-36 shrink-0`}
           name="indicativo"
           onChange={(evento) => setIndicativo(evento.target.value)}
           value={indicativo}
         >
           {indicativosTelefone.map((entrada) => (
             <option key={entrada.codigo} value={entrada.codigo}>
-              +{entrada.codigo} {entrada.pais}
+              +{entrada.codigo} {t(entrada.pais)}
             </option>
           ))}
         </select>
 
         <input
-          aria-label="Número de telefone"
+          aria-label={t("Número de telefone")}
           className={`${inputClass} w-full min-w-0`}
           inputMode="tel"
           maxLength={32}
@@ -162,24 +402,27 @@ function CampoTelefone() {
           !escreveu
             ? "text-muted-foreground"
             : montado.erro
-              ? "text-red-700"
+              ? "text-danger"
               : "text-muted-foreground"
         }`}
       >
         {!escreveu ? (
-          <>
-            Escreve o número sem o indicativo. Se colares um número de outro
-            país já completo, começa-o com <strong>+</strong>.
-          </>
+          comNos(
+            t(
+              "Digite o número sem o código do país. Se colar um número de outro país já completo, comece com {mais}.",
+            ),
+            { mais: <strong>+</strong> },
+          )
         ) : montado.erro ? (
-          montado.erro
+          traduzirMensagem(montado.erro, t)
         ) : (
-          <>
-            Vai ficar gravado como{" "}
-            <strong className="font-semibold text-foreground">
-              {montado.digitos}
-            </strong>
-          </>
+          comNos(t("Vai ficar salvo como {numero}"), {
+            numero: (
+              <strong className="font-semibold text-foreground">
+                {montado.digitos}
+              </strong>
+            ),
+          })
         )}
       </p>
     </div>
@@ -207,6 +450,7 @@ function CamposDaPessoa({
   mostrarViatura: boolean;
   prefixo: string;
 }) {
+  const { t } = useIdioma();
   const [canal, setCanal] = useState(cliente?.origemManual ?? "");
 
   return (
@@ -215,14 +459,14 @@ function CamposDaPessoa({
         className={`${labelClass} min-w-48 flex-1`}
         htmlFor={`${prefixo}-email`}
       >
-        Email
+        {t("E-mail")}
         <input
           className={`${inputClass} w-full`}
           defaultValue={cliente?.email ?? ""}
           id={`${prefixo}-email`}
           maxLength={320}
           name="email"
-          placeholder="opcional"
+          placeholder={t("opcional")}
           type="email"
         />
       </label>
@@ -231,14 +475,14 @@ function CamposDaPessoa({
         className={`${labelClass} min-w-48 flex-1`}
         htmlFor={`${prefixo}-morada`}
       >
-        Endereço
+        {t("Endereço")}
         <input
           className={`${inputClass} w-full`}
           defaultValue={cliente?.morada ?? ""}
           id={`${prefixo}-morada`}
           maxLength={512}
           name="morada"
-          placeholder="opcional"
+          placeholder={t("opcional")}
           type="text"
         />
       </label>
@@ -248,21 +492,21 @@ function CamposDaPessoa({
           className={`${labelClass} min-w-48 flex-1`}
           htmlFor={`${prefixo}-viatura`}
         >
-          Carro
+          {t("Carro")}
           <input
             className={`${inputClass} w-full`}
             defaultValue={cliente?.viatura ?? ""}
             id={`${prefixo}-viatura`}
             maxLength={160}
             name="viatura"
-            placeholder="ex.: BMW Série 3 preto"
+            placeholder={t("ex.: BMW Série 3 preto")}
             type="text"
           />
         </label>
       ) : null}
 
       <label className={`${labelClass} w-28`} htmlFor={`${prefixo}-idade`}>
-        Idade
+        {t("Idade")}
         <input
           className={`${inputClass} w-full`}
           defaultValue={cliente?.idade ?? ""}
@@ -271,7 +515,7 @@ function CamposDaPessoa({
           max={120}
           min={1}
           name="idade"
-          placeholder="opcional"
+          placeholder={t("opcional")}
           type="number"
         />
       </label>
@@ -280,7 +524,7 @@ function CamposDaPessoa({
         className={`${labelClass} min-w-48 flex-1`}
         htmlFor={`${prefixo}-origem`}
       >
-        Canal de aquisição
+        {t("Canal de aquisição")}
         <select
           className={`${inputClass} w-full`}
           id={`${prefixo}-origem`}
@@ -288,10 +532,10 @@ function CamposDaPessoa({
           onChange={(evento) => setCanal(evento.target.value)}
           value={canal}
         >
-          <option value="">Não sei</option>
+          <option value="">{t("Não sei")}</option>
           {canaisDeAquisicao.map((opcao) => (
             <option key={opcao.value} value={opcao.value}>
-              {opcao.label}
+              {t(opcao.label)}
             </option>
           ))}
         </select>
@@ -302,14 +546,14 @@ function CamposDaPessoa({
           className={`${labelClass} min-w-48 flex-1`}
           htmlFor={`${prefixo}-origem-nota`}
         >
-          De onde veio
+          {t("De onde veio")}
           <input
             className={`${inputClass} w-full`}
             defaultValue={cliente?.origemManualNota ?? ""}
             id={`${prefixo}-origem-nota`}
             maxLength={200}
             name="origem_manual_nota"
-            placeholder="ex.: feira de automóveis de Braga"
+            placeholder={t("ex.: feira de automóveis de Braga")}
             required
             type="text"
           />
@@ -352,6 +596,8 @@ function CamposDoServico({
   prefixo: string;
   servicos: ServicoOpcao[];
 }) {
+  const { t } = useIdioma();
+
   if (servicos.length === 0) {
     return null;
   }
@@ -359,9 +605,9 @@ function CamposDoServico({
   return (
     <div className="flex w-full flex-wrap items-start gap-3 rounded-xl bg-surface-muted px-3 py-3">
       <p className="w-full text-xs text-muted-foreground">
-        Serviço já feito{" "}
+        {t("Serviço já feito")}{" "}
         {opcional ? (
-          <span className="text-muted-foreground/60">— opcional</span>
+          <span className="text-muted-foreground/60">— {t("opcional")}</span>
         ) : null}
       </p>
 
@@ -369,13 +615,13 @@ function CamposDoServico({
         className={`${labelClass} min-w-48 flex-1`}
         htmlFor={`${prefixo}-servico-id`}
       >
-        Serviço
+        {t("Serviço")}
         <select
           className={`${inputClass} w-full`}
           id={`${prefixo}-servico-id`}
           name="servico_id"
         >
-          <option value="">Nenhum</option>
+          <option value="">{t("Nenhum")}</option>
           {servicos.map((servico) => (
             <option key={servico.id} value={servico.id}>
               {servico.nome}
@@ -388,7 +634,7 @@ function CamposDoServico({
         className={`${labelClass} w-40`}
         htmlFor={`${prefixo}-servico-data`}
       >
-        Data
+        {t("Data")}
         <input
           className={`${inputClass} w-full`}
           id={`${prefixo}-servico-data`}
@@ -401,14 +647,14 @@ function CamposDoServico({
         className={`${labelClass} w-32`}
         htmlFor={`${prefixo}-servico-valor`}
       >
-        Ticket ({moeda})
+        {t("Ticket ({moeda})", { moeda })}
         <input
           className={`${inputClass} w-full`}
           id={`${prefixo}-servico-valor`}
           inputMode="decimal"
           min={0}
           name="servico_valor"
-          placeholder="opcional"
+          placeholder={t("opcional")}
           step="0.01"
           type="number"
         />
@@ -419,13 +665,13 @@ function CamposDoServico({
           className={`${labelClass} w-36`}
           htmlFor={`${prefixo}-servico-executor`}
         >
-          Quem fez
+          {t("Quem fez")}
           <select
             className={`${inputClass} w-full`}
             id={`${prefixo}-servico-executor`}
             name="servico_executor"
           >
-            <option value="">Não sei</option>
+            <option value="">{t("Não sei")}</option>
             {executores.map((executor) => (
               <option key={executor.chave} value={executor.chave}>
                 {executor.nome}
@@ -463,6 +709,7 @@ function CriarClienteForm({
     GravarClienteResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
   const duplicados = resultado?.duplicados ?? [];
 
   return (
@@ -472,13 +719,13 @@ function CriarClienteForm({
           className={`${labelClass} min-w-48 flex-1`}
           htmlFor="cliente-nome"
         >
-          Nome
+          {t("Nome")}
           <input
             className={`${inputClass} w-full`}
             id="cliente-nome"
             maxLength={256}
             name="nome"
-            placeholder="ex.: Martim Cordeiro"
+            placeholder={t("ex.: Martim Cordeiro")}
             required
             type="text"
           />
@@ -492,22 +739,22 @@ function CriarClienteForm({
           className={`${labelClass} min-w-48 flex-1`}
           htmlFor="cliente-notas"
         >
-          Notas
+          {t("Notas")}
           <input
             className={`${inputClass} w-full`}
             id="cliente-notas"
             maxLength={4000}
             name="notas"
-            placeholder="opcional"
+            placeholder={t("opcional")}
             type="text"
           />
         </label>
 
         <FormSubmitButton
           className={`${botaoPrimario} mt-5`}
-          pendingLabel="A criar..."
+          pendingLabel={t("Criando...")}
         >
-          Criar cliente
+          {t("Criar cliente")}
         </FormSubmitButton>
 
         <CamposDoServico
@@ -522,30 +769,30 @@ function CriarClienteForm({
       <Mensagem resultado={resultado} />
 
       {duplicados.length > 0 ? (
-        <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-900">
+        <div className="rounded-xl bg-warning-soft px-3 py-3 text-xs text-warning">
           <p className="font-semibold">
-            Este número já está no painel, noutro formato ou noutro canal:
+            {t("Este número já está no painel, em outro formato ou em outro canal:")}
           </p>
           <ul className="mt-2 flex flex-col gap-1">
             {duplicados.map((linha) => (
               <li key={linha.id}>
-                {linha.nome || "sem nome"} · {linha.telefone || "sem número"} ·{" "}
-                {linha.canal}
+                {linha.nome || t("sem nome")} ·{" "}
+                {linha.telefone || t("sem número")} · {linha.canal}
               </li>
             ))}
           </ul>
           <p className="mt-2">
-            Se for mesmo outra pessoa, cria de novo. Se for a mesma, cancela e
-            usa o &quot;Juntar a outro contacto&quot; na ficha dela — assim as
-            conversas e o histórico ficam todos no mesmo sítio.
+            {t(
+              "Se for mesmo outra pessoa, crie de novo. Se for a mesma, cancele e use o \"Juntar a outro contato\" na ficha dela — assim as conversas e o histórico ficam todos no mesmo lugar.",
+            )}
           </p>
           <div className="mt-3">
             <input name="confirmado" type="hidden" value="sim" />
             <FormSubmitButton
               className={botaoPrimario}
-              pendingLabel="A criar..."
+              pendingLabel={t("Criando...")}
             >
-              Criar mesmo assim
+              {t("Criar mesmo assim")}
             </FormSubmitButton>
           </div>
         </div>
@@ -578,6 +825,7 @@ function FichaForm({
     GravarClienteResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
@@ -592,20 +840,23 @@ function FichaForm({
       </div>
 
       <label className={labelClass} htmlFor={`notas-${cliente.id}`}>
-        Notas
+        {t("Notas")}
         <textarea
-          className="min-h-20 rounded-2xl border border-border-strong bg-surface px-3 py-2 text-sm outline-none transition focus:border-foreground"
+          className="min-h-20 rounded-2xl border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-foreground"
           defaultValue={cliente.notas ?? ""}
           id={`notas-${cliente.id}`}
           maxLength={4000}
           name="notas"
-          placeholder="Preferências, o que correu bem ou mal."
+          placeholder={t("Preferências, o que deu certo ou errado.")}
         />
       </label>
 
       <div className="flex items-center gap-3">
-        <FormSubmitButton className={botaoDiscreto} pendingLabel="A gravar...">
-          Gravar ficha
+        <FormSubmitButton
+          className={botaoDiscreto}
+          pendingLabel={t("Salvando...")}
+        >
+          {t("Salvar ficha")}
         </FormSubmitButton>
         <Mensagem resultado={resultado} />
       </div>
@@ -646,6 +897,7 @@ function ServicoNaFichaForm({
     GravarClienteResultado | null,
     FormData
   >(action, null);
+  const { locale, t } = useIdioma();
   const jaRegistados = resultado?.jaRegistados ?? [];
 
   if (servicos.length === 0) {
@@ -667,38 +919,42 @@ function ServicoNaFichaForm({
       <div className="flex items-center gap-3">
         <FormSubmitButton
           className={botaoDiscreto}
-          pendingLabel="A registar..."
+          pendingLabel={t("Registrando...")}
         >
-          Registar serviço
+          {t("Registrar serviço")}
         </FormSubmitButton>
         <Mensagem resultado={resultado} />
       </div>
 
       {jaRegistados.length > 0 ? (
-        <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-900">
-          <p className="font-semibold">{cliente.nome} já tem isto registado:</p>
+        <div className="rounded-xl bg-warning-soft px-3 py-3 text-xs text-warning">
+          <p className="font-semibold">
+            {t("{nome} já tem isto registrado:", { nome: cliente.nome })}
+          </p>
           <ul className="mt-2 flex flex-col gap-1">
             {jaRegistados.map((linha) => (
               <li key={linha.id}>
-                {formatDayInTimezone(linha.dataInicio, timeZone)} ·{" "}
-                {linha.nome ?? "serviço não registado"} ·{" "}
-                {linha.valor === null ? "—" : formatMoeda(linha.valor, moeda)}
-                {linha.estado === "cancelada" ? " · cancelada" : ""}
+                {formatarDia(linha.dataInicio, timeZone, locale)} ·{" "}
+                {linha.nome ?? t("serviço não registrado")} ·{" "}
+                {linha.valor === null
+                  ? "—"
+                  : formatMoeda(linha.valor, moeda, locale)}
+                {linha.estado === "cancelada" ? ` · ${t("cancelada")}` : ""}
               </li>
             ))}
           </ul>
           <p className="mt-2">
-            Se o serviço que estás a registar já está nesta lista, cancela — ele
-            conta duas vezes para o total gasto e o número deixa de valer. Se é
-            mesmo mais um, continua.
+            {t(
+              "Se o serviço que você está registrando já está nesta lista, cancele — ele conta duas vezes para o total gasto e o número deixa de valer. Se é mesmo mais um, continue.",
+            )}
           </p>
           <div className="mt-3">
             <input name="confirmado" type="hidden" value="sim" />
             <FormSubmitButton
               className={botaoDiscreto}
-              pendingLabel="A registar..."
+              pendingLabel={t("Registrando...")}
             >
-              Registar mesmo assim
+              {t("Registrar mesmo assim")}
             </FormSubmitButton>
           </div>
         </div>
@@ -718,8 +974,11 @@ function ServicoNaFichaForm({
  * contaminar a primeira.
  */
 function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
-  const capturada = getOrigemCapturadaLabel(cliente.origemCapturada);
-  const manual = getCanalLabel(cliente.origemManual);
+  const { t } = useIdioma();
+  const capturadaBruta = getOrigemCapturadaLabel(cliente.origemCapturada);
+  const manualBruto = getCanalLabel(cliente.origemManual);
+  const capturada = capturadaBruta ? t(capturadaBruta) : null;
+  const manual = manualBruto ? t(manualBruto) : null;
   const anuncio = cliente.anuncio;
 
   if (!capturada && !manual && !anuncio) {
@@ -730,16 +989,20 @@ function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {capturada ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-medium text-emerald-800">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-positive/20 bg-positive-soft px-2.5 py-1 font-medium text-positive">
             {capturada}
-            <span className="font-normal text-emerald-700/80">confirmado</span>
+            <span className="font-normal text-positive/80">
+              {t("confirmado")}
+            </span>
           </span>
         ) : null}
         {manual ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-medium text-muted-foreground">
             {manual}
             {cliente.origemManualNota ? ` · ${cliente.origemManualNota}` : ""}
-            <span className="font-normal text-muted-foreground">indicado</span>
+            <span className="font-normal text-muted-foreground">
+              {t("indicado")}
+            </span>
           </span>
         ) : null}
       </div>
@@ -751,19 +1014,19 @@ function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
         redonda ficavam cortados logo no primeiro.
       */}
       {anuncio ? (
-        <dl className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-xs">
+        <dl className="rounded-lg border border-positive/20 bg-positive-soft px-3 py-2 text-xs">
           {[
-            { rotulo: "Campanha", valor: anuncio.campanhaNome },
-            { rotulo: "Conjunto", valor: anuncio.conjuntoNome },
-            { rotulo: "Criativo", valor: anuncio.criativoNome },
+            { rotulo: t("Campanha"), valor: anuncio.campanhaNome },
+            { rotulo: t("Conjunto"), valor: anuncio.conjuntoNome },
+            { rotulo: t("Criativo"), valor: anuncio.criativoNome },
           ]
             .filter((linha) => linha.valor)
             .map((linha) => (
               <div className="flex gap-2 py-0.5" key={linha.rotulo}>
-                <dt className="w-20 shrink-0 text-emerald-700/80">
+                <dt className="w-20 shrink-0 text-positive/80">
                   {linha.rotulo}
                 </dt>
-                <dd className="min-w-0 font-medium break-words text-emerald-900">
+                <dd className="min-w-0 font-medium break-words text-foreground">
                   {linha.valor}
                 </dd>
               </div>
@@ -782,12 +1045,13 @@ function CamposEmLeitura({
   cliente: ClienteLinha;
   mostrarViatura: boolean;
 }) {
+  const { t } = useIdioma();
   const linhas = [
-    { rotulo: "Email", valor: cliente.email },
-    { rotulo: "Endereço", valor: cliente.morada },
-    ...(mostrarViatura ? [{ rotulo: "Carro", valor: cliente.viatura }] : []),
+    { rotulo: t("E-mail"), valor: cliente.email },
+    { rotulo: t("Endereço"), valor: cliente.morada },
+    ...(mostrarViatura ? [{ rotulo: t("Carro"), valor: cliente.viatura }] : []),
     {
-      rotulo: "Idade",
+      rotulo: t("Idade"),
       valor: cliente.idade === null ? null : String(cliente.idade),
     },
   ].filter((linha) => linha.valor);
@@ -830,6 +1094,8 @@ function OpcaoDeJuntar({
   mesmoNumero: boolean;
   outro: ClienteLinha;
 }) {
+  const { t } = useIdioma();
+
   return (
     <button
       className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-left transition hover:border-border-strong hover:bg-surface"
@@ -845,8 +1111,8 @@ function OpcaoDeJuntar({
         </span>
       </span>
       {mesmoNumero ? (
-        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
-          mesmo número
+        <span className="ds-selo ds-selo-alerta shrink-0">
+          {t("mesmo número")}
         </span>
       ) : null}
     </button>
@@ -877,6 +1143,7 @@ function JuntarForm({
     GravarClienteResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
   const [procura, setProcura] = useState("");
   const [escolhido, setEscolhido] = useState<ClienteLinha | null>(null);
 
@@ -915,7 +1182,7 @@ function JuntarForm({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs font-semibold text-muted-foreground">
-        Juntar a outro contacto
+        {t("Juntar a outro contato")}
       </p>
 
       {escolhido ? (
@@ -924,26 +1191,32 @@ function JuntarForm({
           <input name="principal_id" type="hidden" value={escolhido.id} />
 
           <p className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-semibold">{cliente.nome}</span> passa a
-            aparecer dentro da ficha de{" "}
-            <span className="font-semibold">{escolhido.nome}</span> ·{" "}
-            {escolhido.telefone}
+            {comNos(t("{nome} passa a aparecer dentro da ficha de {principal}"), {
+              nome: <span className="font-semibold">{cliente.nome}</span>,
+              principal: (
+                <span className="font-semibold">{escolhido.nome}</span>
+              ),
+            })}{" "}
+            · {escolhido.telefone}
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
             <ConfirmSubmitButton
               className={botaoDiscreto}
-              confirmMessage={`Juntar "${cliente.nome}" a "${escolhido.nome}"? Esta ficha deixa de aparecer sozinha. Pode ser desfeito.`}
-              pendingLabel="A juntar..."
+              confirmMessage={t(
+                'Juntar "{nome}" a "{principal}"? Esta ficha deixa de aparecer sozinha. Pode ser desfeito.',
+                { nome: cliente.nome, principal: escolhido.nome },
+              )}
+              pendingLabel={t("Juntando...")}
             >
-              Juntar
+              {t("Juntar")}
             </ConfirmSubmitButton>
             <button
               className={botaoDiscreto}
               onClick={() => setEscolhido(null)}
               type="button"
             >
-              Escolher outro
+              {t("Escolher outro")}
             </button>
             <Mensagem resultado={resultado} />
           </div>
@@ -952,10 +1225,14 @@ function JuntarForm({
         <>
           {sugeridos.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <p className="text-xs text-amber-900">
+              <p className="text-xs text-warning">
                 {sugeridos.length === 1
-                  ? "Há um contacto com este mesmo número. É quase de certeza a mesma pessoa."
-                  : `Há ${sugeridos.length} contactos com este mesmo número.`}
+                  ? t(
+                      "Há um contato com este mesmo número. É quase certeza que é a mesma pessoa.",
+                    )
+                  : t("Há {n} contatos com este mesmo número.", {
+                      n: sugeridos.length,
+                    })}
               </p>
               {sugeridos.map((outro) => (
                 <OpcaoDeJuntar
@@ -969,10 +1246,10 @@ function JuntarForm({
           ) : null}
 
           <input
-            aria-label="Procurar o contacto principal"
+            aria-label={t("Buscar o contato principal")}
             className={`${inputClass} w-full`}
             onChange={(evento) => setProcura(evento.target.value)}
-            placeholder="Procurar por nome ou número..."
+            placeholder={t("Buscar por nome ou número...")}
             type="search"
             value={procura}
           />
@@ -980,7 +1257,7 @@ function JuntarForm({
           {procura.trim() !== "" ? (
             encontrados.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                Nenhum contacto corresponde a essa procura.
+                {t("Nenhum contato corresponde a essa busca.")}
               </p>
             ) : (
               <div className="flex flex-col gap-1.5">
@@ -1016,12 +1293,16 @@ function SepararForm({
     GravarClienteResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <input name="duplicado_id" type="hidden" value={duplicadoId} />
-      <FormSubmitButton className={botaoDiscreto} pendingLabel="A separar...">
-        Separar
+      <FormSubmitButton
+        className={botaoDiscreto}
+        pendingLabel={t("Separando...")}
+      >
+        {t("Separar")}
       </FormSubmitButton>
       <Mensagem resultado={resultado} />
     </form>
@@ -1044,6 +1325,7 @@ function LinhaDoCliente({
   moeda: string;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
   const dias = diasDesde(cliente.mensagemUltima);
 
   return (
@@ -1061,19 +1343,19 @@ function LinhaDoCliente({
             {cliente.nome}
           </span>
           {marcada ? (
-            <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
-              duplicado
+            <span className="ds-selo ds-selo-alerta shrink-0">
+              {t("duplicado")}
             </span>
           ) : null}
           {cliente.juntos.length > 0 ? (
-            <span className="shrink-0 rounded-full bg-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-              +{cliente.juntos.length} junto
+            <span className="ds-selo ds-selo-neutro shrink-0">
+              {t("+{n} junto", { n: cliente.juntos.length })}
             </span>
           ) : null}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground sm:hidden">
           {cliente.telefone} ·{" "}
-          {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
+          {formatarDia(cliente.mensagemUltima, timeZone, locale)}
         </span>
       </span>
 
@@ -1082,18 +1364,22 @@ function LinhaDoCliente({
       </span>
 
       <span className="hidden text-xs text-muted-foreground sm:block">
-        {dias === null ? "—" : `há ${dias} ${dias === 1 ? "dia" : "dias"}`}
+        {dias === null
+          ? "—"
+          : dias === 1
+            ? t("há 1 dia")
+            : t("há {n} dias", { n: dias })}
       </span>
 
       <span className="hidden text-xs text-muted-foreground sm:block">
-        {cliente.mensagens} msg
+        {t("{n} msg", { n: cliente.mensagens })}
       </span>
 
       <span className="flex shrink-0 items-center justify-end gap-2">
         <span className="text-sm font-semibold text-foreground">
           {cliente.totalGasto === null
             ? "—"
-            : formatMoeda(cliente.totalGasto, moeda)}
+            : formatMoeda(cliente.totalGasto, moeda, locale)}
         </span>
         {/*
           A seta é o que diz que a linha abre — e, virada ao contrário, que
@@ -1150,6 +1436,8 @@ function FichaDoCliente({
   servicos: ServicoOpcao[];
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
+
   return (
     <div className="flex flex-col gap-4 border-t border-border bg-surface-muted px-4 py-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -1163,7 +1451,7 @@ function FichaDoCliente({
             rel="noreferrer noopener"
             target="_blank"
           >
-            Abrir no WhatsApp
+            {t("Abrir no WhatsApp")}
           </a>
         ) : null}
         {/*
@@ -1174,34 +1462,34 @@ function FichaDoCliente({
           conversa pedida mesmo que a última mensagem seja de há meses.
         */}
         <Link
-          className="inline-flex min-h-9 items-center rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+          className="ds-botao ds-botao-primario"
           href={buildAppConversationHref(cliente.identificadorConversa, null)}
         >
-          Ir para a conversa na plataforma
+          {t("Ir para a conversa na plataforma")}
         </Link>
       </div>
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
         <div>
-          <dt className="text-muted-foreground">Última mensagem</dt>
+          <dt className="text-muted-foreground">{t("Última mensagem")}</dt>
           <dd className="mt-0.5 text-sm font-semibold text-foreground">
-            {formatDayInTimezone(cliente.mensagemUltima, timeZone)}
+            {formatarDia(cliente.mensagemUltima, timeZone, locale)}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Mensagens</dt>
+          <dt className="text-muted-foreground">{t("Mensagens")}</dt>
           <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {cliente.mensagens}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Primeiro contacto</dt>
+          <dt className="text-muted-foreground">{t("Primeiro contato")}</dt>
           <dd className="mt-0.5 text-sm font-semibold text-foreground">
-            {formatDayInTimezone(cliente.primeiroContactoEm, timeZone)}
+            {formatarDia(cliente.primeiroContactoEm, timeZone, locale)}
           </dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Marcações</dt>
+          <dt className="text-muted-foreground">{t("Agendamentos")}</dt>
           <dd className="mt-0.5 text-sm font-semibold text-foreground">
             {cliente.totalGasto === null ? "—" : cliente.historico.length}
           </dd>
@@ -1221,16 +1509,20 @@ function FichaDoCliente({
       )}
 
       <div>
-        <p className="text-xs font-semibold text-muted-foreground">Histórico</p>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {t("Histórico")}
+        </p>
         {cliente.totalGasto === null ? (
           <p className="mt-2 text-xs text-muted-foreground">
-            As marcações vivem na base de dados do cliente e ela não está ligada
-            neste ambiente.
+            {t(
+              "Os agendamentos ficam no banco de dados do cliente, e ele não está conectado neste ambiente.",
+            )}
           </p>
         ) : cliente.historico.length === 0 ? (
           <p className="mt-2 text-xs text-muted-foreground">
-            Nunca marcou nada. Falou com o agente mas não fechou — é exactamente
-            quem vale a pena voltar a contactar.
+            {t(
+              "Nunca agendou nada. Falou com o agente mas não fechou — é exatamente quem vale a pena contatar de novo.",
+            )}
           </p>
         ) : (
           <ul className="mt-2">
@@ -1240,12 +1532,12 @@ function FichaDoCliente({
                 key={linha.id}
               >
                 <span className="text-xs text-muted-foreground">
-                  {formatDayInTimezone(linha.dataInicio, timeZone)}
+                  {formatarDia(linha.dataInicio, timeZone, locale)}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                  {linha.servico ?? "serviço não registado"}
+                  {linha.servico ?? t("serviço não registrado")}
                   {linha.viatura ? ` · ${linha.viatura}` : ""}
-                  {linha.estado === "cancelada" ? " · cancelada" : ""}
+                  {linha.estado === "cancelada" ? ` · ${t("cancelada")}` : ""}
                 </span>
                 <span
                   className={`text-xs font-semibold ${
@@ -1254,7 +1546,9 @@ function FichaDoCliente({
                       : "text-foreground"
                   }`}
                 >
-                  {linha.valor === null ? "—" : formatMoeda(linha.valor, moeda)}
+                  {linha.valor === null
+                    ? "—"
+                    : formatMoeda(linha.valor, moeda, locale)}
                 </span>
               </li>
             ))}
@@ -1284,7 +1578,7 @@ function FichaDoCliente({
       {cliente.juntos.length > 0 ? (
         <div>
           <p className="text-xs font-semibold text-muted-foreground">
-            Contactos juntos a este
+            {t("Contatos juntos a este")}
           </p>
           <ul className="mt-2 flex flex-col gap-2">
             {cliente.juntos.map((junto) => (
@@ -1316,7 +1610,7 @@ function FichaDoCliente({
       */}
       <div>
         <button
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border-strong bg-surface px-4 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted"
+          className="ds-botao ds-botao-secundario"
           onClick={aoFechar}
           type="button"
         >
@@ -1330,7 +1624,7 @@ function FichaDoCliente({
               strokeWidth="1.8"
             />
           </svg>
-          Fechar ficha
+          {t("Fechar ficha")}
         </button>
       </div>
     </div>
@@ -1380,6 +1674,7 @@ export function ClientesPanel({
    */
   timeZone: string;
 }) {
+  const { t } = useIdioma();
   const [procura, setProcura] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [pagina, setPagina] = useState(0);
@@ -1452,8 +1747,8 @@ export function ClientesPanel({
   }
 
   const chips: { contagem: number; id: Filtro; rotulo: string }[] = [
-    { contagem: clientes.length, id: "todos", rotulo: "Todos" },
-    { contagem: duplicados.size, id: "duplicados", rotulo: "Duplicados" },
+    { contagem: clientes.length, id: "todos", rotulo: t("Todos") },
+    { contagem: duplicados.size, id: "duplicados", rotulo: t("Duplicados") },
     {
       contagem: clientes.filter((cliente) => {
         const dias = diasDesde(cliente.mensagemUltima);
@@ -1461,12 +1756,12 @@ export function ClientesPanel({
         return dias === null || dias >= diasParaParado;
       }).length,
       id: "parados",
-      rotulo: `Sem falar há ${diasParaParado}+ dias`,
+      rotulo: t("Sem falar há {n}+ dias", { n: diasParaParado }),
     },
     {
       contagem: clientes.filter((cliente) => !cliente.notas).length,
       id: "semNotas",
-      rotulo: "Sem notas",
+      rotulo: t("Sem notas"),
     },
   ];
 
@@ -1475,22 +1770,22 @@ export function ClientesPanel({
       {podeEditar ? (
         <div className={cartao}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <SeccaoTitulo>Novo cliente</SeccaoTitulo>
+            <SeccaoTitulo>{t("Novo cliente")}</SeccaoTitulo>
             <button
               className={botaoDiscreto}
               onClick={() => setACriar((anterior) => !anterior)}
               type="button"
             >
-              {aCriar ? "Fechar" : "Criar cliente"}
+              {aCriar ? t("Fechar") : t("Criar cliente")}
             </button>
           </div>
 
           {aCriar ? (
             <>
               <p className="mt-3 text-xs text-muted-foreground">
-                Fica no WhatsApp. É o único canal onde o número é também o
-                identificador da conversa, por isso o contacto liga-se à
-                conversa real assim que a pessoa escrever.
+                {t(
+                  "Fica no WhatsApp. É o único canal onde o número é também o identificador da conversa, por isso o contato se liga à conversa real assim que a pessoa escrever.",
+                )}
               </p>
               <div className="mt-3">
                 <CriarClienteForm
@@ -1508,16 +1803,25 @@ export function ClientesPanel({
 
       {duplicados.size > 0 && filtro !== "duplicados" ? (
         <button
-          className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-left text-xs text-amber-900 transition hover:bg-amber-100"
+          className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-soft px-4 py-3 text-left text-xs text-warning transition hover:brightness-95"
           onClick={() => mudarFiltro("duplicados")}
           type="button"
         >
           <span>
-            <span className="font-semibold">{duplicados.size} contactos</span>{" "}
-            partilham o número com outro. São a mesma pessoa duas vezes, porque
-            a Meta entregou o número em dois formatos.
+            {comNos(
+              t(
+                "{contatos} compartilham o número com outro. São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos.",
+              ),
+              {
+                contatos: (
+                  <span className="font-semibold">
+                    {t("{n} contatos", { n: duplicados.size })}
+                  </span>
+                ),
+              },
+            )}
           </span>
-          <span className="font-semibold underline">Ver só esses</span>
+          <span className="font-semibold underline">{t("Ver só esses")}</span>
         </button>
       ) : null}
 
@@ -1527,7 +1831,7 @@ export function ClientesPanel({
             className={`${labelClass} min-w-64 flex-1`}
             htmlFor="procurar-cliente"
           >
-            Procurar por nome ou número
+            {t("Buscar por nome ou número")}
             <input
               className={`${inputClass} w-full`}
               id="procurar-cliente"
@@ -1535,13 +1839,16 @@ export function ClientesPanel({
                 setProcura(evento.target.value);
                 setPagina(0);
               }}
-              placeholder="ex.: Martim, ou 912345678"
+              placeholder={t("ex.: Martim, ou 912345678")}
               type="search"
               value={procura}
             />
           </label>
           <p className="text-xs text-muted-foreground">
-            {filtrados.length} de {clientes.length} clientes
+            {t("{n} de {total} clientes", {
+              n: filtrados.length,
+              total: clientes.length,
+            })}
           </p>
           {/*
             Ao lado da contagem de propósito. O botão exporta `filtrados` — o
@@ -1556,14 +1863,10 @@ export function ClientesPanel({
           />
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="ds-trilho mt-3 max-w-full flex-wrap">
           {chips.map((chip) => (
             <button
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                filtro === chip.id
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border-strong bg-surface text-muted-foreground hover:border-border-strong"
-              }`}
+              aria-pressed={filtro === chip.id}
               key={chip.id}
               onClick={() => mudarFiltro(chip.id)}
               type="button"
@@ -1575,10 +1878,10 @@ export function ClientesPanel({
       </div>
 
       {!historicoLigado ? (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          O histórico de marcações não está disponível: faltam as credenciais da
-          base de dados deste cliente neste ambiente. Os nomes, números e notas
-          aparecem; os valores não.
+        <p className="rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning">
+          {t(
+            "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.",
+          )}
         </p>
       ) : null}
 
@@ -1586,18 +1889,18 @@ export function ClientesPanel({
         <div className={cartao}>
           <p className="text-sm text-muted-foreground">
             {clientes.length === 0
-              ? "Ainda não há clientes com nome e número de telefone."
-              : "Nenhum cliente corresponde a essa procura."}
+              ? t("Ainda não há clientes com nome e número de telefone.")
+              : t("Nenhum cliente corresponde a essa busca.")}
           </p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] gap-x-4 border-b border-border bg-surface-muted px-4 py-2 text-[11px] font-semibold text-muted-foreground sm:grid">
-            <span>Nome</span>
-            <span>Telefone</span>
-            <span>Última mensagem</span>
-            <span>Mensagens</span>
-            <span className="text-right">Gasto</span>
+            <span>{t("Nome")}</span>
+            <span>{t("Telefone")}</span>
+            <span>{t("Última mensagem")}</span>
+            <span>{t("Mensagens")}</span>
+            <span className="text-right">{t("Gasto")}</span>
           </div>
 
           <ul>
@@ -1648,10 +1951,13 @@ export function ClientesPanel({
                 onClick={() => setPagina(paginaActual - 1)}
                 type="button"
               >
-                Anterior
+                {t("Anterior")}
               </button>
               <span className="text-xs text-muted-foreground">
-                Página {paginaActual + 1} de {paginas}
+                {t("Página {n} de {total}", {
+                  n: paginaActual + 1,
+                  total: paginas,
+                })}
               </span>
               <button
                 className={botaoDiscreto}
@@ -1659,7 +1965,7 @@ export function ClientesPanel({
                 onClick={() => setPagina(paginaActual + 1)}
                 type="button"
               >
-                Seguinte
+                {t("Próxima")}
               </button>
             </div>
           ) : null}
@@ -1668,22 +1974,34 @@ export function ClientesPanel({
 
       {deFora.semTelefoneReal + deFora.semNome > 0 ? (
         <div className={cartao}>
-          <SeccaoTitulo>Contactos que não entram na lista</SeccaoTitulo>
+          <SeccaoTitulo>{t("Contatos que não entram na lista")}</SeccaoTitulo>
           <ul className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
             {deFora.semTelefoneReal > 0 ? (
               <li>
-                <span className="font-semibold">{deFora.semTelefoneReal}</span>{" "}
-                sem número de telefone utilizável. São quase todos de Instagram
-                e Messenger: nesses canais a Meta não dá o telemóvel, dá um
-                identificador interno. Quem marcou por lá deu o número ao
-                agente, e esse número está na marcação — não no contacto.
+                {comNos(
+                  t(
+                    "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.",
+                  ),
+                  {
+                    n: (
+                      <span className="font-semibold">
+                        {deFora.semTelefoneReal}
+                      </span>
+                    ),
+                  },
+                )}
               </li>
             ) : null}
             {deFora.semNome > 0 ? (
               <li>
-                <span className="font-semibold">{deFora.semNome}</span> com
-                número mas sem nome: a conversa não chegou ao ponto de o agente
-                perguntar como a pessoa se chama.
+                {comNos(
+                  t(
+                    "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.",
+                  ),
+                  {
+                    n: <span className="font-semibold">{deFora.semNome}</span>,
+                  },
+                )}
               </li>
             ) : null}
           </ul>

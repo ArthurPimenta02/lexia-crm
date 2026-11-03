@@ -42,8 +42,12 @@ export function eIdioma(valor: unknown): valor is Idioma {
 }
 
 /**
- * Primeira visita, sem escolha feita: usa a língua do navegador.
- * `pt` sem região conta como Brasil, que é a maioria dos clientes.
+ * Primeira visita, sem escolha feita: só se decide entre os dois portugueses.
+ *
+ * Espanhol e inglês ficam por escolha no seletor. Os clientes que já usam o
+ * painel liam-no em português; se o idioma seguisse o navegador, quem tem o
+ * computador em inglês acordava um dia com o painel em inglês sem ter pedido.
+ * Quem pede pt-PT recebe pt-PT; todo o resto começa em pt-BR.
  */
 export function idiomaDoNavegador(acceptLanguage: string | null | undefined): Idioma {
   if (!acceptLanguage) return IDIOMA_PADRAO;
@@ -56,11 +60,6 @@ export function idiomaDoNavegador(acceptLanguage: string | null | undefined): Id
     .filter((p) => p.tag && !Number.isNaN(p.q))
     .sort((a, b) => b.q - a.q);
 
-  for (const { tag } of pedidos) {
-    if (tag === "pt-pt") return "pt-PT";
-    if (tag.startsWith("pt")) return "pt-BR";
-    if (tag.startsWith("es")) return "es";
-    if (tag.startsWith("en")) return "en";
-  }
-  return IDIOMA_PADRAO;
+  const primeiroPortugues = pedidos.find((p) => p.tag.startsWith("pt"));
+  return primeiroPortugues?.tag === "pt-pt" ? "pt-PT" : IDIOMA_PADRAO;
 }

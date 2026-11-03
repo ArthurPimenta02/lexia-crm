@@ -9,6 +9,7 @@ import {
   type MarcarAction,
 } from "@/app/components/agenda-marcar";
 import { BotaoExportar } from "@/app/components/botao-exportar";
+import { useIdioma } from "@/app/components/idioma";
 import type {
   AgendaResultado,
   DiaAgenda,
@@ -16,6 +17,7 @@ import type {
 } from "@/lib/agenda/read";
 import type { ContactoParaEscolha } from "@/lib/clientes/read";
 import { colunasDaAgenda } from "@/lib/exportar/colunas";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import type { ServicoAgendavel } from "@/lib/servicos/read";
 
 /**
@@ -98,24 +100,26 @@ import type { ServicoAgendavel } from "@/lib/servicos/read";
  * abrisse um painel por cima da grelha não é nada que se queira guardar.
  */
 
-const diaDaSemanaFormatter = new Intl.DateTimeFormat("pt-PT", {
-  timeZone: "UTC",
-  weekday: "short",
-});
+/*
+ * Os nomes dos dias e dos meses vêm do `Intl` no idioma de quem está a ver, e
+ * não de listas escritas à mão: assim "segunda", "lunes" e "Monday" saem do
+ * mesmo código.
+ */
+const diaDoMes = (chave: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "UTC",
+  }).format(lerDia(chave));
 
-const diaDoMesFormatter = new Intl.DateTimeFormat("pt-PT", {
-  day: "2-digit",
-  month: "2-digit",
-  timeZone: "UTC",
-});
-
-const dataLongaFormatter = new Intl.DateTimeFormat("pt-PT", {
-  day: "numeric",
-  month: "long",
-  timeZone: "UTC",
-  weekday: "long",
-  year: "numeric",
-});
+const dataLonga = (chave: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    weekday: "long",
+    year: "numeric",
+  }).format(lerDia(chave));
 
 /**
  * O dia já vem como `AAAA-MM-DD` calculado no fuso do cliente, por isso
@@ -128,43 +132,47 @@ function lerDia(chave: string) {
   return new Date(Date.UTC(ano, mes - 1, dia));
 }
 
-const diaDaSemana = (chave: string) =>
-  diaDaSemanaFormatter.format(lerDia(chave)).replace(".", "");
+const diaDaSemana = (chave: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { timeZone: "UTC", weekday: "short" })
+    .format(lerDia(chave))
+    .replace(".", "");
 
-const mesEAno = (d: Date) =>
-  new Intl.DateTimeFormat("pt-PT", {
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(d);
-
-function rotuloDoPeriodo(agenda: AgendaResultado) {
+function rotuloDoPeriodo(agenda: AgendaResultado, locale: string) {
   const inicio = lerDia(agenda.inicio);
 
   if (agenda.vista === "mes") {
-    return mesEAno(inicio);
+    return new Intl.DateTimeFormat(locale, {
+      month: "long",
+      timeZone: "UTC",
+      year: "numeric",
+    }).format(inicio);
   }
 
   const fim = new Date(inicio.getTime() + 6 * 24 * 60 * 60 * 1000);
-  const mesmoMes = inicio.getUTCMonth() === fim.getUTCMonth();
 
-  const dia = (d: Date) =>
-    new Intl.DateTimeFormat("pt-PT", {
-      day: "numeric",
-      month: mesmoMes ? undefined : "short",
-      timeZone: "UTC",
-    }).format(d);
-
-  return `${dia(inicio)} – ${dia(fim)} de ${mesEAno(fim)}`;
+  // O `formatRange` junta as duas pontas como cada língua as junta — "3 – 9
+  // de novembro de 2026", "November 3 – 9, 2026" — e só repete o mês quando
+  // a semana passa de um para o outro.
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).formatRange(inicio, fim);
 }
 
-function horas(evento: EventoAgenda, timeZone: string) {
+function horas(
+  evento: EventoAgenda,
+  timeZone: string,
+  locale: string,
+  t: FuncaoT,
+) {
   if (evento.diaInteiro) {
-    return "Dia todo";
+    return t("Dia inteiro");
   }
 
   const formatar = (valor: string) =>
-    new Intl.DateTimeFormat("pt-PT", {
+    new Intl.DateTimeFormat(locale, {
       hour: "2-digit",
       hour12: false,
       minute: "2-digit",
@@ -244,29 +252,32 @@ function usePainel(fechar: () => void, aoCimo: boolean) {
   }, []);
 }
 
-function resumoDoDia(dia: DiaAgenda) {
+function resumoDoDia(dia: DiaAgenda, t: FuncaoT) {
   if (dia.eventos.length === 0) {
-    return "Nada marcado neste dia.";
+    return t("Nada agendado neste dia.");
   }
 
   const doAgente = dia.eventos.filter(
     (evento) => evento.origem === "agente",
   ).length;
 
-  return `${dia.eventos.length} ${
-    dia.eventos.length === 1 ? "marcação" : "marcações"
-  }, ${doAgente} pelo agente.`;
+  return dia.eventos.length === 1
+    ? t("1 agendamento, {agente} pelo agente.", { agente: doAgente })
+    : t("{n} agendamentos, {agente} pelo agente.", {
+        agente: doAgente,
+        n: dia.eventos.length,
+      });
 }
 
 /**
  * Um evento do agente traz nome e serviço em colunas próprias; um escrito à
  * mão só tem o título, que é o que a pessoa calhou de escrever no Google.
  */
-const tituloDoEvento = (evento: EventoAgenda) =>
-  evento.nomeCliente ?? evento.titulo ?? "Sem título";
+const tituloDoEvento = (evento: EventoAgenda, t: FuncaoT) =>
+  evento.nomeCliente ?? evento.titulo ?? t("Sem título");
 
-const dinheiro = (valor: number, moeda: string) =>
-  new Intl.NumberFormat("pt-PT", {
+const dinheiro = (valor: number, moeda: string, locale: string) =>
+  new Intl.NumberFormat(locale, {
     currency: moeda,
     maximumFractionDigits: 0,
     style: "currency",
@@ -285,8 +296,9 @@ function Evento({
   moeda: string | null;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
   const doAgente = evento.origem === "agente";
-  const titulo = tituloDoEvento(evento);
+  const titulo = tituloDoEvento(evento, t);
 
   return (
     // O cartão abre o painel do evento em vez de ir direito ao Google. O que
@@ -301,16 +313,14 @@ function Evento({
     >
       <div className="flex items-baseline justify-between gap-2">
         <p className="shrink-0 text-xs font-semibold text-foreground tabular-nums">
-          {horas(evento, timeZone)}
+          {horas(evento, timeZone, locale, t)}
         </p>
         <span
-          className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-            doAgente
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+          className={`ds-selo shrink-0 ${
+            doAgente ? "ds-selo-escuro" : "ds-selo-neutro"
           }`}
         >
-          {doAgente ? "Agente" : "À mão"}
+          {doAgente ? t("Agente") : t("Manual")}
         </span>
       </div>
 
@@ -322,7 +332,7 @@ function Evento({
         <p className="mt-0.5 truncate text-xs text-muted-foreground">
           {evento.servico}
           {evento.valorPrevisto !== null && moeda
-            ? ` · ${dinheiro(evento.valorPrevisto, moeda)}`
+            ? ` · ${dinheiro(evento.valorPrevisto, moeda, locale)}`
             : ""}
         </p>
       ) : null}
@@ -357,10 +367,11 @@ function EventoCompacto({
   evento: EventoAgenda;
   timeZone: string;
 }) {
-  const titulo = tituloDoEvento(evento);
+  const { locale, t } = useIdioma();
+  const titulo = tituloDoEvento(evento, t);
   const hora = evento.diaInteiro
     ? null
-    : new Intl.DateTimeFormat("pt-PT", {
+    : new Intl.DateTimeFormat(locale, {
         hour: "2-digit",
         hour12: false,
         minute: "2-digit",
@@ -404,10 +415,8 @@ function Botao({
     <Link
       aria-current={activo ? "page" : undefined}
       aria-label={titulo}
-      className={`inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-3.5 text-sm font-semibold transition sm:h-9 ${
-        activo
-          ? "border-foreground bg-primary text-primary-foreground"
-          : "border-border bg-surface text-muted-foreground hover:border-border-strong"
+      className={`ds-botao min-w-10 ${
+        activo ? "ds-botao-primario" : "ds-botao-secundario"
       }`}
       href={href}
       title={titulo}
@@ -455,11 +464,13 @@ function PainelDeMarcar({
   moeda: string | null;
   timeZone: string;
 }) {
+  const { t } = useIdioma();
+
   usePainel(fechar, true);
 
   return (
     <div
-      aria-label="Marcar atendimento"
+      aria-label={t("Agendar atendimento")}
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-6"
       onClick={fechar}
@@ -514,6 +525,7 @@ function PainelDoDia({
   temEventoPorCima: boolean;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
   const [aMarcar, setAMarcar] = useState(false);
 
   usePainel(fechar, !temEventoPorCima);
@@ -546,15 +558,15 @@ function PainelDoDia({
               className="text-base leading-tight font-semibold text-foreground first-letter:uppercase"
               id="titulo-do-dia"
             >
-              {dataLongaFormatter.format(lerDia(dia.chave))}
+              {dataLonga(dia.chave, locale)}
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {resumoDoDia(dia)}
+              {resumoDoDia(dia, t)}
             </p>
           </div>
 
           <button
-            aria-label="Fechar"
+            aria-label={t("Fechar")}
             autoFocus
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
             onClick={fechar}
@@ -579,7 +591,7 @@ function PainelDoDia({
 
           {dia.eventos.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-3 py-10 text-center text-sm text-muted-foreground">
-              Dia livre.
+              {t("Dia livre.")}
             </p>
           ) : (
             dia.eventos.map((evento) => (
@@ -599,11 +611,11 @@ function PainelDoDia({
           <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border px-4 py-3 sm:px-5">
             {marcar && !aMarcar ? (
               <button
-                className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                className="ds-botao ds-botao-primario"
                 onClick={() => setAMarcar(true)}
                 type="button"
               >
-                Marcar atendimento
+                {t("Agendar atendimento")}
               </button>
             ) : null}
 
@@ -612,7 +624,7 @@ function PainelDoDia({
                 className="text-sm font-semibold text-foreground underline underline-offset-4"
                 href={linkDaSemana}
               >
-                Ver a semana deste dia
+                {t("Ver a semana deste dia")}
               </Link>
             ) : null}
           </div>
@@ -663,10 +675,12 @@ function PainelDoEvento({
   moeda: string | null;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
+
   usePainel(fechar, true);
 
   const doAgente = evento.origem === "agente";
-  const titulo = tituloDoEvento(evento);
+  const titulo = tituloDoEvento(evento, t);
 
   /*
    * A data lê-se do instante no fuso do cliente e não da chave do dia: este
@@ -674,7 +688,7 @@ function PainelDoEvento({
    * evento de dia inteiro está guardado à meia-noite local, por isso dá o
    * mesmo dia nos dois caminhos.
    */
-  const dataLonga = new Intl.DateTimeFormat("pt-PT", {
+  const dataDoEvento = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     timeZone,
@@ -723,13 +737,11 @@ function PainelDoEvento({
         <header className="flex shrink-0 items-start gap-3 border-b border-border px-4 py-4 sm:px-5">
           <div className="min-w-0 flex-1">
             <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                doAgente
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+              className={`ds-selo ${
+                doAgente ? "ds-selo-escuro" : "ds-selo-neutro"
               }`}
             >
-              {doAgente ? "Marcado pelo agente" : "Marcado à mão"}
+              {doAgente ? t("Agendado pelo agente") : t("Agendado manualmente")}
             </span>
 
             <h2
@@ -741,12 +753,12 @@ function PainelDoEvento({
 
             {/* `first-letter:uppercase` pela mesma razão do painel do dia. */}
             <p className="mt-0.5 text-xs text-muted-foreground first-letter:uppercase">
-              {dataLonga} · {horas(evento, timeZone)}
+              {dataDoEvento} · {horas(evento, timeZone, locale, t)}
             </p>
           </div>
 
           <button
-            aria-label="Fechar"
+            aria-label={t("Fechar")}
             autoFocus
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
             onClick={fechar}
@@ -760,19 +772,19 @@ function PainelDoEvento({
           {temDetalhe ? (
             <>
               {evento.servico ? (
-                <LinhaDoEvento rotulo="Serviço">
+                <LinhaDoEvento rotulo={t("Serviço")}>
                   {evento.servico}
                 </LinhaDoEvento>
               ) : null}
 
               {evento.valorPrevisto !== null && moeda ? (
-                <LinhaDoEvento rotulo="Valor previsto">
-                  {dinheiro(evento.valorPrevisto, moeda)}
+                <LinhaDoEvento rotulo={t("Valor previsto")}>
+                  {dinheiro(evento.valorPrevisto, moeda, locale)}
                 </LinhaDoEvento>
               ) : null}
 
               {evento.telefone ? (
-                <LinhaDoEvento rotulo="Telefone">
+                <LinhaDoEvento rotulo={t("Telefone")}>
                   {/*
                     Um `tel:` e não texto seco: ao telemóvel é daqui que se
                     liga a quem não apareceu, e é o único sítio do painel onde
@@ -789,7 +801,7 @@ function PainelDoEvento({
               ) : null}
 
               {evento.localizacao ? (
-                <LinhaDoEvento rotulo="Onde">
+                <LinhaDoEvento rotulo={t("Onde")}>
                   <span className="flex items-start gap-1.5">
                     <MapPin
                       aria-hidden="true"
@@ -801,21 +813,22 @@ function PainelDoEvento({
               ) : null}
 
               {evento.executor ? (
-                <LinhaDoEvento rotulo="Quem faz">
+                <LinhaDoEvento rotulo={t("Quem faz")}>
                   {nomeExecutor(evento.executor)}
                 </LinhaDoEvento>
               ) : null}
 
               {tituloNoGoogle ? (
-                <LinhaDoEvento rotulo="No Google">
+                <LinhaDoEvento rotulo={t("No Google")}>
                   {tituloNoGoogle}
                 </LinhaDoEvento>
               ) : null}
             </>
           ) : (
             <p className="px-1 py-6 text-sm text-muted-foreground">
-              Este evento foi escrito à mão no Google e não tem mais nada
-              guardado além da hora e do título.
+              {t(
+                "Este evento foi criado manualmente no Google e não tem mais nada salvo além da hora e do título.",
+              )}
             </p>
           )}
         </div>
@@ -833,7 +846,7 @@ function PainelDoEvento({
               target="_blank"
             >
               <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
-              Abrir no Google para alterar
+              {t("Abrir no Google para alterar")}
             </a>
           </div>
         ) : null}
@@ -851,6 +864,8 @@ function GrelhaMes({
   agenda: AgendaResultado;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
+
   return (
     <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
       {/*
@@ -863,7 +878,7 @@ function GrelhaMes({
           className="px-0.5 pb-1 text-center text-[10px] font-semibold tracking-wide text-muted-foreground uppercase sm:px-1 sm:text-left sm:text-[11px]"
           key={`cabecalho-${dia.chave}`}
         >
-          {diaDaSemana(dia.chave).slice(0, 3)}
+          {diaDaSemana(dia.chave, locale).slice(0, 3)}
         </p>
       ))}
 
@@ -882,9 +897,10 @@ function GrelhaMes({
             }`}
             key={dia.chave}
             onClick={() => abrirDia(dia.chave)}
-            title={`${diaDaSemana(dia.chave)}, ${diaDoMesFormatter.format(
-              lerDia(dia.chave),
-            )} — ${resumoDoDia(dia)}`}
+            title={`${diaDaSemana(dia.chave, locale)}, ${diaDoMes(
+              dia.chave,
+              locale,
+            )} — ${resumoDoDia(dia, t)}`}
             type="button"
           >
             <span
@@ -929,7 +945,7 @@ function GrelhaMes({
 
               {dia.eventos.length > visiveis.length ? (
                 <span className="px-1 text-left text-[11px] font-semibold text-muted-foreground">
-                  +{dia.eventos.length - visiveis.length} mais
+                  {t("+{n} mais", { n: dia.eventos.length - visiveis.length })}
                 </span>
               ) : null}
             </span>
@@ -955,6 +971,8 @@ function GrelhaSemana({
   moeda: string | null;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
+
   return (
     // Ao telemóvel empilha; a partir do `sm:` é um quadro que rola para o
     // lado, e aí as margens negativas deixam-no ir de borda a borda do ecrã.
@@ -981,10 +999,10 @@ function GrelhaSemana({
               type="button"
             >
               <h2 className="text-sm font-semibold text-foreground capitalize">
-                {diaDaSemana(dia.chave)}
+                {diaDaSemana(dia.chave, locale)}
               </h2>
               <p className="text-xs text-muted-foreground tabular-nums">
-                {diaDoMesFormatter.format(lerDia(dia.chave))}
+                {diaDoMes(dia.chave, locale)}
               </p>
 
               {vazio ? (
@@ -992,7 +1010,7 @@ function GrelhaSemana({
                 // semana calma, sete caixas a dizer "Livre" enchiam o ecrã de
                 // nada e empurravam para baixo os dias que têm trabalho.
                 <span className="ml-auto text-[11px] text-muted-foreground/70 sm:hidden">
-                  Livre
+                  {t("Livre")}
                 </span>
               ) : (
                 <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground tabular-nums">
@@ -1008,7 +1026,7 @@ function GrelhaSemana({
             >
               {vazio ? (
                 <p className="rounded-xl border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
-                  Livre
+                  {t("Livre")}
                 </p>
               ) : (
                 dia.eventos.map((evento) => (
@@ -1043,6 +1061,7 @@ export function AgendaPanel({
   moeda: string | null;
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [eventoAberto, setEventoAberto] = useState<string | null>(null);
   const [aMarcarDoTopo, setAMarcarDoTopo] = useState(false);
@@ -1097,16 +1116,16 @@ export function AgendaPanel({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Botao href={ligacao({ dia: agenda.anterior })} titulo="Anterior">
+          <Botao href={ligacao({ dia: agenda.anterior })} titulo={t("Anterior")}>
             ←
           </Botao>
-          <Botao href={ligacao({})}>Hoje</Botao>
-          <Botao href={ligacao({ dia: agenda.proximo })} titulo="Seguinte">
+          <Botao href={ligacao({})}>{t("Hoje")}</Botao>
+          <Botao href={ligacao({ dia: agenda.proximo })} titulo={t("Próximo")}>
             →
           </Botao>
 
           <p className="ml-1 min-w-0 flex-1 truncate text-sm font-semibold text-foreground first-letter:uppercase">
-            {rotuloDoPeriodo(agenda)}
+            {rotuloDoPeriodo(agenda, locale)}
           </p>
         </div>
 
@@ -1120,13 +1139,13 @@ export function AgendaPanel({
             activo={agenda.vista === "semana"}
             href={ligacao({ dia: agenda.diaDeReferencia, vista: "semana" })}
           >
-            Semana
+            {t("Semana")}
           </Botao>
           <Botao
             activo={agenda.vista === "mes"}
             href={ligacao({ dia: agenda.diaDeReferencia, vista: "mes" })}
           >
-            Mês
+            {t("Mês")}
           </Botao>
 
           {/*
@@ -1148,11 +1167,11 @@ export function AgendaPanel({
           */}
           {marcar ? (
             <button
-              className="inline-flex min-h-10 items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              className="ds-botao ds-botao-primario"
               onClick={() => setAMarcarDoTopo(true)}
               type="button"
             >
-              Marcar atendimento
+              {t("Agendar atendimento")}
             </button>
           ) : null}
         </div>
@@ -1169,7 +1188,7 @@ export function AgendaPanel({
             activo={executorEscolhido === ""}
             href={ligacao({ dia: agenda.inicio, executor: "" })}
           >
-            Todos
+            {t("Todos")}
           </Botao>
           {agenda.executores.map((executor) => (
             <Botao
@@ -1185,8 +1204,17 @@ export function AgendaPanel({
 
       <p className="text-sm text-muted-foreground">
         {agenda.total === 0
-          ? `Nada marcado ${agenda.vista === "mes" ? "neste mês" : "nesta semana"}.`
-          : `${agenda.total} ${agenda.total === 1 ? "marcação" : "marcações"}, ${agenda.marcadosPeloAgente} pelo agente.`}
+          ? agenda.vista === "mes"
+            ? t("Nada agendado neste mês.")
+            : t("Nada agendado nesta semana.")
+          : agenda.total === 1
+            ? t("1 agendamento, {agente} pelo agente.", {
+                agente: agenda.marcadosPeloAgente,
+              })
+            : t("{n} agendamentos, {agente} pelo agente.", {
+                agente: agenda.marcadosPeloAgente,
+                n: agenda.total,
+              })}
       </p>
 
       {agenda.vista === "mes" ? (
@@ -1212,16 +1240,16 @@ export function AgendaPanel({
             aria-hidden="true"
             className="h-1.5 w-1.5 rounded-full bg-primary"
           />
-          Marcado pelo agente
+          {t("Agendado pelo agente")}
         </span>
         <span className="flex items-center gap-1.5">
           <span
             aria-hidden="true"
             className="h-1.5 w-1.5 rounded-full border border-muted-foreground/60"
           />
-          Marcado à mão
+          {t("Agendado manualmente")}
         </span>
-        <span>Carrega num dia, ou num atendimento, para ver o detalhe.</span>
+        <span>{t("Clique em um dia, ou em um atendimento, para ver os detalhes.")}</span>
       </p>
 
       {marcar && aMarcarDoTopo ? (

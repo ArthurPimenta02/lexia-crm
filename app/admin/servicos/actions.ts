@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzirResultado } from "@/lib/catalogo/traduzir-resultado";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   definirReceita,
@@ -63,23 +64,25 @@ export async function gravarServicoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return gravarPrecoENotas({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    notasBruto: String(formData.get("notas") ?? ""),
-    precoBruto: String(formData.get("preco") ?? ""),
-    servicoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await gravarPrecoENotas({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      notasBruto: String(formData.get("notas") ?? ""),
+      precoBruto: String(formData.get("preco") ?? ""),
+      servicoId,
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function definirReceitaAdminAction(
@@ -89,24 +92,26 @@ export async function definirReceitaAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!produtoId || !servicoId) {
-    return { mensagem: "Produto ou serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto ou serviço não identificado.", ok: false });
   }
 
-  return definirReceita({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    servicoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await definirReceita({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      servicoId,
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function registarExecucaoAdminAction(
@@ -116,21 +121,23 @@ export async function registarExecucaoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return registarExecucao({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    servicoId,
-    userId: autorizado.userId,
-  });
+  return traduzirResultado(
+    await registarExecucao({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      servicoId,
+      userId: autorizado.userId,
+    }),
+  );
 }
 
 export async function excluirServicoAdminAction(
@@ -140,20 +147,22 @@ export async function excluirServicoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return excluirServico({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    servicoId,
-  });
+  return traduzirResultado(
+    await excluirServico({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      servicoId,
+    }),
+  );
 }
 
 export async function reporServicoAdminAction(
@@ -163,18 +172,20 @@ export async function reporServicoAdminAction(
   const autorizado = await clienteAutorizado(formData);
 
   if (!autorizado) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!servicoId) {
-    return { mensagem: "Serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Serviço não identificado.", ok: false });
   }
 
-  return reporServico({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: autorizado.clienteSlug,
-    servicoId,
-  });
+  return traduzirResultado(
+    await reporServico({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: autorizado.clienteSlug,
+      servicoId,
+    }),
+  );
 }

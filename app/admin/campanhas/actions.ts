@@ -5,6 +5,7 @@ import {
   atualizarCampanhasDoCliente,
   type AtualizarCampanhasResultado,
 } from "@/lib/campaigns/refresh";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -20,11 +21,12 @@ export async function atualizarCampanhasAdminAction(
   _anterior: AtualizarCampanhasResultado | null,
   formData: FormData,
 ): Promise<AtualizarCampanhasResultado> {
+  const t = await getT();
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile || profile.role !== "lexia_admin") {
     return {
-      mensagem: "Sessão sem permissão para atualizar campanhas.",
+      mensagem: t("Sessão sem permissão para atualizar campanhas."),
       ok: false,
     };
   }
@@ -32,7 +34,7 @@ export async function atualizarCampanhasAdminAction(
   const clienteSlug = String(formData.get("cliente_slug") ?? "").trim();
 
   if (!clienteSlug) {
-    return { mensagem: "Escolhe um cliente primeiro.", ok: false };
+    return { mensagem: t("Escolha um cliente primeiro."), ok: false };
   }
 
   const supabase = await createClient();
@@ -43,7 +45,7 @@ export async function atualizarCampanhasAdminAction(
     .maybeSingle();
 
   if (!cliente) {
-    return { mensagem: "Cliente desconhecido.", ok: false };
+    return { mensagem: t("Cliente desconhecido."), ok: false };
   }
 
   return atualizarCampanhasDoCliente({

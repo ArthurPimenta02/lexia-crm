@@ -22,7 +22,9 @@ import {
 } from "react";
 
 import { ChannelIcon } from "@/app/components/channel-brand";
+import { useIdioma } from "@/app/components/idioma";
 import type { AnalystChatMessage } from "@/lib/analyst/types";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 
 type AnalystClientOption = {
   name: string;
@@ -77,15 +79,17 @@ function getTodayInputValue() {
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
 
-function createWelcomeMessage(clientName: string): AnalystChatMessage {
+function createWelcomeMessage(clientName: string, t: FuncaoT): AnalystChatMessage {
   return {
-    content: `O que você quer entender sobre o atendimento da ${clientName}?`,
+    content: t("O que você quer entender sobre o atendimento da {cliente}?", {
+      cliente: clientName,
+    }),
     id: "welcome",
     role: "assistant",
   };
 }
 
-async function readApiResponse(response: Response) {
+async function readApiResponse(response: Response, t: FuncaoT) {
   const rawBody = await response.text();
   let result: Record<string, unknown> = {};
 
@@ -95,8 +99,8 @@ async function readApiResponse(response: Response) {
     } catch {
       throw new Error(
         response.ok
-          ? "A plataforma recebeu uma resposta inválida. Tente novamente."
-          : "O serviço de análise está temporariamente indisponível.",
+          ? t("A plataforma recebeu uma resposta inválida. Tente novamente.")
+          : t("O serviço de análise está temporariamente indisponível."),
       );
     }
   }
@@ -105,7 +109,7 @@ async function readApiResponse(response: Response) {
     throw new Error(
       typeof result.error === "string"
         ? result.error
-        : "Não foi possível carregar os dados.",
+        : t("Não foi possível carregar os dados."),
     );
   }
   return result;
@@ -131,6 +135,7 @@ export function AnalystWorkspace({
   clientOptions = [],
   mode,
 }: AnalystWorkspaceProps) {
+  const { t } = useIdioma();
   const router = useRouter();
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const pollingAbortRef = useRef<AbortController | null>(null);
@@ -139,7 +144,7 @@ export function AnalystWorkspace({
   const [customStart, setCustomStart] = useState(getTodayInputValue);
   const [customEnd, setCustomEnd] = useState(getTodayInputValue);
   const [messages, setMessages] = useState<AnalystChatMessage[]>(() => [
-    createWelcomeMessage(client.name),
+    createWelcomeMessage(client.name, t),
   ]);
   const [sessions, setSessions] = useState<AnalystSession[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -166,21 +171,21 @@ export function AnalystWorkspace({
     pollingAbortRef.current?.abort();
     pollingAbortRef.current = null;
     setSessionId(null);
-    setMessages([createWelcomeMessage(client.name)]);
+    setMessages([createWelcomeMessage(client.name, t)]);
     setQuestion("");
     setRequestError(null);
     setIsLoading(false);
-  }, [client.name]);
+  }, [client.name, t]);
 
   const fetchSessions = useCallback(async () => {
     const params = new URLSearchParams({ clienteSlug: client.slug });
     const response = await fetch(`/api/analista/sessions?${params}`, {
       cache: "no-store",
     });
-    const result = await readApiResponse(response);
+    const result = await readApiResponse(response, t);
 
     setSessions((result.sessions as AnalystSession[] | undefined) ?? []);
-  }, [client.slug]);
+  }, [client.slug, t]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -190,7 +195,7 @@ export function AnalystWorkspace({
       cache: "no-store",
       signal: controller.signal,
     })
-      .then(readApiResponse)
+      .then((response) => readApiResponse(response, t))
       .then((sessionResult) => {
         setSessions(
           (sessionResult.sessions as AnalystSession[] | undefined) ?? [],
@@ -200,12 +205,12 @@ export function AnalystWorkspace({
       .catch((error) => {
         if (controller.signal.aborted) return;
         setConfigurationError(
-          error instanceof Error ? error.message : "Configuração indisponível.",
+          error instanceof Error ? error.message : t("Configuração indisponível."),
         );
       });
 
     return () => controller.abort();
-  }, [client.slug]);
+  }, [client.slug, t]);
 
   useEffect(
     () => () => {
@@ -262,13 +267,13 @@ export function AnalystWorkspace({
             cache: "no-store",
             signal: controller.signal,
           });
-          const result = await readApiResponse(response);
+          const result = await readApiResponse(response, t);
           const status = String(result.status ?? "");
 
           if (status === "completed") {
             const message = result.message as AnalystChatMessage | undefined;
             if (!message) {
-              throw new Error("A resposta concluída não pôde ser carregada.");
+              throw new Error(t("A resposta concluída não pôde ser carregada."));
             }
 
             setSessionId(String(result.sessionId ?? "") || null);
@@ -285,7 +290,7 @@ export function AnalystWorkspace({
             throw new Error(
               typeof result.error === "string"
                 ? result.error
-                : "A análise não pôde ser concluída.",
+                : t("A análise não pôde ser concluída."),
             );
           }
 
@@ -294,7 +299,7 @@ export function AnalystWorkspace({
 
         if (!controller.signal.aborted) {
           throw new Error(
-            "A análise demorou mais do que o esperado. Tente novamente.",
+            t("A análise demorou mais do que o esperado. Tente novamente."),
           );
         }
       } finally {
@@ -303,7 +308,7 @@ export function AnalystWorkspace({
         }
       }
     },
-    [client.slug, fetchSessions],
+    [client.slug, fetchSessions, t],
   );
 
   async function loadSession(nextSessionId: string) {
@@ -319,7 +324,7 @@ export function AnalystWorkspace({
       const response = await fetch(`/api/analista/sessions?${params}`, {
         cache: "no-store",
       });
-      const result = await readApiResponse(response);
+      const result = await readApiResponse(response, t);
 
       const selectedSession = (
         (result.sessions as AnalystSession[] | undefined) ?? []
@@ -354,7 +359,7 @@ export function AnalystWorkspace({
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
       setRequestError(
-        error instanceof Error ? error.message : "Não foi possível continuar.",
+        error instanceof Error ? error.message : t("Não foi possível continuar."),
       );
     } finally {
       setIsLoading(false);
@@ -387,12 +392,12 @@ export function AnalystWorkspace({
         headers: { "content-type": "application/json" },
         method: "POST",
       });
-      const result = await readApiResponse(response);
+      const result = await readApiResponse(response, t);
       const executionId = String(result.executionId ?? "");
       const nextSessionId = String(result.sessionId ?? "");
 
       if (!executionId || !nextSessionId) {
-        throw new Error("A execução da análise não foi criada corretamente.");
+        throw new Error(t("A execução da análise não foi criada corretamente."));
       }
 
       setSessionId(nextSessionId);
@@ -403,7 +408,7 @@ export function AnalystWorkspace({
       setRequestError(
         error instanceof Error
           ? error.message
-          : "O Analista Lexia não conseguiu responder.",
+          : t("O Analista Lexia não conseguiu responder."),
       );
     } finally {
       setIsLoading(false);
@@ -432,7 +437,7 @@ export function AnalystWorkspace({
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-              Analista Lexia
+              {t("Analista Lexia")}
             </h1>
             <p className="truncate text-sm text-muted-foreground">
               {client.name}
@@ -442,9 +447,9 @@ export function AnalystWorkspace({
 
         {mode === "admin" && clientOptions.length > 0 ? (
           <label className="flex min-w-64 flex-col gap-2 text-xs font-semibold text-muted-foreground">
-            Cliente
+            {t("Cliente")}
             <select
-              className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm font-medium tracking-normal text-foreground normal-case outline-none focus:border-foreground"
+              className="ds-campo font-medium tracking-normal normal-case"
               onChange={(event) =>
                 router.push(
                   `/admin/analista?cliente=${encodeURIComponent(event.target.value)}`,
@@ -467,11 +472,12 @@ export function AnalystWorkspace({
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <CalendarDays aria-hidden="true" size={15} />
-              Período
+              {t("Período")}
             </div>
             <div className="flex flex-wrap gap-2">
               {periodOptions.map((option) => (
                 <button
+                  aria-pressed={period === option.key}
                   className={`h-9 rounded-full border px-3 text-sm font-semibold transition ${
                     period === option.key
                       ? "border-foreground bg-primary text-primary-foreground"
@@ -481,7 +487,7 @@ export function AnalystWorkspace({
                   onClick={() => changePeriod(option.key)}
                   type="button"
                 >
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
@@ -490,9 +496,9 @@ export function AnalystWorkspace({
           {period === "personalizado" ? (
             <div className="flex flex-wrap gap-3">
               <label className="flex flex-col gap-2 text-xs font-medium text-muted-foreground">
-                Início
+                {t("Início")}
                 <input
-                  className="h-9 rounded-lg border border-border-strong px-3 text-sm text-foreground outline-none focus:border-foreground"
+                  className="ds-campo"
                   onChange={(event) => {
                     setCustomStart(event.target.value);
                     resetConversation();
@@ -502,9 +508,9 @@ export function AnalystWorkspace({
                 />
               </label>
               <label className="flex flex-col gap-2 text-xs font-medium text-muted-foreground">
-                Fim
+                {t("Fim")}
                 <input
-                  className="h-9 rounded-lg border border-border-strong px-3 text-sm text-foreground outline-none focus:border-foreground"
+                  className="ds-campo"
                   onChange={(event) => {
                     setCustomEnd(event.target.value);
                     resetConversation();
@@ -517,10 +523,11 @@ export function AnalystWorkspace({
           ) : null}
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-muted-foreground">Canal</p>
+            <p className="text-xs font-semibold text-muted-foreground">{t("Canal")}</p>
             <div className="flex flex-wrap gap-2">
               {channelOptions.map((option) => (
                 <button
+                  aria-pressed={channel === option.key}
                   className={`flex h-9 items-center gap-2 rounded-full border px-3 text-sm font-semibold transition ${
                     channel === option.key
                       ? "border-foreground bg-primary text-primary-foreground"
@@ -534,7 +541,7 @@ export function AnalystWorkspace({
                     channel={option.key === "todos" ? null : option.key}
                     size="sm"
                   />
-                  {option.label}
+                  {option.key === "todos" ? t(option.label) : option.label}
                 </button>
               ))}
             </div>
@@ -543,7 +550,7 @@ export function AnalystWorkspace({
       </div>
 
       {configurationError ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning">
           {configurationError}
         </div>
       ) : null}
@@ -552,18 +559,18 @@ export function AnalystWorkspace({
         <aside className="flex min-h-0 flex-col border-b border-border bg-surface-muted xl:border-r xl:border-b-0">
           <div className="border-b border-border p-4">
             <button
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              className="ds-botao ds-botao-primario w-full"
               onClick={resetConversation}
               type="button"
             >
               <Plus aria-hidden="true" size={17} />
-              Nova análise
+              {t("Nova análise")}
             </button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
             <p className="px-2 py-2 text-xs font-semibold text-muted-foreground">
-              Recentes
+              {t("Recentes")}
             </p>
             <div className="space-y-1">
               {sessions.length > 0 ? (
@@ -580,14 +587,14 @@ export function AnalystWorkspace({
                     type="button"
                   >
                     <span className="truncate">
-                      {session.titulo || "Análise sem título"}
+                      {session.titulo || t("Análise sem título")}
                     </span>
                     <ChevronRight aria-hidden="true" size={15} />
                   </button>
                 ))
               ) : (
                 <p className="px-2 py-3 text-xs leading-5 text-muted-foreground">
-                  Nenhuma análise salva.
+                  {t("Nenhuma análise salva.")}
                 </p>
               )}
             </div>
@@ -617,7 +624,7 @@ export function AnalystWorkspace({
                     {message.role === "assistant" ? (
                       <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
                         <Telescope aria-hidden="true" size={14} />
-                        Analista Lexia
+                        {t("Analista Lexia")}
                       </div>
                     ) : null}
                     <div className="whitespace-pre-wrap text-sm leading-7">
@@ -664,7 +671,7 @@ export function AnalystWorkspace({
 
               {messages.length === 1 ? (
                 <div className="grid gap-2 md:grid-cols-2">
-                  {suggestedQuestions.map((suggestion, index) => (
+                  {suggestedQuestions.map((sugestao) => t(sugestao)).map((suggestion, index) => (
                     <button
                       className="flex min-h-20 items-start gap-3 rounded-lg border border-border bg-surface-muted p-4 text-left text-sm font-medium leading-6 text-foreground transition hover:border-border-strong hover:bg-surface"
                       key={suggestion}
@@ -692,17 +699,17 @@ export function AnalystWorkspace({
 
               {isLoading ? (
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex gap-1" aria-label="Analisando">
+                  <span className="flex gap-1" aria-label={t("Analisando")}>
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:120ms]" />
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:240ms]" />
                   </span>
-                  {loadingLabel}
+                  {t(loadingLabel)}
                 </div>
               ) : null}
 
               {requestError ? (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
                   {requestError}
                 </div>
               ) : null}
@@ -715,23 +722,23 @@ export function AnalystWorkspace({
           >
             <div className="mx-auto flex max-w-4xl items-end gap-2 rounded-lg border border-border-strong bg-surface p-2 shadow-sm focus-within:border-foreground">
               <textarea
-                aria-label="Pergunta para o Analista Lexia"
+                aria-label={t("Pergunta para o Analista Lexia")}
                 className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-2.5 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground/60"
                 disabled={isLoading || Boolean(configurationError)}
                 maxLength={4000}
                 onChange={(event) => setQuestion(event.target.value)}
                 onKeyDown={onQuestionKeyDown}
-                placeholder="Pergunte sobre desempenho, objeções ou oportunidades"
+                placeholder={t("Pergunte sobre desempenho, objeções ou oportunidades")}
                 rows={1}
                 value={question}
               />
               <button
-                aria-label="Enviar pergunta"
+                aria-label={t("Enviar pergunta")}
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={
                   isLoading || Boolean(configurationError) || !question.trim()
                 }
-                title="Enviar pergunta"
+                title={t("Enviar pergunta")}
                 type="submit"
               >
                 <ArrowUp aria-hidden="true" size={18} />

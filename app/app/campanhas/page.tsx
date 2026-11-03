@@ -13,6 +13,8 @@ import {
   getSearchValue,
 } from "@/lib/dashboard/date-range";
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 
 import { atualizarCampanhasAction } from "./actions";
 
@@ -43,6 +45,8 @@ export default async function CampanhasPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const clienteSlug = profile.cliente_slug;
   const timezone = getClientTimezone(clienteSlug);
   const params = await searchParams;
@@ -73,7 +77,7 @@ export default async function CampanhasPage({
   });
 
   const atualizadoEm = painel.atualizadoEm
-    ? new Intl.DateTimeFormat("pt-PT", {
+    ? new Intl.DateTimeFormat(locale, {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
@@ -91,7 +95,7 @@ export default async function CampanhasPage({
             atualizadoEm={atualizadoEm}
           />
         }
-        titulo="Campanhas"
+        titulo={t("Campanhas")}
       />
 
       <CampaignsPanel
@@ -102,9 +106,9 @@ export default async function CampanhasPage({
         periodKey={range.key}
         rangeLabel={range.label}
         timezone={timezone}
-        vazioMensagem={
-          'Carrega em "Atualizar dados" para puxar o histórico da Meta. Se continuar vazio, a conta de anúncios ainda não está ligada a esta empresa.'
-        }
+        vazioMensagem={t(
+          'Clique em "Atualizar dados" para puxar o histórico da Meta. Se continuar vazio, a conta de anúncios ainda não está ligada a esta empresa.',
+        )}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   TodosGlyph,
   WhatsAppGlyph,
 } from "@/app/components/channel-glyphs";
+import { Tr } from "@/app/components/idioma";
 
 type ChannelVariant = "light" | "dark";
 
@@ -132,7 +133,7 @@ export function ChannelBadge({
       }`}
     >
       <ChannelIcon channel={channel} size="sm" />
-      {meta.shortLabel}
+      {meta === defaultMeta ? <Tr>Todas</Tr> : meta.shortLabel}
     </span>
   );
 }
@@ -164,7 +165,7 @@ export function ChannelFilterLink({
       href={href}
     >
       <ChannelIcon channel={channel} size="sm" />
-      {meta.label}
+      {meta === defaultMeta ? <Tr>Todas</Tr> : meta.label}
     </Link>
   );
 }

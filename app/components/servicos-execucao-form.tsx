@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { GravarProdutoResultado } from "@/lib/produtos/write";
 
 /**
@@ -31,6 +32,7 @@ export function ServicosExecucaoForm({
     GravarProdutoResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <form action={formAction} className="flex flex-col items-start gap-1.5">
@@ -40,16 +42,16 @@ export function ServicosExecucaoForm({
       <input name="servico_id" type="hidden" value={servicoId} />
 
       <FormSubmitButton
-        className="inline-flex min-h-10 items-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
+        className="ds-botao ds-botao-verde"
         disabled={produtosNaReceita === 0}
-        pendingLabel="A descontar..."
+        pendingLabel={t("Descontando...")}
       >
-        Realizei este serviço
+        {t("Realizei este serviço")}
       </FormSubmitButton>
 
       {resultado ? (
         <p
-          className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
           role="status"
         >
           {resultado.mensagem}

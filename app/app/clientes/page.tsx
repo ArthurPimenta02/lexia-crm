@@ -15,11 +15,14 @@ import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getServicosConfig } from "@/lib/servicos/config";
+import { getT } from "@/lib/i18n/servidor";
 import { getServicosSimples } from "@/lib/servicos/read";
 
-export const metadata = {
-  title: "Clientes",
-};
+export async function generateMetadata() {
+  const t = await getT();
+
+  return { title: t("Clientes") };
+}
 
 export default async function ClientesPage() {
   const { profile } = await getLoggedInUserProfile();
@@ -44,10 +47,11 @@ export default async function ClientesPage() {
   ]);
   const config = getServicosConfig(profile.cliente_slug);
   const moeda = config?.moeda ?? "EUR";
+  const t = await getT();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo="Clientes" />
+      <PaginaCabecalho titulo={t("Clientes")} />
 
       <ClientesPanel
         actionCriar={criarClienteAction}

@@ -3,10 +3,10 @@
 import { useActionState } from "react";
 
 import { adicionarBloqueio, type BloqueioState } from "@/app/admin/bloqueios/actions";
+import { useIdioma } from "@/app/components/idioma";
 
 const inicial: BloqueioState = { message: null, type: null };
-const classeInput =
-  "h-10 w-full rounded-lg border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground";
+const classeInput = "ds-campo";
 // O navegador não deve preencher nada aqui (ver a página de Conexões).
 const semAutopreencher = {
   autoComplete: "off",
@@ -17,6 +17,7 @@ const semAutopreencher = {
 } as const;
 
 export function BloqueioForm({ clienteSlug }: { clienteSlug: string }) {
+  const { t } = useIdioma();
   const acao = adicionarBloqueio.bind(null, clienteSlug);
   const [estado, formAction, pendente] = useActionState(acao, inicial);
 
@@ -27,10 +28,11 @@ export function BloqueioForm({ clienteSlug }: { clienteSlug: string }) {
       className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
     >
       <div>
-        <h2 className="text-sm font-semibold text-foreground">Bloquear um contacto</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t("Bloquear um contato")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          WhatsApp: cole o número com o código do país. Instagram e Messenger: mais fácil pelo botão
-          &quot;Bloquear contacto&quot; dentro da conversa.
+          {t(
+            "WhatsApp: cole o número com o código do país. Instagram e Messenger: mais fácil pelo botão \"Bloquear contato\" dentro da conversa.",
+          )}
         </p>
       </div>
       <div className="grid gap-3 md:grid-cols-[160px_1fr_1fr_1fr]">
@@ -39,17 +41,17 @@ export function BloqueioForm({ clienteSlug }: { clienteSlug: string }) {
           <option value="instagram">Instagram</option>
           <option value="messenger">Messenger</option>
         </select>
-        <input {...semAutopreencher} className={classeInput} name="identificador" placeholder="Número ou ID da conta" required />
-        <input {...semAutopreencher} className={classeInput} name="nome" placeholder="Nome (ex.: Ana, família)" />
-        <input {...semAutopreencher} className={classeInput} name="motivo" placeholder="Motivo (opcional)" />
+        <input {...semAutopreencher} className={classeInput} name="identificador" placeholder={t("Número ou ID da conta")} required />
+        <input {...semAutopreencher} className={classeInput} name="nome" placeholder={t("Nome (ex.: Ana, família)")} />
+        <input {...semAutopreencher} className={classeInput} name="motivo" placeholder={t("Motivo (opcional)")} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+          className="ds-botao ds-botao-primario"
           disabled={pendente}
           type="submit"
         >
-          {pendente ? "Gravando..." : "Bloquear"}
+          {pendente ? t("Salvando...") : t("Bloquear")}
         </button>
         {estado.message ? (
           <span className={`text-sm ${estado.type === "error" ? "text-danger" : "text-positive"}`}>

@@ -1,3 +1,5 @@
+import { getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import type { AgentLock, AgentLockReason } from "@/lib/redis/agent-locks";
 
 /*
@@ -11,20 +13,20 @@ import type { AgentLock, AgentLockReason } from "@/lib/redis/agent-locks";
  */
 const statusLabels: Record<AgentLockReason, string> = {
   handoff: "Handoff feito pelo agente",
-  indeterminado: "Agente pausado pela equipa",
+  indeterminado: "Agente pausado pela equipe",
   intervencao: "Atendimento humano em curso",
 };
 
-function lockLabel(lock: AgentLock) {
+function lockLabel(lock: AgentLock, t: FuncaoT) {
   if (lock.kind === "pausa_eterna") {
-    return "Pausado após agendamento";
+    return t("Pausado após agendamento");
   }
 
   if (lock.kind === "pausa_manual") {
-    return "Pausado manualmente";
+    return t("Pausado manualmente");
   }
 
-  return statusLabels[lock.reason ?? "indeterminado"];
+  return t(statusLabels[lock.reason ?? "indeterminado"]);
 }
 
 /*
@@ -46,45 +48,52 @@ const lockDots: Record<AgentLock["kind"], string> = {
   status: "bg-muted-foreground",
 };
 
-export function formatLockRemaining(ttlSeconds: number | null) {
+export function formatLockRemaining(ttlSeconds: number | null, t: FuncaoT) {
   if (ttlSeconds === null) {
-    return "sem prazo";
+    return t("sem prazo");
   }
 
   if (ttlSeconds < 60) {
-    return "volta em menos de 1 min";
+    return t("volta em menos de 1 min");
   }
 
   const minutes = Math.round(ttlSeconds / 60);
 
   if (minutes < 60) {
-    return `volta em ${minutes} min`;
+    return t("volta em {minutos} min", { minutos: minutes });
   }
 
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
 
   return remainingMinutes > 0
-    ? `volta em ${hours} h ${remainingMinutes} min`
-    : `volta em ${hours} h`;
+    ? t("volta em {horas} h {minutos} min", {
+        horas: hours,
+        minutos: remainingMinutes,
+      })
+    : t("volta em {horas} h", { horas: hours });
 }
 
-export function AgentActiveBadge() {
+export async function AgentActiveBadge() {
+  const t = await getT();
+
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
       <span className="bg-positive h-1.5 w-1.5 rounded-full" />
-      Agente ativo
+      {t("Agente ativo")}
     </span>
   );
 }
 
-export function AgentLockBadges({
+export async function AgentLockBadges({
   align = "start",
   locks,
 }: {
   align?: "end" | "start";
   locks: AgentLock[];
 }) {
+  const t = await getT();
+
   return (
     <div
       className={`flex flex-wrap gap-1.5 ${align === "end" ? "md:justify-end" : ""}`}
@@ -98,10 +107,10 @@ export function AgentLockBadges({
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${lockDots[lock.kind]}`}
           />
           <span>
-            {lockLabel(lock)}
+            {lockLabel(lock, t)}
             <span className="font-normal opacity-75">
               {" · "}
-              {formatLockRemaining(lock.ttlSeconds)}
+              {formatLockRemaining(lock.ttlSeconds, t)}
             </span>
           </span>
         </span>

@@ -9,6 +9,7 @@ import {
   type AgentPauseActionResult,
   type ResumableLockKind,
 } from "@/app/actions/agent-pause";
+import { useIdioma } from "@/app/components/idioma";
 import {
   manualPauseDurations,
   type ManualPauseDuration,
@@ -23,6 +24,7 @@ type AgentPauseControlsProps = {
   identificadorConversa: string;
 };
 
+/* Rótulos em pt-BR; traduzidos onde se desenham, com `t(...)`. */
 const durationHints: Record<ManualPauseDuration, string> = {
   "10": "Para uma resposta rápida",
   "30": "Para um atendimento curto",
@@ -56,6 +58,7 @@ export function AgentPauseControls({
   identificadorConversa,
 }: AgentPauseControlsProps) {
   const router = useRouter();
+  const { t } = useIdioma();
   const [pending, startTransition] = useTransition();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +86,9 @@ export function AgentPauseControls({
       const result = await action();
 
       if (!result.ok) {
-        setError(result.error ?? "Não foi possível executar a ação.");
+        // A action devolve o erro em pt-BR (o teste das pausas compara-o);
+        // a tradução é feita aqui, onde a mensagem chega ao ecrã.
+        setError(t(result.error ?? "Não foi possível executar a ação."));
         return;
       }
 
@@ -102,7 +107,9 @@ export function AgentPauseControls({
     if (hasEternalPause) {
       if (
         !window.confirm(
-          "Este contacto já tem um agendamento. Ao retomar, o agente volta a responder as mensagens dele. Continuar?",
+          t(
+            "Este contato já tem um agendamento. Ao retomar, o agente volta a responder as mensagens dele. Continuar?",
+          ),
         )
       ) {
         return;
@@ -116,7 +123,7 @@ export function AgentPauseControls({
     );
   }
 
-  const buttonBase = `inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+  const buttonBase = `ds-botao ds-botao-p disabled:cursor-not-allowed ${
     fullWidth ? "w-full sm:w-auto" : ""
   }`;
 
@@ -125,19 +132,19 @@ export function AgentPauseControls({
       <div className={`flex flex-col gap-1.5 ${fullWidth ? "w-full sm:w-auto" : ""}`}>
         {canResume ? (
           <button
-            className={`${buttonBase} bg-primary text-primary-foreground hover:opacity-90`}
+            className={`${buttonBase} ds-botao-primario`}
             disabled={pending}
             onClick={handleResume}
             type="button"
           >
             <PlayIcon />
-            {pending ? "Aguarde..." : "Retomar agente"}
+            {pending ? t("Aguarde...") : t("Retomar agente")}
           </button>
         ) : (
           <button
             aria-expanded={isSheetOpen}
             aria-haspopup="dialog"
-            className={`${buttonBase} border border-border-strong bg-surface text-foreground hover:border-foreground`}
+            className={`${buttonBase} ds-botao-secundario`}
             disabled={pending}
             onClick={() => {
               setError(null);
@@ -146,11 +153,11 @@ export function AgentPauseControls({
             type="button"
           >
             <PauseIcon />
-            Pausar agente
+            {t("Pausar agente")}
           </button>
         )}
         {error && !isSheetOpen ? (
-          <p className="text-xs text-red-700">{error}</p>
+          <p className="text-xs text-danger">{error}</p>
         ) : null}
       </div>
 
@@ -171,13 +178,15 @@ export function AgentPauseControls({
               className="text-lg font-semibold tracking-tight text-foreground"
               id="pausar-agente-titulo"
             >
-              Pausar agente
+              {t("Pausar agente")}
             </h2>
             <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {contactLabel
-                ? `O agente deixa de responder ${contactLabel}. `
-                : "O agente deixa de responder esta conversa. "}
-              Por quanto tempo?
+                ? t("O agente deixa de responder {contato}.", {
+                    contato: contactLabel,
+                  })
+                : t("O agente deixa de responder esta conversa.")}{" "}
+              {t("Por quanto tempo?")}
             </p>
 
             <div className="mt-4 flex flex-col gap-2">
@@ -199,10 +208,10 @@ export function AgentPauseControls({
                 >
                   <span>
                     <span className="block text-sm font-semibold text-foreground">
-                      {option.label}
+                      {t(option.label)}
                     </span>
                     <span className="block text-xs text-muted-foreground">
-                      {durationHints[option.value]}
+                      {t(durationHints[option.value])}
                     </span>
                   </span>
                   <span aria-hidden="true" className="text-muted-foreground/60">
@@ -213,16 +222,16 @@ export function AgentPauseControls({
             </div>
 
             {error ? (
-              <p className="mt-3 text-sm text-red-700">{error}</p>
+              <p className="mt-3 text-sm text-danger">{error}</p>
             ) : null}
 
             <button
-              className="mt-3 h-11 w-full rounded-full text-sm font-semibold text-muted-foreground transition hover:bg-muted disabled:opacity-60"
+              className="ds-botao ds-botao-fantasma mt-3 w-full"
               disabled={pending}
               onClick={() => setIsSheetOpen(false)}
               type="button"
             >
-              {pending ? "Aguarde..." : "Cancelar"}
+              {pending ? t("Aguarde...") : t("Cancelar")}
             </button>
           </div>
         </div>

@@ -5,7 +5,8 @@ import { ConexaoForm } from "@/app/admin/conexoes/conexao-form";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { formatDateInTimezone } from "@/lib/clientes/timezone";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { tiposDoAmbito } from "@/lib/conexoes/tipos";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -37,6 +38,8 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
   if (profile.role !== "lexia_admin") redirect("/app");
 
   const params = await searchParams;
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const pedido = Array.isArray(params.cliente) ? (params.cliente[0] ?? "") : (params.cliente ?? "");
 
   const admin = createAdminClient();
@@ -67,7 +70,7 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Conexões" />
+      <PaginaCabecalho titulo={t("Conexões")} />
 
       <Form
         action="/admin/conexoes"
@@ -76,14 +79,14 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
         scroll={false}
       >
         <label className="flex min-w-[260px] flex-col gap-2 text-sm font-medium text-muted-foreground">
-          De quem são as conexões
+          {t("De quem são as conexões")}
           <select
-            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+            className="ds-campo"
             defaultValue={selecionado}
             name="cliente"
           >
-            <option value="">Escolha…</option>
-            <option value={GLOBAL}>Lexia (vale para todos os clientes)</option>
+            <option value="">{t("Escolha…")}</option>
+            <option value={GLOBAL}>{t("Lexia (vale para todos os clientes)")}</option>
             {clientes.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.nome || c.slug}
@@ -91,17 +94,23 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
             ))}
           </select>
         </label>
-        <FormSubmitButton>Abrir</FormSubmitButton>
+        <FormSubmitButton
+          className="ds-botao ds-botao-primario"
+          pendingLabel={t("Aguarde...")}
+        >
+          {t("Abrir")}
+        </FormSubmitButton>
       </Form>
 
       {!selecionado ? (
         <p className="text-sm text-muted-foreground">
-          Escolha um cliente para ver e gravar as conexões dele.
+          {t("Escolha um cliente para ver e salvar as conexões dele.")}
         </p>
       ) : faltaMigration ? (
         <p className="text-sm text-muted-foreground">
-          A tabela de conexões ainda não existe. Falta correr a migration da Fase 19 no
-          Supabase central.
+          {t(
+            "A tabela de conexões ainda não existe. Falta rodar a migration da Fase 19 no Supabase central.",
+          )}
         </p>
       ) : (
         <div className="grid gap-4">
@@ -111,7 +120,11 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
               <ConexaoForm
                 atualizadoEm={
                   linha?.atualizado_em
-                    ? formatDateInTimezone(linha.atualizado_em, "America/Sao_Paulo")
+                    ? new Intl.DateTimeFormat(locale, {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                        timeZone: "America/Sao_Paulo",
+                      }).format(new Date(linha.atualizado_em))
                     : null
                 }
                 campos={linha?.campos ?? {}}

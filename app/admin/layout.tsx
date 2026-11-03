@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
+import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 
 const adminNavigation = [
@@ -25,7 +26,7 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { profile } = await getLoggedInUserProfile();
+  const [{ profile }, t] = await Promise.all([getLoggedInUserProfile(), getT()]);
 
   if (!profile) {
     redirect("/login");
@@ -37,7 +38,10 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
-      <AppSidebar items={adminNavigation} subtitle="Administração" />
+      <AppSidebar
+        items={adminNavigation.map((item) => ({ ...item, label: t(item.label) }))}
+        subtitle={t("Administração")}
+      />
 
       <ScrollToTop alvoId="conteudo" />
 

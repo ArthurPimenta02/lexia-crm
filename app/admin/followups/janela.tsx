@@ -4,12 +4,15 @@ import { X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 /**
  * A janela do detalhe de um follow-up. Abre pelo endereço (?fu=<id>), para
  * poder ser partilhada e para o "voltar" do navegador a fechar. Fecha com
  * Esc, com um clique fora ou no X.
  */
 export function Janela({ titulo, fechar, children }: { titulo: string; fechar: string; children: ReactNode }) {
+  const { t } = useIdioma();
   const painel = useRef<HTMLDivElement>(null);
   const botaoFechar = useRef<HTMLAnchorElement>(null);
 
@@ -29,7 +32,7 @@ export function Janela({ titulo, fechar, children }: { titulo: string; fechar: s
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
-      <Link aria-label="Fechar" className="absolute inset-0 bg-foreground/30" href={fechar} replace scroll={false} />
+      <Link aria-label={t("Fechar")} className="absolute inset-0 bg-foreground/30" href={fechar} replace scroll={false} />
       <div
         aria-labelledby="janela-titulo"
         aria-modal="true"
@@ -43,7 +46,7 @@ export function Janela({ titulo, fechar, children }: { titulo: string; fechar: s
             {titulo}
           </h2>
           <Link
-            aria-label="Fechar"
+            aria-label={t("Fechar")}
             className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
             href={fechar}
             ref={botaoFechar}

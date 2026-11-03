@@ -21,6 +21,7 @@ import {
   type AdminTestSession,
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
+import { useIdioma } from "@/app/components/idioma";
 
 type AdminTestChatProps = {
   clienteSlug: string;
@@ -137,6 +138,7 @@ export function AdminTestChat({
   selectedSessionId,
   workflows,
 }: AdminTestChatProps) {
+  const { t } = useIdioma();
   const router = useRouter();
   const [isCreating, startCreating] = useTransition();
   const [isSending, startSending] = useTransition();
@@ -185,7 +187,7 @@ export function AdminTestChat({
       const result = await createAdminTestSession(clienteSlug);
 
       if (result.error || !result.data) {
-        setError(result.error ?? "Não foi possível criar a sessão de teste.");
+        setError(result.error ?? t("Não foi possível criar a sessão de teste."));
         return;
       }
 
@@ -196,7 +198,9 @@ export function AdminTestChat({
 
   function handleDeleteSession(sessionId: string) {
     const confirmed = window.confirm(
-      "Tem certeza que deseja excluir esta conversa de teste admin? As execuções e feedbacks ligados a ela também serão removidos.",
+      t(
+        "Tem certeza que deseja excluir esta conversa de teste admin? As execuções e feedbacks ligados a ela também serão removidos.",
+      ),
     );
 
     if (!confirmed) {
@@ -209,7 +213,7 @@ export function AdminTestChat({
       const result = await deleteAdminTestSession(clienteSlug, sessionId);
 
       if (!result.ok) {
-        setError(result.error ?? "Não foi possível excluir a sessão.");
+        setError(result.error ?? t("Não foi possível excluir a sessão."));
         return;
       }
 
@@ -272,7 +276,7 @@ export function AdminTestChat({
         setPendingText(null);
         setLastPendingRun({ sessionId, runId, text });
         setNotice(
-          "Mensagem enviada, mas ainda não houve resposta gravada pelo workflow.",
+          t("Mensagem enviada, mas ainda não houve resposta gravada pelo workflow."),
         );
         setLocalExecutions((current) => [
           ...current,
@@ -346,7 +350,7 @@ export function AdminTestChat({
 
       if (result.error || !result.data) {
         setPendingText(null);
-        setError(result.error ?? "Não foi possível enviar a mensagem.");
+        setError(result.error ?? t("Não foi possível enviar a mensagem."));
         return;
       }
 
@@ -358,14 +362,14 @@ export function AdminTestChat({
     <div className="grid h-[calc(100vh-250px)] min-h-[540px] gap-5 lg:grid-cols-[280px_1fr]">
       <aside className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface">
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Sessões</h2>
+          <h2 className="text-sm font-semibold">{t("Sessões")}</h2>
           <button
-            className="h-9 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
+            className="ds-botao ds-botao-primario ds-botao-p"
             disabled={isCreating}
             onClick={handleCreateSession}
             type="button"
           >
-            {isCreating ? "Criando..." : "Nova"}
+            {isCreating ? t("Criando...") : t("Nova")}
           </button>
         </div>
 
@@ -392,7 +396,8 @@ export function AdminTestChat({
                   }}
                 >
                   <span className="block font-medium">
-                    {session.nome ?? "Nova sessão"}
+                    {/* "Nova sessão" é o nome que o próprio painel grava ao criar. */}
+                    {session.nome && session.nome !== "Nova sessão" ? session.nome : t("Nova sessão")}
                   </span>
                   <span className="block truncate text-xs opacity-70">
                     {session.session_id}
@@ -402,19 +407,19 @@ export function AdminTestChat({
                   className={`mt-2 text-xs font-medium underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 ${
                     selectedSessionId === session.session_id
                       ? "text-primary-foreground/80"
-                      : "text-red-600"
+                      : "text-danger"
                   }`}
                   disabled={isCreating}
                   onClick={() => handleDeleteSession(session.session_id)}
                   type="button"
                 >
-                  Excluir
+                  {t("Excluir")}
                 </button>
               </div>
             ))
           ) : (
             <p className="px-3 py-6 text-sm text-muted-foreground">
-              Nenhuma sessão criada ainda.
+              {t("Nenhuma sessão criada ainda.")}
             </p>
           )}
         </div>
@@ -426,36 +431,38 @@ export function AdminTestChat({
             O slug do cliente já está no selector por cima desta caixa.
             Repeti-lo em "Cliente selecionado: ..." não acrescentava nada.
           */}
-          <h2 className="font-semibold">Chat de teste</h2>
+          <h2 className="font-semibold">{t("Chat de teste")}</h2>
           <div className="mt-4 flex max-w-xl flex-col gap-2">
             <label
               className="text-sm font-medium text-muted-foreground"
               htmlFor="admin-workflow"
             >
-              Workflow de teste
+              {t("Workflow de teste")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground disabled:bg-muted"
+              className="ds-campo disabled:bg-muted"
               disabled={workflows.length <= 1}
               id="admin-workflow"
               onChange={(event) => setSelectedWorkflowId(event.target.value)}
               value={selectedWorkflowId}
             >
               {workflows.length === 0 ? (
-                <option value="">Nenhum workflow ativo configurado</option>
+                <option value="">{t("Nenhum workflow ativo configurado")}</option>
               ) : workflows.length > 1 ? (
-                <option value="">Selecione um workflow</option>
+                <option value="">{t("Selecione um workflow")}</option>
               ) : null}
               {workflows.map((workflow) => (
                 <option key={workflow.id} value={workflow.id}>
-                  {workflow.nome ?? "Workflow"} ({workflow.tipo ?? "sem tipo"})
+                  {workflow.nome ?? "Workflow"} ({workflow.tipo ?? t("sem tipo")})
                 </option>
               ))}
             </select>
             {selectedWorkflow ? (
               <p className="text-xs text-muted-foreground">
-                Workflow selecionado: {selectedWorkflow.nome ?? "Workflow"} (
-                {selectedWorkflow.tipo ?? "sem tipo"})
+                {t("Workflow selecionado: {nome} ({tipo})", {
+                  nome: selectedWorkflow.nome ?? "Workflow",
+                  tipo: selectedWorkflow.tipo ?? t("sem tipo"),
+                })}
               </p>
             ) : null}
           </div>
@@ -478,8 +485,8 @@ export function AdminTestChat({
           ) : (
             <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
               {selectedSessionId
-                ? "Nenhuma mensagem nesta sessão ainda."
-                : "Crie ou selecione uma sessão para começar."}
+                ? t("Nenhuma mensagem nesta sessão ainda.")
+                : t("Crie ou selecione uma sessão para começar.")}
             </div>
           )}
 
@@ -489,7 +496,7 @@ export function AdminTestChat({
                 {pendingText}
               </div>
               <div className="mr-auto max-w-[78%] rounded-lg bg-muted px-4 py-3 text-sm leading-6 text-muted-foreground">
-                Aguardando resposta do agente...
+                {t("Aguardando resposta do agente...")}
               </div>
             </>
           ) : null}
@@ -499,22 +506,22 @@ export function AdminTestChat({
 
         <div className="shrink-0 border-t border-border p-4">
           {error ? (
-            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mb-3 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
               {error}
             </p>
           ) : null}
 
           {notice ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-warning">
               <p>{notice}</p>
               {lastPendingRun ? (
                 <button
-                  className="h-9 rounded-lg border border-amber-300 bg-surface px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="ds-botao ds-botao-secundario ds-botao-p"
                   disabled={isChecking}
                   onClick={handleCheckAgain}
                   type="button"
                 >
-                  {isChecking ? "Verificando..." : "Verificar novamente"}
+                  {isChecking ? t("Verificando...") : t("Verificar novamente")}
                 </button>
               ) : null}
             </div>
@@ -522,7 +529,7 @@ export function AdminTestChat({
 
           <form className="flex gap-3" onSubmit={handleSendMessage}>
             <input
-              className="h-11 flex-1 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground disabled:bg-muted"
+              className="ds-campo flex-1 disabled:bg-muted"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -530,11 +537,11 @@ export function AdminTestChat({
                 Boolean(pendingText)
               }
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="Digite uma mensagem de teste"
+              placeholder={t("Digite uma mensagem de teste")}
               value={message}
             />
             <button
-              className="h-11 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
+              className="ds-botao ds-botao-primario"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -544,7 +551,7 @@ export function AdminTestChat({
               }
               type="submit"
             >
-              {isSending ? "Enviando..." : "Enviar"}
+              {isSending ? t("Enviando...") : t("Enviar")}
             </button>
           </form>
         </div>

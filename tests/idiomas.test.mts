@@ -20,9 +20,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { AREAS } from "../lib/i18n/dicionarios.ts";
-import { idiomaDoNavegador } from "../lib/i18n/idiomas.ts";
-import { criarT } from "../lib/i18n/traduzir.ts";
+import { AREAS } from "../lib/i18n/dicionarios";
+import { idiomaDoNavegador } from "../lib/i18n/idiomas";
+import { criarT } from "../lib/i18n/traduzir";
 
 const raiz = new URL("..", import.meta.url).pathname;
 const IDIOMAS_COM_DICIONARIO = ["pt-PT", "es", "en"] as const;
@@ -37,7 +37,7 @@ function ficheiros(pasta: string): string[] {
   });
 }
 
-/** Todas as chaves literais: t("…"), t('…') e t(`…`) sem ${}. */
+/** Todas as chaves literais: t("…"), t('…'), t(`…`) sem ${}, e <Tr>…</Tr>. */
 function chavesDoCodigo() {
   const chaves = new Map<string, string>();
   const padrao = /\bt\(\s*(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
@@ -46,6 +46,10 @@ function chavesDoCodigo() {
     for (const m of texto.matchAll(padrao)) {
       if (m[1] === "`" && m[2].includes("${")) continue;
       const chave = m[2].replace(/\\(["'`\\])/g, "$1").replace(/\\n/g, "\n");
+      if (!chaves.has(chave)) chaves.set(chave, f.replace(raiz, ""));
+    }
+    for (const m of texto.matchAll(/<Tr>([^<{}]+)<\/Tr>/g)) {
+      const chave = m[1].replace(/\s+/g, " ").trim();
       if (!chaves.has(chave)) chaves.set(chave, f.replace(raiz, ""));
     }
   }
@@ -105,12 +109,13 @@ test("t() troca as variáveis e cai no texto-fonte quando não há tradução", 
   assert.equal(criarT(null)("{n} conversas", { n: 2 }), "2 conversas");
 });
 
-test("o idioma do navegador: pt-PT só para quem pede pt-PT", () => {
+test("primeira visita: pt-PT só para quem pede pt-PT; espanhol e inglês só por escolha", () => {
   assert.equal(idiomaDoNavegador("pt-PT,pt;q=0.9"), "pt-PT");
   assert.equal(idiomaDoNavegador("pt-BR,pt;q=0.9,en;q=0.8"), "pt-BR");
   assert.equal(idiomaDoNavegador("pt"), "pt-BR");
-  assert.equal(idiomaDoNavegador("es-MX,es;q=0.9"), "es");
-  assert.equal(idiomaDoNavegador("en-US,en;q=0.9"), "en");
+  assert.equal(idiomaDoNavegador("en-US,en;q=0.9,pt-PT;q=0.8"), "pt-PT");
+  assert.equal(idiomaDoNavegador("es-MX,es;q=0.9"), "pt-BR");
+  assert.equal(idiomaDoNavegador("en-US,en;q=0.9"), "pt-BR");
   assert.equal(idiomaDoNavegador("fr-FR,de;q=0.5"), "pt-BR");
   assert.equal(idiomaDoNavegador(null), "pt-BR");
 });

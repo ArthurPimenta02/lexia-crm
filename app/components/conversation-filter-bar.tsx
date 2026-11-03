@@ -15,6 +15,7 @@ import {
 import { TimezoneSwitcher } from "@/app/components/conversation-timezone";
 import { getSelectedTimezone } from "@/lib/clientes/timezone";
 import { conversationPeriodOptions } from "@/lib/conversations/date-range";
+import { getT } from "@/lib/i18n/servidor";
 
 const channelFilters = [
   { label: "Todas", value: "" },
@@ -95,7 +96,7 @@ function FilterHiddenFields({
   );
 }
 
-export function ConversationFilterBar({
+export async function ConversationFilterBar({
   basePath,
   channel,
   clientSlug,
@@ -106,6 +107,7 @@ export function ConversationFilterBar({
   searchQuery,
   timezone,
 }: ConversationFilterBarProps) {
+  const t = await getT();
   const selectedTimezone = getSelectedTimezone(timezone);
   const periodLabel =
     conversationPeriodOptions.find((option) => option.key === period.key)
@@ -163,31 +165,31 @@ export function ConversationFilterBar({
           className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60"
         />
         <input
-          aria-label="Pesquisar conversa por nome ou telefone"
+          aria-label={t("Pesquisar conversa por nome ou telefone")}
           autoComplete="off"
           className="h-9 w-full rounded-lg border border-border bg-surface-muted pr-16 pl-9 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-border-strong focus:bg-surface"
           defaultValue={searchQuery}
           inputMode="search"
           maxLength={80}
           name="busca"
-          placeholder="Buscar por nome"
+          placeholder={t("Buscar por nome")}
           type="text"
         />
         <div className="absolute top-1/2 right-1 flex -translate-y-1/2 items-center">
           {searchQuery ? (
             <Link
-              aria-label="Limpar pesquisa"
+              aria-label={t("Limpar pesquisa")}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/60 transition hover:bg-border hover:text-foreground"
               href={searchClearHref}
-              title="Limpar pesquisa"
+              title={t("Limpar pesquisa")}
             >
               <X aria-hidden="true" className="h-3.5 w-3.5" />
             </Link>
           ) : null}
           <button
-            aria-label="Pesquisar"
+            aria-label={t("Pesquisar")}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-border hover:text-foreground"
-            title="Pesquisar"
+            title={t("Pesquisar")}
             type="submit"
           >
             <Search aria-hidden="true" className="h-3.5 w-3.5" />
@@ -196,16 +198,16 @@ export function ConversationFilterBar({
       </Form>
 
       <p className="ml-auto hidden min-w-0 truncate text-xs text-muted-foreground md:block">
-        {getChannelLabel(channel)} ·{" "}
-        {searchQuery ? "Busca global" : periodLabel}
+        {t(getChannelLabel(channel))} ·{" "}
+        {searchQuery ? t("Busca global") : t(periodLabel)}
         {" · "}
-        {selectedTimezone.label}
+        {t(selectedTimezone.label)}
       </p>
 
       <details className="group relative">
         <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground transition hover:border-border-strong hover:bg-surface-muted [&::-webkit-details-marker]:hidden">
           <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-          <span>Filtros</span>
+          <span>{t("Filtros")}</span>
           {activeFilterCount > 0 ? (
             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
               {activeFilterCount}
@@ -213,26 +215,28 @@ export function ConversationFilterBar({
           ) : null}
         </summary>
 
-        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 max-h-[min(70dvh,560px)] w-[min(430px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-[0_22px_60px_rgba(0,0,0,0.16)]">
+        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 max-h-[min(70dvh,560px)] w-[min(430px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-foreground">
-                Filtrar conversas
+                {t("Filtrar conversas")}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {rangeLabel}
+                {t(rangeLabel)}
               </p>
             </div>
             <Link
               className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
               href={resetHref}
             >
-              Limpar filtros
+              {t("Limpar filtros")}
             </Link>
           </div>
 
           <div className="mt-4">
-            <p className="text-xs font-semibold text-muted-foreground">Canal</p>
+            <p className="text-xs font-semibold text-muted-foreground">
+              {t("Canal")}
+            </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {channelFilters.map((filter) => (
                 <ChannelFilterLink

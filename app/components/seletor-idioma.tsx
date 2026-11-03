@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, Languages } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { mudarIdiomaAction } from "@/app/actions/idioma";
@@ -21,7 +20,6 @@ export function SeletorIdioma({
   para?: "cima" | "baixo";
 }) {
   const { idioma, t } = useIdioma();
-  const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [aMudar, iniciar] = useTransition();
   const caixa = useRef<HTMLDivElement>(null);
@@ -71,10 +69,8 @@ export function SeletorIdioma({
                 onClick={() => {
                   setAberto(false);
                   if (opcao === idioma) return;
-                  iniciar(async () => {
-                    await mudarIdiomaAction(opcao);
-                    router.refresh();
-                  });
+                  // A ação revalida o layout: o Next redesenha a página sozinho.
+                  iniciar(() => mudarIdiomaAction(opcao));
                 }}
                 role="option"
                 type="button"

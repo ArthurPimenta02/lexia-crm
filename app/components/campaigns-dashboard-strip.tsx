@@ -1,7 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-import { formatCampanhasMoney } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
 import { GrupoMetricas, SeccaoTitulo } from "@/app/components/painel-ui";
 import type { AtualizarCampanhasResultado } from "@/lib/campaigns/refresh";
@@ -10,10 +9,25 @@ import {
   getDateInputValue,
   getInclusiveRangeEnd,
 } from "@/lib/dashboard/date-range";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getMetaAdsConfig } from "@/lib/meta/ads";
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("pt-PT").format(value);
+function formatNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale).format(value);
+}
+
+/**
+ * Igual ao `formatCampanhasMoney` do ecrã de Campanhas, mas no idioma de quem
+ * vê. A moeda continua a ser a da conta de anúncios.
+ */
+function formatMoney(value: number, moeda: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    currency: moeda,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(value);
 }
 
 /**
@@ -64,15 +78,19 @@ export async function CampaignsDashboardStrip({
     fim: getDateInputValue(getInclusiveRangeEnd(range.end), timezone),
     inicio: getDateInputValue(range.start, timezone),
   });
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SeccaoTitulo
-          dica="O gasto da Meta é sincronizado uma vez por dia, às 06:00 UTC. O número de hoje é o que havia à hora da sincronização; para o ver ao minuto, usa o Atualizar."
-          sufixo="no período"
+          dica={t(
+            "O gasto da Meta é sincronizado uma vez por dia, às 06:00 UTC. O número de hoje é o que havia na hora da sincronização; para vê-lo em tempo real, use o Atualizar.",
+          )}
+          sufixo={t("no período")}
         >
-          Campanhas
+          {t("Campanhas")}
         </SeccaoTitulo>
 
         <div className="flex items-start gap-3">
@@ -86,7 +104,7 @@ export async function CampaignsDashboardStrip({
             action={acaoAtualizar}
             atualizadoEm={
               resumo.atualizadoEm
-                ? new Intl.DateTimeFormat("pt-PT", {
+                ? new Intl.DateTimeFormat(locale, {
                     day: "2-digit",
                     hour: "2-digit",
                     minute: "2-digit",
@@ -103,7 +121,7 @@ export async function CampaignsDashboardStrip({
             className="inline-flex h-[30px] shrink-0 items-center gap-1 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
             href={hrefCampanhas}
           >
-            Ver campanhas
+            {t("Ver campanhas")}
             <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -113,9 +131,11 @@ export async function CampaignsDashboardStrip({
         <GrupoMetricas
           itens={[
             {
-              dica: "Soma do que a Meta cobrou nos dias do período, no fuso da conta de anúncios.",
-              label: "Investido",
-              valor: formatCampanhasMoney(resumo.gasto, resumo.moeda),
+              dica: t(
+                "Soma do que a Meta cobrou nos dias do período, no fuso da conta de anúncios.",
+              ),
+              label: t("Investido"),
+              valor: formatMoney(resumo.gasto, resumo.moeda, locale),
             },
             {
               /*
@@ -127,34 +147,44 @@ export async function CampaignsDashboardStrip({
                * faz deste número um limite superior do custo real de um lead
                * pago — serve para comparar períodos, não para o afirmar.
                */
-              dica: "Investido a dividir por todas as conversas iniciadas no período, e não só pelas que vieram de anúncio. É por isso um limite superior do custo real de uma conversa paga.",
-              label: "Custo por conversa",
+              dica: t(
+                "Investido dividido por todas as conversas iniciadas no período, e não só pelas que vieram de anúncio. Por isso é um limite superior do custo real de uma conversa paga.",
+              ),
+              label: t("Custo por conversa"),
               nota:
                 conversasIniciadas > 0
-                  ? `${conversasIniciadas} conversa${conversasIniciadas === 1 ? "" : "s"} iniciada${conversasIniciadas === 1 ? "" : "s"}`
+                  ? conversasIniciadas === 1
+                    ? t("{n} conversa iniciada", { n: conversasIniciadas })
+                    : t("{n} conversas iniciadas", {
+                        n: formatNumber(conversasIniciadas, locale),
+                      })
                   : undefined,
               valor:
                 conversasIniciadas > 0
-                  ? formatCampanhasMoney(
+                  ? formatMoney(
                       resumo.gasto / conversasIniciadas,
                       resumo.moeda,
+                      locale,
                     )
                   : "--",
             },
             {
-              dica: "Cliques em qualquer parte do anúncio.",
-              label: "Cliques",
-              nota: `${formatNumber(resumo.cliquesLink)} no link`,
-              valor: formatNumber(resumo.cliques),
+              dica: t("Cliques em qualquer parte do anúncio."),
+              label: t("Cliques"),
+              nota: t("{n} no link", {
+                n: formatNumber(resumo.cliquesLink, locale),
+              }),
+              valor: formatNumber(resumo.cliques, locale),
             },
             {
-              dica: "Custo por mil impressões, recalculado do total do período.",
+              dica: t("Custo por mil impressões, recalculado do total do período."),
               label: "CPM",
               valor:
                 resumo.impressoes > 0
-                  ? formatCampanhasMoney(
+                  ? formatMoney(
                       (resumo.gasto / resumo.impressoes) * 1000,
                       resumo.moeda,
+                      locale,
                     )
                   : "--",
             },
@@ -169,15 +199,15 @@ export async function CampaignsDashboardStrip({
          */
         <div className="rounded-2xl border border-border bg-surface-muted px-5 py-4">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            A conta de anúncios da Meta está ligada, mas não há gasto
-            sincronizado neste período. Em{" "}
+            {t(
+              "A conta de anúncios da Meta está conectada, mas não há gasto sincronizado neste período.",
+            )}{" "}
             <Link
               className="font-medium text-foreground underline"
               href={hrefCampanhas}
             >
-              Campanhas
-            </Link>{" "}
-            podes puxar o histórico com &quot;Atualizar dados&quot;.
+              {t("Em Campanhas, você pode puxar o histórico com \"Atualizar dados\".")}
+            </Link>
           </p>
         </div>
       )}

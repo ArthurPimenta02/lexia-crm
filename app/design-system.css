@@ -72,21 +72,6 @@
 
 }
 
-/* Fundo com manchas de cor desfocadas (o "aurora" da referência) */
-.ds-aurora {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(38% 34% at 6% 10%, color-mix(in oklab, var(--ds-mancha-1) 26%, transparent), transparent 70%),
-    radial-gradient(34% 30% at 92% 6%, color-mix(in oklab, var(--ds-mancha-2) 22%, transparent), transparent 70%),
-    radial-gradient(40% 36% at 90% 96%, color-mix(in oklab, var(--ds-mancha-3) 20%, transparent), transparent 70%),
-    radial-gradient(30% 30% at 4% 92%, color-mix(in oklab, var(--ds-mancha-1) 10%, transparent), transparent 70%);
-  filter: blur(8px);
-}
-
-
 /* ---------- Modo escuro ----------
  * Liga quando a pessoa escolhe "Escuro", ou quando escolhe "Automático" e o
  * computador dela está em escuro. O bloco é o mesmo nos dois casos.
@@ -151,6 +136,27 @@
   color-scheme: dark;
   }
 }
+
+/*
+ * As peças ficam na camada `components` do Tailwind: acima do reset (base)
+ * e abaixo dos utilitários. Assim `ds-campo h-9` dá um campo de altura 9,
+ * em vez de o `h-9` ser ignorado.
+ */
+@layer components {
+/* Fundo com manchas de cor desfocadas (o "aurora" da referência) */
+.ds-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 6% 10%, color-mix(in oklab, var(--ds-mancha-1) 26%, transparent), transparent 70%),
+    radial-gradient(34% 30% at 92% 6%, color-mix(in oklab, var(--ds-mancha-2) 22%, transparent), transparent 70%),
+    radial-gradient(40% 36% at 90% 96%, color-mix(in oklab, var(--ds-mancha-3) 20%, transparent), transparent 70%),
+    radial-gradient(30% 30% at 4% 92%, color-mix(in oklab, var(--ds-mancha-1) 10%, transparent), transparent 70%);
+  filter: blur(8px);
+}
+
 
 /* ---------- Tipografia ---------- */
 
@@ -545,4 +551,6 @@
   .ds-entrar { animation: none; }
   .ds, .ds * { transition-duration: 0s !important; }
   .ds-botao, .ds-segmento, .ds-interruptor::after, .ds-barra > span { transition: none; }
+}
+
 }

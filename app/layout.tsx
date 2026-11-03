@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./design-system.css";
 import "./globals.css";
+import "./design-system.css";
 
 import { IdiomaProvider } from "@/app/components/idioma";
 import { dicionarioDe } from "@/lib/i18n/dicionarios";

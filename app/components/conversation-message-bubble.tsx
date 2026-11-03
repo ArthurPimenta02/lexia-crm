@@ -1,7 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { ConversationMessageMedia } from "@/app/components/conversation-message-media";
-import { formatDateInTimezone } from "@/lib/clientes/timezone";
+import { useIdioma } from "@/app/components/idioma";
 import {
   getConversationMessagePreview,
   isSentConversationMessage,
@@ -19,7 +21,7 @@ const mediaTypes = new Set(["imagem", "video", "audio", "documento"]);
 export function ConversationDaySeparator({ label }: { label: string }) {
   return (
     <div className="sticky top-1 z-10 flex justify-center py-0.5">
-      <span className="rounded-lg bg-surface/95 px-2.5 py-1 text-[10px] font-medium text-muted-foreground shadow-sm ring-1 ring-black/5 backdrop-blur">
+      <span className="rounded-lg bg-surface/95 px-2.5 py-1 text-[10px] font-medium text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur">
         {label}
       </span>
     </div>
@@ -31,9 +33,12 @@ export function ConversationMessageBubble({
   message,
   timeZone,
 }: ConversationMessageBubbleProps) {
+  const { locale, t } = useIdioma();
   const isSent = isSentConversationMessage(message);
   const isMedia = mediaTypes.has(message.displayType);
-  const fallbackContent = getConversationMessagePreview(message);
+  // Só chega aqui sem texto: o que sai é um rótulo fixo ("Imagem"…), não a
+  // mensagem do lead, por isso pode ser traduzido.
+  const fallbackContent = t(getConversationMessagePreview(message));
   const anchorId =
     message.partIndex === 0
       ? `mensagem-${message.sourceMessageId}`
@@ -97,10 +102,13 @@ export function ConversationMessageBubble({
               isSent ? "text-primary-foreground/60" : "text-muted-foreground"
             }
           >
-            {formatDateInTimezone(message.criado_em, timeZone, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {message.criado_em
+              ? new Intl.DateTimeFormat(locale, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone,
+                }).format(new Date(message.criado_em))
+              : t("Sem data")}
           </span>
         </div>
       </div>

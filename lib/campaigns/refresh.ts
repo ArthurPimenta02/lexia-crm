@@ -2,6 +2,7 @@ import "server-only";
 
 import { revalidatePath } from "next/cache";
 
+import { getT } from "@/lib/i18n/servidor";
 import { MetaAdsError } from "@/lib/meta/ads";
 import { syncMetaCampanhas } from "@/lib/meta/sync";
 import { createClient } from "@/lib/supabase/server";
@@ -43,6 +44,7 @@ export async function atualizarCampanhasDoCliente({
       revalidatePath(caminho);
     }
   };
+  const t = await getT();
   const supabase = await createClient();
   const { data: ultima } = await supabase
     .from("lexia_campanha_custos")
@@ -60,7 +62,9 @@ export async function atualizarCampanhasDoCliente({
     revalidar();
 
     return {
-      mensagem: "Os dados foram puxados há menos de um minuto. Já estão atuais.",
+      mensagem: t(
+        "Os dados foram puxados há menos de um minuto. Já estão atualizados.",
+      ),
       ok: true,
     };
   }
@@ -71,7 +75,10 @@ export async function atualizarCampanhasDoCliente({
     revalidar();
 
     return {
-      mensagem: `Atualizado: ${resultado.linhas} dias de ${resultado.campanhas} campanhas.`,
+      mensagem: t("Atualizado: {dias} dias de {campanhas} campanhas.", {
+        campanhas: resultado.campanhas,
+        dias: resultado.linhas,
+      }),
       ok: true,
     };
   } catch (error) {
@@ -83,7 +90,9 @@ export async function atualizarCampanhasDoCliente({
     console.error("Falha ao atualizar campanhas", { clienteSlug, error });
 
     return {
-      mensagem: "Não foi possível atualizar agora. Tenta outra vez em instantes.",
+      mensagem: t(
+        "Não foi possível atualizar agora. Tente de novo em instantes.",
+      ),
       ok: false,
     };
   }

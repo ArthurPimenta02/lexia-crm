@@ -4,6 +4,8 @@ import { Bell, CalendarClock, Hand, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 import type { Aviso, AvisosResultado, TipoDeAviso } from "@/lib/avisos/read";
 
 /**
@@ -224,6 +226,7 @@ export function SinoAvisos({
   className = "",
   estado,
 }: SinoAvisosProps) {
+  const { t } = useIdioma();
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
   const { aCarregar, avisos, erro, limparTodos, marcarTodos, naoLidos } =
@@ -286,9 +289,11 @@ export function SinoAvisos({
       <button
         aria-expanded={aberto}
         aria-label={
-          naoLidos > 0
-            ? `Avisos: ${naoLidos} ${naoLidos === 1 ? "novo" : "novos"}`
-            : "Avisos"
+          naoLidos === 1
+            ? t("Avisos: 1 novo")
+            : naoLidos > 0
+              ? t("Avisos: {n} novos", { n: naoLidos })
+              : t("Avisos")
         }
         className="relative flex h-10 w-10 items-center justify-center rounded-lg text-sidebar-foreground transition hover:bg-muted"
         onClick={abrir}
@@ -310,10 +315,9 @@ export function SinoAvisos({
         >
           <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-2">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Avisos</p>
+              <p className="text-sm font-semibold text-foreground">{t("Avisos")}</p>
               <p className="text-xs text-muted-foreground">
-                Quem está à espera, as passagens para a equipa e os
-                atendimentos das próximas 24 horas.
+                {t("Quem está esperando, as transferências para a equipe e os atendimentos das próximas 24 horas.")}
               </p>
             </div>
 
@@ -327,7 +331,7 @@ export function SinoAvisos({
                 onClick={limparTodos}
                 type="button"
               >
-                Limpar
+                {t("Limpar")}
               </button>
             ) : null}
           </div>
@@ -339,11 +343,11 @@ export function SinoAvisos({
               </p>
             ) : aCarregar ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                A ler...
+                {t("Carregando...")}
               </p>
             ) : avisos.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                Nada à espera de ti.
+                {t("Nada esperando por você.")}
               </p>
             ) : (
               <ul>

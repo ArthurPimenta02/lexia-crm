@@ -12,10 +12,10 @@ import { parseFeedbackComentario } from "@/app/components/feedback-conversation-
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminAdjustmentsPageProps = {
@@ -70,39 +70,39 @@ function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
-function formatLabel(value: string | null) {
+function formatLabel(value: string | null, t: FuncaoT) {
   if (!value) {
-    return "Sem valor";
+    return t("Sem valor");
   }
 
   return value.replaceAll("_", " ");
 }
 
-function getStatusMessage(status: string, mensagem: string) {
+function getStatusMessage(status: string, mensagem: string, t: FuncaoT) {
   if (status === "criado") {
-    return "Ajuste criado com sucesso.";
+    return t("Ajuste criado com sucesso.");
   }
 
   if (status === "actualizado") {
-    return "Ajuste actualizado com sucesso.";
+    return t("Ajuste atualizado com sucesso.");
   }
 
   if (status === "erro") {
-    return mensagem || "Não foi possível guardar o ajuste.";
+    return mensagem || t("Não foi possível salvar o ajuste.");
   }
 
   return "";
 }
 
-function getFeedbackTitle(feedback: FeedbackPrefill | null) {
+function getFeedbackTitle(feedback: FeedbackPrefill | null, t: FuncaoT) {
   if (!feedback) {
     return "";
   }
 
   const parsed = parseFeedbackComentario(feedback.comentario);
-  const category = parsed.categoria ?? formatLabel(feedback.avaliacao);
+  const category = parsed.categoria ?? formatLabel(feedback.avaliacao, t);
 
-  return `Ajuste: ${category}`.slice(0, 120);
+  return t("Ajuste: {categoria}", { categoria: category }).slice(0, 120);
 }
 
 function getFeedbackBehavior(feedback: FeedbackPrefill | null) {
@@ -121,6 +121,7 @@ function AdjustmentForm({
   action,
   clients,
   defaultValues,
+  t,
   title,
 }: {
   action: (formData: FormData) => void | Promise<void>;
@@ -135,6 +136,7 @@ function AdjustmentForm({
     activo: boolean;
     origem_feedback_id: string;
   };
+  t: FuncaoT;
   title: string;
 }) {
   /*
@@ -149,18 +151,18 @@ function AdjustmentForm({
    */
   return (
     <form action={action} className="grid gap-4 *:min-w-0">
-      <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
 
       <div className="grid gap-4 *:min-w-0 md:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-          Cliente
+          {t("Cliente")}
           <select
-            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue={defaultValues.cliente_slug}
             name="cliente_slug"
             required
           >
-            <option value="">Seleccione um cliente</option>
+            <option value="">{t("Selecione um cliente")}</option>
             {clients.map((client) => (
               <option key={client.id} value={client.slug}>
                 {client.nome ?? client.slug} ({client.slug})
@@ -170,9 +172,9 @@ function AdjustmentForm({
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-          Módulo
+          {t("Módulo")}
           <select
-            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue={defaultValues.modulo}
             name="modulo"
             required
@@ -187,9 +189,9 @@ function AdjustmentForm({
       </div>
 
       <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-        Título
+        {t("Título")}
         <input
-          className="h-10 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+          className="ds-campo"
           defaultValue={defaultValues.titulo}
           name="titulo"
           required
@@ -197,9 +199,10 @@ function AdjustmentForm({
       </label>
 
       <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-        Gatilho
+        {t("Gatilho")}
         <textarea
-          className="min-h-24 rounded-lg border border-border-strong px-3 py-2 text-sm outline-none transition focus:border-foreground"
+          className="ds-campo min-h-24"
+          style={{ paddingBlock: "0.5rem" }}
           defaultValue={defaultValues.gatilho}
           name="gatilho"
           required
@@ -207,9 +210,10 @@ function AdjustmentForm({
       </label>
 
       <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-        Comportamento correcto
+        {t("Comportamento correto")}
         <textarea
-          className="min-h-28 rounded-lg border border-border-strong px-3 py-2 text-sm outline-none transition focus:border-foreground"
+          className="ds-campo min-h-28"
+          style={{ paddingBlock: "0.5rem" }}
           defaultValue={defaultValues.comportamento_correto}
           name="comportamento_correto"
           required
@@ -218,9 +222,9 @@ function AdjustmentForm({
 
       <div className="grid gap-4 md:grid-cols-[180px_1fr]">
         <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-          Prioridade
+          {t("Prioridade")}
           <input
-            className="h-10 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue={defaultValues.prioridade}
             max={100}
             min={0}
@@ -232,12 +236,12 @@ function AdjustmentForm({
 
         <label className="flex items-end gap-2 text-sm font-medium text-muted-foreground">
           <input
-            className="h-4 w-4 rounded border-border-strong"
+            className="h-4 w-4 rounded border-border-strong accent-primary"
             defaultChecked={defaultValues.activo}
             name="activo"
             type="checkbox"
           />
-          Activo
+          {t("Ativo")}
         </label>
       </div>
 
@@ -250,10 +254,10 @@ function AdjustmentForm({
       ) : null}
 
       <FormSubmitButton
-        className="h-10 w-fit rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-        pendingLabel="Guardando..."
+        className="ds-botao ds-botao-primario w-fit"
+        pendingLabel={t("Salvando...")}
       >
-        Guardar ajuste
+        {t("Salvar ajuste")}
       </FormSubmitButton>
     </form>
   );
@@ -273,6 +277,16 @@ export default async function AdminAdjustmentsPage({
   }
 
   const params = await searchParams;
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const formatDateInTimezone = (date: string | null, zona: string) =>
+    date
+      ? new Intl.DateTimeFormat(locale, {
+          dateStyle: "short",
+          timeStyle: "short",
+          timeZone: zona,
+        }).format(new Date(date))
+      : t("Sem data");
   const selectedClient = getSearchValue(params.cliente);
   const requestedModule = getSearchValue(params.modulo);
   const selectedModule = allowedModules.includes(requestedModule)
@@ -334,12 +348,12 @@ export default async function AdminAdjustmentsPage({
   }
 
   const adjustments = (adjustmentsData ?? []) as AgentAdjustment[];
-  const statusMessage = getStatusMessage(status, message);
+  const statusMessage = getStatusMessage(status, message, t);
   const defaultClient = feedback?.cliente_slug ?? selectedClient;
   const createDefaults = {
     cliente_slug: defaultClient,
     modulo: selectedModule || "geral",
-    titulo: getFeedbackTitle(feedback),
+    titulo: getFeedbackTitle(feedback, t),
     gatilho: feedback?.mensagem_cliente ?? "",
     comportamento_correto: getFeedbackBehavior(feedback),
     prioridade: 50,
@@ -349,14 +363,14 @@ export default async function AdminAdjustmentsPage({
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Ajustes do agente" />
+      <PaginaCabecalho titulo={t("Ajustes do agente")} />
 
       {statusMessage ? (
         <div
           className={`rounded-lg border p-4 text-sm ${
             status === "erro"
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "border-danger/20 bg-danger-soft text-danger"
+              : "border-positive/20 bg-positive-soft text-positive"
           }`}
         >
           {statusMessage}
@@ -377,15 +391,15 @@ export default async function AdminAdjustmentsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="cliente"
             >
-              Cliente
+              {t("Cliente")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedClient}
               id="cliente"
               name="cliente"
             >
-              <option value="">Todos</option>
+              <option value="">{t("Todos")}</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.slug}>
                   {client.nome ?? client.slug} ({client.slug})
@@ -399,17 +413,17 @@ export default async function AdminAdjustmentsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="modulo"
             >
-              Módulo
+              {t("Módulo")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedModule}
               id="modulo"
               name="modulo"
             >
               {moduleFilters.map((module) => (
                 <option key={module.label} value={module.value}>
-                  {module.label}
+                  {module.value ? module.label : t("Todos")}
                 </option>
               ))}
             </select>
@@ -417,10 +431,10 @@ export default async function AdminAdjustmentsPage({
 
           <div className="flex items-end">
             <FormSubmitButton
-              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              pendingLabel="Filtrando..."
+              className="ds-botao ds-botao-primario"
+              pendingLabel={t("Filtrando...")}
             >
-              Filtrar
+              {t("Filtrar")}
             </FormSubmitButton>
           </div>
         </div>
@@ -431,13 +445,16 @@ export default async function AdminAdjustmentsPage({
           action={createAgentAdjustment}
           clients={clients}
           defaultValues={createDefaults}
-          title="Novo ajuste"
+          t={t}
+          title={t("Novo ajuste")}
         />
       </section>
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Ajustes registados</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            {t("Ajustes registrados")}
+          </h2>
         </div>
 
         {adjustments.length > 0 ? (
@@ -447,24 +464,22 @@ export default async function AdminAdjustmentsPage({
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      <span className="ds-selo ds-selo-neutro">
                         {adjustment.modulo}
                       </span>
                       <span
-                        className={`rounded-full border px-2 py-0.5 text-xs font-medium ${
-                          adjustment.activo
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-border bg-muted text-muted-foreground"
+                        className={`ds-selo ds-selo-ponto ${
+                          adjustment.activo ? "ds-selo-verde" : "ds-selo-neutro"
                         }`}
                       >
-                        {adjustment.activo ? "Activo" : "Inactivo"}
+                        {adjustment.activo ? t("Ativo") : t("Inativo")}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Prioridade {adjustment.prioridade ?? 0}
+                        {t("Prioridade {n}", { n: adjustment.prioridade ?? 0 })}
                       </span>
                     </div>
                     <h3 className="mt-3 text-base font-semibold text-foreground">
-                      {adjustment.titulo ?? "Sem título"}
+                      {adjustment.titulo ?? t("Sem título")}
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {adjustment.cliente_slug}
@@ -478,14 +493,14 @@ export default async function AdminAdjustmentsPage({
                         adjustment.id,
                         !adjustment.activo,
                       )}
-                      className="h-9 rounded-lg border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+                      className="ds-botao ds-botao-secundario ds-botao-p"
                       confirmMessage={
                         adjustment.activo
-                          ? "Desactivar este ajuste?"
-                          : "Activar este ajuste?"
+                          ? t("Desativar este ajuste?")
+                          : t("Ativar este ajuste?")
                       }
                     >
-                      {adjustment.activo ? "Desactivar" : "Activar"}
+                      {adjustment.activo ? t("Desativar") : t("Ativar")}
                     </ConfirmActionButton>
                   </div>
                 </div>
@@ -493,22 +508,22 @@ export default async function AdminAdjustmentsPage({
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground/60">
-                      Gatilho
+                      {t("Gatilho")}
                     </p>
                     <div className="mt-1 text-sm text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem gatilho"
+                        emptyText={t("Sem gatilho")}
                         text={adjustment.gatilho}
                       />
                     </div>
                   </div>
                   <div>
                     <p className="text-xs font-medium text-muted-foreground/60">
-                      Comportamento correcto
+                      {t("Comportamento correto")}
                     </p>
                     <div className="mt-1 text-sm text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem comportamento"
+                        emptyText={t("Sem comportamento")}
                         text={adjustment.comportamento_correto}
                       />
                     </div>
@@ -517,27 +532,31 @@ export default async function AdminAdjustmentsPage({
 
                 <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground/60">
                   <span>
-                    Criado em{" "}
-                    {formatDateInTimezone(
-                      adjustment.criado_em,
-                      getClientTimezone(adjustment.cliente_slug),
-                    )}
+                    {t("Criado em {data}", {
+                      data: formatDateInTimezone(
+                        adjustment.criado_em,
+                        getClientTimezone(adjustment.cliente_slug),
+                      ),
+                    })}
                   </span>
                   <span>
-                    Actualizado em{" "}
-                    {formatDateInTimezone(
-                      adjustment.atualizado_em,
-                      getClientTimezone(adjustment.cliente_slug),
-                    )}
+                    {t("Atualizado em {data}", {
+                      data: formatDateInTimezone(
+                        adjustment.atualizado_em,
+                        getClientTimezone(adjustment.cliente_slug),
+                      ),
+                    })}
                   </span>
                   {adjustment.origem_feedback_id ? (
-                    <span>Feedback: {adjustment.origem_feedback_id}</span>
+                    <span>
+                      {t("Feedback: {id}", { id: adjustment.origem_feedback_id })}
+                    </span>
                   ) : null}
                 </div>
 
                 <details className="mt-4 rounded-2xl border border-border bg-surface-muted p-4">
                   <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                    Editar ajuste
+                    {t("Editar ajuste")}
                   </summary>
                   <div className="mt-4">
                     <AdjustmentForm
@@ -554,7 +573,8 @@ export default async function AdminAdjustmentsPage({
                         activo: Boolean(adjustment.activo),
                         origem_feedback_id: adjustment.origem_feedback_id ?? "",
                       }}
-                      title="Editar ajuste"
+                      t={t}
+                      title={t("Editar ajuste")}
                     />
                   </div>
                 </details>
@@ -563,7 +583,7 @@ export default async function AdminAdjustmentsPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há ajustes registados para este cliente.
+            {t("Ainda não há ajustes registrados para este cliente.")}
           </div>
         )}
       </section>

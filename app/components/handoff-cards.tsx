@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { Dica } from "@/app/components/painel-ui";
-import { formatDateInTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 
 export type HandoffStatusValue =
   "pendente" | "em_atendimento" | "resolvido" | "perdido";
@@ -14,39 +15,22 @@ export type HandoffStatusAction = {
   status: HandoffStatusValue;
 };
 
+/*
+ * Os rótulos ficam aqui em pt-BR e são traduzidos onde se desenham, com
+ * `t(label)`. Cada um tem a sua linha no dicionário `textos/conversas.ts`.
+ */
 const statusMeta: Record<string, { chip: string; label: string }> = {
-  em_atendimento: {
-    chip: "border-amber-200 bg-amber-50 text-amber-900",
-    label: "Em atendimento",
-  },
-  pendente: {
-    chip: "border-red-200 bg-red-50 text-red-800",
-    label: "Pendente",
-  },
-  perdido: {
-    chip: "border-border bg-muted text-muted-foreground",
-    label: "Perdido",
-  },
-  resolvido: {
-    chip: "border-emerald-200 bg-emerald-50 text-emerald-900",
-    label: "Resolvido",
-  },
+  em_atendimento: { chip: "ds-selo-alerta", label: "Em atendimento" },
+  pendente: { chip: "ds-selo-perigo", label: "Pendente" },
+  perdido: { chip: "ds-selo-neutro", label: "Perdido" },
+  resolvido: { chip: "ds-selo-verde", label: "Resolvido" },
 };
 
 const priorityMeta: Record<string, { chip: string; label: string }> = {
-  alta: {
-    chip: "border-red-200 bg-surface text-red-700",
-    label: "Prioridade alta",
-  },
-  baixa: {
-    chip: "border-border bg-surface text-muted-foreground",
-    label: "Prioridade baixa",
-  },
-  normal: {
-    chip: "border-border bg-surface text-muted-foreground",
-    label: "Prioridade normal",
-  },
-  urgente: { chip: "border-red-300 bg-red-600 text-white", label: "Urgente" },
+  alta: { chip: "ds-selo-perigo", label: "Prioridade alta" },
+  baixa: { chip: "ds-selo-neutro", label: "Prioridade baixa" },
+  normal: { chip: "ds-selo-neutro", label: "Prioridade normal" },
+  urgente: { chip: "ds-selo-perigo ds-selo-ponto", label: "Urgente" },
 };
 
 function Chip({
@@ -56,13 +40,25 @@ function Chip({
   children: ReactNode;
   className: string;
 }) {
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}
-    >
-      {children}
-    </span>
-  );
+  return <span className={`ds-selo ${className}`}>{children}</span>;
+}
+
+/** Data e hora curtas no idioma de quem vê, no fuso do cliente. */
+function formatarDataHora(
+  date: string | null,
+  timeZone: string,
+  locale: string,
+  semData: string,
+) {
+  if (!date) {
+    return semData;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(date));
 }
 
 function Field({ children, label }: { children: ReactNode; label: string }) {
@@ -126,11 +122,11 @@ export function HandoffEmptyState({ children }: { children: ReactNode }) {
 }
 
 export const handoffCardClass =
-  "flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-[0_10px_30px_rgba(0,0,0,0.05)] sm:p-5";
+  "flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5";
 
 export const handoffGridClass = "grid gap-3 md:grid-cols-2 2xl:grid-cols-3";
 
-export function HandoffCard({
+export async function HandoffCard({
   actions,
   clientLabel,
   criadoEm,
@@ -156,10 +152,15 @@ export function HandoffCard({
   /** O fuso do cliente a quem o handoff pertence. */
   timeZone: string;
 }) {
-  const statusInfo = statusMeta[status ?? ""] ?? {
-    chip: "border-border bg-surface-muted text-muted-foreground",
-    label: status?.replaceAll("_", " ") ?? "Sem estado",
-  };
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const knownStatus = statusMeta[status ?? ""];
+  const statusInfo = knownStatus
+    ? { chip: knownStatus.chip, label: t(knownStatus.label) }
+    : {
+        chip: "ds-selo-neutro",
+        label: status?.replaceAll("_", " ") ?? t("Sem status"),
+      };
   const priorityInfo = priorityMeta[prioridade ?? ""] ?? null;
 
   return (
@@ -167,35 +168,35 @@ export function HandoffCard({
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-foreground">
-            {nome ?? "Sem nome"}
+            {nome ?? t("Sem nome")}
           </h3>
           <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {telefone ?? "Sem telefone"}
+            {telefone ?? t("Sem telefone")}
             {clientLabel ? ` · ${clientLabel}` : ""}
           </p>
         </div>
         <p className="shrink-0 text-xs text-muted-foreground">
-          {formatDateInTimezone(criadoEm, timeZone)}
+          {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
         </p>
       </header>
 
       <div className="flex flex-wrap gap-1.5">
         <Chip className={statusInfo.chip}>{statusInfo.label}</Chip>
         {priorityInfo ? (
-          <Chip className={priorityInfo.chip}>{priorityInfo.label}</Chip>
+          <Chip className={priorityInfo.chip}>{t(priorityInfo.label)}</Chip>
         ) : null}
         {origem ? (
-          <Chip className="border-border bg-surface text-muted-foreground">
+          <Chip className="ds-selo-neutro">
             {origem.replaceAll("_", " ")}
           </Chip>
         ) : null}
       </div>
 
-      <Field label="Motivo">
-        <ExpandableText emptyText="Sem motivo" maxLength={140} text={motivo} />
+      <Field label={t("Motivo")}>
+        <ExpandableText emptyText={t("Sem motivo")} maxLength={140} text={motivo} />
       </Field>
-      <Field label="Resumo">
-        <ExpandableText emptyText="Sem resumo" maxLength={160} text={resumo} />
+      <Field label={t("Resumo")}>
+        <ExpandableText emptyText={t("Sem resumo")} maxLength={160} text={resumo} />
       </Field>
 
       <div className="mt-auto grid grid-cols-[1.4fr_1fr_1fr] gap-2 border-t border-border pt-4">
@@ -212,9 +213,9 @@ export function HandoffCard({
                     : "border-border bg-surface text-muted-foreground hover:border-foreground"
                 }`}
                 disabled={isCurrent}
-                pendingLabel="Salvando..."
+                pendingLabel={t("Salvando...")}
               >
-                {item.label}
+                {t(item.label)}
               </FormSubmitButton>
             </form>
           );
@@ -224,7 +225,7 @@ export function HandoffCard({
   );
 }
 
-export function SimulatedHandoffCard({
+export async function SimulatedHandoffCard({
   clientLabel,
   criadoEm,
   deleteButton,
@@ -240,26 +241,30 @@ export function SimulatedHandoffCard({
   /** O fuso do cliente a quem o handoff pertence. */
   timeZone: string;
 }) {
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+
   return (
     <article className={handoffCardClass}>
       <header className="flex items-center justify-between gap-3">
-        <Chip className="border-border bg-surface-muted text-muted-foreground">
-          Simulado{clientLabel ? ` · ${clientLabel}` : ""}
+        <Chip className="ds-selo-neutro">
+          {t("Simulado")}
+          {clientLabel ? ` · ${clientLabel}` : ""}
         </Chip>
         <p className="shrink-0 text-xs text-muted-foreground">
-          {formatDateInTimezone(criadoEm, timeZone)}
+          {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
         </p>
       </header>
-      <Field label="Mensagem do cliente">
+      <Field label={t("Mensagem do cliente")}>
         <ExpandableText
-          emptyText="Sem mensagem"
+          emptyText={t("Sem mensagem")}
           maxLength={130}
           text={mensagem}
         />
       </Field>
-      <Field label="Resposta do agente">
+      <Field label={t("Resposta do agente")}>
         <ExpandableText
-          emptyText="Sem resposta"
+          emptyText={t("Sem resposta")}
           maxLength={150}
           text={resposta}
         />

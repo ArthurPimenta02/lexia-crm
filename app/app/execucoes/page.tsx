@@ -7,10 +7,9 @@ import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientExecutionsPageProps = {
@@ -55,9 +54,9 @@ function hasError(execution: Pick<TestExecution, "erro">) {
   return Boolean(execution.erro?.trim());
 }
 
-function formatLabel(value: string | null) {
+function formatLabel(value: string | null, semValor: string) {
   if (!value) {
-    return "Sem valor";
+    return semValor;
   }
 
   return value.replaceAll("_", " ");
@@ -129,15 +128,13 @@ function Badge({
    * Igual ao ecrã do admin: a cor fica reservada para correu bem ou rebentou.
    */
   const classes = {
-    green: "border-border bg-muted text-positive",
-    neutral: "border-border bg-muted text-muted-foreground",
-    red: "border-border bg-muted text-danger",
+    green: "ds-selo-verde",
+    neutral: "ds-selo-neutro",
+    red: "ds-selo-perigo",
   };
 
   return (
-    <span
-      className={`inline-flex max-w-full rounded-full border px-2 py-1 text-xs font-medium ${classes[tone]}`}
-    >
+    <span className={`ds-selo max-w-full ${classes[tone]}`}>
       <span className="truncate">{children}</span>
     </span>
   );
@@ -162,6 +159,8 @@ export default async function ClientExecutionsPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const params = await searchParams;
   const requestedRota = getSearchValue(params.rota);
   const selectedRota = routeValues.includes(requestedRota) ? requestedRota : "";
@@ -187,7 +186,7 @@ export default async function ClientExecutionsPage({
   const { data, error } = await query;
 
   if (error) {
-    throw new Error("Não foi possível buscar as execuções de teste.");
+    throw new Error(t("Não foi possível buscar as execuções de teste."));
   }
 
   const executions = ((data ?? []) as TestExecution[]).filter((execution) => {
@@ -202,12 +201,12 @@ export default async function ClientExecutionsPage({
     return true;
   });
   const summaryCards = [
-    { title: "Execuções", value: executions.length },
+    { title: t("Execuções"), value: executions.length },
     {
-      title: "Sucesso",
+      title: t("Sucesso"),
       value: executions.filter((item) => !hasError(item)).length,
     },
-    { title: "Erro", value: executions.filter(hasError).length },
+    { title: t("Erro"), value: executions.filter(hasError).length },
   ];
 
   return (
@@ -215,13 +214,13 @@ export default async function ClientExecutionsPage({
       <PaginaCabecalho
         acoes={
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98]"
+            className="ds-botao ds-botao-primario"
             href="/app/area-testes"
           >
-            Executar novo teste
+            {t("Executar novo teste")}
           </Link>
         }
-        titulo="Execuções"
+        titulo={t("Execuções")}
       />
 
       <GrupoMetricas
@@ -243,17 +242,17 @@ export default async function ClientExecutionsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="rota"
             >
-              Rota
+              {t("Rota")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedRota}
               id="rota"
               name="rota"
             >
               {routeFilters.map((route) => (
                 <option key={route.label} value={route.value}>
-                  {route.label}
+                  {route.value ? route.label : t(route.label)}
                 </option>
               ))}
             </select>
@@ -264,35 +263,35 @@ export default async function ClientExecutionsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="estado"
             >
-              Estado
+              {t("Estado")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedEstado}
               id="estado"
               name="estado"
             >
-              <option value="todas">Todas</option>
-              <option value="sucesso">Sucesso</option>
-              <option value="erro">Erro</option>
+              <option value="todas">{t("Todas")}</option>
+              <option value="sucesso">{t("Sucesso")}</option>
+              <option value="erro">{t("Erro")}</option>
             </select>
           </div>
 
           <div className="flex items-end">
             <FormSubmitButton
-              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              pendingLabel="Filtrando..."
+              className="ds-botao ds-botao-primario"
+              pendingLabel={t("Filtrando...")}
             >
-              Filtrar
+              {t("Filtrar")}
             </FormSubmitButton>
           </div>
 
           <div className="flex items-end">
             <Link
-              className="flex h-10 items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+              className="ds-botao ds-botao-secundario"
               href="/app/execucoes"
             >
-              Limpar
+              {t("Limpar")}
             </Link>
           </div>
         </div>
@@ -305,25 +304,25 @@ export default async function ClientExecutionsPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Rota
+                    {t("Rota")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Origem
+                    {t("Origem")}
                   </th>
                   <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
-                    Mensagem enviada
+                    {t("Mensagem enviada")}
                   </th>
                   <th className="w-[280px] border-b border-border px-3 py-3 font-medium">
-                    Resposta obtida
+                    {t("Resposta obtida")}
                   </th>
                   <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    Estado
+                    {t("Estado")}
                   </th>
                   <th className="w-[170px] border-b border-border px-3 py-3 font-medium">
-                    Sessão
+                    {t("Sessão")}
                   </th>
                 </tr>
               </thead>
@@ -331,24 +330,30 @@ export default async function ClientExecutionsPage({
                 {executions.map((execution) => (
                   <tr className="border-b border-border" key={execution.id}>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
-                      {formatDateInTimezone(execution.criado_em, timeZone)}
+                      {execution.criado_em
+                        ? new Intl.DateTimeFormat(locale, {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                            timeZone,
+                          }).format(new Date(execution.criado_em))
+                        : t("Sem data")}
                     </td>
                     <td className="px-3 py-4 align-top">
-                      <Badge>{execution.rota ?? "Sem rota"}</Badge>
+                      <Badge>{execution.rota ?? t("Sem rota")}</Badge>
                     </td>
                     <td className="px-3 py-4 align-top">
-                      <Badge>{formatLabel(execution.origem)}</Badge>
+                      <Badge>{formatLabel(execution.origem, t("Sem valor"))}</Badge>
                     </td>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem mensagem"
+                        emptyText={t("Sem mensagem")}
                         maxLength={110}
                         text={execution.mensagem_teste}
                       />
                     </td>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem resposta"
+                        emptyText={t("Sem resposta")}
                         maxLength={130}
                         text={getAgentResponseText(execution)}
                       />
@@ -356,12 +361,12 @@ export default async function ClientExecutionsPage({
                     <td className="px-3 py-4 align-top">
                       <div className="flex flex-col gap-2">
                         <Badge tone={hasError(execution) ? "red" : "green"}>
-                          {hasError(execution) ? "Erro" : "Sucesso"}
+                          {hasError(execution) ? t("Erro") : t("Sucesso")}
                         </Badge>
                         {hasError(execution) ? (
                           <div className="text-xs text-muted-foreground">
                             <ExpandableText
-                              emptyText="Sem erro"
+                              emptyText={t("Sem erro")}
                               maxLength={70}
                               text={execution.erro}
                             />
@@ -375,7 +380,7 @@ export default async function ClientExecutionsPage({
                         className="truncate"
                         title={execution.session_id ?? ""}
                       >
-                        {execution.session_id ?? "Sem session_id"}
+                        {execution.session_id ?? t("Sem session_id")}
                       </p>
                       {execution.run_id ? (
                         <p
@@ -390,7 +395,7 @@ export default async function ClientExecutionsPage({
                           className="mt-1.5 truncate text-muted-foreground/60"
                           title={execution.teste_id}
                         >
-                          teste: {execution.teste_id}
+                          {t("teste: {id}", { id: execution.teste_id })}
                         </p>
                       ) : null}
                     </td>
@@ -401,7 +406,7 @@ export default async function ClientExecutionsPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há execuções registadas.
+            {t("Ainda não há execuções registradas.")}
           </div>
         )}
       </div>

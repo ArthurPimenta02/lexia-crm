@@ -6,6 +6,7 @@ import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { getT } from "@/lib/i18n/servidor";
 import {
   getProdutos,
   getProdutosExcluidos,
@@ -45,6 +46,7 @@ export default async function AdminProdutosPage({
     redirect("/app");
   }
 
+  const t = await getT();
   const params = await searchParams;
   const pedido = Array.isArray(params.cliente)
     ? (params.cliente[0] ?? "")
@@ -58,12 +60,12 @@ export default async function AdminProdutosPage({
     .order("nome");
 
   if (clientesError) {
-    throw new Error("Não foi possível buscar os clientes.");
+    throw new Error(t("Não foi possível buscar os clientes."));
   }
 
   const clientes = (clientesData ?? []) as AdminCliente[];
 
-  const cabecalho = <PaginaCabecalho titulo="Produtos" />;
+  const cabecalho = <PaginaCabecalho titulo={t("Produtos")} />;
 
   const clienteSelecionado =
     clientes.find((cliente) => cliente.slug === pedido) ?? clientes[0] ?? null;
@@ -73,7 +75,7 @@ export default async function AdminProdutosPage({
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
         <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          Nenhum cliente activo disponível.
+          {t("Nenhum cliente ativo disponível.")}
         </div>
       </div>
     );
@@ -106,9 +108,9 @@ export default async function AdminProdutosPage({
           className="flex flex-col gap-2 text-sm font-semibold text-foreground"
           htmlFor="cliente"
         >
-          Cliente
+          {t("Cliente")}
           <select
-            className="h-10 min-w-56 rounded-2xl border border-border-strong bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground"
+            className="ds-campo min-w-56 font-normal tracking-normal normal-case"
             defaultValue={clienteSlug}
             id="cliente"
             name="cliente"
@@ -121,10 +123,10 @@ export default async function AdminProdutosPage({
           </select>
         </label>
         <FormSubmitButton
-          className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          className="ds-botao ds-botao-primario"
           pendingLabel="..."
         >
-          Selecionar
+          {t("Selecionar")}
         </FormSubmitButton>
       </Form>
     </div>

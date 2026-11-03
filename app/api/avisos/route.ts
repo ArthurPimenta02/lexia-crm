@@ -1,4 +1,5 @@
 import { getAvisos } from "@/lib/avisos/read";
+import { getT } from "@/lib/i18n/servidor";
 import {
   desmarcarAviso,
   limparAvisos,
@@ -63,7 +64,7 @@ export async function GET() {
     );
   }
 
-  const resultado = await getAvisos(quem.clienteSlug, quem.userId);
+  const resultado = await getAvisos(quem.clienteSlug, quem.userId, new Date(), await getT());
 
   return Response.json(resultado);
 }

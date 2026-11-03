@@ -4,7 +4,9 @@ import { Check, Search, X } from "lucide-react";
 import { useActionState, useMemo, useState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { MarcarResultado } from "@/app/app/agenda/actions";
+import type { FraseParaTraduzir } from "@/lib/agenda/marcar";
 import type { ContactoParaEscolha } from "@/lib/clientes/read";
 import type { ServicoAgendavel } from "@/lib/servicos/read";
 
@@ -48,17 +50,15 @@ import type { ServicoAgendavel } from "@/lib/servicos/read";
  */
 
 const inputClass =
-  "h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
+  "ds-campo disabled:cursor-not-allowed disabled:opacity-60";
 
 const labelTexto = "text-xs font-semibold text-muted-foreground";
 
 const labelClass = `flex flex-col gap-1.5 ${labelTexto}`;
 
-const botaoPrimario =
-  "inline-flex min-h-10 items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60";
+const botaoPrimario = "ds-botao ds-botao-primario";
 
-const botaoDiscreto =
-  "inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:bg-surface-muted disabled:opacity-60";
+const botaoDiscreto = "ds-botao ds-botao-secundario ds-botao-p";
 
 /** Quantas sugestões aparecem de cada vez. */
 const SUGESTOES = 8;
@@ -100,6 +100,7 @@ function EscolhaDoCliente({
   escolhido: ContactoParaEscolha | null;
   escolher: (contacto: ContactoParaEscolha | null) => void;
 }) {
+  const { t } = useIdioma();
   const [procura, setProcura] = useState("");
   const [aberto, setAberto] = useState(false);
   const [realcado, setRealcado] = useState(0);
@@ -125,7 +126,7 @@ function EscolhaDoCliente({
   if (escolhido) {
     return (
       <div className="flex w-full flex-col gap-1.5">
-        <span className={labelTexto}>Cliente</span>
+        <span className={labelTexto}>{t("Cliente")}</span>
 
         <div className="flex items-center gap-2 rounded-2xl border border-border-strong bg-surface-muted px-3 py-2">
           <Check aria-hidden="true" className="h-4 w-4 shrink-0" />
@@ -146,13 +147,14 @@ function EscolhaDoCliente({
             }}
             type="button"
           >
-            Trocar
+            {t("Trocar cliente")}
           </button>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          A marcação fica no nome e no número desta ficha, por isso aparece no
-          histórico dela.
+          {t(
+            "O agendamento fica no nome e no número desta ficha, por isso aparece no histórico dela.",
+          )}
         </p>
       </div>
     );
@@ -166,7 +168,7 @@ function EscolhaDoCliente({
   return (
     <div className="flex w-full flex-col gap-1.5">
       <label className={labelTexto} htmlFor="marcar-cliente">
-        Cliente
+        {t("Cliente")}
       </label>
 
       <div className="relative">
@@ -185,7 +187,7 @@ function EscolhaDoCliente({
           aria-controls="marcar-cliente-lista"
           aria-expanded={aberto && sugestoes.length > 0}
           autoComplete="off"
-          className={`${inputClass} w-full pl-9`}
+          className={`${inputClass} w-full`}
           id="marcar-cliente"
           onChange={(evento) => {
             setProcura(evento.target.value);
@@ -229,8 +231,11 @@ function EscolhaDoCliente({
               setAberto(false);
             }
           }}
-          placeholder="Escreve o nome ou o número"
+          placeholder={t("Digite o nome ou o número")}
           role="combobox"
+          // O `.ds-campo` não está numa camada do Tailwind e ganha a um `pl-9`;
+          // o espaço para a lupa tem de ir por estilo.
+          style={{ paddingLeft: "2.25rem" }}
           type="text"
           value={procura}
         />
@@ -276,22 +281,26 @@ function EscolhaDoCliente({
 
       <p className="text-xs text-muted-foreground">
         {procura.trim() === ""
-          ? `${contactos.length} clientes na base. Começa a escrever e as opções aparecem.`
+          ? t("{n} clientes na base. Comece a digitar e as opções aparecem.", {
+              n: contactos.length,
+            })
           : sugestoes.length === 0
-            ? "Nenhum cliente com esse nome ou número. Cria-o primeiro na aba Clientes."
-            : "Carrega no cliente certo para a marcação ficar no nome dele."}
+            ? t(
+                "Nenhum cliente com esse nome ou número. Cadastre-o primeiro na aba Clientes.",
+              )
+            : t("Clique no cliente certo para o agendamento ficar no nome dele.")}
       </p>
     </div>
   );
 }
 
 /** A hora de um conflito, só as horas e os minutos. */
-function horaDoConflito(iso: string | null, timeZone: string) {
+function horaDoConflito(iso: string | null, timeZone: string, locale: string) {
   if (!iso) {
     return "—";
   }
 
-  return new Intl.DateTimeFormat("pt-PT", {
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     hour12: false,
     minute: "2-digit",
@@ -317,6 +326,7 @@ export function NovaMarcacaoForm({
   servicos: ServicoAgendavel[];
   timeZone: string;
 }) {
+  const { locale, t } = useIdioma();
   const [resultado, formAction] = useActionState<
     MarcarResultado | null,
     FormData
@@ -377,31 +387,56 @@ export function NovaMarcacaoForm({
   const avisos = resultado?.avisos ?? [];
   const conflitos = resultado?.conflitos ?? [];
 
+  /*
+   * A server action devolve as mensagens também como chave + variáveis, e é
+   * aqui que se traduzem, com o idioma de quem está a ver. Os números (as
+   * horas seguidas) formatam-se no idioma antes de entrar na frase. Uma
+   * mensagem que venha do n8n e não esteja no dicionário aparece como veio.
+   */
+  const traduzir = (frase: FraseParaTraduzir | undefined, texto: string) => {
+    if (!frase) {
+      return t(texto);
+    }
+
+    const variaveis = Object.fromEntries(
+      Object.entries(frase.variaveis ?? {}).map(([nome, valor]) => [
+        nome,
+        typeof valor === "number"
+          ? new Intl.NumberFormat(locale).format(valor)
+          : valor,
+      ]),
+    );
+
+    return t(frase.chave, variaveis);
+  };
+  const mensagem = resultado
+    ? traduzir(resultado.mensagemFrase, resultado.mensagem)
+    : "";
+
   if (resultado?.ok) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
-        <p className="text-sm font-semibold text-emerald-900">
-          {resultado.mensagem}
-        </p>
-        <p className="text-xs text-emerald-900/80">
-          Já está na agenda do Google e aparece aqui assim que a página
-          recarregar.
+      <div className="flex flex-col gap-3 rounded-2xl border border-positive/20 bg-positive-soft px-4 py-4">
+        <p className="text-sm font-semibold text-positive">{mensagem}</p>
+        <p className="text-xs text-positive/80">
+          {t(
+            "Já está na agenda do Google e aparece aqui assim que a página recarregar.",
+          )}
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
           {resultado.linkGoogle ? (
             <a
-              className="text-xs font-semibold text-emerald-900 underline underline-offset-4"
+              className="text-xs font-semibold text-positive underline underline-offset-4"
               href={resultado.linkGoogle}
               rel="noreferrer"
               target="_blank"
             >
-              Abrir no Google
+              {t("Abrir no Google")}
             </a>
           ) : null}
 
           <button className={botaoDiscreto} onClick={fechar} type="button">
-            Fechar
+            {t("Fechar")}
           </button>
         </div>
       </div>
@@ -415,11 +450,11 @@ export function NovaMarcacaoForm({
     >
       <div className="flex items-center gap-2">
         <p className="flex-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-          Marcar atendimento
+          {t("Agendar atendimento")}
         </p>
 
         <button
-          aria-label="Cancelar"
+          aria-label={t("Cancelar")}
           className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
           onClick={fechar}
           type="button"
@@ -437,7 +472,7 @@ export function NovaMarcacaoForm({
       <input name="contacto_id" type="hidden" value={escolhido?.id ?? ""} />
 
       <label className={labelClass} htmlFor="marcar-servico">
-        Serviço
+        {t("Serviço")}
         <select
           className={`${inputClass} w-full`}
           id="marcar-servico"
@@ -446,7 +481,7 @@ export function NovaMarcacaoForm({
           required
           value={servicoId}
         >
-          <option value="">Escolhe o serviço</option>
+          <option value="">{t("Escolha o serviço")}</option>
           {servicos.map((linha) => (
             <option key={linha.id} value={linha.id}>
               {linha.nome}
@@ -456,7 +491,7 @@ export function NovaMarcacaoForm({
       </label>
 
       <label className={labelClass} htmlFor="marcar-titulo">
-        Nome do evento
+        {t("Nome do evento")}
         <input
           className={`${inputClass} w-full`}
           id="marcar-titulo"
@@ -466,7 +501,7 @@ export function NovaMarcacaoForm({
             setTitulo(evento.target.value);
             setTituloMeu(true);
           }}
-          placeholder="ex.: Lavagem Detalhada — Martim Cordeiro"
+          placeholder={t("ex.: Lavagem Detalhada — Martim Cordeiro")}
           required
           type="text"
           value={titulo}
@@ -475,7 +510,7 @@ export function NovaMarcacaoForm({
 
       <div className="flex flex-wrap items-start gap-3">
         <label className={`${labelClass} w-36`} htmlFor="marcar-data">
-          Dia
+          {t("Dia")}
           <input
             className={`${inputClass} w-full`}
             defaultValue={dia}
@@ -487,7 +522,7 @@ export function NovaMarcacaoForm({
         </label>
 
         <label className={`${labelClass} w-28`} htmlFor="marcar-hora">
-          Hora
+          {t("Hora")}
           <input
             className={`${inputClass} w-full`}
             id="marcar-hora"
@@ -504,7 +539,7 @@ export function NovaMarcacaoForm({
           restauro de faróis.
         */}
         <label className={`${labelClass} w-36`} htmlFor="marcar-executor">
-          Quem faz
+          {t("Quem faz")}
           <select
             className={`${inputClass} w-full`}
             disabled={!servico}
@@ -524,7 +559,7 @@ export function NovaMarcacaoForm({
         </label>
 
         <label className={`${labelClass} w-32`} htmlFor="marcar-duracao">
-          Duração (min)
+          {t("Duração (min)")}
           <input
             className={`${inputClass} w-full`}
             id="marcar-duracao"
@@ -539,7 +574,7 @@ export function NovaMarcacaoForm({
         </label>
 
         <label className={`${labelClass} w-32`} htmlFor="marcar-valor">
-          Valor {moeda ? `(${moeda})` : ""}
+          {moeda ? t("Valor ({moeda})", { moeda }) : t("Valor")}
           <input
             className={`${inputClass} w-full`}
             id="marcar-valor"
@@ -547,7 +582,7 @@ export function NovaMarcacaoForm({
             min={0}
             name="valor"
             onChange={(evento) => setValor(evento.target.value)}
-            placeholder="opcional"
+            placeholder={t("opcional")}
             step="0.01"
             type="number"
             value={valor}
@@ -558,26 +593,26 @@ export function NovaMarcacaoForm({
           className={`${labelClass} min-w-40 flex-1`}
           htmlFor="marcar-viatura"
         >
-          Viatura
+          {t("Veículo")}
           <input
             className={`${inputClass} w-full`}
             id="marcar-viatura"
             maxLength={160}
             name="viatura"
-            placeholder="opcional"
+            placeholder={t("opcional")}
             type="text"
           />
         </label>
       </div>
 
       <label className={labelClass} htmlFor="marcar-observacoes">
-        Observações
+        {t("Observações")}
         <input
           className={`${inputClass} w-full`}
           id="marcar-observacoes"
           maxLength={4000}
           name="observacoes"
-          placeholder="opcional"
+          placeholder={t("opcional")}
           type="text"
         />
       </label>
@@ -586,8 +621,8 @@ export function NovaMarcacaoForm({
       !resultado.ok &&
       avisos.length === 0 &&
       conflitos.length === 0 ? (
-        <p className="text-xs text-red-700" role="status">
-          {resultado.mensagem}
+        <p className="text-xs text-danger" role="status">
+          {mensagem}
         </p>
       ) : null}
 
@@ -597,20 +632,22 @@ export function NovaMarcacaoForm({
         que insiste.
       */}
       {avisos.length > 0 ? (
-        <div className="rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-900">
-          <p className="font-semibold">{resultado?.mensagem}</p>
+        <div className="rounded-xl bg-warning-soft px-3 py-3 text-xs text-warning">
+          <p className="font-semibold">{mensagem}</p>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-4">
-            {avisos.map((aviso) => (
-              <li key={aviso}>{aviso}</li>
+            {avisos.map((aviso, indice) => (
+              <li key={aviso}>
+                {traduzir(resultado?.avisosFrases?.[indice], aviso)}
+              </li>
             ))}
           </ul>
           <div className="mt-3">
             <input name="confirmado" type="hidden" value="sim" />
             <FormSubmitButton
               className={botaoPrimario}
-              pendingLabel="A marcar..."
+              pendingLabel={t("Agendando...")}
             >
-              Marcar mesmo assim
+              {t("Agendar mesmo assim")}
             </FormSubmitButton>
           </div>
         </div>
@@ -622,29 +659,30 @@ export function NovaMarcacaoForm({
         cima de outro trabalho sem o ver.
       */}
       {conflitos.length > 0 ? (
-        <div className="rounded-xl bg-red-50 px-3 py-3 text-xs text-red-900">
-          <p className="font-semibold">{resultado?.mensagem}</p>
+        <div className="rounded-xl border border-danger/20 bg-danger-soft px-3 py-3 text-xs text-danger">
+          <p className="font-semibold">{mensagem}</p>
           <ul className="mt-2 flex flex-col gap-1">
             {conflitos.map((conflito, indice) => (
               <li key={`${conflito.inicio ?? indice}`}>
-                {horaDoConflito(conflito.inicio, timeZone)}–
-                {horaDoConflito(conflito.fim, timeZone)} ·{" "}
-                {conflito.titulo || "sem título"}
+                {horaDoConflito(conflito.inicio, timeZone, locale)}–
+                {horaDoConflito(conflito.fim, timeZone, locale)} ·{" "}
+                {conflito.titulo || t("sem título")}
               </li>
             ))}
           </ul>
           <p className="mt-2">
-            Marcar por cima deixa as duas coisas à mesma hora. Se for de
-            propósito, insiste; se não, muda a hora.
+            {t(
+              "Agendar por cima deixa as duas coisas no mesmo horário. Se for de propósito, confirme; se não, mude a hora.",
+            )}
           </p>
           <div className="mt-3">
             <input name="confirmado" type="hidden" value="sim" />
             <input name="ignorar_conflito" type="hidden" value="sim" />
             <FormSubmitButton
               className={botaoPrimario}
-              pendingLabel="A marcar..."
+              pendingLabel={t("Agendando...")}
             >
-              Marcar à mesma hora
+              {t("Agendar no mesmo horário")}
             </FormSubmitButton>
           </div>
         </div>
@@ -654,9 +692,9 @@ export function NovaMarcacaoForm({
         <FormSubmitButton
           className={botaoPrimario}
           disabled={!escolhido}
-          pendingLabel="A marcar..."
+          pendingLabel={t("Agendando...")}
         >
-          Marcar
+          {t("Agendar")}
         </FormSubmitButton>
       ) : null}
     </form>

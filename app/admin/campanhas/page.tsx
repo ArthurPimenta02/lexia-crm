@@ -13,6 +13,8 @@ import {
   getInclusiveRangeEnd,
   getSearchValue,
 } from "@/lib/dashboard/date-range";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getMetaAdsConfig, getMetaAdsVariaveisEmFalta } from "@/lib/meta/ads";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@/lib/supabase/server";
@@ -47,6 +49,8 @@ export default async function AdminCampanhasPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const params = await searchParams;
   const periodo = getSearchValue(params.periodo) || "hoje";
   const customStart = getSearchValue(params.inicio);
@@ -61,7 +65,7 @@ export default async function AdminCampanhasPage({
     .order("nome");
 
   if (clientesError) {
-    throw new Error("Não foi possível buscar os clientes.");
+    throw new Error(t("Não foi possível buscar os clientes."));
   }
 
   const clientes = (clientesData ?? []) as AdminCliente[];
@@ -70,14 +74,14 @@ export default async function AdminCampanhasPage({
     clientes[0] ??
     null;
 
-  const cabecalho = <PaginaCabecalho titulo="Campanhas" />;
+  const cabecalho = <PaginaCabecalho titulo={t("Campanhas")} />;
 
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
         <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground">
-          Nenhum cliente activo disponível.
+          {t("Nenhum cliente ativo disponível.")}
         </div>
       </div>
     );
@@ -104,7 +108,7 @@ export default async function AdminCampanhasPage({
   });
 
   const atualizadoEm = painel.atualizadoEm
-    ? new Intl.DateTimeFormat("pt-PT", {
+    ? new Intl.DateTimeFormat(locale, {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
@@ -136,9 +140,9 @@ export default async function AdminCampanhasPage({
         className="flex min-w-0 flex-col gap-2 text-sm font-semibold text-foreground"
         htmlFor="cliente"
       >
-        Cliente
+        {t("Cliente")}
         <select
-          className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground sm:min-w-56"
+          className="ds-campo min-w-0 font-normal tracking-normal normal-case sm:min-w-56"
           defaultValue={clienteSlug}
           id="cliente"
           name="cliente"
@@ -146,7 +150,9 @@ export default async function AdminCampanhasPage({
           {clientes.map((cliente) => (
             <option key={cliente.id} value={cliente.slug}>
               {cliente.nome ?? cliente.slug}
-              {nomesSemConta.has(cliente.slug) ? " (sem conta ligada)" : ""}
+              {nomesSemConta.has(cliente.slug)
+                ? ` ${t("(sem conta ligada)")}`
+                : ""}
             </option>
           ))}
         </select>
@@ -159,10 +165,10 @@ export default async function AdminCampanhasPage({
         </>
       ) : null}
       <FormSubmitButton
-        className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98]"
+        className="ds-botao ds-botao-primario shrink-0"
         pendingLabel="..."
       >
-        Selecionar
+        {t("Selecionar")}
       </FormSubmitButton>
     </Form>
   );
@@ -177,7 +183,7 @@ export default async function AdminCampanhasPage({
             clienteSlug={clienteSlug}
           />
         }
-        titulo="Campanhas"
+        titulo={t("Campanhas")}
       />
 
       <CampaignsPanel
@@ -192,12 +198,18 @@ export default async function AdminCampanhasPage({
         timezone={timezone}
         vazioMensagem={
           temContaLigada
-            ? 'Este cliente tem conta de anúncios ligada, mas ainda não há gasto gravado. Carrega em "Atualizar dados" para puxar o histórico da Meta.'
-            : `Este cliente não tem conta de anúncios ligada. ${
-                variaveisEmFalta.length > 1
-                  ? `Faltam as variáveis de ambiente ${variaveisEmFalta.join(" e ")}.`
-                  : `Falta a variável de ambiente ${variaveisEmFalta.join("")}.`
-              }`
+            ? t(
+                'Este cliente tem conta de anúncios ligada, mas ainda não há gasto salvo. Clique em "Atualizar dados" para puxar o histórico da Meta.',
+              )
+            : variaveisEmFalta.length > 1
+              ? t(
+                  "Este cliente não tem conta de anúncios ligada. Faltam as variáveis de ambiente {variaveis}.",
+                  { variaveis: variaveisEmFalta.join(` ${t("e")} `) },
+                )
+              : t(
+                  "Este cliente não tem conta de anúncios ligada. Falta a variável de ambiente {variavel}.",
+                  { variavel: variaveisEmFalta.join("") },
+                )
         }
       />
     </div>

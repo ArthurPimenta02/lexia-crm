@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import {
   bloqueioDaConversa,
   eCanalBloqueio,
@@ -26,12 +28,12 @@ async function adminId() {
   return user && profile?.role === "lexia_admin" ? user.id : null;
 }
 
-function erroDaTabela(code: string | undefined) {
+function erroDaTabela(code: string | undefined, t: FuncaoT) {
   if (code === "42P01" || code === "PGRST205") {
-    return "Falta correr a migration da Fase 21 no Supabase central.";
+    return t("Falta rodar a migration da Fase 21 no Supabase central.");
   }
-  if (code === "23505") return "Este contacto já está bloqueado.";
-  return "Não foi possível gravar o bloqueio.";
+  if (code === "23505") return t("Este contato já está bloqueado.");
+  return t("Não foi possível salvar o bloqueio.");
 }
 
 async function clienteExiste(slug: string) {
@@ -46,11 +48,12 @@ async function clienteExiste(slug: string) {
 async function gravar(
   linha: { cliente_slug: string; canal: string; identificador: string; nome: string | null; motivo: string | null },
   criadoPor: string,
+  t: FuncaoT,
 ) {
   const { error } = await createAdminClient()
     .from("lexia_bloqueios")
     .insert({ ...linha, criado_por: criadoPor });
-  return error ? erroDaTabela(error.code) : null;
+  return error ? erroDaTabela(error.code, t) : null;
 }
 
 /** Formulário da tela: telefone (WhatsApp) ou IGSID/PSID (Instagram/Messenger). */
@@ -59,28 +62,29 @@ export async function adicionarBloqueio(
   _state: BloqueioState,
   formData: FormData,
 ): Promise<BloqueioState> {
+  const t = await getT();
   const criadoPor = await adminId();
-  if (!criadoPor) return { message: "Acesso não autorizado.", type: "error" };
-  if (!(await clienteExiste(clienteSlug))) return { message: "Cliente não encontrado.", type: "error" };
+  if (!criadoPor) return { message: t("Acesso não autorizado."), type: "error" };
+  if (!(await clienteExiste(clienteSlug))) return { message: t("Cliente não encontrado."), type: "error" };
 
   const canal = String(formData.get("canal") ?? "");
-  if (!eCanalBloqueio(canal)) return { message: "Canal inválido.", type: "error" };
+  if (!eCanalBloqueio(canal)) return { message: t("Canal inválido."), type: "error" };
   const identificador = normalizarIdentificador(canal, String(formData.get("identificador") ?? ""));
   if (!identificador) {
     return {
       message: canal === "whatsapp"
-        ? "Telefone inválido: use o número com o código do país (ex.: 1 781 555 0000)."
-        : "Identificador inválido: no Instagram e no Messenger é o número da conta, mais fácil de bloquear pelo botão da conversa.",
+        ? t("Telefone inválido: use o número com o código do país (ex.: 1 781 555 0000).")
+        : t("Identificador inválido: no Instagram e no Messenger é o número da conta, mais fácil de bloquear pelo botão da conversa."),
       type: "error",
     };
   }
   const nome = String(formData.get("nome") ?? "").trim().slice(0, 120) || null;
   const motivo = String(formData.get("motivo") ?? "").trim().slice(0, 300) || null;
 
-  const erro = await gravar({ cliente_slug: clienteSlug, canal, identificador, nome, motivo }, criadoPor);
+  const erro = await gravar({ cliente_slug: clienteSlug, canal, identificador, nome, motivo }, criadoPor, t);
   if (erro) return { message: erro, type: "error" };
   revalidatePath("/admin/bloqueios");
-  return { message: "Bloqueado.", type: "success" };
+  return { message: t("Bloqueado."), type: "success" };
 }
 
 /** Botão "Bloquear contacto" da conversa: o identificador sai da própria conversa. */
@@ -89,18 +93,20 @@ export async function bloquearConversa(
   identificadorConversa: string,
   nome: string | null,
 ): Promise<ActionResult> {
+  const t = await getT();
   const criadoPor = await adminId();
-  if (!criadoPor) return { ok: false, error: "Acesso não autorizado." };
-  if (!(await clienteExiste(clienteSlug))) return { ok: false, error: "Cliente não encontrado." };
+  if (!criadoPor) return { ok: false, error: t("Acesso não autorizado.") };
+  if (!(await clienteExiste(clienteSlug))) return { ok: false, error: t("Cliente não encontrado.") };
 
   const alvo = bloqueioDaConversa(identificadorConversa);
-  if (!alvo) return { ok: false, error: "Esta conversa não tem um contacto que se possa bloquear." };
+  if (!alvo) return { ok: false, error: t("Esta conversa não tem um contato que possa ser bloqueado.") };
 
   const erro = await gravar(
     { cliente_slug: clienteSlug, ...alvo, nome: nome?.trim().slice(0, 120) || null, motivo: "bloqueado pela conversa" },
     criadoPor,
+    t,
   );
-  if (erro && erro !== "Este contacto já está bloqueado.") return { ok: false, error: erro };
+  if (erro && erro !== t("Este contato já está bloqueado.")) return { ok: false, error: erro };
   revalidatePath("/admin/bloqueios");
   revalidatePath("/admin/conversas");
   return { ok: true };
@@ -108,13 +114,14 @@ export async function bloquearConversa(
 
 /** Desbloquear: apaga a linha (só deste cliente). */
 export async function removerBloqueio(clienteSlug: string, id: string): Promise<ActionResult> {
-  if (!(await adminId())) return { ok: false, error: "Acesso não autorizado." };
+  const t = await getT();
+  if (!(await adminId())) return { ok: false, error: t("Acesso não autorizado.") };
   const { error } = await createAdminClient()
     .from("lexia_bloqueios")
     .delete()
     .eq("id", id)
     .eq("cliente_slug", clienteSlug);
-  if (error) return { ok: false, error: erroDaTabela(error.code) };
+  if (error) return { ok: false, error: erroDaTabela(error.code, t) };
   revalidatePath("/admin/bloqueios");
   revalidatePath("/admin/conversas");
   return { ok: true };
