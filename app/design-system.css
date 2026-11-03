@@ -163,6 +163,70 @@
 }
 .ds[data-paleta="noite"] .ds-selo-verde { color: var(--ds-acao); }
 
+
+/* ================================================================
+ * Modo escuro: vale para qualquer paleta. Primeiro os neutros, depois
+ * a cor de ação de cada paleta afinada para fundo escuro (mais clara,
+ * para manter o contraste).
+ * ================================================================ */
+.ds[data-modo="escuro"] {
+  --ds-fundo: #0c0d10; --ds-superficie: #16181d; --ds-superficie-2: #1b1e24;
+  --ds-linha: rgb(255 255 255 / 0.08); --ds-linha-forte: rgb(255 255 255 / 0.14);
+  --ds-tinta: 255 255 255; --ds-texto: #f3f4f6; --ds-texto-2: #a1a6b0; --ds-texto-3: #6b7180;
+  --ds-botao: #f3f4f6; --ds-botao-texto: #0c0d10;
+  --ds-positivo: #6ee7a0;
+  --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717; --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
+  --ds-ouro: #f5c04a; --ds-ouro-fundo: #33280f;
+  --ds-vidro: rgb(22 24 29 / 0.72);
+  --ds-sombra-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+.ds[data-modo="escuro"] .ds-selo-verde { color: var(--ds-acao); }
+
+.ds[data-paleta="noite"][data-modo="escuro"] {
+  --ds-botao: #c6ff3d; --ds-botao-texto: #0c0d10;
+}
+.ds[data-paleta="menta"][data-modo="escuro"] {
+  --ds-acao: #34c995; --ds-acao-forte: #4fd9a8; --ds-acao-suave: #173d30; --ds-acao-fundo: #102a21; --ds-acao-texto: #06140f;
+  --ds-destaque: #4fd9a8;
+}
+.ds[data-paleta="bubblegum"][data-modo="escuro"] {
+  --ds-fundo: #0d0c16; --ds-superficie: #16152a; --ds-superficie-2: #1c1a33;
+  --ds-acao: #7b6dff; --ds-acao-forte: #9a8fff; --ds-acao-suave: #2b2766; --ds-acao-fundo: #1d1a45; --ds-acao-texto: #ffffff;
+  --ds-destaque: #ff7fd6; --ds-vidro: rgb(22 21 42 / 0.72);
+}
+.ds[data-paleta="limao"][data-modo="escuro"] {
+  --ds-fundo: #0e0e0c; --ds-superficie: #181816; --ds-superficie-2: #1e1e1b;
+  --ds-botao: #fff21a; --ds-botao-texto: #171717;
+  --ds-acao: #b78bff; --ds-acao-forte: #c9a6ff; --ds-acao-suave: #33264d; --ds-acao-fundo: #241b38; --ds-acao-texto: #120a1f;
+  --ds-destaque: #fff21a; --ds-vidro: rgb(24 24 22 / 0.72);
+}
+.ds[data-paleta="barro"][data-modo="escuro"] {
+  --ds-fundo: #13100d; --ds-superficie: #1d1915; --ds-superficie-2: #231e19;
+  --ds-botao: #f3efe7; --ds-botao-texto: #13100d;
+  --ds-acao: #e0704a; --ds-acao-forte: #ec8a66; --ds-acao-suave: #4a2a1e; --ds-acao-fundo: #2e1d15; --ds-acao-texto: #ffffff;
+  --ds-destaque: #e8b86b; --ds-positivo: #a7c26a;
+  --ds-texto: #f3efe7; --ds-texto-2: #b3a99c; --ds-texto-3: #7d7368; --ds-vidro: rgb(29 25 21 / 0.72);
+}
+.ds[data-paleta="cobalto"][data-modo="escuro"] {
+  --ds-fundo: #080b1a; --ds-superficie: #10142a; --ds-superficie-2: #151a33;
+  --ds-acao: #5b70ff; --ds-acao-forte: #7d8dff; --ds-acao-suave: #1f2a6b; --ds-acao-fundo: #151d4d; --ds-acao-texto: #ffffff;
+  --ds-destaque: #ff8a6e; --ds-vidro: rgb(16 20 42 / 0.72);
+}
+.ds[data-paleta="ameixa"][data-modo="escuro"] {
+  --ds-fundo: #110b16; --ds-superficie: #1a1322; --ds-superficie-2: #20182a;
+  --ds-botao: #ffb38a; --ds-botao-texto: #1a0f12;
+  --ds-acao: #a87ae0; --ds-acao-forte: #bf98ec; --ds-acao-suave: #3a2752; --ds-acao-fundo: #2a1c3c; --ds-acao-texto: #ffffff;
+  --ds-destaque: #ffb38a; --ds-vidro: rgb(26 19 34 / 0.72);
+}
+.ds[data-paleta="petroleo"][data-modo="escuro"] {
+  --ds-fundo: #061413; --ds-superficie: #0d1f1e; --ds-superficie-2: #122625;
+  --ds-botao: #ff7a2a; --ds-botao-texto: #1a0b02;
+  --ds-acao: #ff7a2a; --ds-acao-forte: #ff9450; --ds-acao-suave: #4a2610; --ds-acao-fundo: #2f1a0c; --ds-acao-texto: #1a0b02;
+  --ds-destaque: #ff9450; --ds-positivo: #5fd3c4; --ds-vidro: rgb(13 31 30 / 0.72);
+}
+
 /* ---------- Tipografia ---------- */
 
 .ds-titulo-1 {

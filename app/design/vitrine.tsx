@@ -487,7 +487,7 @@ type IdPaleta = (typeof paletas)[number]["id"];
 
 function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; valor: IdPaleta }) {
   return (
-    <div className="ds-vidro sticky top-3 z-20 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[16px] p-1.5">
+    <div className="ds-vidro flex max-w-full gap-1.5 overflow-x-auto rounded-[16px] p-1.5">
       {paletas.map((p) => (
         <button
           aria-pressed={p.id === valor}
@@ -511,26 +511,31 @@ function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; v
   );
 }
 
+type Modo = "claro" | "escuro";
+
 export function Vitrine() {
   const [paleta, setPaleta] = useState<IdPaleta>("menta");
+  const [modo, setModo] = useState<Modo>("claro");
 
   // A paleta vai no endereço (/design#noite) para dar para partilhar.
   useEffect(() => {
     const ler = () => {
-      const h = window.location.hash.slice(1);
+      const [h, m] = window.location.hash.slice(1).split("-");
       if (paletas.some((p) => p.id === h)) setPaleta(h as IdPaleta);
+      setModo(m === "escuro" ? "escuro" : "claro");
     };
     ler();
     window.addEventListener("hashchange", ler);
     return () => window.removeEventListener("hashchange", ler);
   }, []);
 
-  const escolher = (v: IdPaleta) => {
+  const escolher = (v: IdPaleta, m: Modo = modo) => {
     setPaleta(v);
-    history.replaceState(null, "", `#${v}`);
+    setModo(m);
+    history.replaceState(null, "", `#${v}${m === "escuro" ? "-escuro" : ""}`);
   };
   return (
-    <div className="ds relative min-h-screen" data-paleta={paleta}>
+    <div className="ds relative min-h-screen" data-modo={paleta === "noite" ? "escuro" : modo} data-paleta={paleta}>
       <div aria-hidden className="ds-aurora" />
       <div className="relative z-[1] mx-auto flex max-w-[1320px] flex-col gap-10 px-4 py-12 sm:px-8">
         <header className="flex flex-col items-center gap-4 text-center">
@@ -545,7 +550,19 @@ export function Vitrine() {
           </p>
         </header>
 
-        <SeletorPaleta onChange={escolher} valor={paleta} />
+        <div className="sticky top-3 z-20 flex flex-wrap items-center justify-center gap-2">
+          <SeletorPaleta onChange={(v) => escolher(v)} valor={paleta} />
+          <div className="ds-vidro rounded-[16px] p-1.5">
+            <Trilho
+              onChange={(m) => escolher(paleta, m)}
+              opcoes={[
+                { label: "☀︎ Claro", valor: "claro" },
+                { label: "☾ Escuro", valor: "escuro" },
+              ]}
+              valor={paleta === "noite" ? "escuro" : modo}
+            />
+          </div>
+        </div>
 
         <section className="ds-entrar" style={{ ["--i" as string]: 3 }}>
           <TelaExemplo />
