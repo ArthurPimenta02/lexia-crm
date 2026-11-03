@@ -89,7 +89,7 @@ export function AppSidebar({
         sempre "Lexia AI", que é a única coisa que quem está lá dentro já
         sabe.
       */}
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-sidebar-border bg-sidebar px-3 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-sidebar-border bg-[var(--ds-vidro)] px-3 backdrop-blur-xl lg:hidden">
         <button
           aria-controls="lexia-menu"
           aria-expanded={isOpen}
@@ -132,12 +132,12 @@ export function AppSidebar({
         cartões desenhados por cima dela.
       */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-[17rem] shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 lg:static lg:h-full lg:w-[17rem] lg:max-w-none lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[84%] max-w-[16rem] shrink-0 flex-col border-r border-sidebar-border bg-[var(--ds-vidro)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:static lg:h-full lg:w-[15.5rem] lg:max-w-none lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         id="lexia-menu"
       >
-        <div className="flex shrink-0 items-start justify-between gap-2 px-4 pt-5 pb-4">
+        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-5 pb-5">
           <LexiaBrand compact tone="light" />
           {comSino ? (
             <SinoAvisos
@@ -157,7 +157,7 @@ export function AppSidebar({
         </div>
 
         {/* A única zona que rola. Tudo o resto fica onde está. */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-4">
           <SidebarNav
             groupLabel={subtitle}
             items={items}
@@ -165,12 +165,12 @@ export function AppSidebar({
           />
         </div>
 
-        <div className="flex shrink-0 flex-col gap-1.5 border-t border-sidebar-border p-3">
-          <SeletorTema />
+        <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-border p-2.5">
+          <SeletorTema compacto />
           <SeletorIdioma />
           <form action={logoutAction}>
             <FormSubmitButton
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground disabled:opacity-60"
+              className="flex h-9 w-full items-center gap-2.5 rounded-[10px] px-3 text-[0.8125rem] font-medium text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground disabled:opacity-60"
               pendingLabel={t("Saindo...")}
             >
               <LogOut aria-hidden="true" className="h-4 w-4" />

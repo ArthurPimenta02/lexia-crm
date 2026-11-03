@@ -11,7 +11,14 @@ import type { Tema } from "@/lib/tema";
  * Claro, escuro ou automático. Muda na hora (o atributo no `<html>`) e
  * guarda a escolha em segundo plano, sem recarregar a página.
  */
-export function SeletorTema({ className = "" }: { className?: string }) {
+export function SeletorTema({
+  className = "",
+  compacto = false,
+}: {
+  className?: string;
+  /** Só ícones (barra lateral estreita); o nome fica no `title`. */
+  compacto?: boolean;
+}) {
   const { t, tema: temaGuardado } = useIdioma();
   const [tema, setTema] = useState<Tema>(temaGuardado);
   const [, iniciar] = useTransition();
@@ -39,7 +46,7 @@ export function SeletorTema({ className = "" }: { className?: string }) {
           type="button"
         >
           <Icone aria-hidden="true" className="h-3.5 w-3.5" />
-          <span className="text-[0.75rem]">{rotulo}</span>
+          {compacto ? null : <span className="text-[0.75rem]">{rotulo}</span>}
         </button>
       ))}
     </div>

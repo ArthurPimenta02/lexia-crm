@@ -39,7 +39,7 @@ export function LexiaBrand({
             Lexia AI
           </p>
           <p
-            className={`mt-0.5 text-[11px] font-medium tracking-[0.22em] uppercase ${
+            className={`mt-0.5 text-[10px] font-medium tracking-[0.16em] whitespace-nowrap uppercase ${
               isDark ? "text-white/40" : "text-muted-foreground"
             }`}
           >

@@ -553,4 +553,17 @@
   .ds-botao, .ds-segmento, .ds-interruptor::after, .ds-barra > span { transition: none; }
 }
 
+/* ---------- Entrada dos gráficos ---------- */
+@keyframes grafico-revelar { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes grafico-aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes grafico-crescer { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.grafico-revelar { animation: grafico-revelar 900ms var(--ds-curva) both; }
+.grafico-barra {
+  transform-origin: bottom;
+  animation: grafico-crescer 650ms var(--ds-curva) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grafico-revelar, .grafico-barra { animation: none; }
+}
+
 }

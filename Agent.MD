@@ -26,7 +26,7 @@ Regras inegociáveis:
 
 - Produto: Lexia AI, painel de operação de agentes de atendimento.
 - URL pública: `https://app.uselexia.app`.
-- Hospedagem: Vercel.
+- Hospedagem: Vercel, funções na região **`cdg1` (Paris)** desde 03/11/2026 (`vercel.json` → `regions`). Antes corriam em `iad1` (Washington) e cada consulta ia e vinha pelo Atlântico: a base central (`qbybhqzxbtectoxubtmt`) e a do Detail estão em `eu-west-3` (Paris); a da Miranda e a da Claudia em `us-west-2` (Oregon).
 - Projeto Vercel localmente vinculado: `lexia-crm`.
 - Domínio: `app.uselexia.app`, com DNS administrado fora do repositório.
 - Verificação em 30/09/2026: deploy Production concluído, `/login` respondeu HTTP 200 e as rotas autenticadas `/app` e `/app/conversas` responderam HTTP 200.
