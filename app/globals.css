@@ -157,3 +157,13 @@ summary:focus-visible,
     72px 72px,
     100% 100%;
 }
+
+/* O símbolo preto da Lexia fica invisível no modo escuro: inverte-se. */
+:root[data-tema="escuro"] .lexia-simbolo-tema {
+  filter: invert(1);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-tema="sistema"] .lexia-simbolo-tema {
+    filter: invert(1);
+  }
+}

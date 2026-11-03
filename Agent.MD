@@ -143,7 +143,7 @@ Clientes com a integração ativa: `miranda_skin_experts` e `detail_by_cordeiro`
 - Node usado na auditoria: `24.14.1`.
 - npm usado na auditoria: `11.11.0`.
 - Fonte: Geist e Geist Mono via `next/font`.
-- Idioma do HTML: `pt-BR`.
+- Idioma: o `<html lang>` segue o idioma escolhido (ver "Idiomas e tema" abaixo).
 - Alias TypeScript: `@/*` aponta para a raiz.
 
 Scripts existentes:
@@ -158,6 +158,28 @@ npm test
 ```
 
 Não existem scripts de seed, migration ou geração de tipos.
+
+### Idiomas e tema (2026-11-03)
+
+- **Quatro idiomas:** pt-BR (texto-fonte do código), pt-PT, es, en.
+  O texto escreve-se em pt-BR dentro de `t("…")` (cliente: `useIdioma()`
+  de `app/components/idioma.tsx`; servidor e server actions: `getT()` de
+  `lib/i18n/servidor.ts`; peças partilhadas: `<Tr>…</Tr>`). As traduções
+  vivem em `lib/i18n/textos/<área>.ts`. Datas e números usam o `locale` do
+  idioma; o fuso horário de cada cliente não muda.
+- **Escolha:** cookie `lexia_idioma` (por navegador, 1 ano), trocado pelo
+  seletor no rodapé da barra lateral e no login. Sem escolha, só se decide
+  entre pt-PT (navegador em pt-PT) e pt-BR; espanhol e inglês só por escolha.
+- **Tema:** cookie `lexia_tema` = `claro` (padrão) | `escuro` | `sistema`,
+  aplicado como `data-tema` no `<html>`.
+- **Design system "Jade":** `app/design-system.css` tem a paleta (3 cores em
+  `--c1/--c2/--c3`), o modo escuro e as peças `ds-*` (na camada
+  `components` do Tailwind). Os tokens antigos de `globals.css`
+  (`--background`, `--primary`…) apontam para ela. Guia de conversão:
+  `docs/design-system-e-idiomas.md`.
+- **Teste de guarda:** `tests/idiomas.test.mts` falha se um `t("…")` não
+  tiver tradução nos três dicionários, se as variáveis `{…}` não baterem ou
+  se a mesma chave tiver duas traduções.
 
 ### Testes
 

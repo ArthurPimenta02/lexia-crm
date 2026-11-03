@@ -19,9 +19,9 @@ export function LexiaBrand({
     <div className="flex items-center gap-3">
       <Image
         alt="Lexia AI"
-        className={
-          compact ? "h-11 w-11 object-contain" : "h-16 w-16 object-contain"
-        }
+        className={`${compact ? "h-11 w-11" : "h-16 w-16"} object-contain ${
+          isDark ? "" : "lexia-simbolo-tema"
+        }`}
         height={compact ? 44 : 64}
         priority
         src={

@@ -158,7 +158,12 @@ function rotuloDoPeriodo(agenda: AgendaResultado, locale: string) {
     month: "long",
     timeZone: "UTC",
     year: "numeric",
-  }).formatRange(inicio, fim);
+  })
+    .formatRange(inicio, fim)
+    // O Node e o Chrome põem espaços invisíveis diferentes à volta do "–"
+    // (fino, sem quebra…). Sem isto o texto do servidor e o do navegador não
+    // batem e o React reclama de hidratação.
+    .replace(/[\u2009\u202f\u00a0]/g, " ");
 }
 
 function horas(

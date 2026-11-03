@@ -23,7 +23,7 @@ export function BotaoExportar<T>({
   assunto,
   colunas,
   linhas,
-  rotulo = "Exportar",
+  rotulo,
 }: {
   /** Entra no nome do ficheiro: `clientes-2026-10-19.csv`. */
   assunto: string;
@@ -75,7 +75,7 @@ export function BotaoExportar<T>({
       type="button"
     >
       <Download aria-hidden="true" className="h-4 w-4" />
-      {rotulo}
+      {rotulo ?? t("Exportar")}
     </button>
   );
 }

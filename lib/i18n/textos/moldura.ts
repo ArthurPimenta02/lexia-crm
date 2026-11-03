@@ -94,6 +94,7 @@ const textos: TextosDaArea = {
     "O endereço pode ter mudado ou estar escrito errado.": "O endereço pode ter mudado ou estar mal escrito.",
     "Voltar ao início": "Voltar ao início",
     "IA que entende": "IA que entende",
+    Exportar: "Exportar",
   },
   es: {
     Dashboard: "Panel",
@@ -178,6 +179,7 @@ const textos: TextosDaArea = {
     "O endereço pode ter mudado ou estar escrito errado.": "La dirección puede haber cambiado o estar mal escrita.",
     "Voltar ao início": "Volver al inicio",
     "IA que entende": "IA que entiende",
+    Exportar: "Exportar",
   },
   en: {
     Dashboard: "Dashboard",
@@ -262,6 +264,7 @@ const textos: TextosDaArea = {
     "O endereço pode ter mudado ou estar escrito errado.": "The address may have changed or be mistyped.",
     "Voltar ao início": "Back to start",
     "IA que entende": "AI that understands",
+    Exportar: "Export",
   },
 };
 
