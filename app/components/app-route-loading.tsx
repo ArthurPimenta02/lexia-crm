@@ -1,3 +1,5 @@
+import { Tr } from "@/app/components/idioma";
+
 /**
  * O que se vê enquanto a página seguinte carrega.
  *
@@ -9,7 +11,7 @@
 export function AppRouteLoading() {
   return (
     <section aria-busy="true" aria-live="polite" className="w-full animate-pulse">
-      <span className="sr-only">Carregando página...</span>
+      <span className="sr-only"><Tr>Carregando página...</Tr></span>
 
       <div className="h-8 w-56 max-w-[70%] rounded-lg bg-border" />
 

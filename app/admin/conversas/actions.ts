@@ -153,7 +153,7 @@ export async function saveAdminConversationFeedback(
       origem: "admin_conversas",
     });
 
-    return { ok: false, error: "Não foi possível registar o feedback." };
+    return { ok: false, error: "Não foi possível registrar o feedback." };
   }
 
   revalidatePath("/admin/conversas");

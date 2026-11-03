@@ -2,6 +2,8 @@
 
 import { type FormEvent, useState } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 type FeedbackActionResult = {
   ok: boolean;
   error?: string;
@@ -17,6 +19,10 @@ type ConversationFeedbackActionProps = {
   ) => Promise<FeedbackActionResult>;
 };
 
+/*
+ * A categoria é gravada no comentário do feedback tal como está aqui, em
+ * pt-BR — é o valor. Só o texto que se vê no <option> é traduzido.
+ */
 const categories = [
   "Resposta errada",
   "Contexto perdido",
@@ -32,6 +38,7 @@ export function ConversationFeedbackAction({
   messageId,
   onSave,
 }: ConversationFeedbackActionProps) {
+  const { t } = useIdioma();
   const [isOpen, setIsOpen] = useState(false);
   const [categoria, setCategoria] = useState(categories[0]);
   const [observacao, setObservacao] = useState("");
@@ -44,7 +51,7 @@ export function ConversationFeedbackAction({
     const selectedCategory = categoria.trim();
 
     if (!selectedCategory) {
-      setError("Selecciona uma categoria.");
+      setError(t("Selecione uma categoria."));
       return;
     }
 
@@ -56,7 +63,7 @@ export function ConversationFeedbackAction({
     setIsSaving(false);
 
     if (!result.ok) {
-      setError(result.error ?? "Não foi possível registar o feedback.");
+      setError(t(result.error ?? "Não foi possível registrar o feedback."));
       return;
     }
 
@@ -72,7 +79,7 @@ export function ConversationFeedbackAction({
           appearance === "light" ? "text-positive" : "text-primary-foreground"
         }`}
       >
-        Feedback registado.
+        {t("Feedback registrado.")}
       </div>
     );
   }
@@ -92,7 +99,7 @@ export function ConversationFeedbackAction({
           }}
           type="button"
         >
-          Reportar
+          {t("Reportar")}
         </button>
       ) : (
         <form
@@ -100,44 +107,44 @@ export function ConversationFeedbackAction({
           onSubmit={handleSubmit}
         >
           <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Categoria do problema
+            {t("Categoria do problema")}
             <select
-              className="h-9 rounded-2xl border border-border-strong bg-surface px-2 text-xs outline-none transition focus:border-foreground"
+              className="ds-campo h-9 px-2 text-xs"
               onChange={(event) => setCategoria(event.target.value)}
               value={categoria}
             >
               {categories.map((item) => (
                 <option key={item} value={item}>
-                  {item}
+                  {t(item)}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="mt-3 flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            Observação
+            {t("Observação")}
             <textarea
-              className="min-h-20 resize-y rounded-lg border border-border-strong px-2 py-2 text-xs outline-none transition focus:border-foreground"
+              className="ds-campo h-auto min-h-20 resize-y px-2 py-2 text-xs"
               onChange={(event) => setObservacao(event.target.value)}
-              placeholder="Descreve o problema nesta resposta..."
+              placeholder={t("Descreva o problema nesta resposta...")}
               value={observacao}
             />
           </label>
 
           {error ? (
-            <p className="mt-2 text-xs font-medium text-red-600">{error}</p>
+            <p className="mt-2 text-xs font-medium text-danger">{error}</p>
           ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
-              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ds-botao ds-botao-primario ds-botao-p disabled:cursor-not-allowed"
               disabled={isSaving}
               type="submit"
             >
-              {isSaving ? "A guardar..." : "Guardar feedback"}
+              {isSaving ? t("Salvando...") : t("Salvar feedback")}
             </button>
             <button
-              className="rounded-lg border border-border-strong px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+              className="ds-botao ds-botao-secundario ds-botao-p"
               disabled={isSaving}
               onClick={() => {
                 setIsOpen(false);
@@ -145,7 +152,7 @@ export function ConversationFeedbackAction({
               }}
               type="button"
             >
-              Cancelar
+              {t("Cancelar")}
             </button>
           </div>
         </form>

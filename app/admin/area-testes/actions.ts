@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 export type AdminTestSession = {
@@ -69,8 +70,9 @@ async function ensureClientExists(clienteSlug: string) {
 export async function createAdminTestSession(
   clienteSlug: string,
 ): Promise<ActionResult<AdminTestSession>> {
+  const t = await getT();
   if (!(await isLexiaAdmin()) || !(await ensureClientExists(clienteSlug))) {
-    return { data: null, error: "Acesso não autorizado." };
+    return { data: null, error: t("Acesso não autorizado.") };
   }
 
   const supabase = await createClient();
@@ -91,7 +93,7 @@ export async function createAdminTestSession(
   if (error) {
     return {
       data: null,
-      error: "Não foi possível criar a sessão de teste.",
+      error: t("Não foi possível criar a sessão de teste."),
     };
   }
 
@@ -104,12 +106,13 @@ export async function deleteAdminTestSession(
   clienteSlug: string,
   sessionId: string,
 ): Promise<DeleteResult> {
+  const t = await getT();
   if (!(await isLexiaAdmin())) {
-    return { ok: false, error: "Acesso não autorizado." };
+    return { ok: false, error: t("Acesso não autorizado.") };
   }
 
   if (!clienteSlug || !sessionId) {
-    return { ok: false, error: "Sessão de teste inválida." };
+    return { ok: false, error: t("Sessão de teste inválida.") };
   }
 
   let supabaseAdmin: ReturnType<typeof createAdminClient>;
@@ -122,7 +125,7 @@ export async function deleteAdminTestSession(
       error:
         error instanceof Error
           ? error.message
-          : "Não foi possível criar o client admin do Supabase.",
+          : t("Não foi possível criar o client admin do Supabase."),
     };
   }
 
@@ -135,7 +138,7 @@ export async function deleteAdminTestSession(
     .maybeSingle();
 
   if (sessionError || !session) {
-    return { ok: false, error: "Sessão de teste admin não encontrada." };
+    return { ok: false, error: t("Sessão de teste admin não encontrada.") };
   }
 
   const { data: executions, error: executionsLookupError } = await supabaseAdmin
@@ -148,7 +151,7 @@ export async function deleteAdminTestSession(
   if (executionsLookupError) {
     return {
       ok: false,
-      error: "Não foi possível buscar execuções da sessão.",
+      error: t("Não foi possível buscar execuções da sessão."),
     };
   }
 
@@ -164,7 +167,7 @@ export async function deleteAdminTestSession(
     if (feedbackError) {
       return {
         ok: false,
-        error: "Não foi possível excluir feedbacks da sessão.",
+        error: t("Não foi possível excluir feedbacks da sessão."),
       };
     }
   }
@@ -177,7 +180,7 @@ export async function deleteAdminTestSession(
     .eq("origem", "painel_admin");
 
   if (executionsError) {
-    return { ok: false, error: "Não foi possível excluir execuções." };
+    return { ok: false, error: t("Não foi possível excluir execuções.") };
   }
 
   const testConversationId = `teste:${sessionId}`;
@@ -189,7 +192,7 @@ export async function deleteAdminTestSession(
     .eq("identificador_conversa", testConversationId);
 
   if (messagesError) {
-    return { ok: false, error: "Não foi possível excluir mensagens." };
+    return { ok: false, error: t("Não foi possível excluir mensagens.") };
   }
 
   const { error: contactsError } = await supabaseAdmin
@@ -199,7 +202,7 @@ export async function deleteAdminTestSession(
     .eq("identificador_conversa", testConversationId);
 
   if (contactsError) {
-    return { ok: false, error: "Não foi possível excluir contacto." };
+    return { ok: false, error: t("Não foi possível excluir contato.") };
   }
 
   const { error: deleteSessionError } = await supabaseAdmin
@@ -210,7 +213,7 @@ export async function deleteAdminTestSession(
     .eq("origem", "painel_admin");
 
   if (deleteSessionError) {
-    return { ok: false, error: "Não foi possível excluir a sessão." };
+    return { ok: false, error: t("Não foi possível excluir a sessão.") };
   }
 
   revalidatePath("/admin/area-testes");
@@ -226,8 +229,9 @@ export async function getAdminSessionExecutions(
   clienteSlug: string,
   sessionId: string,
 ): Promise<ActionResult<AdminTestExecution[]>> {
+  const t = await getT();
   if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+    return { data: null, error: t("Acesso não autorizado.") };
   }
 
   const supabase = await createClient();
@@ -244,7 +248,7 @@ export async function getAdminSessionExecutions(
   if (error) {
     return {
       data: null,
-      error: "Não foi possível buscar as mensagens da sessão.",
+      error: t("Não foi possível buscar as mensagens da sessão."),
     };
   }
 
@@ -256,8 +260,9 @@ export async function getAdminExecutionByRunId(
   sessionId: string,
   runId: string,
 ): Promise<ActionResult<AdminTestExecution | null>> {
+  const t = await getT();
   if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+    return { data: null, error: t("Acesso não autorizado.") };
   }
 
   const supabase = await createClient();
@@ -275,7 +280,7 @@ export async function getAdminExecutionByRunId(
   if (error) {
     return {
       data: null,
-      error: "Não foi possível buscar a resposta do agente.",
+      error: t("Não foi possível buscar a resposta do agente."),
     };
   }
 
@@ -288,18 +293,19 @@ export async function sendAdminTestMessage(
   messageText: string,
   workflowId: string,
 ): Promise<ActionResult<{ runId: string }>> {
+  const t = await getT();
   if (!(await isLexiaAdmin())) {
-    return { data: null, error: "Acesso não autorizado." };
+    return { data: null, error: t("Acesso não autorizado.") };
   }
 
   const message = messageText.trim();
 
   if (!clienteSlug || !sessionId || !message) {
-    return { data: null, error: "Digite uma mensagem para enviar." };
+    return { data: null, error: t("Digite uma mensagem para enviar.") };
   }
 
   if (!workflowId) {
-    return { data: null, error: "Selecione um workflow para testar." };
+    return { data: null, error: t("Selecione um workflow para testar.") };
   }
 
   const supabase = await createClient();
@@ -312,7 +318,7 @@ export async function sendAdminTestMessage(
     .maybeSingle();
 
   if (sessionError || !session) {
-    return { data: null, error: "Sessão de teste não encontrada." };
+    return { data: null, error: t("Sessão de teste não encontrada.") };
   }
 
   const { data: workflow, error: workflowError } = await supabase
@@ -326,7 +332,7 @@ export async function sendAdminTestMessage(
   if (workflowError) {
     return {
       data: null,
-      error: "Não foi possível buscar o workflow ativo.",
+      error: t("Não foi possível buscar o workflow ativo."),
     };
   }
 
@@ -335,7 +341,7 @@ export async function sendAdminTestMessage(
   if (!activeWorkflow?.webhook_url) {
     return {
       data: null,
-      error: "Nenhum workflow ativo configurado para este cliente.",
+      error: t("Nenhum workflow ativo configurado para este cliente."),
     };
   }
 
@@ -363,7 +369,7 @@ export async function sendAdminTestMessage(
   if (!response.ok) {
     return {
       data: null,
-      error: "Não foi possível enviar a mensagem ao workflow.",
+      error: t("Não foi possível enviar a mensagem ao workflow."),
     };
   }
 

@@ -8,6 +8,7 @@ import {
 } from "@/app/admin/area-testes/actions";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminClient = {
@@ -26,6 +27,7 @@ type AdminTestAreaPageProps = {
 export default async function AdminTestAreaPage({
   searchParams,
 }: AdminTestAreaPageProps) {
+  const t = await getT();
   const { cliente, session } = await searchParams;
   const supabase = await createClient();
   const { data: clientsData, error: clientsError } = await supabase
@@ -34,7 +36,7 @@ export default async function AdminTestAreaPage({
     .order("nome");
 
   if (clientsError) {
-    throw new Error("Não foi possível buscar os clientes.");
+    throw new Error(t("Não foi possível buscar os clientes."));
   }
 
   const clients = (clientsData ?? []) as AdminClient[];
@@ -66,11 +68,11 @@ export default async function AdminTestAreaPage({
       ];
 
   if (sessionsError) {
-    throw new Error("Não foi possível buscar as sessões de teste.");
+    throw new Error(t("Não foi possível buscar as sessões de teste."));
   }
 
   if (workflowsError) {
-    throw new Error("Não foi possível buscar os workflows ativos.");
+    throw new Error(t("Não foi possível buscar os workflows ativos."));
   }
 
   const sessions = (sessionsData ?? []) as AdminTestSession[];
@@ -95,12 +97,12 @@ export default async function AdminTestAreaPage({
       : { data: [], error: null };
 
   if (executionsError) {
-    throw new Error("Não foi possível buscar as mensagens da sessão.");
+    throw new Error(t("Não foi possível buscar as mensagens da sessão."));
   }
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Área de testes" />
+      <PaginaCabecalho titulo={t("Área de testes")} />
 
       <Form
         action="/admin/area-testes"
@@ -110,15 +112,15 @@ export default async function AdminTestAreaPage({
       >
         <div className="flex min-w-72 flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground" htmlFor="cliente">
-            Cliente
+            {t("Cliente")}
           </label>
           <select
-            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue={selectedClient?.slug ?? ""}
             id="cliente"
             name="cliente"
           >
-            <option value="">Selecione um cliente</option>
+            <option value="">{t("Selecione um cliente")}</option>
             {clients.map((client) => (
               <option key={client.id} value={client.slug}>
                 {client.nome ?? client.slug} ({client.slug})
@@ -127,16 +129,16 @@ export default async function AdminTestAreaPage({
           </select>
         </div>
         <FormSubmitButton
-          className="h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-          pendingLabel="Selecionando..."
+          className="ds-botao ds-botao-primario"
+          pendingLabel={t("Selecionando...")}
         >
-          Selecionar
+          {t("Selecionar")}
         </FormSubmitButton>
       </Form>
 
       {!selectedClient ? (
         <div className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
-          Selecione um cliente para iniciar o teste.
+          {t("Selecione um cliente para iniciar o teste.")}
         </div>
       ) : (
         <AdminTestChat

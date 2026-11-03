@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 import {
   createClientUser,
   type ClientUserState,
@@ -17,6 +19,7 @@ const initialState: ClientUserState = {
 };
 
 export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
+  const { t } = useIdioma();
   const action = createClientUser.bind(null, clienteSlug);
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -25,10 +28,10 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground" htmlFor="email">
-            E-mail
+            {t("E-mail")}
           </label>
           <input
-            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             id="email"
             name="email"
             required
@@ -41,10 +44,10 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
             className="text-sm font-medium text-muted-foreground"
             htmlFor="password"
           >
-            Senha temporária
+            {t("Senha temporária")}
           </label>
           <input
-            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             id="password"
             minLength={6}
             name="password"
@@ -55,31 +58,31 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground" htmlFor="role">
-            Role
+            {t("Role")}
           </label>
           <select
-            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue="cliente_admin"
             id="role"
             name="role"
           >
-            <option value="cliente_admin">Cliente admin</option>
-            <option value="cliente_operador">Cliente operador</option>
+            <option value="cliente_admin">{t("Cliente admin")}</option>
+            <option value="cliente_operador">{t("Cliente operador")}</option>
           </select>
         </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground" htmlFor="status">
-            Status
+            {t("Status")}
           </label>
           <select
-            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue="ativo"
             id="status"
             name="status"
           >
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
+            <option value="ativo">{t("Ativo")}</option>
+            <option value="inativo">{t("Inativo")}</option>
           </select>
         </div>
       </div>
@@ -88,8 +91,8 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
         <p
           className={`rounded-lg border px-3 py-2 text-sm ${
             state.type === "success"
-              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border-red-200 bg-red-50 text-red-700"
+              ? "border-positive/20 bg-positive-soft text-positive"
+              : "border-danger/20 bg-danger-soft text-danger"
           }`}
         >
           {state.message}
@@ -97,11 +100,11 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
       ) : null}
 
       <button
-        className="h-11 w-fit rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
+        className="ds-botao ds-botao-primario w-fit"
         disabled={pending}
         type="submit"
       >
-        {pending ? "Criando..." : "Criar usuário do cliente"}
+        {pending ? t("Criando...") : t("Criar usuário do cliente")}
       </button>
     </form>
   );

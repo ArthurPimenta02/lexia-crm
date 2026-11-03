@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,9 +38,11 @@ export async function updateClientSettings(
   _state: ClientSettingsState,
   formData: FormData,
 ): Promise<ClientSettingsState> {
+  const t = await getT();
+
   if (!(await isLexiaAdmin())) {
     return {
-      message: "Acesso não autorizado.",
+      message: t("Acesso não autorizado."),
       type: "error",
     };
   }
@@ -55,14 +58,14 @@ export async function updateClientSettings(
 
   if (!nome || !clientStatuses.includes(status)) {
     return {
-      message: "Preencha os dados obrigatórios do cliente.",
+      message: t("Preencha os dados obrigatórios do cliente."),
       type: "error",
     };
   }
 
   if (!workflowStatuses.includes(workflowStatus)) {
     return {
-      message: "Status do workflow inválido.",
+      message: t("Status do workflow inválido."),
       type: "error",
     };
   }
@@ -70,7 +73,7 @@ export async function updateClientSettings(
   if (!workflowNome || !workflowTipo || !webhookUrl) {
     return {
       message:
-        "Preencha nome, tipo e Webhook URL para salvar o workflow deste cliente.",
+        t("Preencha nome, tipo e Webhook URL para salvar o workflow deste cliente."),
       type: "error",
     };
   }
@@ -84,7 +87,7 @@ export async function updateClientSettings(
 
   if (clientLookupError || !client) {
     return {
-      message: "Cliente não encontrado.",
+      message: t("Cliente não encontrado."),
       type: "error",
     };
   }
@@ -103,7 +106,7 @@ export async function updateClientSettings(
     console.error("Erro ao atualizar cliente", clientError);
 
     return {
-      message: "Não foi possível atualizar o cliente.",
+      message: t("Não foi possível atualizar o cliente."),
       type: "error",
     };
   }
@@ -135,7 +138,7 @@ export async function updateClientSettings(
     });
 
     return {
-      message: "Cliente salvo, mas não foi possível salvar o workflow.",
+      message: t("Cliente salvo, mas não foi possível salvar o workflow."),
       type: "error",
     };
   }
@@ -144,7 +147,7 @@ export async function updateClientSettings(
   revalidatePath("/admin");
 
   return {
-    message: "Configurações salvas com sucesso.",
+    message: t("Configurações salvas com sucesso."),
     type: "success",
   };
 }
@@ -154,9 +157,11 @@ export async function createClientUser(
   _state: ClientUserState,
   formData: FormData,
 ): Promise<ClientUserState> {
+  const t = await getT();
+
   if (!(await isLexiaAdmin())) {
     return {
-      message: "Acesso não autorizado.",
+      message: t("Acesso não autorizado."),
       type: "error",
     };
   }
@@ -168,21 +173,21 @@ export async function createClientUser(
 
   if (!email || !password) {
     return {
-      message: "Preencha e-mail e senha temporária.",
+      message: t("Preencha e-mail e senha temporária."),
       type: "error",
     };
   }
 
   if (!clientUserRoles.includes(role)) {
     return {
-      message: "Role inválida para usuário de cliente.",
+      message: t("Role inválida para usuário de cliente."),
       type: "error",
     };
   }
 
   if (!clientUserStatuses.includes(status)) {
     return {
-      message: "Status inválido para usuário de cliente.",
+      message: t("Status inválido para usuário de cliente."),
       type: "error",
     };
   }
@@ -196,7 +201,7 @@ export async function createClientUser(
       message:
         error instanceof Error
           ? error.message
-          : "Não foi possível criar o client admin do Supabase.",
+          : t("Não foi possível criar o client admin do Supabase."),
       type: "error",
     };
   }
@@ -209,7 +214,7 @@ export async function createClientUser(
 
   if (clientLookupError || !client) {
     return {
-      message: "Cliente não encontrado.",
+      message: t("Cliente não encontrado."),
       type: "error",
     };
   }
@@ -230,8 +235,8 @@ export async function createClientUser(
 
     return {
       message: emailAlreadyExists
-        ? "Já existe um usuário com este e-mail."
-        : "Não foi possível criar o usuário no Supabase Auth.",
+        ? t("Já existe um usuário com este e-mail.")
+        : t("Não foi possível criar o usuário no Supabase Auth."),
       type: "error",
     };
   }
@@ -248,7 +253,7 @@ export async function createClientUser(
   if (linkError) {
     return {
       message:
-        "Usuário criado no Auth, mas não foi possível vincular ao cliente.",
+        t("Usuário criado no Auth, mas não foi possível vincular ao cliente."),
       type: "error",
     };
   }
@@ -256,7 +261,7 @@ export async function createClientUser(
   revalidatePath(`/admin/clientes/${clienteSlug}`);
 
   return {
-    message: "Usuário do cliente criado com sucesso.",
+    message: t("Usuário do cliente criado com sucesso."),
     type: "success",
   };
 }
@@ -290,8 +295,10 @@ export async function updateClientUserStatus(
 }
 
 export async function clearClientTestData(clienteSlug: string) {
+  const t = await getT();
+
   if (!(await isLexiaAdmin()) || !clienteSlug) {
-    return { ok: false, error: "Acesso não autorizado." };
+    return { ok: false, error: t("Acesso não autorizado.") };
   }
 
   let supabaseAdmin: ReturnType<typeof createAdminClient>;
@@ -304,7 +311,7 @@ export async function clearClientTestData(clienteSlug: string) {
       error:
         error instanceof Error
           ? error.message
-          : "Não foi possível criar o client admin do Supabase.",
+          : t("Não foi possível criar o client admin do Supabase."),
     };
   }
 
@@ -315,7 +322,7 @@ export async function clearClientTestData(clienteSlug: string) {
     .maybeSingle();
 
   if (clientLookupError || !client) {
-    return { ok: false, error: "Cliente não encontrado." };
+    return { ok: false, error: t("Cliente não encontrado.") };
   }
 
   const { data: executions, error: executionsLookupError } = await supabaseAdmin
@@ -326,7 +333,7 @@ export async function clearClientTestData(clienteSlug: string) {
   if (executionsLookupError) {
     return {
       ok: false,
-      error: "Não foi possível buscar execuções de teste.",
+      error: t("Não foi possível buscar execuções de teste."),
     };
   }
 
@@ -342,7 +349,7 @@ export async function clearClientTestData(clienteSlug: string) {
     if (feedbackError) {
       return {
         ok: false,
-        error: "Não foi possível excluir feedbacks de teste.",
+        error: t("Não foi possível excluir feedbacks de teste."),
       };
     }
   }
@@ -355,7 +362,7 @@ export async function clearClientTestData(clienteSlug: string) {
   if (executionsError) {
     return {
       ok: false,
-      error: "Não foi possível excluir execuções de teste.",
+      error: t("Não foi possível excluir execuções de teste."),
     };
   }
 
@@ -367,7 +374,7 @@ export async function clearClientTestData(clienteSlug: string) {
   if (sessionsError) {
     return {
       ok: false,
-      error: "Não foi possível excluir sessões de teste.",
+      error: t("Não foi possível excluir sessões de teste."),
     };
   }
 
@@ -380,7 +387,7 @@ export async function clearClientTestData(clienteSlug: string) {
   if (messagesError) {
     return {
       ok: false,
-      error: "Não foi possível excluir mensagens de teste.",
+      error: t("Não foi possível excluir mensagens de teste."),
     };
   }
 
@@ -393,7 +400,7 @@ export async function clearClientTestData(clienteSlug: string) {
   if (contactsError) {
     return {
       ok: false,
-      error: "Não foi possível excluir contactos de teste.",
+      error: t("Não foi possível excluir contatos de teste."),
     };
   }
 

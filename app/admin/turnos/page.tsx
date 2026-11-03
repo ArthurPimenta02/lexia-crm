@@ -11,6 +11,7 @@ import type { TurnoCompleto } from "@/lib/turnos/formatar";
 import { inicioUltimas24h } from "@/lib/turnos/mapa";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
+import { getT } from "@/lib/i18n/servidor";
 
 /**
  * Controle do agente em código: o equivalente às execuções do n8n, mas por
@@ -38,6 +39,7 @@ export default async function ControlePage({ searchParams }: Props) {
   const { profile } = await getLoggedInUserProfile();
   if (!profile) redirect("/login");
   if (profile.role !== "lexia_admin") redirect("/app");
+  const t = await getT();
 
   const params = await searchParams;
   const cliente = valor(params.cliente);
@@ -66,9 +68,9 @@ export default async function ControlePage({ searchParams }: Props) {
     if (error.code === "42P01" || error.code === "PGRST205") {
       return (
         <section className="flex flex-col gap-6">
-          <PaginaCabecalho titulo="Controle do agente" />
+          <PaginaCabecalho titulo={t("Controle do agente")} />
           <p className="text-sm text-muted-foreground">
-            A tabela de turnos ainda não existe. Falta correr a migration da Fase 18 no Supabase central.
+            {t("A tabela de turnos ainda não existe. Falta rodar a migration da Fase 18 no Supabase central.")}
           </p>
         </section>
       );
@@ -114,13 +116,13 @@ export default async function ControlePage({ searchParams }: Props) {
   const filtros = (
         <Form action="/admin/turnos" className="flex flex-wrap items-end gap-3" replace scroll={false}>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Cliente
+            {t("Cliente")}
             <select
-              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              className="ds-campo min-w-40"
               defaultValue={cliente}
               name="cliente"
             >
-              <option value="">Todos</option>
+              <option value="">{t("Todos")}</option>
               {clientes.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -129,30 +131,30 @@ export default async function ControlePage({ searchParams }: Props) {
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Modo
+            {t("Modo")}
             <select
-              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              className="ds-campo min-w-40"
               defaultValue={modo}
               name="modo"
             >
-              <option value="">Todos</option>
-              <option value="producao">Produção</option>
-              <option value="sombra">Sombra (real, não enviado)</option>
-              <option value="teste">Área de testes</option>
+              <option value="">{t("Todos")}</option>
+              <option value="producao">{t("Produção")}</option>
+              <option value="sombra">{t("Sombra (real, não enviado)")}</option>
+              <option value="teste">{t("Área de testes")}</option>
             </select>
           </label>
           <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Mostrar
+            {t("Mostrar")}
             <select
-              className="h-9 rounded-xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+              className="ds-campo min-w-40"
               defaultValue={so}
               name="so"
             >
-              <option value="">Todas as conversas</option>
-              <option value="problemas">Só com erro</option>
+              <option value="">{t("Todas as conversas")}</option>
+              <option value="problemas">{t("Só com erro")}</option>
             </select>
           </label>
-          <FormSubmitButton>Filtrar</FormSubmitButton>
+          <FormSubmitButton className="ds-botao ds-botao-secundario" pendingLabel={t("Aguarde...")}>{t("Filtrar")}</FormSubmitButton>
         </Form>
   );
 

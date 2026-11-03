@@ -5,6 +5,7 @@ import {
   atualizarCampanhasDoCliente,
   type AtualizarCampanhasResultado,
 } from "@/lib/campaigns/refresh";
+import { getT } from "@/lib/i18n/servidor";
 
 /**
  * Botão "Atualizar" do painel de campanhas do cliente.
@@ -20,11 +21,12 @@ import {
  * `cliente_slug` — e uma função sem parâmetros continua a servir a assinatura.
  */
 export async function atualizarCampanhasAction(): Promise<AtualizarCampanhasResultado> {
+  const t = await getT();
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile || !isClientRole(profile.role) || !profile.cliente_slug) {
     return {
-      mensagem: "Sessão sem permissão para atualizar campanhas.",
+      mensagem: t("Sessão sem permissão para atualizar campanhas."),
       ok: false,
     };
   }

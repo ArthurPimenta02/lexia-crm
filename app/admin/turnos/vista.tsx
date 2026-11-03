@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
 import { Fluxo, OQueFez } from "@/app/admin/turnos/fluxo";
-import { formatDateInTimezone, getClientTimezone } from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { descreverEstado, formatarCusto, formatarDuracao, type TurnoCompleto } from "@/lib/turnos/formatar";
 import { acoesVisiveis, ativoHa, haQuanto, montarFluxo } from "@/lib/turnos/mapa";
 import type { ResumoConversa, TurnoNaConversa } from "@/lib/turnos/controle";
@@ -47,13 +50,13 @@ export type ControleVistaProps = {
   ultimaSombra: string | null;
 };
 
-function Estado({ ultima, nome }: { ultima: string | null; nome: string }) {
+function Estado({ ultima, nome, t }: { ultima: string | null; nome: string; t: FuncaoT }) {
   const ativo = ativoHa(ultima);
   return (
     <span className="flex items-center gap-1.5">
       <span aria-hidden className={`size-1.5 rounded-full ${ativo ? "bg-positive" : "bg-border-strong"}`} />
       <span className="text-foreground">{nome}</span>
-      <span>{ultima ? haQuanto(ultima) : "sem atividade"}</span>
+      <span>{ultima ? haQuanto(ultima, undefined, t) : t("sem atividade")}</span>
     </span>
   );
 }
@@ -67,7 +70,7 @@ function CabecaColuna({ children, extra }: { children: ReactNode; extra?: ReactN
   );
 }
 
-export function ControleVista({
+export async function ControleVista({
   filtros,
   filtroAtual: { cliente, modo, so },
   recentes,
@@ -80,8 +83,11 @@ export function ControleVista({
   ultimaProducao,
   ultimaSombra,
 }: ControleVistaProps) {
-  const fluxo = turno ? montarFluxo(turno) : null;
-  const conversas24 = new Set(recentes.map((t) => t.identificador_conversa).filter(Boolean));
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const custo = (v: number | string | null | undefined) => formatarCusto(v, locale, t);
+  const fluxo = turno ? montarFluxo(turno, t) : null;
+  const conversas24 = new Set(recentes.map((x) => x.identificador_conversa).filter(Boolean));
   const href = (extra: Record<string, string>) => {
     const q = new URLSearchParams();
     if (cliente) q.set("cliente", cliente);
@@ -91,17 +97,18 @@ export function ControleVista({
     return `/admin/turnos?${q.toString()}`;
   };
   const nomeDe = (id: string) => nomes[id] ?? id.replace(/^(whatsapp|instagram|messenger):/, "");
-  const hora = (t: { criado_em: string; agente: string }) =>
-    formatDateInTimezone(t.criado_em, getClientTimezone(t.agente), {
+  const hora = (x: { criado_em: string; agente: string }) =>
+    new Intl.DateTimeFormat(locale, {
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    });
+      timeZone: getClientTimezone(x.agente),
+    }).format(new Date(x.criado_em));
   const conversaAtual = resumos.find((r) => r.id === conversaId);
-  const custo24 = recentes.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
-  const respondidas24 = recentes.filter((t) => t.estado === "respondido").length;
-  const custoConversa = daConversa.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
+  const custo24 = recentes.reduce((s, x) => s + Number(x.custo_usd ?? 0), 0);
+  const respondidas24 = recentes.filter((x) => x.estado === "respondido").length;
+  const custoConversa = daConversa.reduce((s, x) => s + Number(x.custo_usd ?? 0), 0);
   const n8n = turno?.modo === "sombra" ? textos(turno.resumo?.n8n_respondeu) : [];
 
   return (
@@ -109,32 +116,32 @@ export function ControleVista({
       <PaginaCabecalho
         acoes={
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <Estado nome="Produção" ultima={ultimaProducao} />
-            <Estado nome="Sombra" ultima={ultimaSombra} />
+            <Estado nome={t("Produção")} t={t} ultima={ultimaProducao} />
+            <Estado nome={t("Sombra")} t={t} ultima={ultimaSombra} />
           </div>
         }
-        titulo="Controle do agente"
+        titulo={t("Controle do agente")}
       />
 
       <GrupoMetricas
         itens={[
-          { label: "Conversas (24 h)", valor: conversas24.size },
-          { label: "Respostas (24 h)", valor: respondidas24 },
+          { label: t("Conversas (24 h)"), valor: conversas24.size },
+          { label: t("Respostas (24 h)"), valor: respondidas24 },
           {
-            dica: "Mensagens a que o agente decidiu não responder: contacto bloqueado, conversa pausada, Samuel já respondeu, follow-up fora de horário.",
-            label: "Não respondeu (24 h)",
-            valor: recentes.filter((t) => t.estado === "parado").length,
+            dica: t("Mensagens que o agente decidiu não responder: contato bloqueado, conversa pausada, Samuel já respondeu, follow-up fora do horário."),
+            label: t("Não respondeu (24 h)"),
+            valor: recentes.filter((x) => x.estado === "parado").length,
           },
-          { label: "Erros (24 h)", valor: recentes.filter((t) => t.estado === "erro").length },
+          { label: t("Erros (24 h)"), valor: recentes.filter((x) => x.estado === "erro").length },
           {
-            dica: "Custo de IA das últimas 24 h. Modelos sem preço na tabela não entram.",
-            label: "Custo de IA (24 h)",
-            valor: formatarCusto(custo24),
+            dica: t("Custo de IA das últimas 24 h. Modelos sem preço na tabela não entram."),
+            label: t("Custo de IA (24 h)"),
+            valor: custo(custo24),
           },
           {
-            dica: "Custo de IA dividido pelas respostas enviadas nas últimas 24 h. Inclui o que não gerou resposta (follow-ups avaliados, mensagens juntadas).",
-            label: "Custo por resposta",
-            valor: respondidas24 ? formatarCusto(custo24 / respondidas24) : "—",
+            dica: t("Custo de IA dividido pelas respostas enviadas nas últimas 24 h. Inclui o que não gerou resposta (follow-ups avaliados, mensagens juntadas)."),
+            label: t("Custo por resposta"),
+            valor: respondidas24 ? custo(custo24 / respondidas24) : "—",
           },
         ]}
       />
@@ -146,10 +153,10 @@ export function ControleVista({
         {/* Conversas */}
         <div className="flex min-w-0 flex-col">
           <CabecaColuna extra={<span className="text-xs text-muted-foreground tabular-nums">{resumos.length}</span>}>
-            Conversas
+            {t("Conversas")}
           </CabecaColuna>
           {resumos.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">Nenhuma conversa com estes filtros.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">{t("Nenhuma conversa com estes filtros.")}</p>
           ) : (
             <ul className="max-h-[72vh] overflow-y-auto py-1">
               {resumos.map((r) => {
@@ -169,11 +176,11 @@ export function ControleVista({
                       <div className="flex items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{nomeDe(r.id)}</span>
                         <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
-                          {haQuanto(r.ultimo.criado_em)}
+                          {haQuanto(r.ultimo.criado_em, undefined, t)}
                         </span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {r.erros ? <span aria-label="com erro" className="size-1.5 rounded-full bg-danger" /> : null}
+                        {r.erros ? <span aria-label={t("com erro")} className="size-1.5 rounded-full bg-danger" /> : null}
                         <span className="min-w-0 truncate">{ultimaFala}</span>
                       </div>
                     </Link>
@@ -191,33 +198,33 @@ export function ControleVista({
               conversaAtual ? (
                 <span className="shrink-0 text-xs text-muted-foreground">
                   {CANAL[conversaAtual.ultimo.canal ?? ""] ?? conversaAtual.ultimo.canal} ·{" "}
-                  {conversaAtual.modos.map((m) => NOME_MODO[m] ?? m).join(", ")} ·{" "}
-                  <span className="tabular-nums" title="Custo de IA de todas as respostas desta conversa">
-                    {formatarCusto(custoConversa)} nesta conversa
+                  {conversaAtual.modos.map((m) => (NOME_MODO[m] ? t(NOME_MODO[m]) : m)).join(", ")} ·{" "}
+                  <span className="tabular-nums" title={t("Custo de IA de todas as respostas desta conversa")}>
+                    {t("{valor} nesta conversa", { valor: custo(custoConversa) })}
                   </span>
                 </span>
               ) : null
             }
           >
-            {conversaId ? nomeDe(conversaId) : "Conversa"}
+            {conversaId ? nomeDe(conversaId) : t("Conversa")}
           </CabecaColuna>
           <div className="flex max-h-[72vh] flex-col gap-5 overflow-y-auto bg-background/60 px-4 py-5">
-            {daConversa.length === 0 ? <p className="text-sm text-muted-foreground">Escolha uma conversa.</p> : null}
-            {daConversa.map((t) => {
-              const ativo = t.id === turnoId;
-              const enviados = textos(t.mensagens);
+            {daConversa.length === 0 ? <p className="text-sm text-muted-foreground">{t("Escolha uma conversa.")}</p> : null}
+            {daConversa.map((tn) => {
+              const ativo = tn.id === turnoId;
+              const enviados = textos(tn.mensagens);
               return (
-                <div className="flex flex-col gap-1.5" key={t.id}>
-                  <p className="text-center text-[11px] text-muted-foreground tabular-nums">{hora(t)}</p>
-                  {t.mensagem_cliente ? (
+                <div className="flex flex-col gap-1.5" key={tn.id}>
+                  <p className="text-center text-[11px] text-muted-foreground tabular-nums">{hora(tn)}</p>
+                  {tn.mensagem_cliente ? (
                     <p className="max-w-[80%] self-start whitespace-pre-wrap rounded-2xl rounded-bl-md border border-border bg-surface px-3.5 py-2 text-sm text-foreground">
-                      {t.mensagem_cliente}
+                      {tn.mensagem_cliente}
                     </p>
                   ) : null}
                   <Link
                     aria-current={ativo ? "true" : undefined}
                     className="group flex max-w-[80%] flex-col items-end gap-1 self-end rounded-2xl"
-                    href={href({ conversa: conversaId, turno: t.id })}
+                    href={href({ conversa: conversaId, turno: tn.id })}
                     scroll={false}
                   >
                     {enviados.length ? (
@@ -236,25 +243,27 @@ export function ControleVista({
                     ) : (
                       <span
                         className={`rounded-full px-3 py-1 text-xs ${
-                          t.estado === "erro" ? "bg-danger/10 text-danger" : "bg-muted text-muted-foreground"
+                          tn.estado === "erro" ? "bg-danger-soft text-danger" : "bg-muted text-muted-foreground"
                         } ${ativo ? "ring-2 ring-positive" : ""}`}
                       >
-                        {t.rota === "followup" ? "Follow-up: " : ""}
-                        {descreverEstado(t.estado).toLowerCase()}
-                        {t.erro || t.motivo ? ` · ${t.erro || t.motivo}` : ""}
+                        {tn.rota === "followup" ? `${t("Follow-up")}: ` : ""}
+                        {descreverEstado(tn.estado, t).toLocaleLowerCase(locale)}
+                        {tn.erro || tn.motivo ? ` · ${tn.erro || tn.motivo}` : ""}
                       </span>
                     )}
                     <span
                       className={`text-[11px] tabular-nums ${ativo ? "font-medium text-positive" : "text-muted-foreground"}`}
                     >
                       {enviados.length
-                        ? t.rota === "followup"
-                          ? "Follow-up automático"
-                          : (ROTA[t.rota ?? ""] ?? "Carol")
+                        ? tn.rota === "followup"
+                          ? t("Follow-up automático")
+                          : ROTA[tn.rota ?? ""]
+                            ? t(ROTA[tn.rota ?? ""])
+                            : "Carol"
                         : null}
-                      {enviados.length && Number(t.custo_usd) > 0 ? " · " : ""}
-                      {Number(t.custo_usd) > 0 ? formatarCusto(t.custo_usd) : ""}
-                      {ativo && enviados.length ? " · aberta ao lado →" : ""}
+                      {enviados.length && Number(tn.custo_usd) > 0 ? " · " : ""}
+                      {Number(tn.custo_usd) > 0 ? custo(tn.custo_usd) : ""}
+                      {ativo && enviados.length ? ` · ${t("aberta ao lado →")}` : ""}
                     </span>
                   </Link>
                 </div>
@@ -269,36 +278,36 @@ export function ControleVista({
             extra={
               turno ? (
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {formatarDuracao(turno.duracao_ms)} · {formatarCusto(turno.custo_usd)}
+                  {formatarDuracao(turno.duracao_ms, locale)} · {custo(turno.custo_usd)}
                 </span>
               ) : null
             }
           >
-            Como a Carol chegou a esta resposta
+            {t("Como a Carol chegou a esta resposta")}
           </CabecaColuna>
           {!turno ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">Clique numa resposta da Carol.</p>
+            <p className="px-4 py-6 text-sm text-muted-foreground">{t("Clique em uma resposta da Carol.")}</p>
           ) : (
             <div className="flex max-h-[72vh] flex-col gap-6 overflow-y-auto px-5 py-5">
               {fluxo ? (
                 <Fluxo linhas={fluxo} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {turno.erro || turno.motivo || "Este turno não guardou passos."}
+                  {turno.erro || turno.motivo || t("Este turno não salvou passos.")}
                   {/^contacto bloqueado/.test(turno.motivo ?? "")
-                    ? " Por privacidade, de contactos bloqueados não se guarda nada."
+                    ? ` ${t("Por privacidade, nada é salvo de contatos bloqueados.")}`
                     : ""}
                 </p>
               )}
 
               <div className="border-t border-border pt-5">
                 <h3 className="mb-3 text-sm font-semibold text-foreground">
-                  {turno.modo === "sombra" ? "O que ela teria feito" : "O que ela fez"}
+                  {turno.modo === "sombra" ? t("O que ela teria feito") : t("O que ela fez")}
                 </h3>
-                <OQueFez acoes={acoesVisiveis(turno.resumo?.acoes)} />
+                <OQueFez acoes={acoesVisiveis(turno.resumo?.acoes, t)} />
                 {turno.modo === "sombra" ? (
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Sombra: nada disto saiu de verdade. Quem respondeu ao cliente foi o n8n.
+                    {t("Sombra: nada disso saiu de verdade. Quem respondeu ao cliente foi o n8n.")}
                   </p>
                 ) : null}
               </div>
@@ -306,9 +315,13 @@ export function ControleVista({
               {turno.modo === "sombra" ? (
                 <details className="border-t border-border pt-5">
                   <summary className="cursor-pointer list-none text-sm font-semibold text-foreground">
-                    Comparar com o n8n
+                    {t("Comparar com o n8n")}
                     <span className="ml-2 font-normal text-muted-foreground">
-                      {n8n.length ? `${n8n.length} ${n8n.length === 1 ? "balão enviado" : "balões enviados"}` : "não verificado"}
+                      {n8n.length
+                        ? n8n.length === 1
+                          ? t("1 balão enviado")
+                          : t("{n} balões enviados", { n: n8n.length })
+                        : t("não verificado")}
                     </span>
                   </summary>
                   <div className="mt-3 flex flex-col items-end gap-1">
@@ -322,7 +335,7 @@ export function ControleVista({
                     ))}
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    O registo do n8n pode trazer balões do turno anterior se as mensagens se cruzaram.
+                    {t("O registro do n8n pode trazer balões do turno anterior se as mensagens se cruzaram.")}
                   </p>
                 </details>
               ) : null}
@@ -331,7 +344,7 @@ export function ControleVista({
                 className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                 href={`/admin/turnos/${turno.id}`}
               >
-                Detalhe técnico completo
+                {t("Detalhe técnico completo")}
               </Link>
             </div>
           )}

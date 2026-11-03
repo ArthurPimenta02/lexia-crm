@@ -7,7 +7,9 @@ import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { formatDateInTimezone, getClientTimezone } from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -35,6 +37,8 @@ export default async function BloqueiosPage({ searchParams }: BloqueiosPageProps
   if (profile.role !== "lexia_admin") redirect("/app");
 
   const params = await searchParams;
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const pedido = Array.isArray(params.cliente) ? (params.cliente[0] ?? "") : (params.cliente ?? "");
 
   const admin = createAdminClient();
@@ -59,7 +63,7 @@ export default async function BloqueiosPage({ searchParams }: BloqueiosPageProps
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo="Contactos bloqueados" />
+      <PaginaCabecalho titulo={t("Contatos bloqueados")} />
 
       <Form
         action="/admin/bloqueios"
@@ -68,13 +72,13 @@ export default async function BloqueiosPage({ searchParams }: BloqueiosPageProps
         scroll={false}
       >
         <label className="flex min-w-[260px] flex-col gap-2 text-sm font-medium text-muted-foreground">
-          Cliente
+          {t("Cliente")}
           <select
-            className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none focus:border-foreground"
+            className="ds-campo"
             defaultValue={selecionado}
             name="cliente"
           >
-            <option value="">Escolha…</option>
+            <option value="">{t("Escolha…")}</option>
             {clientes.map((c) => (
               <option key={c.slug} value={c.slug}>
                 {c.nome || c.slug}
@@ -82,57 +86,72 @@ export default async function BloqueiosPage({ searchParams }: BloqueiosPageProps
             ))}
           </select>
         </label>
-        <FormSubmitButton>Abrir</FormSubmitButton>
+        <FormSubmitButton
+          className="ds-botao ds-botao-primario"
+          pendingLabel={t("Aguarde...")}
+        >
+          {t("Abrir")}
+        </FormSubmitButton>
       </Form>
 
       {!selecionado ? (
-        <p className="text-sm text-muted-foreground">Escolha um cliente para ver quem a agente não atende.</p>
+        <p className="text-sm text-muted-foreground">
+          {t("Escolha um cliente para ver quem a agente não atende.")}
+        </p>
       ) : faltaMigration ? (
         <p className="text-sm text-muted-foreground">
-          A tabela de bloqueios ainda não existe. Falta correr a migration da Fase 21 no Supabase central.
+          {t(
+            "A tabela de bloqueios ainda não existe. Falta rodar a migration da Fase 21 no Supabase central.",
+          )}
         </p>
       ) : (
         <>
           <BloqueioForm clienteSlug={selecionado} />
 
           <p className="text-xs text-muted-foreground">
-            Vale para a agente em código. Quem estiver salvo na agenda do celular do responsável também
-            não é atendido, sem precisar estar nesta lista.
+            {t(
+              "Vale para a agente em código. Quem estiver salvo na agenda do celular do responsável também não é atendido, sem precisar estar nesta lista.",
+            )}
           </p>
 
           {bloqueios.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Ninguém bloqueado neste cliente.</p>
+            <p className="text-sm text-muted-foreground">{t("Ninguém bloqueado neste cliente.")}</p>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-border text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Nome</th>
-                    <th className="px-4 py-3 font-medium">Canal</th>
-                    <th className="px-4 py-3 font-medium">Número / conta</th>
-                    <th className="px-4 py-3 font-medium">Motivo</th>
-                    <th className="px-4 py-3 font-medium">Desde</th>
+                    <th className="px-4 py-3 font-medium">{t("Nome")}</th>
+                    <th className="px-4 py-3 font-medium">{t("Canal")}</th>
+                    <th className="px-4 py-3 font-medium">{t("Número / conta")}</th>
+                    <th className="px-4 py-3 font-medium">{t("Motivo")}</th>
+                    <th className="px-4 py-3 font-medium">{t("Desde")}</th>
                     <th className="px-4 py-3 font-medium" />
                   </tr>
                 </thead>
                 <tbody>
                   {bloqueios.map((b) => (
-                    <tr className="border-b border-border last:border-0" key={b.id}>
+                    <tr className="border-b border-border text-foreground last:border-0" key={b.id}>
                       <td className="px-4 py-3">{b.nome || "—"}</td>
                       <td className="px-4 py-3">{CANAIS[b.canal] ?? b.canal}</td>
                       <td className="px-4 py-3 font-mono text-xs">{b.identificador}</td>
                       <td className="px-4 py-3 text-muted-foreground">{b.motivo || "—"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
-                        {formatDateInTimezone(b.criado_em, getClientTimezone(selecionado), { dateStyle: "short" })}
+                        {new Intl.DateTimeFormat(locale, {
+                          dateStyle: "short",
+                          timeZone: getClientTimezone(selecionado),
+                        }).format(new Date(b.criado_em))}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <ConfirmActionButton
                           action={removerBloqueio.bind(null, selecionado, b.id)}
-                          className="inline-flex h-9 items-center justify-center rounded-lg border border-border-strong px-3 text-sm font-medium text-foreground transition hover:bg-muted"
-                          confirmMessage={`Desbloquear ${b.nome || b.identificador}? A agente volta a responder a esta pessoa.`}
+                          className="ds-botao ds-botao-secundario ds-botao-p"
+                          confirmMessage={t("Desbloquear {nome}? A agente volta a responder a esta pessoa.", {
+                            nome: b.nome || b.identificador,
+                          })}
                           pendingLabel="..."
                         >
-                          Desbloquear
+                          {t("Desbloquear")}
                         </ConfirmActionButton>
                       </td>
                     </tr>

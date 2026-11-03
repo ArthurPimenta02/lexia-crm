@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { cifrar, decifrar, finalDe } from "@/lib/conexoes/cifra";
 import { juntarSegredos, tipoConexao } from "@/lib/conexoes/tipos";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -25,13 +26,14 @@ export async function salvarConexao(
   _state: ConexaoState,
   formData: FormData,
 ): Promise<ConexaoState> {
+  const t = await getT();
   const { profile, user } = await getLoggedInUserProfile();
   if (!user || profile?.role !== "lexia_admin") {
-    return { message: "Acesso não autorizado.", type: "error" };
+    return { message: t("Acesso não autorizado."), type: "error" };
   }
 
   const definicao = tipoConexao(tipo);
-  if (!definicao) return { message: "Tipo de conexão desconhecido.", type: "error" };
+  if (!definicao) return { message: t("Tipo de conexão desconhecido."), type: "error" };
 
   const slug = clienteSlug.trim() || null;
   const admin = createAdminClient();
@@ -42,7 +44,7 @@ export async function salvarConexao(
       .select("slug")
       .eq("slug", slug)
       .maybeSingle();
-    if (!cliente) return { message: "Cliente não encontrado.", type: "error" };
+    if (!cliente) return { message: t("Cliente não encontrado."), type: "error" };
   }
 
   let consulta = admin
@@ -53,9 +55,12 @@ export async function salvarConexao(
   const { data: atual, error: erroLeitura } = await consulta.maybeSingle();
   if (erroLeitura) {
     if (erroLeitura.code === "42P01" || erroLeitura.code === "PGRST205") {
-      return { message: "Falta correr a migration da Fase 19 no Supabase central.", type: "error" };
+      return {
+        message: t("Falta rodar a migration da Fase 19 no Supabase central."),
+        type: "error",
+      };
     }
-    return { message: "Não foi possível ler a conexão atual.", type: "error" };
+    return { message: t("Não foi possível ler a conexão atual."), type: "error" };
   }
 
   const campos: Record<string, string> = {};
@@ -76,7 +81,7 @@ export async function salvarConexao(
     antigos = atual?.segredos ? decifrar(atual.segredos) : {};
   } catch (erro) {
     return {
-      message: erro instanceof Error ? erro.message : "Não foi possível ler os segredos gravados.",
+      message: erro instanceof Error ? erro.message : t("Não foi possível ler os segredos salvos."),
       type: "error",
     };
   }
@@ -91,7 +96,7 @@ export async function salvarConexao(
     cifrado = Object.keys(segredos).length ? cifrar(segredos) : null;
   } catch (erro) {
     return {
-      message: erro instanceof Error ? erro.message : "Não foi possível cifrar os segredos.",
+      message: erro instanceof Error ? erro.message : t("Não foi possível cifrar os segredos."),
       type: "error",
     };
   }
@@ -109,10 +114,10 @@ export async function salvarConexao(
     ? await admin.from("lexia_conexoes").update(linha).eq("id", atual.id)
     : await admin.from("lexia_conexoes").insert(linha);
 
-  if (error) return { message: "Não foi possível gravar a conexão.", type: "error" };
+  if (error) return { message: t("Não foi possível salvar a conexão."), type: "error" };
 
   revalidatePath("/admin/conexoes");
-  return { message: `${definicao.titulo}: gravado.`, type: "success" };
+  return { message: t("{titulo}: salvo.", { titulo: t(definicao.titulo) }), type: "success" };
 }
 
 /**
@@ -126,24 +131,25 @@ export async function copiarSegredo(
   tipo: string,
   campo: string,
 ): Promise<{ valor?: string; erro?: string }> {
+  const t = await getT();
   const { profile, user } = await getLoggedInUserProfile();
-  if (!user || profile?.role !== "lexia_admin") return { erro: "Acesso não autorizado." };
+  if (!user || profile?.role !== "lexia_admin") return { erro: t("Acesso não autorizado.") };
 
   const definicao = tipoConexao(tipo);
   if (!definicao?.campos.some((c) => c.nome === campo && c.segredo)) {
-    return { erro: "Campo desconhecido." };
+    return { erro: t("Campo desconhecido.") };
   }
 
   const slug = clienteSlug.trim() || null;
   let consulta = createAdminClient().from("lexia_conexoes").select("segredos").eq("tipo", tipo);
   consulta = slug ? consulta.eq("cliente_slug", slug) : consulta.is("cliente_slug", null);
   const { data, error } = await consulta.maybeSingle();
-  if (error || !data?.segredos) return { erro: "Nada gravado neste campo." };
+  if (error || !data?.segredos) return { erro: t("Nada salvo neste campo.") };
 
   try {
     const valor = decifrar(data.segredos)[campo];
-    return valor ? { valor } : { erro: "Nada gravado neste campo." };
+    return valor ? { valor } : { erro: t("Nada salvo neste campo.") };
   } catch (erro) {
-    return { erro: erro instanceof Error ? erro.message : "Não foi possível ler o segredo." };
+    return { erro: erro instanceof Error ? erro.message : t("Não foi possível ler o segredo.") };
   }
 }

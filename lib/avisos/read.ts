@@ -1,5 +1,6 @@
 import "server-only";
 
+import { criarT, type FuncaoT } from "@/lib/i18n/traduzir";
 import { DIAS_ACTIVO } from "@/lib/pipeline/etapas";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -107,47 +108,48 @@ function telefoneDaConversa(conversa: string) {
 }
 
 /** "hoje", "ontem", "há 3 dias" — o que se lê num aviso. */
-function hreferencia(quando: string, agora: Date) {
+function hreferencia(quando: string, agora: Date, t: FuncaoT) {
   const horas = Math.floor(
     (agora.getTime() - new Date(quando).getTime()) / 3_600_000,
   );
 
   if (horas < 1) {
-    return "agora mesmo";
+    return t("agora mesmo");
   }
 
   if (horas < 24) {
-    return `há ${horas} ${horas === 1 ? "hora" : "horas"}`;
+    return horas === 1 ? t("há 1 hora") : t("há {n} horas", { n: horas });
   }
 
   const dias = Math.floor(horas / 24);
 
-  return dias === 1 ? "ontem" : `há ${dias} dias`;
+  return dias === 1 ? t("ontem") : t("há {n} dias", { n: dias });
 }
 
 /** Quanto falta para uma marcação: "dentro de 3 horas". */
-function daquiA(quando: string, agora: Date) {
+function daquiA(quando: string, agora: Date, t: FuncaoT) {
   const minutos = Math.round(
     (new Date(quando).getTime() - agora.getTime()) / 60_000,
   );
 
   if (minutos <= 0) {
-    return "está a começar";
+    return t("está começando");
   }
 
   if (minutos < 60) {
-    return `dentro de ${minutos} min`;
+    return t("dentro de {n} min", { n: minutos });
   }
 
   const horas = Math.round(minutos / 60);
 
-  return `dentro de ${horas} ${horas === 1 ? "hora" : "horas"}`;
+  return horas === 1 ? t("dentro de 1 hora") : t("dentro de {n} horas", { n: horas });
 }
 
 export async function getAvisos(
   clienteSlug: string,
   userId: string,
   agora = new Date(),
+  t: FuncaoT = criarT(null),
 ): Promise<AvisosResultado> {
   const vazio: AvisosResultado = { avisos: [], erro: null, naoLidos: 0 };
 
@@ -195,7 +197,7 @@ export async function getAvisos(
     mensagens.error ?? contactos.error ?? handoffs.error ?? marcacoes.error;
 
   if (falha) {
-    return { ...vazio, erro: "Não foi possível ler os avisos." };
+    return { ...vazio, erro: t("Não foi possível ler os avisos.") };
   }
 
   // Um erro só aqui não deve esconder os avisos: o pior que acontece é
@@ -275,8 +277,8 @@ export async function getAvisos(
         : null,
       lido: jaLidos.has(chave),
       porque: ficha
-        ? `Escreveu ${hreferencia(ultima.criadoEm, agora)} e ainda não teve resposta.`
-        : `Escreveu ${hreferencia(ultima.criadoEm, agora)} e ainda não teve resposta. Não tem ficha no painel.`,
+        ? t("Escreveu {quando} e ainda não teve resposta.", { quando: hreferencia(ultima.criadoEm, agora, t) })
+        : t("Escreveu {quando} e ainda não teve resposta. Não tem ficha no painel.", { quando: hreferencia(ultima.criadoEm, agora, t) }),
       quando: ultima.criadoEm,
       titulo: ficha?.nome ?? telefone ?? conversa,
       tipo: "por_responder",
@@ -292,19 +294,19 @@ export async function getAvisos(
 
     const estado =
       handoff.status === "em_atendimento"
-        ? "Está com alguém da equipa"
-        : "Está à espera de alguém da equipa";
+        ? t("Está com alguém da equipe")
+        : t("Está esperando alguém da equipe");
 
     avisos.push({
       chave,
       href: "/app/handoffs",
       lido: jaLidos.has(chave),
       porque: handoff.motivo
-        ? `${estado}. Motivo: ${handoff.motivo}`
+        ? t("{estado}. Motivo: {motivo}", { estado, motivo: handoff.motivo })
         : `${estado}.`,
       quando: handoff.criado_em,
       titulo:
-        handoff.nome_contacto ?? handoff.telefone ?? "Passagem para a equipa",
+        handoff.nome_contacto ?? handoff.telefone ?? t("Transferência para a equipe"),
       tipo: "handoff",
     });
   }
@@ -316,14 +318,14 @@ export async function getAvisos(
       continue;
     }
 
-    const quem = marcacao.nome_cliente ?? marcacao.telefone ?? "Sem nome";
+    const quem = marcacao.nome_cliente ?? marcacao.telefone ?? t("Sem nome");
     const oque = marcacao.servico ? ` · ${marcacao.servico}` : "";
 
     avisos.push({
       chave,
       href: "/app/agenda",
       lido: jaLidos.has(chave),
-      porque: `${daquiA(marcacao.inicio, agora)}${oque}${
+      porque: `${daquiA(marcacao.inicio, agora, t)}${oque}${
         marcacao.executor ? ` · ${marcacao.executor}` : ""
       }`,
       quando: marcacao.inicio,

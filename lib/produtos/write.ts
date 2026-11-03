@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { mensagemCom, type TextoDaMensagem } from "@/lib/catalogo/mensagem";
 import { createServicosClient, getServicosConfig } from "@/lib/servicos/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -16,8 +17,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 export type GravarProdutoResultado = {
+  /** Já em pt-BR; a server action traduz com `texto` antes de a mostrar. */
   mensagem: string;
   ok: boolean;
+  texto?: TextoDaMensagem;
 };
 
 const unidadesValidas = ["ml", "l", "g", "kg", "un"] as const;
@@ -26,21 +29,45 @@ export type Unidade = (typeof unidadesValidas)[number];
 
 const limiteQuantidade = 1_000_000;
 
-function validarQuantidade(bruto: string, etiqueta: string) {
+/**
+ * Os erros de cada campo, já como frase inteira: é a frase que se traduz, e
+ * colar "a quantidade" a "tem de ser…" partia a ordem das palavras noutras
+ * línguas.
+ */
+const errosDoCampo = {
+  pago: {
+    fora: "O valor pago está fora do intervalo aceitável.",
+    invalido: "O valor pago tem de ser um número maior que zero.",
+    vazio: "Preencha quanto você pagou.",
+  },
+  quantidade: {
+    fora: "A quantidade está fora do intervalo aceitável.",
+    invalido: "A quantidade tem de ser um número maior que zero.",
+    vazio: "Preencha a quantidade.",
+  },
+  quantidadeComprada: {
+    fora: "A quantidade comprada está fora do intervalo aceitável.",
+    invalido: "A quantidade comprada tem de ser um número maior que zero.",
+    vazio: "Preencha a quantidade comprada.",
+  },
+} as const;
+
+function validarQuantidade(bruto: string, campo: keyof typeof errosDoCampo) {
   const normalizado = bruto.trim().replace(",", ".");
+  const erros = errosDoCampo[campo];
 
   if (normalizado === "") {
-    return { erro: `Preenche ${etiqueta}.`, valor: null };
+    return { erro: erros.vazio, valor: null };
   }
 
   const valor = Number(normalizado);
 
   if (!Number.isFinite(valor) || valor <= 0) {
-    return { erro: `${etiqueta} tem de ser um número maior que zero.`, valor: null };
+    return { erro: erros.invalido, valor: null };
   }
 
   if (valor > limiteQuantidade) {
-    return { erro: `${etiqueta} está fora do intervalo aceitável.`, valor: null };
+    return { erro: erros.fora, valor: null };
   }
 
   return { erro: null, valor: Math.round(valor * 1000) / 1000 };
@@ -63,7 +90,7 @@ async function lerServico(clienteSlug: string, servicoId: string) {
 
   if (!externo) {
     return {
-      erro: "Credenciais da base de dados do cliente não configuradas.",
+      erro: "Credenciais do banco de dados do cliente não configuradas.",
       nome: null,
     };
   }
@@ -105,11 +132,11 @@ export async function criarProduto({
   const nome = nomeBruto.trim();
 
   if (nome === "" || nome.length > 256) {
-    return { mensagem: "Dá um nome ao produto.", ok: false };
+    return { mensagem: "Dê um nome ao produto.", ok: false };
   }
 
   if (!unidadesValidas.includes(unidadeBruta as Unidade)) {
-    return { mensagem: "Escolhe uma unidade válida.", ok: false };
+    return { mensagem: "Escolha uma unidade válida.", ok: false };
   }
 
   const notas = notasBruto.trim();
@@ -128,7 +155,10 @@ export async function criarProduto({
 
     // 23505 é a unicidade (cliente_slug, nome).
     if (error.code === "23505") {
-      return { mensagem: `Já existe um produto chamado "${nome}".`, ok: false };
+      return {
+        ...mensagemCom('Já existe um produto chamado "{nome}".', { nome }),
+        ok: false,
+      };
     }
 
     return { mensagem: "Não foi possível criar o produto.", ok: false };
@@ -136,7 +166,7 @@ export async function criarProduto({
 
   revalidatePath(caminhoParaRevalidar);
 
-  return { mensagem: `"${nome}" criado.`, ok: true };
+  return { ...mensagemCom('"{nome}" criado.', { nome }), ok: true };
 }
 
 /**
@@ -157,13 +187,13 @@ export async function registarCompra({
   quantidadeBruta: string;
   userId: string;
 }): Promise<GravarProdutoResultado> {
-  const quantidade = validarQuantidade(quantidadeBruta, "a quantidade comprada");
+  const quantidade = validarQuantidade(quantidadeBruta, "quantidadeComprada");
 
   if (quantidade.erro || quantidade.valor === null) {
     return { mensagem: quantidade.erro ?? "Quantidade inválida.", ok: false };
   }
 
-  const custo = validarQuantidade(custoTotalBruto, "o que pagaste");
+  const custo = validarQuantidade(custoTotalBruto, "pago");
 
   if (custo.erro || custo.valor === null) {
     return { mensagem: custo.erro ?? "Valor inválido.", ok: false };
@@ -188,7 +218,7 @@ export async function registarCompra({
   if (error) {
     console.error("[produtos] falha a registar a compra", error);
 
-    return { mensagem: "Não foi possível registar a compra.", ok: false };
+    return { mensagem: "Não foi possível registrar a compra.", ok: false };
   }
 
   revalidatePath(caminhoParaRevalidar);
@@ -196,7 +226,15 @@ export async function registarCompra({
   const unitario = custo.valor / quantidade.valor;
 
   return {
-    mensagem: `Compra registada: ${quantidade.valor} ${produto.unidade} de ${produto.nome} a ${unitario.toFixed(4)} €/${produto.unidade}.`,
+    ...mensagemCom(
+      "Compra registrada: {quantidade} {unidade} de {produto} a {unitario} €/{unidade}.",
+      {
+        produto: produto.nome,
+        quantidade: quantidade.valor,
+        unidade: produto.unidade,
+        unitario: unitario.toFixed(4),
+      },
+    ),
     ok: true,
   };
 }
@@ -225,14 +263,14 @@ export async function registarAjuste({
   quantidadeBruta: string;
   userId: string;
 }): Promise<GravarProdutoResultado> {
-  const quantidade = validarQuantidade(quantidadeBruta, "a quantidade");
+  const quantidade = validarQuantidade(quantidadeBruta, "quantidade");
 
   if (quantidade.erro || quantidade.valor === null) {
     return { mensagem: quantidade.erro ?? "Quantidade inválida.", ok: false };
   }
 
   if (direccao !== "entrada" && direccao !== "saida") {
-    return { mensagem: "Escolhe se o ajuste soma ou subtrai.", ok: false };
+    return { mensagem: "Escolha se o ajuste soma ou subtrai.", ok: false };
   }
 
   const admin = createAdminClient();
@@ -256,12 +294,15 @@ export async function registarAjuste({
   if (error) {
     console.error("[produtos] falha a registar o ajuste", error);
 
-    return { mensagem: "Não foi possível registar o ajuste.", ok: false };
+    return { mensagem: "Não foi possível registrar o ajuste.", ok: false };
   }
 
   revalidatePath(caminhoParaRevalidar);
 
-  return { mensagem: `Stock de ${produto.nome} ajustado.`, ok: true };
+  return {
+    ...mensagemCom("Estoque de {produto} ajustado.", { produto: produto.nome }),
+    ok: true,
+  };
 }
 
 /**
@@ -332,10 +373,17 @@ export async function excluirProduto({
   const afectados = receitas?.length ?? 0;
 
   return {
-    mensagem:
-      afectados === 0
-        ? `"${produto.nome}" excluído. O histórico fica guardado e podes repô-lo em baixo.`
-        : `"${produto.nome}" excluído e tirado de ${afectados} ${afectados === 1 ? "serviço" : "serviços"}. Se o repuseres, a quantidade em cada serviço tem de ser outra vez definida.`,
+    ...(afectados === 0
+      ? mensagemCom(
+          '"{nome}" excluído. O histórico fica guardado e você pode restaurá-lo logo abaixo.',
+          { nome: produto.nome },
+        )
+      : mensagemCom(
+          afectados === 1
+            ? '"{nome}" excluído e tirado de {n} serviço. Se você restaurá-lo, a quantidade em cada serviço precisa ser definida de novo.'
+            : '"{nome}" excluído e tirado de {n} serviços. Se você restaurá-lo, a quantidade em cada serviço precisa ser definida de novo.',
+          { n: afectados, nome: produto.nome },
+        )),
     ok: true,
   };
 }
@@ -372,7 +420,7 @@ export async function reporProduto({
   if (error) {
     console.error("[produtos] falha a repor o produto", error);
 
-    return { mensagem: "Não foi possível repor o produto.", ok: false };
+    return { mensagem: "Não foi possível restaurar o produto.", ok: false };
   }
 
   if (!data) {
@@ -382,7 +430,10 @@ export async function reporProduto({
   revalidatePath(caminhoParaRevalidar);
 
   return {
-    mensagem: `"${String(data.nome)}" reposto. Volta a dizer quanto cada serviço gasta dele.`,
+    ...mensagemCom(
+      '"{nome}" restaurado. Diga de novo quanto cada serviço gasta dele.',
+      { nome: String(data.nome) },
+    ),
     ok: true,
   };
 }
@@ -426,7 +477,10 @@ export async function definirReceita({
   // exclusão punha de novo a descontar stock de um produto invisível.
   if (!produto.activo) {
     return {
-      mensagem: `"${produto.nome}" está excluído. Repõe-no na página Produtos antes de o usar num serviço.`,
+      ...mensagemCom(
+        '"{nome}" está excluído. Restaure-o na página Produtos antes de usá-lo num serviço.',
+        { nome: produto.nome },
+      ),
       ok: false,
     };
   }
@@ -450,12 +504,15 @@ export async function definirReceita({
     revalidatePath(caminhoParaRevalidar);
 
     return {
-      mensagem: `${produto.nome} saiu da receita de "${servico.nome}".`,
+      ...mensagemCom('{produto} saiu da receita de "{servico}".', {
+        produto: produto.nome,
+        servico: servico.nome,
+      }),
       ok: true,
     };
   }
 
-  const quantidade = validarQuantidade(quantidadeBruta, "a quantidade");
+  const quantidade = validarQuantidade(quantidadeBruta, "quantidade");
 
   if (quantidade.erro || quantidade.valor === null) {
     return { mensagem: quantidade.erro ?? "Quantidade inválida.", ok: false };
@@ -477,13 +534,21 @@ export async function definirReceita({
   if (error) {
     console.error("[produtos] falha a gravar a receita", error);
 
-    return { mensagem: "Não foi possível gravar a receita.", ok: false };
+    return { mensagem: "Não foi possível salvar a receita.", ok: false };
   }
 
   revalidatePath(caminhoParaRevalidar);
 
   return {
-    mensagem: `"${servico.nome}" passa a gastar ${quantidade.valor} ${produto.unidade} de ${produto.nome}.`,
+    ...mensagemCom(
+      '"{servico}" passa a gastar {quantidade} {unidade} de {produto}.',
+      {
+        produto: produto.nome,
+        quantidade: quantidade.valor,
+        servico: servico.nome,
+        unidade: produto.unidade,
+      },
+    ),
     ok: true,
   };
 }
@@ -532,7 +597,10 @@ export async function registarExecucao({
 
   if (!receita || receita.length === 0) {
     return {
-      mensagem: `"${servico.nome}" ainda não tem produtos associados — nada para descontar.`,
+      ...mensagemCom(
+        '"{servico}" ainda não tem produtos associados, nada para descontar.',
+        { servico: servico.nome },
+      ),
       ok: false,
     };
   }
@@ -555,13 +623,18 @@ export async function registarExecucao({
   if (error) {
     console.error("[produtos] falha a registar o consumo", error);
 
-    return { mensagem: "Não foi possível descontar do stock.", ok: false };
+    return { mensagem: "Não foi possível descontar do estoque.", ok: false };
   }
 
   revalidatePath(caminhoParaRevalidar);
 
   return {
-    mensagem: `"${servico.nome}" registado: ${receita.length} ${receita.length === 1 ? "produto descontado" : "produtos descontados"} do stock.`,
+    ...mensagemCom(
+      receita.length === 1
+        ? '"{servico}" registrado: {n} produto descontado do estoque.'
+        : '"{servico}" registrado: {n} produtos descontados do estoque.',
+      { n: receita.length, servico: servico.nome },
+    ),
     ok: true,
   };
 }

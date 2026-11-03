@@ -20,7 +20,6 @@ import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
-  formatRangeDate,
   getDateInputValue,
   getDateRange,
   getInclusiveRangeEnd,
@@ -45,6 +44,8 @@ import { getClientTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -62,18 +63,26 @@ type ContactMetricRow = {
   identificador_conversa: string;
 };
 
+function formatPercent(value: number, locale: string) {
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)}%`;
+}
+
 function formatConversionRate(
   appointments: number | null,
   conversations: number,
+  locale: string,
 ) {
   if (appointments === null || conversations === 0) {
     return null;
   }
 
-  return `${Math.round((appointments / conversations) * 1000) / 10}%`;
+  return formatPercent(
+    Math.round((appointments / conversations) * 1000) / 10,
+    locale,
+  );
 }
 
-function formatSeconds(seconds: number | null) {
+function formatSeconds(seconds: number | null, locale: string) {
   if (seconds === null) {
     return "--";
   }
@@ -82,7 +91,33 @@ function formatSeconds(seconds: number | null) {
     return `${seconds}s`;
   }
 
-  return `${Math.round(seconds / 6) / 10} min`;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
+    Math.round(seconds / 6) / 10,
+  )} min`;
+}
+
+/**
+ * O rótulo do período no idioma de quem vê. O `range.label` de
+ * `lib/dashboard/date-range` vem sempre em pt-BR e é partilhado com o
+ * analista, por isso a data volta a ser escrita aqui com o mesmo fuso.
+ */
+function formatPeriodLabel(
+  range: { end: Date; key: string; start: Date },
+  timeZone: string,
+  locale: string,
+) {
+  const format = new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeZone,
+  });
+
+  if (range.key === "hoje") {
+    return format.format(range.start);
+  }
+
+  return `${format.format(range.start)} - ${format.format(
+    getInclusiveRangeEnd(range.end),
+  )}`;
 }
 
 function countConversationsByChannel(
@@ -137,6 +172,8 @@ function countNewContacts(
 
 export default async function AppPage({ searchParams }: DashboardPageProps) {
   const { profile } = await getLoggedInUserProfile();
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   if (!profile) {
     redirect("/login");
@@ -244,6 +281,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   const conversionRate = formatConversionRate(
     externalMetrics.appointments,
     startedConversations,
+    locale,
   );
 
   return (
@@ -257,10 +295,11 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Dashboard
+            {t("Dashboard")}
           </h1>
           <p className="mt-1 text-sm tabular-nums text-muted-foreground">
-            {range.label} · {getTimezoneLabel(timezone)}
+            {formatPeriodLabel(range, timezone, locale)} ·{" "}
+            {t(getTimezoneLabel(timezone))}
           </p>
         </div>
 
@@ -280,17 +319,17 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                     href={`/app?periodo=${option.key}`}
                     key={option.key}
                   >
-                    {option.label}
+                    {t(option.label)}
                   </Link>
                 );
               })}
             </div>
 
             <Link
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-sm font-medium text-foreground transition hover:bg-muted"
+              className="ds-botao ds-botao-secundario shrink-0"
               href="/app/conversas"
             >
-              Conversas
+              {t("Conversas")}
               <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
           </div>
@@ -304,8 +343,9 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
             >
               <input name="periodo" type="hidden" value="personalizado" />
               <input
-                aria-label="Início"
-                className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none transition focus:border-primary"
+                aria-label={t("Início")}
+                className="ds-campo"
+                style={{ width: "auto" }}
                 defaultValue={
                   customStart || getDateInputValue(range.start, timezone)
                 }
@@ -313,8 +353,9 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                 type="date"
               />
               <input
-                aria-label="Fim"
-                className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none transition focus:border-primary"
+                aria-label={t("Fim")}
+                className="ds-campo"
+                style={{ width: "auto" }}
                 defaultValue={
                   customEnd ||
                   getDateInputValue(getInclusiveRangeEnd(range.end), timezone)
@@ -323,10 +364,10 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                 type="date"
               />
               <FormSubmitButton
-                className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-                pendingLabel="A aplicar..."
+                className="ds-botao ds-botao-primario"
+                pendingLabel={t("Aplicando...")}
               >
-                Aplicar
+                {t("Aplicar")}
               </FormSubmitButton>
             </Form>
           ) : null}
@@ -340,40 +381,66 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         atenção que estes quatro.
       */}
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo="no período">Resultado</SeccaoTitulo>
+        <SeccaoTitulo sufixo={t("no período")}>
+          {t("Resultado")}
+        </SeccaoTitulo>
         <GrupoMetricas
           itens={[
             {
-              dica: "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
-              label: "Conversas iniciadas",
+              dica: t(
+                "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
+              ),
+              label: t("Conversas iniciadas"),
               valor: startedConversations,
             },
             {
-              dica: "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
-              label: "Agendamentos",
+              dica: t(
+                "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
+              ),
+              label: t("Agendamentos"),
               valor: externalMetrics.appointments ?? "--",
             },
             {
-              dica: "Agendamentos a dividir por conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
-              label: "Agendam. / conversa",
+              dica: t(
+                "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
+              ),
+              label: t("Agendam. / conversa"),
               nota:
                 externalMetrics.appointments === null
                   ? undefined
-                  : `${externalMetrics.appointments} para ${startedConversations} conversas`,
+                  : t("{agendamentos} para {conversas} conversas", {
+                      agendamentos: externalMetrics.appointments,
+                      conversas: startedConversations,
+                    }),
               valor: conversionRate ?? "--",
             },
             {
               dica: autonomyMetrics.dataAvailable
-                ? `Percentagem de conversas que o agente fechou sozinho. Dados a partir de ${formatRangeDate(autonomyMetrics.effectiveStart, timezone)}.`
-                : "Dados de autonomia só existem a partir de 01/08/2026.",
-              label: "Autonomia do agente",
+                ? t(
+                    "Porcentagem de conversas que o agente fechou sozinho. Dados a partir de {data}.",
+                    {
+                      data: new Intl.DateTimeFormat(locale, {
+                        dateStyle: "short",
+                        timeZone: timezone,
+                      }).format(autonomyMetrics.effectiveStart),
+                    },
+                  )
+                : t("Dados de autonomia só existem a partir de {data}.", {
+                    data: new Intl.DateTimeFormat(locale, {
+                      dateStyle: "short",
+                      timeZone: "UTC",
+                    }).format(new Date(Date.UTC(2026, 7, 1))),
+                  }),
+              label: t("Autonomia do agente"),
               nota: autonomyMetrics.dataAvailable
-                ? `${autonomyMetrics.interventionConversations} com intervenção humana`
+                ? t("{n} com intervenção humana", {
+                    n: autonomyMetrics.interventionConversations,
+                  })
                 : undefined,
               valor:
                 autonomyMetrics.percentage === null
                   ? "--"
-                  : `${autonomyMetrics.percentage}%`,
+                  : formatPercent(autonomyMetrics.percentage, locale),
             },
           ]}
         />
@@ -395,63 +462,79 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         <Card>
-          <CardTitulo>Volume no período</CardTitulo>
+          <CardTitulo>{t("Volume no período")}</CardTitulo>
           <div className="divide-y divide-border border-t border-border">
             <LinhaMetrica
-              dica="Conversas com pelo menos uma mensagem recebida ou enviada no período, mesmo que tenham começado antes."
-              label="Conversas activas"
+              dica={t(
+                "Conversas com pelo menos uma mensagem recebida ou enviada no período, mesmo que tenham começado antes.",
+              )}
+              label={t("Conversas ativas")}
               valor={activeConversations}
             />
             <LinhaMetrica
-              dica="Mensagens que os clientes finais enviaram."
-              label="Mensagens recebidas"
+              dica={t("Mensagens que os clientes finais enviaram.")}
+              label={t("Mensagens recebidas")}
               valor={receivedMessages}
             />
             <LinhaMetrica
-              dica="Todas as mensagens enviadas: agente, equipa e follow-ups."
-              label="Mensagens enviadas"
+              dica={t("Todas as mensagens enviadas: agente, equipe e follow-ups.")}
+              label={t("Mensagens enviadas")}
               valor={sentMessages}
             />
             <LinhaMetrica
-              dica="Contactos distintos criados pela primeira vez no período."
-              label="Novos contactos"
+              dica={t("Contatos distintos criados pela primeira vez no período.")}
+              label={t("Novos contatos")}
               valor={newContacts}
             />
           </div>
         </Card>
 
         <Card>
-          <CardTitulo>Qualidade do atendimento</CardTitulo>
+          <CardTitulo>{t("Qualidade do atendimento")}</CardTitulo>
           <div className="divide-y divide-border border-t border-border">
             <LinhaMetrica
-              dica="Tempo médio até à primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora."
-              label="Primeira resposta"
-              nota={`${firstResponse.samples} conversas`}
-              valor={formatSeconds(firstResponse.averageSeconds)}
+              dica={t(
+                "Tempo médio até a primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora.",
+              )}
+              label={t("Primeira resposta")}
+              nota={t("{n} conversas", { n: firstResponse.samples })}
+              valor={formatSeconds(firstResponse.averageSeconds, locale)}
             />
             <LinhaMetrica
-              dica="Respostas do agente fora de 9h-19h ou ao fim-de-semana. É o que o agente cobre e uma pessoa não cobriria."
-              label="Fora do horário"
-              nota={`${outOfHours.outsideCount} de ${outOfHours.sentCount} respostas`}
+              dica={t(
+                "Respostas do agente fora de 9h-19h ou no fim de semana. É o que o agente cobre e uma pessoa não cobriria.",
+              )}
+              label={t("Fora do horário")}
+              nota={t("{fora} de {total} respostas", {
+                fora: outOfHours.outsideCount,
+                total: outOfHours.sentCount,
+              })}
               valor={
                 outOfHours.percentage === null
                   ? "--"
-                  : `${outOfHours.percentage}%`
+                  : formatPercent(outOfHours.percentage, locale)
               }
             />
             <LinhaMetrica
-              dica="Mensagens automáticas de retomada efectivamente registadas no período."
-              label="Follow-ups enviados"
+              dica={t(
+                "Mensagens automáticas de retomada efetivamente registradas no período.",
+              )}
+              label={t("Follow-ups enviados")}
               valor={followupsSent}
             />
             <LinhaMetrica
-              dica="Das conversas que receberam follow-up rápido, quantas voltaram a responder."
-              label="Recuperação por follow-up"
-              nota={`${followupRecovery.recoveredConversations} de ${followupRecovery.followupConversations} voltaram`}
+              dica={t(
+                "Das conversas que receberam follow-up rápido, quantas voltaram a responder.",
+              )}
+              label={t("Recuperação por follow-up")}
+              nota={t("{voltaram} de {total} voltaram", {
+                total: followupRecovery.followupConversations,
+                voltaram: followupRecovery.recoveredConversations,
+              })}
               valor={
                 followupRecovery.recoveryRate === null
                   ? "--"
-                  : `${followupRecovery.recoveryRate}%`
+                  : formatPercent(followupRecovery.recoveryRate, locale)
               }
             />
           </div>
@@ -461,38 +544,38 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       <div className="grid gap-3 xl:grid-cols-3">
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold text-foreground">
-            Conversas por canal
+            {t("Conversas por canal")}
           </h2>
           <Ranking
             itens={[
               { label: "WhatsApp", value: channelCounts.whatsapp },
               { label: "Messenger", value: channelCounts.messenger },
               { label: "Instagram", value: channelCounts.instagram },
-              { label: "Sem canal", value: channelCounts.unknown },
+              { label: t("Sem canal"), value: channelCounts.unknown },
             ].filter((item) => item.value > 0)}
-            vazio="Sem conversas por canal no período."
+            vazio={t("Sem conversas por canal no período.")}
           />
         </Card>
 
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold text-foreground">
-            Serviços mais agendados
+            {t("Serviços mais agendados")}
           </h2>
           <Ranking
             itens={externalMetrics.services}
-            vazio="Sem agendamentos no período."
+            vazio={t("Sem agendamentos no período.")}
           />
         </Card>
 
         <Card className="p-5">
           <h2 className="mb-4 text-sm font-semibold text-foreground">
-            Agendamentos por dia
+            {t("Agendamentos por dia")}
           </h2>
           <Ranking
-            itens={externalMetrics.appointmentWeekdays.filter(
-              (item) => item.value > 0,
-            )}
-            vazio="Sem agendamentos no período."
+            itens={externalMetrics.appointmentWeekdays
+              .filter((item) => item.value > 0)
+              .map((item) => ({ ...item, label: t(item.label) }))}
+            vazio={t("Sem agendamentos no período.")}
           />
         </Card>
       </div>
@@ -500,9 +583,13 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       <Card className="p-5">
         <div className="mb-4 flex items-center gap-1.5">
           <h2 className="text-sm font-semibold text-foreground">
-            Horários de pico
+            {t("Horários de pico")}
           </h2>
-          <Dica texto="As oito horas com mais mensagens recebidas, no fuso do cliente." />
+          <Dica
+            texto={t(
+              "As oito horas com mais mensagens recebidas, no fuso do cliente.",
+            )}
+          />
         </div>
         <HorariosDePico cells={heatmapCells} />
       </Card>
@@ -514,9 +601,9 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
             className="mt-0.5 h-4 w-4 shrink-0 text-warning"
           />
           <p className="text-sm leading-relaxed text-muted-foreground">
-            As conversas já estão ligadas. Agendamentos e follow-ups entram
-            assim que a fonte de métricas deste cliente estiver ligada ao
-            painel.
+            {t(
+              "As conversas já estão conectadas. Agendamentos e follow-ups entram assim que a fonte de métricas deste cliente estiver conectada ao painel.",
+            )}
           </p>
         </div>
       ) : null}

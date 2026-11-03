@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import { LexiaBrand } from "@/app/components/lexia-brand";
+import { SeletorIdioma } from "@/app/components/seletor-idioma";
+import { SeletorTema } from "@/app/components/seletor-tema";
 import {
   estaActivo,
   SidebarNav,
@@ -43,6 +46,7 @@ export function AppSidebar({
   items,
   subtitle,
 }: AppSidebarProps) {
+  const { t } = useIdioma();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const paginaActual = items.find((item) => estaActivo(item.href, pathname));
@@ -89,7 +93,7 @@ export function AppSidebar({
         <button
           aria-controls="lexia-menu"
           aria-expanded={isOpen}
-          aria-label="Abrir menu"
+          aria-label={t("Abrir menu")}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground transition hover:bg-muted"
           onClick={() => setIsOpen(true)}
           type="button"
@@ -110,7 +114,7 @@ export function AppSidebar({
 
       {isOpen ? (
         <button
-          aria-label="Fechar menu"
+          aria-label={t("Fechar menu")}
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
           onClick={() => setIsOpen(false)}
           type="button"
@@ -143,7 +147,7 @@ export function AppSidebar({
             />
           ) : null}
           <button
-            aria-label="Fechar menu"
+            aria-label={t("Fechar menu")}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground lg:hidden"
             onClick={() => setIsOpen(false)}
             type="button"
@@ -161,14 +165,16 @@ export function AppSidebar({
           />
         </div>
 
-        <div className="shrink-0 border-t border-sidebar-border p-3">
+        <div className="flex shrink-0 flex-col gap-1.5 border-t border-sidebar-border p-3">
+          <SeletorTema />
+          <SeletorIdioma />
           <form action={logoutAction}>
             <FormSubmitButton
               className="flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-sidebar-muted transition hover:bg-muted hover:text-sidebar-foreground disabled:opacity-60"
-              pendingLabel="A sair..."
+              pendingLabel={t("Saindo...")}
             >
               <LogOut aria-hidden="true" className="h-4 w-4" />
-              Sair
+              {t("Sair")}
             </FormSubmitButton>
           </form>
         </div>

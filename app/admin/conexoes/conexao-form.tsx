@@ -8,12 +8,12 @@ import {
   salvarConexao,
   type ConexaoState,
 } from "@/app/admin/conexoes/actions";
+import { useIdioma } from "@/app/components/idioma";
 import type { CampoConexao, TipoConexao } from "@/lib/conexoes/tipos";
 
 const inicial: ConexaoState = { message: null, type: null };
 
-const classeInput =
-  "h-10 w-full min-w-0 rounded-lg border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground";
+const classeInput = "ds-campo min-w-0";
 /**
  * Atributos para o navegador e os gestores de senhas NÃO preencherem nada.
  *
@@ -35,8 +35,7 @@ const semAutopreencher = {
 } as const;
 const textoEscondido = { WebkitTextSecurity: "disc" } as React.CSSProperties;
 
-const classeBotao =
-  "inline-flex h-10 shrink-0 items-center justify-center rounded-lg border border-border-strong px-3 text-sm font-medium text-foreground transition hover:bg-muted active:scale-[0.98] disabled:opacity-60";
+const classeBotao = "ds-botao ds-botao-secundario shrink-0";
 
 /**
  * Copia o texto que a função devolver. O Safari só deixa escrever na área de
@@ -71,8 +70,9 @@ function SegredoGravado({
   id: string;
   tipo: string;
 }) {
+  const { t } = useIdioma();
   const [trocar, setTrocar] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
   const [copiando, setCopiando] = useState(false);
 
   async function copiar() {
@@ -81,12 +81,15 @@ function SegredoGravado({
     try {
       await copiarParaAreaDeTransferencia(async () => {
         const r = await copiarSegredo(clienteSlug, tipo, campo.nome);
-        if (!r.valor) throw new Error(r.erro ?? "Nada para copiar.");
+        if (!r.valor) throw new Error(r.erro ?? t("Nada para copiar."));
         return r.valor;
       });
-      setAviso("Copiado.");
+      setAviso({ ok: true, texto: t("Copiado.") });
     } catch (erro) {
-      setAviso(erro instanceof Error ? erro.message : "Não foi possível copiar.");
+      setAviso({
+        ok: false,
+        texto: erro instanceof Error ? erro.message : t("Não foi possível copiar."),
+      });
     } finally {
       setCopiando(false);
     }
@@ -102,16 +105,17 @@ function SegredoGravado({
             className={classeInput}
             id={id}
             name={campo.nome}
-            placeholder="cole a chave nova"
+            placeholder={t("cole a chave nova")}
             style={textoEscondido}
             type="text"
           />
           <button className={classeBotao} onClick={() => setTrocar(false)} type="button">
-            Cancelar
+            {t("Cancelar")}
           </button>
         </div>
         <label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <input name={`apagar_${campo.nome}`} type="checkbox" /> apagar a chave gravada
+          <input className="accent-primary" name={`apagar_${campo.nome}`} type="checkbox" />{" "}
+          {t("apagar a chave salva")}
         </label>
       </>
     );
@@ -121,21 +125,21 @@ function SegredoGravado({
     <>
       <div className="flex gap-2">
         <input
-          aria-label={`${campo.label} (gravado)`}
+          aria-label={t("{campo} (salvo)", { campo: t(campo.label) })}
           className={`${classeInput} font-mono text-muted-foreground`}
           id={id}
           readOnly
           value={`••••••••••••${final.replace("…", "")}`}
         />
         <button className={classeBotao} disabled={copiando} onClick={copiar} type="button">
-          {copiando ? "..." : "Copiar"}
+          {copiando ? "..." : t("Copiar")}
         </button>
         <button className={classeBotao} onClick={() => setTrocar(true)} type="button">
-          Trocar
+          {t("Trocar")}
         </button>
       </div>
       {aviso ? (
-        <span className={`text-xs ${aviso === "Copiado." ? "text-positive" : "text-danger"}`}>{aviso}</span>
+        <span className={`text-xs ${aviso.ok ? "text-positive" : "text-danger"}`}>{aviso.texto}</span>
       ) : null}
     </>
   );
@@ -155,6 +159,7 @@ export function ConexaoForm({
   finais: Record<string, string>;
   atualizadoEm: string | null;
 }) {
+  const { t } = useIdioma();
   const acao = salvarConexao.bind(null, clienteSlug, definicao.tipo);
   const [estado, formAction, pendente] = useActionState(acao, inicial);
   const configurado = Object.keys(campos).length + Object.keys(finais).length > 0;
@@ -168,13 +173,11 @@ export function ConexaoForm({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">{definicao.titulo}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{definicao.descricao}</p>
+          <h2 className="text-sm font-semibold text-foreground">{t(definicao.titulo)}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t(definicao.descricao)}</p>
         </div>
-        <span
-          className={`rounded-full border border-border bg-muted px-2 py-1 text-xs font-medium ${configurado ? "text-positive" : "text-muted-foreground"}`}
-        >
-          {configurado ? "Configurado" : "Não configurado"}
+        <span className={`ds-selo ds-selo-ponto ${configurado ? "ds-selo-verde" : "ds-selo-neutro"}`}>
+          {configurado ? t("Configurado") : t("Não configurado")}
         </span>
       </div>
 
@@ -185,7 +188,7 @@ export function ConexaoForm({
           return (
             <div className="flex min-w-0 flex-col gap-1.5" key={campo.nome}>
               <label className="text-sm font-medium text-muted-foreground" htmlFor={id}>
-                {campo.label}
+                {t(campo.label)}
               </label>
               {campo.segredo && final ? (
                 <SegredoGravado
@@ -207,7 +210,7 @@ export function ConexaoForm({
                   type="text"
                 />
               )}
-              {campo.ajuda ? <p className="text-xs text-muted-foreground">{campo.ajuda}</p> : null}
+              {campo.ajuda ? <p className="text-xs text-muted-foreground">{t(campo.ajuda)}</p> : null}
             </div>
           );
         })}
@@ -215,18 +218,20 @@ export function ConexaoForm({
 
       <div className="flex flex-wrap items-center gap-3">
         <button
-          className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+          className="ds-botao ds-botao-primario"
           disabled={pendente}
           type="submit"
         >
-          {pendente ? "Gravando..." : "Gravar"}
+          {pendente ? t("Salvando...") : t("Salvar")}
         </button>
         {estado.message ? (
           <span className={`text-sm ${estado.type === "error" ? "text-danger" : "text-positive"}`}>
             {estado.message}
           </span>
         ) : atualizadoEm ? (
-          <span className="text-xs text-muted-foreground">Atualizado em {atualizadoEm}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("Atualizado em {data}", { data: atualizadoEm })}
+          </span>
         ) : null}
       </div>
     </form>

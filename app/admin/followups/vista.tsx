@@ -2,7 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
-import { formatDateInTimezone, getClientTimezone } from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { Janela } from "@/app/admin/followups/janela";
 import {
   emQuanto,
@@ -77,7 +80,7 @@ function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
   );
 }
 
-export function FollowupsVista({
+export async function FollowupsVista({
   agora,
   baseLigada,
   erroBase,
@@ -91,11 +94,19 @@ export function FollowupsVista({
   selecionado = null,
   turnosDoSelecionado = [],
 }: FollowupsVistaProps) {
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const custo = (v: number | string | null | undefined) => formatarCusto(v, locale, t);
   const fuso = getClientTimezone(cliente);
-  const data = (iso: string | null) =>
-    iso
-      ? formatDateInTimezone(iso, fuso, { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
-      : "—";
+  const formatoData = new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: fuso,
+    weekday: "short",
+  });
+  const data = (iso: string | null) => (iso ? formatoData.format(new Date(iso)) : "—");
   const nomeDe = (id: string | null, nome?: string | null) =>
     nome || (id ? (nomes[id] ?? id.replace(/^(whatsapp|instagram|messenger):/, "")) : "—");
   const linkConversa = (id: string | null, turno?: string) =>
@@ -104,55 +115,55 @@ export function FollowupsVista({
   const abrir = (id: string) => `/admin/followups?fu=${encodeURIComponent(id)}`;
   const porConversa = new Map([...encerrados, ...marcados].map((f) => [f.identificador ?? "", f.id]));
   const desde24 = agora - 86400_000;
-  const fuEnviados = turnos.filter((t) => t.rota === "followup" && t.estado === "respondido");
-  const lemEnviados = turnos.filter((t) => t.rota === "lembrete" && t.estado === "respondido");
+  const fuEnviados = turnos.filter((x) => x.rota === "followup" && x.estado === "respondido");
+  const lemEnviados = turnos.filter((x) => x.rota === "lembrete" && x.estado === "respondido");
   const futuras = consultas.filter((c) => Date.parse(c.inicio) >= agora && c.status === "confirmado");
-  const custo7 = turnos.reduce((s, t) => s + Number(t.custo_usd ?? 0), 0);
+  const custo7 = turnos.reduce((s, x) => s + Number(x.custo_usd ?? 0), 0);
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-5">
       <PaginaCabecalho
         acoes={<span className="text-xs text-muted-foreground">{nomeCliente}</span>}
-        titulo="Follow-ups e lembretes"
+        titulo={t("Follow-ups e lembretes")}
       />
 
       {!baseLigada || erroBase ? (
-        <p className="rounded-xl border border-warning px-4 py-3 text-sm text-foreground">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-foreground">
           {baseLigada
-            ? "Não foi possível ler a base do cliente agora. Os envios continuam a acontecer; só esta tela é que não os mostra."
-            : "A base deste cliente não está ligada neste ambiente."}
+            ? t("Não foi possível ler a base do cliente agora. Os envios continuam acontecendo; só esta tela é que não os mostra.")
+            : t("A base deste cliente não está conectada neste ambiente.")}
         </p>
       ) : null}
 
       <GrupoMetricas
         itens={[
           {
-            dica: "Conversas em que a Carol volta a escrever se o cliente não responder.",
-            label: "Follow-ups marcados",
+            dica: t("Conversas em que a Carol volta a escrever se o cliente não responder."),
+            label: t("Follow-ups marcados"),
             valor: marcados.length,
           },
           {
-            label: "Follow-ups enviados (24 h)",
-            valor: fuEnviados.filter((t) => Date.parse(t.criado_em) >= desde24).length,
+            label: t("Follow-ups enviados (24 h)"),
+            valor: fuEnviados.filter((x) => Date.parse(x.criado_em) >= desde24).length,
           },
-          { label: "Consultas a lembrar", valor: futuras.length },
-          { label: "Lembretes enviados (7 dias)", valor: lemEnviados.length },
+          { label: t("Consultas a lembrar"), valor: futuras.length },
+          { label: t("Lembretes enviados (7 dias)"), valor: lemEnviados.length },
           {
-            dica: "Custo de IA dos follow-ups e lembretes dos últimos 7 dias (os lembretes não usam IA).",
-            label: "Custo (7 dias)",
-            valor: formatarCusto(custo7),
+            dica: t("Custo de IA dos follow-ups e lembretes dos últimos 7 dias (os lembretes não usam IA)."),
+            label: t("Custo (7 dias)"),
+            valor: custo(custo7),
           },
         ]}
       />
 
       <div className="grid min-w-0 gap-5 xl:grid-cols-2">
         <Seccao
-          extra={<span className="text-xs text-muted-foreground">de 15 em 15 min</span>}
-          titulo="Follow-ups"
+          extra={<span className="text-xs text-muted-foreground">{t("de 15 em 15 min")}</span>}
+          titulo={t("Follow-ups")}
         >
-          <Grupo titulo="Marcados para sair">
+          <Grupo titulo={t("Marcados para sair")}>
             {marcados.length === 0 ? (
-              <Vazio>Nenhum follow-up marcado.</Vazio>
+              <Vazio>{t("Nenhum follow-up marcado.")}</Vazio>
             ) : (
               <ul className="divide-y divide-border">
                 {marcados.map((f) => (
@@ -165,12 +176,16 @@ export function FollowupsVista({
                       <span className="truncate text-sm font-medium text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
                       <span className="text-right text-sm text-foreground tabular-nums">{data(f.proxima_tentativa_em)}</span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {CANAL[f.canal ?? ""] ?? f.canal} · tentativa {f.etapa ?? 1}
-                        {f.dia_combinado ? ` · combinou ${/^\d{4}-\d{2}-\d{2}T/.test(f.dia_combinado) ? data(f.dia_combinado) : f.dia_combinado}` : ""}
-                        {f.motivo_encerramento ? ` · ${motivoLegivel(f.motivo_encerramento)}` : ""}
+                        {CANAL[f.canal ?? ""] ?? f.canal} · {t("tentativa {n}", { n: f.etapa ?? 1 })}
+                        {f.dia_combinado
+                          ? ` · ${t("combinou {dia}", {
+                              dia: /^\d{4}-\d{2}-\d{2}T/.test(f.dia_combinado) ? data(f.dia_combinado) : f.dia_combinado,
+                            })}`
+                          : ""}
+                        {f.motivo_encerramento ? ` · ${motivoLegivel(f.motivo_encerramento, t)}` : ""}
                       </span>
                       <span className="text-right text-xs text-muted-foreground tabular-nums">
-                        {emQuanto(f.proxima_tentativa_em, agora)}
+                        {emQuanto(f.proxima_tentativa_em, agora, t)}
                       </span>
                     </Link>
                   </li>
@@ -179,32 +194,32 @@ export function FollowupsVista({
             )}
           </Grupo>
 
-          <Grupo titulo="Enviados (7 dias)">
+          <Grupo titulo={t("Enviados (7 dias)")}>
             {fuEnviados.length === 0 ? (
-              <Vazio>Nenhum follow-up enviado pelo agente em código ainda.</Vazio>
+              <Vazio>{t("Nenhum follow-up enviado pelo agente em código ainda.")}</Vazio>
             ) : (
               <ul className="divide-y divide-border">
-                {fuEnviados.map((t) => (
-                  <li key={t.id}>
+                {fuEnviados.map((x) => (
+                  <li key={x.id}>
                     <Link
                       className="block px-5 py-3 transition-colors duration-150 hover:bg-muted"
                       href={
-                        porConversa.get(t.identificador_conversa ?? "")
-                          ? abrir(porConversa.get(t.identificador_conversa ?? "")!)
-                          : linkConversa(t.identificador_conversa, t.id)
+                        porConversa.get(x.identificador_conversa ?? "")
+                          ? abrir(porConversa.get(x.identificador_conversa ?? "")!)
+                          : linkConversa(x.identificador_conversa, x.id)
                       }
                       scroll={false}
                     >
                       <div className="flex items-baseline gap-3">
                         <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                          {nomeDe(t.identificador_conversa)}
+                          {nomeDe(x.identificador_conversa)}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                          {data(t.criado_em)} · {formatarCusto(t.custo_usd)}
+                          {data(x.criado_em)} · {custo(x.custo_usd)}
                         </span>
                       </div>
                       <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
-                        {Array.isArray(t.mensagens) ? t.mensagens.map(String).join(" ") : ""}
+                        {Array.isArray(x.mensagens) ? x.mensagens.map(String).join(" ") : ""}
                       </p>
                     </Link>
                   </li>
@@ -215,7 +230,7 @@ export function FollowupsVista({
 
           <details className="group" open={Boolean(selecionado && selecionado.status !== "agendado")}>
             <summary className="cursor-pointer list-none px-5 py-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
-              Encerrados nos últimos 7 dias ({encerrados.length})
+              {t("Encerrados nos últimos 7 dias ({n})", { n: encerrados.length })}
             </summary>
             <ul className="divide-y divide-border border-t border-border">
               {encerrados.map((f) => (
@@ -228,7 +243,9 @@ export function FollowupsVista({
                     <span className="truncate text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
                     <span className="text-right text-xs text-muted-foreground tabular-nums">{data(f.atualizado_em)}</span>
                     <span className="col-span-2 truncate text-xs text-muted-foreground">
-                      {f.status === "cancelado" ? "Cancelado" : "Encerrado"}: {motivoLegivel(f.motivo_encerramento)}
+                      {f.status === "cancelado"
+                        ? t("Cancelado: {motivo}", { motivo: motivoLegivel(f.motivo_encerramento, t) })
+                        : t("Encerrado: {motivo}", { motivo: motivoLegivel(f.motivo_encerramento, t) })}
                     </span>
                   </Link>
                 </li>
@@ -240,18 +257,22 @@ export function FollowupsVista({
         <Seccao
           extra={
             <span className="text-xs text-muted-foreground">
-              {LEMBRETE.antesHoras} h antes · das {LEMBRETE.inicioHora}h às {LEMBRETE.fimHora}h
+              {t("{horas} h antes · das {inicio}h às {fim}h", {
+                fim: LEMBRETE.fimHora,
+                horas: LEMBRETE.antesHoras,
+                inicio: LEMBRETE.inicioHora,
+              })}
             </span>
           }
-          titulo="Lembretes de consulta"
+          titulo={t("Lembretes de consulta")}
         >
-          <Grupo titulo="Próximas consultas">
+          <Grupo titulo={t("Próximas consultas")}>
             {consultas.length === 0 ? (
-              <Vazio>Nenhuma consulta marcada pela Carol.</Vazio>
+              <Vazio>{t("Nenhuma consulta marcada pela Carol.")}</Vazio>
             ) : (
               <ul className="divide-y divide-border">
                 {consultas.map((c) => {
-                  const e = estadoDoLembrete(c, agora);
+                  const e = estadoDoLembrete(c, agora, t);
                   return (
                     <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 px-5 py-3" key={c.id}>
                       <span className="truncate text-sm font-medium text-foreground">{c.nome_cliente || "—"}</span>
@@ -263,12 +284,12 @@ export function FollowupsVista({
                         }`}
                       >
                         {e.tipo === "enviado"
-                          ? `Lembrete enviado ${data(e.em)}`
+                          ? t("Lembrete enviado {data}", { data: data(e.em) })
                           : e.tipo === "agendado"
-                            ? `Lembrete a partir de ${data(e.aPartirDe)}`
+                            ? t("Lembrete a partir de {data}", { data: data(e.aPartirDe) })
                             : e.tipo === "a_enviar"
-                              ? "Lembrete sai na próxima hora"
-                              : `Sem lembrete: ${e.motivo}`}
+                              ? t("Lembrete sai na próxima hora")
+                              : t("Sem lembrete: {motivo}", { motivo: e.motivo })}
                       </span>
                     </li>
                   );
@@ -276,25 +297,25 @@ export function FollowupsVista({
               </ul>
             )}
             <p className="px-5 pt-1 pb-4 text-xs text-muted-foreground">
-              Só as consultas marcadas pela Carol. As que o Samuel marca direto na agenda não recebem lembrete (igual ao n8n).
+              {t("Só as consultas marcadas pela Carol. As que o Samuel marca direto na agenda não recebem lembrete (igual ao n8n).")}
             </p>
           </Grupo>
 
-          <Grupo titulo="Lembretes enviados (7 dias)">
+          <Grupo titulo={t("Lembretes enviados (7 dias)")}>
             {lemEnviados.length === 0 ? (
-              <Vazio>Nenhum lembrete enviado pelo agente em código ainda.</Vazio>
+              <Vazio>{t("Nenhum lembrete enviado pelo agente em código ainda.")}</Vazio>
             ) : (
               <ul className="divide-y divide-border">
-                {lemEnviados.map((t) => (
-                  <li className="px-5 py-3" key={t.id}>
+                {lemEnviados.map((x) => (
+                  <li className="px-5 py-3" key={x.id}>
                     <div className="flex items-baseline gap-3">
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                        {nomeDe(t.identificador_conversa)}
+                        {nomeDe(x.identificador_conversa)}
                       </span>
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{data(t.criado_em)}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{data(x.criado_em)}</span>
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
-                      {Array.isArray(t.mensagens) ? t.mensagens.map(String).join(" ") : ""}
+                      {Array.isArray(x.mensagens) ? x.mensagens.map(String).join(" ") : ""}
                     </p>
                   </li>
                 ))}
@@ -308,9 +329,11 @@ export function FollowupsVista({
         <Janela fechar="/admin/followups" titulo={nomeDe(selecionado.identificador, selecionado.nome_contacto)}>
           <DetalheFollowup
             agora={agora}
+            custo={custo}
             data={(iso) => data(iso)}
             f={selecionado}
             linkConversa={linkConversa(selecionado.identificador)}
+            t={t}
             turnos={turnosDoSelecionado}
           />
         </Janela>
@@ -325,8 +348,8 @@ function Lista({ titulo, itens, tom = "" }: { titulo: string; itens: string[]; t
     <div>
       <h3 className="mb-2 text-sm font-semibold text-foreground">{titulo}</h3>
       <ul className={`flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed marker:text-border-strong ${tom || "text-foreground"}`}>
-        {itens.map((t, i) => (
-          <li key={i}>{t}</li>
+        {itens.map((item, i) => (
+          <li key={i}>{item}</li>
         ))}
       </ul>
     </div>
@@ -339,42 +362,46 @@ function DetalheFollowup({
   agora,
   data,
   linkConversa,
+  custo,
+  t,
 }: {
   f: FollowupDetalhe;
   turnos: TurnoDoFollowup[];
   agora: number;
   data: (iso: string) => string;
   linkConversa: string;
+  custo: (v: number | string | null | undefined) => string;
+  t: FuncaoT;
 }) {
-  const e = explicarFollowup(f, data, agora);
+  const e = explicarFollowup(f, data, agora, t);
   const cor = e.tom === "aviso" ? "text-warning" : e.tom === "fim" ? "text-muted-foreground" : "text-positive";
   return (
     <div className="flex flex-col gap-6">
       <div>
         <p className="text-xs text-muted-foreground">
-          {CANAL[f.canal ?? ""] ?? f.canal} · {f.status === "agendado" ? "marcado" : f.status}
+          {CANAL[f.canal ?? ""] ?? f.canal} · {f.status === "agendado" ? t("marcado") : f.status}
         </p>
         <p className={`mt-1 text-[15px] font-medium ${cor}`}>{e.resumo}</p>
       </div>
 
-      <Lista itens={e.alertas} titulo="Atenção" tom="text-warning" />
-      <Lista itens={e.porque} titulo={f.status === "agendado" ? "Porque está marcado" : "Como terminou"} />
-      <Lista itens={e.proximos} titulo="O que acontece a seguir" />
+      <Lista itens={e.alertas} titulo={t("Atenção")} tom="text-warning" />
+      <Lista itens={e.porque} titulo={f.status === "agendado" ? t("Por que está marcado") : t("Como terminou")} />
+      <Lista itens={e.proximos} titulo={t("O que acontece em seguida")} />
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-foreground">Follow-ups já enviados a este contacto</h3>
+        <h3 className="mb-2 text-sm font-semibold text-foreground">{t("Follow-ups já enviados a este contato")}</h3>
         {turnos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum enviado pelo agente em código ainda.</p>
+          <p className="text-sm text-muted-foreground">{t("Nenhum enviado pelo agente em código ainda.")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {turnos.map((t) => {
-              const msgs = Array.isArray(t.mensagens) ? t.mensagens.map(String) : [];
+            {turnos.map((x) => {
+              const msgs = Array.isArray(x.mensagens) ? x.mensagens.map(String) : [];
               return (
-                <li className="rounded-xl border border-border px-3.5 py-2.5" key={t.id}>
+                <li className="rounded-xl border border-border px-3.5 py-2.5" key={x.id}>
                   <p className="text-xs text-muted-foreground tabular-nums">
-                    {data(t.criado_em)} · {t.estado === "respondido" ? "enviado" : "não enviado"} · {formatarCusto(t.custo_usd)}
+                    {data(x.criado_em)} · {x.estado === "respondido" ? t("enviado") : t("não enviado")} · {custo(x.custo_usd)}
                   </p>
-                  <p className="mt-1 text-sm text-foreground">{msgs.length ? msgs.join(" ") : motivoLegivel(t.motivo)}</p>
+                  <p className="mt-1 text-sm text-foreground">{msgs.length ? msgs.join(" ") : motivoLegivel(x.motivo, t)}</p>
                 </li>
               );
             })}
@@ -384,11 +411,11 @@ function DetalheFollowup({
 
       <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-border pt-4 text-sm">
         <Link className="font-medium text-foreground underline-offset-4 hover:underline" href={linkConversa}>
-          Abrir a conversa no Controle do agente
+          {t("Abrir a conversa no Controle do agente")}
         </Link>
         {f.status === "agendado" ? (
           <Link className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline" href="/admin/bloqueios">
-            Para não enviar: bloquear o contacto
+            {t("Para não enviar: bloquear o contato")}
           </Link>
         ) : null}
       </div>

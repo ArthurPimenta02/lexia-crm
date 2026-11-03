@@ -1,5 +1,6 @@
 "use server";
 
+import { traduzirResultado } from "@/lib/catalogo/traduzir-resultado";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
   criarProduto,
@@ -49,17 +50,19 @@ export async function criarProdutoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
-  return criarProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    nomeBruto: String(formData.get("nome") ?? ""),
-    notasBruto: String(formData.get("notas") ?? ""),
-    unidadeBruta: String(formData.get("unidade") ?? ""),
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await criarProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      nomeBruto: String(formData.get("nome") ?? ""),
+      notasBruto: String(formData.get("notas") ?? ""),
+      unidadeBruta: String(formData.get("unidade") ?? ""),
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function registarCompraAction(
@@ -69,23 +72,25 @@ export async function registarCompraAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return registarCompra({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    custoTotalBruto: String(formData.get("custo_total") ?? ""),
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await registarCompra({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      custoTotalBruto: String(formData.get("custo_total") ?? ""),
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function registarAjusteAction(
@@ -95,24 +100,26 @@ export async function registarAjusteAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return registarAjuste({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    direccao: String(formData.get("direccao") ?? ""),
-    notaBruta: String(formData.get("nota") ?? ""),
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await registarAjuste({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      direccao: String(formData.get("direccao") ?? ""),
+      notaBruta: String(formData.get("nota") ?? ""),
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function excluirProdutoAction(
@@ -122,21 +129,23 @@ export async function excluirProdutoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return excluirProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    produtoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await excluirProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      produtoId,
+      userId: perfil.userId,
+    }),
+  );
 }
 
 export async function reporProdutoAction(
@@ -146,21 +155,23 @@ export async function reporProdutoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
 
   if (!produtoId) {
-    return { mensagem: "Produto não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto não identificado.", ok: false });
   }
 
-  return reporProduto({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    produtoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await reporProduto({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      produtoId,
+      userId: perfil.userId,
+    }),
+  );
 }
 
 /**
@@ -177,22 +188,24 @@ export async function definirReceitaDoProdutoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return traduzirResultado(semPermissao);
   }
 
   const produtoId = String(formData.get("produto_id") ?? "").trim();
   const servicoId = String(formData.get("servico_id") ?? "").trim();
 
   if (!produtoId || !servicoId) {
-    return { mensagem: "Produto ou serviço não identificado.", ok: false };
+    return traduzirResultado({ mensagem: "Produto ou serviço não identificado.", ok: false });
   }
 
-  return definirReceita({
-    caminhoParaRevalidar: caminho,
-    clienteSlug: perfil.clienteSlug,
-    produtoId,
-    quantidadeBruta: String(formData.get("quantidade") ?? ""),
-    servicoId,
-    userId: perfil.userId,
-  });
+  return traduzirResultado(
+    await definirReceita({
+      caminhoParaRevalidar: caminho,
+      clienteSlug: perfil.clienteSlug,
+      produtoId,
+      quantidadeBruta: String(formData.get("quantidade") ?? ""),
+      servicoId,
+      userId: perfil.userId,
+    }),
+  );
 }

@@ -3,20 +3,22 @@
 import { useActionState } from "react";
 
 import { loginAction, type LoginState } from "@/app/actions/auth";
+import { useIdioma } from "@/app/components/idioma";
 
 const initialState: LoginState = {};
 
 export function LoginForm() {
+  const { t } = useIdioma();
   const [state, action, pending] = useActionState(loginAction, initialState);
 
   return (
     <form action={action} className="flex w-full flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-muted-foreground" htmlFor="email">
-          E-mail
+          {t("E-mail")}
         </label>
         <input
-          className="h-12 rounded-2xl border border-border-strong bg-surface px-3 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5"
+          className="ds-campo !h-12 !text-base"
           id="email"
           name="email"
           type="email"
@@ -27,10 +29,10 @@ export function LoginForm() {
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-muted-foreground" htmlFor="password">
-          Senha
+          {t("Senha")}
         </label>
         <input
-          className="h-12 rounded-2xl border border-border-strong bg-surface px-3 text-base text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5"
+          className="ds-campo !h-12 !text-base"
           id="password"
           name="password"
           type="password"
@@ -40,17 +42,17 @@ export function LoginForm() {
       </div>
 
       {state.error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
           {state.error}
         </p>
       ) : null}
 
       <button
-        className="h-12 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_18px_38px_rgba(0,0,0,0.18)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-foreground"
+        className="ds-botao ds-botao-primario ds-botao-g w-full"
         type="submit"
         disabled={pending}
       >
-        {pending ? "Entrando..." : "Entrar"}
+        {pending ? t("Entrando...") : t("Entrar")}
       </button>
     </form>
   );

@@ -5,6 +5,8 @@ import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import {
   getServicosAgendaveisConfig,
   getServicosConfig,
@@ -54,6 +56,8 @@ export default async function AdminServicosPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const params = await searchParams;
   const clientePedido = lerParametro(params.cliente);
   const escalaoPedido = lerParametro(params.escalao);
@@ -66,7 +70,7 @@ export default async function AdminServicosPage({
     .order("nome");
 
   if (clientesError) {
-    throw new Error("Não foi possível buscar os clientes.");
+    throw new Error(t("Não foi possível buscar os clientes."));
   }
 
   const clientes = (clientesData ?? []) as AdminCliente[];
@@ -78,14 +82,14 @@ export default async function AdminServicosPage({
     clientes[0] ??
     null;
 
-  const cabecalho = <PaginaCabecalho titulo="Serviços" />;
+  const cabecalho = <PaginaCabecalho titulo={t("Serviços")} />;
 
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         {cabecalho}
         <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          Nenhum cliente activo disponível.
+          {t("Nenhum cliente ativo disponível.")}
         </div>
       </div>
     );
@@ -120,9 +124,9 @@ export default async function AdminServicosPage({
         className="flex flex-col gap-2 text-sm font-semibold text-foreground"
         htmlFor="cliente"
       >
-        Cliente
+        {t("Cliente")}
         <select
-          className="h-10 min-w-56 rounded-2xl border border-border-strong bg-surface px-3 text-sm font-normal tracking-normal text-foreground normal-case outline-none transition focus:border-foreground"
+          className="ds-campo h-10 min-w-56 font-normal tracking-normal normal-case"
           defaultValue={clienteSlug}
           id="cliente"
           name="cliente"
@@ -130,17 +134,19 @@ export default async function AdminServicosPage({
           {clientes.map((cliente) => (
             <option key={cliente.id} value={cliente.slug}>
               {cliente.nome ?? cliente.slug}
-              {semCatalogo.has(cliente.slug) ? " (sem catálogo ligado)" : ""}
+              {semCatalogo.has(cliente.slug)
+                ? ` ${t("(sem catálogo ligado)")}`
+                : ""}
             </option>
           ))}
         </select>
       </label>
       <input name="escalao" type="hidden" value={painel.escalaoActivo} />
       <FormSubmitButton
-        className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+        className="ds-botao ds-botao-primario h-10"
         pendingLabel="..."
       >
-        Selecionar
+        {t("Selecionar")}
       </FormSubmitButton>
     </Form>
   );
@@ -160,9 +166,11 @@ export default async function AdminServicosPage({
         basePath="/admin/servicos"
         clienteSlug={clienteSlug}
         leading={selectorDeCliente}
+        locale={locale}
         painel={painel}
         parametrosFixos={{ cliente: clienteSlug }}
         podeEditar={!painel.somenteLeitura}
+        t={t}
       />
     </div>
   );

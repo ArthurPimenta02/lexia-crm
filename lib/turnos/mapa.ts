@@ -10,6 +10,11 @@
 
 import type { EventoFerramenta, Passo, TurnoCompleto } from "@/lib/turnos/formatar";
 
+import { criarT, type FuncaoT } from "../i18n/traduzir";
+
+/** Sem o `t` de quem vê, o texto sai em português do Brasil (o texto-fonte). */
+const PT_BR = criarT(null);
+
 export type EstadoFase = "feito" | "parou" | "erro" | "nao_usado";
 
 export type Fase = {
@@ -212,18 +217,18 @@ export function comDuracao(passos: Passo[]): Passo[] {
 }
 
 /** Nomes que as ferramentas têm no código, em português de gente. */
-export function descreverFerramenta(nome: string) {
+export function descreverFerramenta(nome: string, t: FuncaoT = PT_BR) {
   const n = nome.toLowerCase().replace(/-/g, "_");
-  if (n.includes("especialista")) return "Pediu ajuda ao Especialista em Serviços";
-  if (n.includes("consultar_servicos")) return "Consultou o catálogo de serviços";
-  if (n.includes("promoc")) return "Consultou as promoções";
-  if (n.includes("info_clinica")) return "Consultou as informações da clínica";
-  if (n.includes("disponibilidade")) return "Consultou a agenda";
-  if (n.includes("criar_agendamento")) return "Marcou na agenda";
-  if (n.includes("cancelar")) return "Cancelou a marcação";
-  if (n.includes("reagendar") || n.includes("remarcar")) return "Remarcou";
-  if (n.includes("agendamentos") || n.includes("consultar_agend")) return "Consultou as marcações do cliente";
-  return `Usou ${nome}`;
+  if (n.includes("especialista")) return t("Pediu ajuda ao Especialista em Serviços");
+  if (n.includes("consultar_servicos")) return t("Consultou o catálogo de serviços");
+  if (n.includes("promoc")) return t("Consultou as promoções");
+  if (n.includes("info_clinica")) return t("Consultou as informações da clínica");
+  if (n.includes("disponibilidade")) return t("Consultou a agenda");
+  if (n.includes("criar_agendamento")) return t("Marcou na agenda");
+  if (n.includes("cancelar")) return t("Cancelou o agendamento");
+  if (n.includes("reagendar") || n.includes("remarcar")) return t("Remarcou");
+  if (n.includes("agendamentos") || n.includes("consultar_agend")) return t("Consultou os agendamentos do cliente");
+  return t("Usou {nome}", { nome });
 }
 
 /** As ações que contam para quem lê: o resto (Redis, eventos internos) fica no detalhe técnico. */
@@ -232,7 +237,7 @@ export type AcaoVisivel = { icone: TipoAcaoVisivel; texto: string; recusada?: st
 
 type AcaoGravada = { tipo?: string; resumo?: string; recusada?: string };
 
-export function acoesVisiveis(acoes: unknown): AcaoVisivel[] {
+export function acoesVisiveis(acoes: unknown, t: FuncaoT = PT_BR): AcaoVisivel[] {
   if (!Array.isArray(acoes)) return [];
   const saida: AcaoVisivel[] = [];
   let baloes = 0;
@@ -244,66 +249,75 @@ export function acoesVisiveis(acoes: unknown): AcaoVisivel[] {
         baloes += 1;
         break;
       case "aviso_equipe":
-        saida.push({ icone: "aviso", texto: resumo || "Avisou a equipe", recusada });
+        saida.push({ icone: "aviso", texto: resumo || t("Avisou a equipe"), recusada });
         break;
       case "google_evento":
-        saida.push({ icone: "agenda", texto: resumo || "Criou o evento na agenda", recusada });
+        saida.push({ icone: "agenda", texto: resumo || t("Criou o evento na agenda"), recusada });
         break;
       case "guardar_arquivo":
-        saida.push({ icone: "arquivo", texto: resumo || "Guardou a mídia do cliente", recusada });
+        saida.push({ icone: "arquivo", texto: resumo || t("Salvou a mídia do cliente"), recusada });
         break;
       case "gravar_tabela":
         if (/follow-up|agendamento|marca/i.test(resumo) && !/cancelar o follow-up/i.test(resumo)) {
-          saida.push({ icone: /follow-up/i.test(resumo) ? "followup" : "registo", texto: legivelFollowup(resumo), recusada });
+          saida.push({ icone: /follow-up/i.test(resumo) ? "followup" : "registo", texto: legivelFollowup(resumo, t), recusada });
         } else if (/cancelar o follow-up/i.test(resumo)) {
-          saida.push({ icone: "cancelou", texto: "Cancelou o follow-up que estava marcado (o cliente respondeu)", recusada });
+          saida.push({ icone: "cancelou", texto: t("Cancelou o follow-up que estava marcado (o cliente respondeu)"), recusada });
         }
         break;
       default:
         break;
     }
   }
-  if (baloes) saida.unshift({ icone: "mensagem", texto: `Enviou ${baloes} ${baloes === 1 ? "balão" : "balões"} ao cliente` });
+  if (baloes) saida.unshift({ icone: "mensagem", texto: baloes === 1 ? t("Enviou 1 balão ao cliente") : t("Enviou {n} balões ao cliente", { n: baloes }) });
   return saida;
 }
 
 /** "armar o follow-up para 2026-11-02T07:00:00.000-05:00 (etapa 1)" → "Marcou um follow-up para 02/11 às 07:00 (tentativa 1)". */
-export function legivelFollowup(resumo: string) {
+export function legivelFollowup(resumo: string, t: FuncaoT = PT_BR) {
   const m = resumo.match(/armar o follow-up para (\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})[^ ]*(?: \(etapa (\d+)\))?/);
   if (!m) return resumo;
-  return `Marcou um follow-up para ${m[3]}/${m[2]} às ${m[4]}:${m[5]}${m[6] ? ` (tentativa ${m[6]})` : ""}, caso o cliente não responda`;
+  const quando = { dia: `${m[3]}/${m[2]}`, hora: `${m[4]}:${m[5]}` };
+  return m[6]
+    ? t("Marcou um follow-up para {dia} às {hora} (tentativa {n}), caso o cliente não responda", { ...quando, n: m[6] })
+    : t("Marcou um follow-up para {dia} às {hora}, caso o cliente não responda", quando);
 }
 
-function contar(n: number, um: string, varios: string) {
-  return `${n} ${n === 1 ? um : varios}`;
-}
-
-function linhasDaFase(id: string, t: TurnoCompleto): string[] {
+function linhasDaFase(id: string, t: TurnoCompleto, tx: FuncaoT): string[] {
   const r = t.resumo ?? {};
   const linhas: string[] = [];
   switch (id) {
     case "entendeu":
-      if (r.assunto) linhas.push(`Assunto: ${r.assunto}`);
-      if (r.idioma) linhas.push(`Idioma: ${r.idioma}`);
-      if (r.trava_roteamento) linhas.push(`Caminho forçado por regra: ${r.trava_roteamento}`);
+      if (r.assunto) linhas.push(tx("Assunto: {valor}", { valor: r.assunto }));
+      if (r.idioma) linhas.push(tx("Idioma: {valor}", { valor: r.idioma }));
+      if (r.trava_roteamento) linhas.push(tx("Caminho forçado por regra: {valor}", { valor: r.trava_roteamento }));
       break;
     case "atendimento":
     case "agendamento":
     case "indefinido": {
-      if (r.briefing?.objectivo) linhas.push(`Decidiu: ${r.briefing.objectivo}`);
-      if (r.briefing?.pergunta_a_fazer) linhas.push(`Pergunta a fazer: ${r.briefing.pergunta_a_fazer}`);
+      if (r.briefing?.objectivo) linhas.push(tx("Decidiu: {valor}", { valor: r.briefing.objectivo }));
+      if (r.briefing?.pergunta_a_fazer) linhas.push(tx("Pergunta a fazer: {valor}", { valor: r.briefing.pergunta_a_fazer }));
       break;
     }
     case "redator": {
       const fatos = r.briefing?.factos?.length ?? 0;
-      if (fatos) linhas.push(`Recebeu ${contar(fatos, "facto", "factos")} para usar (só pode dizer o que está lá)`);
-      if (r.travas?.length) for (const x of r.travas) linhas.push(`Trava agiu: ${x}`);
-      if (t.handoff?.necessario) linhas.push(`Chamou a equipe: ${t.handoff.motivo ?? ""}`);
+      if (fatos) {
+        linhas.push(
+          fatos === 1
+            ? tx("Recebeu 1 fato para usar (só pode dizer o que está lá)")
+            : tx("Recebeu {n} fatos para usar (só pode dizer o que está lá)", { n: fatos }),
+        );
+      }
+      if (r.travas?.length) for (const x of r.travas) linhas.push(tx("Trava agiu: {valor}", { valor: x }));
+      if (t.handoff?.necessario) linhas.push(tx("Chamou a equipe: {valor}", { valor: t.handoff.motivo ?? "" }));
       break;
     }
     case "enviou": {
       const n = Array.isArray(t.mensagens) ? t.mensagens.length : 0;
-      if (n) linhas.push(`${contar(n, "balão", "balões")}${t.modo === "sombra" ? " (sombra: não enviados)" : ""}`);
+      if (n) {
+        const sombra = t.modo === "sombra";
+        if (n === 1) linhas.push(sombra ? tx("1 balão (sombra: não enviado)") : tx("1 balão"));
+        else linhas.push(sombra ? tx("{n} balões (sombra: não enviados)", { n }) : tx("{n} balões", { n }));
+      }
       break;
     }
     default:
@@ -316,7 +330,7 @@ function linhasDaFase(id: string, t: TurnoCompleto): string[] {
  * O desenho do turno. `null` quando não há passos gravados (por exemplo um
  * contacto bloqueado, que não guarda nada por privacidade).
  */
-export function montarFluxo(t: TurnoCompleto): LinhaFluxo[] | null {
+export function montarFluxo(t: TurnoCompleto, tx: FuncaoT = PT_BR): LinhaFluxo[] | null {
   const passos = comDuracao(t.passos ?? []);
   const moldes = moldesDe(t);
   if (!passos.length) return null;
@@ -326,10 +340,10 @@ export function montarFluxo(t: TurnoCompleto): LinhaFluxo[] | null {
     const porWf = new Map<string, Passo[]>();
     for (const p of passos) porWf.set(p.workflow, [...(porWf.get(p.workflow) ?? []), p]);
     const fases = [...porWf.entries()].map(([wf, ps]) => ({
-      id: wf, titulo: wf === "lembretes" ? "Lembrete da consulta" : wf, explica: "", estado: "feito" as EstadoFase,
+      id: wf, titulo: wf === "lembretes" ? tx("Lembrete da consulta") : wf, explica: "", estado: "feito" as EstadoFase,
       linhas: [], passos: ps, ferramentas: [], ms: ps.reduce((s, p) => s + (p.ms ?? 0), 0),
     }));
-    marcarFim(fases, t.estado, t.erro ?? t.motivo);
+    marcarFim(fases, t.estado, t.erro ?? t.motivo, tx);
     return fases.map((fase) => ({ tipo: "fase", fase }));
   }
 
@@ -355,50 +369,55 @@ export function montarFluxo(t: TurnoCompleto): LinhaFluxo[] | null {
   const fases = moldes.map<Fase>((m) => {
     const ps = porFase.get(m.id) ?? [];
     return {
-      id: m.id, titulo: m.titulo, explica: m.explica, estado: ps.length ? "feito" : "nao_usado",
-      linhas: ps.length ? linhasDaFase(m.id, t) : [], passos: ps,
-      ferramentas: ps.length && m.ramo ? ferramentas.map((f) => ({ ...f, titulo: descreverFerramenta(f.nome) })) : [],
+      id: m.id, titulo: tx(m.titulo), explica: tx(m.explica), estado: ps.length ? "feito" : "nao_usado",
+      linhas: ps.length ? linhasDaFase(m.id, t, tx) : [], passos: ps,
+      ferramentas: ps.length && m.ramo ? ferramentas.map((f) => ({ ...f, titulo: descreverFerramenta(f.nome, tx) })) : [],
       ms: ps.reduce((s, p) => s + (p.ms ?? 0), 0),
     };
   });
   // O envio do follow-up é feito pelo código e não deixa passo: conta a ação.
   const enviou = fases.find((f) => f.id === "fu_enviou");
-  if (enviou && enviou.estado === "nao_usado" && acoesVisiveis(t.resumo?.acoes).some((a) => a.icone === "mensagem")) {
+  if (enviou && enviou.estado === "nao_usado" && acoesVisiveis(t.resumo?.acoes, tx).some((a) => a.icone === "mensagem")) {
     enviou.estado = "feito";
   }
-  marcarFim(fases, t.estado, t.erro ?? t.motivo);
+  marcarFim(fases, t.estado, t.erro ?? t.motivo, tx);
 
   const linhas: LinhaFluxo[] = [];
   moldes.forEach((m, i) => {
     if (!m.ramo) return void linhas.push({ tipo: "fase", fase: fases[i] });
     const ultima = linhas[linhas.length - 1];
-    if (ultima?.tipo === "ramo" && ultima.titulo === m.ramo) ultima.fases.push(fases[i]);
-    else linhas.push({ tipo: "ramo", titulo: m.ramo, fases: [fases[i]] });
+    const titulo = tx(m.ramo);
+    if (ultima?.tipo === "ramo" && ultima.titulo === titulo) ultima.fases.push(fases[i]);
+    else linhas.push({ tipo: "ramo", titulo, fases: [fases[i]] });
   });
   return linhas;
 }
 
 /** Num turno que parou ou deu erro, a última fase que correu fica a amarelo ou a vermelho. */
-function marcarFim(fases: Fase[], estado: string, motivo: string | null) {
+function marcarFim(fases: Fase[], estado: string, motivo: string | null, tx: FuncaoT) {
   if (estado !== "parado" && estado !== "erro") return;
   for (let i = fases.length - 1; i >= 0; i--) {
     if (fases[i].estado === "feito") {
       fases[i].estado = estado === "erro" ? "erro" : "parou";
-      if (motivo) fases[i].linhas.push(`${estado === "erro" ? "Erro" : "Parou aqui"}: ${motivo}`);
+      if (motivo) {
+        fases[i].linhas.push(
+          estado === "erro" ? tx("Erro: {valor}", { valor: motivo }) : tx("Parou aqui: {valor}", { valor: motivo }),
+        );
+      }
       return;
     }
   }
 }
 
 /** "há 3 min", "há 2 h", "há 4 dias". */
-export function haQuanto(iso: string, agora = Date.now()) {
+export function haQuanto(iso: string, agora = Date.now(), t: FuncaoT = PT_BR) {
   const s = Math.max(0, Math.round((agora - Date.parse(iso)) / 1000));
-  if (s < 60) return "agora mesmo";
+  if (s < 60) return t("agora mesmo");
   const min = Math.round(s / 60);
-  if (min < 60) return `há ${min} min`;
+  if (min < 60) return t("há {n} min", { n: min });
   const h = Math.round(min / 60);
-  if (h < 48) return `há ${h} h`;
-  return `há ${Math.round(h / 24)} dias`;
+  if (h < 48) return t("há {n} h", { n: h });
+  return t("há {n} dias", { n: Math.round(h / 24) });
 }
 
 /** Início da janela das métricas "últimas 24 h" (a página é renderizada no servidor a cada pedido). */

@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 type ConversationMessageMediaProps = {
   mediaType: string;
   src: string | null;
 };
 
+// Rótulos em pt-BR; traduzidos onde se desenham.
 const unavailableLabels: Record<string, string> = {
   audio: "Áudio indisponível",
   documento: "Documento indisponível",
@@ -18,13 +21,15 @@ export function ConversationMessageMedia({
   mediaType,
   src,
 }: ConversationMessageMediaProps) {
+  const { t } = useIdioma();
   const [hasError, setHasError] = useState(false);
-  const unavailableLabel =
-    unavailableLabels[mediaType] ?? "Conteúdo indisponível";
+  const unavailableLabel = t(
+    unavailableLabels[mediaType] ?? "Conteúdo indisponível",
+  );
 
   if (!src || hasError) {
     return (
-      <div className="flex min-h-20 min-w-44 items-center justify-center rounded-lg bg-black/5 px-5 py-4 text-center text-sm text-muted-foreground">
+      <div className="flex min-h-20 min-w-44 items-center justify-center rounded-lg bg-muted px-5 py-4 text-center text-sm text-muted-foreground">
         {unavailableLabel}
       </div>
     );
@@ -35,7 +40,7 @@ export function ConversationMessageMedia({
       // Provider media URLs are temporary and cannot use Next image optimization.
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        alt="Imagem da conversa"
+        alt={t("Imagem da conversa")}
         className="max-h-[420px] w-auto max-w-full rounded-lg object-contain"
         loading="lazy"
         onError={() => setHasError(true)}
@@ -71,12 +76,12 @@ export function ConversationMessageMedia({
 
   return (
     <a
-      className="flex min-h-16 min-w-52 items-center rounded-lg bg-black/5 px-4 py-3 text-sm font-medium text-foreground underline decoration-muted-foreground/60 underline-offset-4 transition hover:bg-black/10"
+      className="flex min-h-16 min-w-52 items-center rounded-lg bg-muted px-4 py-3 text-sm font-medium text-foreground underline decoration-muted-foreground/60 underline-offset-4 transition hover:bg-surface-muted"
       href={src}
       rel="noreferrer"
       target="_blank"
     >
-      Abrir documento
+      {t("Abrir documento")}
     </a>
   );
 }

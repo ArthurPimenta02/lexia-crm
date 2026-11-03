@@ -17,10 +17,10 @@ import {
 } from "@/app/components/feedback-conversation-utils";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientDetailPageProps = {
@@ -100,9 +100,9 @@ type ConversationMessage = {
   criado_em: string | null;
 };
 
-function formatLabel(value: string | null) {
+function formatLabel(value: string | null, t: FuncaoT) {
   if (!value) {
-    return "Sem valor";
+    return t("Sem valor");
   }
 
   return value.replaceAll("_", " ");
@@ -215,16 +215,19 @@ async function getRealCount(
   return count ?? 0;
 }
 
-function getMessagePreview(message: ConversationMessage | null | undefined) {
+function getMessagePreview(
+  message: ConversationMessage | null | undefined,
+  t: FuncaoT,
+) {
   if (!message) {
-    return "Sem mensagens registadas.";
+    return t("Sem mensagens registradas.");
   }
 
   if (message.tipo === "imagem") {
-    return "Imagem";
+    return t("Imagem");
   }
 
-  return textoLegivelDaMensagem(message.conteudo) || "Sem conteúdo.";
+  return textoLegivelDaMensagem(message.conteudo) || t("Sem conteúdo.");
 }
 
 function InfoItem({
@@ -259,6 +262,16 @@ export default async function ClientDetailPage({
 
   const { slug } = await params;
   const timeZone = getClientTimezone(slug);
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const formatDateInTimezone = (date: string | null, zona: string) =>
+    date
+      ? new Intl.DateTimeFormat(locale, {
+          dateStyle: "short",
+          timeStyle: "short",
+          timeZone: zona,
+        }).format(new Date(date))
+      : t("Sem data");
   const supabase = await createClient();
   const { data: client, error: clientError } = await supabase
     .from("lexia_clientes")
@@ -273,7 +286,9 @@ export default async function ClientDetailPage({
   if (!client) {
     return (
       <section className="flex w-full min-w-0 flex-col gap-6">
-        <h1 className="text-3xl font-semibold">Cliente não encontrado.</h1>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {t("Cliente não encontrado.")}
+        </h1>
       </section>
     );
   }
@@ -414,38 +429,38 @@ export default async function ClientDetailPage({
   }
 
   const cards = [
-    { title: "Conversas", value: totalConversas },
-    { title: "Mensagens recebidas", value: mensagensRecebidas },
-    { title: "Respostas enviadas", value: mensagensEnviadas },
-    { title: "Feedbacks pendentes", value: feedbacksPendentes },
+    { title: t("Conversas"), value: totalConversas },
+    { title: t("Mensagens recebidas"), value: mensagensRecebidas },
+    { title: t("Respostas enviadas"), value: mensagensEnviadas },
+    { title: t("Feedbacks pendentes"), value: feedbacksPendentes },
     { title: "WhatsApp", value: whatsappConversas },
     { title: "Messenger", value: messengerConversas },
     { title: "Instagram", value: instagramConversas },
   ];
   const testCards = [
-    { title: "Sessões de teste", value: sessoesCount },
-    { title: "Execuções de teste", value: execucoesCount },
-    { title: "Handoffs pendentes", value: handoffsPendentes },
+    { title: t("Sessões de teste"), value: sessoesCount },
+    { title: t("Execuções de teste"), value: execucoesCount },
+    { title: t("Handoffs pendentes"), value: handoffsPendentes },
   ];
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-semibold">
-          {clientData.nome ?? "Cliente"}
+        <h1 className="text-3xl font-semibold text-foreground">
+          {clientData.nome ?? t("Cliente")}
         </h1>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            className="ds-botao ds-botao-primario ds-botao-p"
             href={`/admin/conversas?cliente=${encodeURIComponent(clientData.slug)}`}
           >
-            Ver conversas
+            {t("Ver conversas")}
           </Link>
           <Link
-            className="rounded-lg border border-border-strong px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+            className="ds-botao ds-botao-secundario ds-botao-p"
             href="/admin/feedbacks"
           >
-            Ver feedbacks
+            {t("Ver feedbacks")}
           </Link>
         </div>
       </div>
@@ -453,13 +468,13 @@ export default async function ClientDetailPage({
       <div className="rounded-2xl border border-border bg-surface p-5">
         <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           <InfoItem label="Slug">{clientData.slug}</InfoItem>
-          <InfoItem label="Status">
-            {clientData.status ?? "Sem status"}
+          <InfoItem label={t("Status")}>
+            {clientData.status ?? t("Sem status")}
           </InfoItem>
-          <InfoItem label="Modo teste">
-            {clientData.modo_teste ? "Ativo" : "Inativo"}
+          <InfoItem label={t("Modo teste")}>
+            {clientData.modo_teste ? t("Ativo") : t("Inativo")}
           </InfoItem>
-          <InfoItem label="Cor principal">
+          <InfoItem label={t("Cor principal")}>
             <div className="flex items-center gap-2">
               {clientData.cor_principal ? (
                 <span
@@ -467,20 +482,20 @@ export default async function ClientDetailPage({
                   style={{ backgroundColor: clientData.cor_principal }}
                 />
               ) : null}
-              <span>{clientData.cor_principal ?? "Sem cor"}</span>
+              <span>{clientData.cor_principal ?? t("Sem cor")}</span>
             </div>
           </InfoItem>
           <InfoItem
             className="md:col-span-2 xl:col-span-2"
             label={
-              activeWorkflows.length > 1 ? "Workflows ativos" : "Workflow ativo"
+              activeWorkflows.length > 1 ? t("Workflows ativos") : t("Workflow ativo")
             }
           >
             {activeWorkflows.length === 0 ? (
-              "Sem workflow ativo"
+              t("Sem workflow ativo")
             ) : activeWorkflows.length === 1 ? (
               <ExpandableText
-                emptyText="Sem workflow ativo"
+                emptyText={t("Sem workflow ativo")}
                 text={activeWorkflows[0].nome ?? null}
                 maxLength={80}
               />
@@ -488,9 +503,9 @@ export default async function ClientDetailPage({
               <ul className="space-y-1 text-sm">
                 {activeWorkflows.map((workflow) => (
                   <li key={workflow.id}>
-                    {workflow.nome ?? "Workflow"}{" "}
+                    {workflow.nome ?? t("Workflow")}{" "}
                     <span className="text-muted-foreground">
-                      ({workflow.tipo ?? "sem tipo"})
+                      ({workflow.tipo ?? t("sem tipo")})
                     </span>
                   </li>
                 ))}
@@ -501,7 +516,9 @@ export default async function ClientDetailPage({
       </div>
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo="todo o histórico">Atendimento</SeccaoTitulo>
+        <SeccaoTitulo sufixo={t("todo o histórico")}>
+          {t("Atendimento")}
+        </SeccaoTitulo>
         <GrupoMetricas
           itens={cards.map((card) => ({
             label: card.title,
@@ -511,7 +528,7 @@ export default async function ClientDetailPage({
       </div>
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo>Testes e handoffs</SeccaoTitulo>
+        <SeccaoTitulo>{t("Testes e handoffs")}</SeccaoTitulo>
         <GrupoMetricas
           itens={testCards.map((card) => ({
             label: card.title,
@@ -522,7 +539,7 @@ export default async function ClientDetailPage({
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Últimas conversas reais</h2>
+          <h2 className="text-lg font-semibold">{t("Últimas conversas reais")}</h2>
         </div>
         {latestContacts.length > 0 ? (
           <div className="divide-y divide-border">
@@ -544,18 +561,18 @@ export default async function ClientDetailPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">
-                        {contact.nome || contact.telefone || "Sem nome"}
+                        {contact.nome || contact.telefone || t("Sem nome")}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {contact.telefone ?? "Sem telefone"}
+                        {contact.telefone ?? t("Sem telefone")}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {formatLabel(contact.canal)}
+                    <span className="ds-selo ds-selo-neutro shrink-0">
+                      {formatLabel(contact.canal, t)}
                     </span>
                   </div>
                   <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {getMessagePreview(lastMessage)}
+                    {getMessagePreview(lastMessage, t)}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground/60">
                     {formatDateInTimezone(contact.atualizado_em, timeZone)}
@@ -566,13 +583,13 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há conversas reais registadas.
+            {t("Ainda não há conversas reais registradas.")}
           </div>
         )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface p-5">
-        <h2 className="mb-5 text-lg font-semibold">Configurações do cliente</h2>
+        <h2 className="mb-5 text-lg font-semibold">{t("Configurações do cliente")}</h2>
         <ClientSettingsForm
           clienteSlug={clientData.slug}
           workflowId={editableWorkflow?.id ?? null}
@@ -591,12 +608,12 @@ export default async function ClientDetailPage({
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Usuários do cliente</h2>
+          <h2 className="text-lg font-semibold">{t("Usuários do cliente")}</h2>
         </div>
 
         <div className="p-5">
           <h3 className="font-semibold text-foreground">
-            Criar usuário do cliente
+            {t("Criar usuário do cliente")}
           </h3>
           <ClientUserForm clienteSlug={clientData.slug} />
         </div>
@@ -612,19 +629,19 @@ export default async function ClientDetailPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[320px] border-y border-border px-3 py-3 font-medium">
-                    User ID
+                    {t("User ID")}
                   </th>
                   <th className="w-[120px] border-y border-border px-3 py-3 font-medium">
-                    Role
+                    {t("Role")}
                   </th>
                   <th className="w-[104px] border-y border-border px-3 py-3 font-medium">
-                    Status
+                    {t("Status")}
                   </th>
                   <th className="w-[152px] border-y border-border px-3 py-3 font-medium">
-                    Criado em
+                    {t("Criado em")}
                   </th>
                   <th className="w-[164px] border-y border-border px-3 py-3 font-medium">
-                    Ações
+                    {t("Ações")}
                   </th>
                 </tr>
               </thead>
@@ -652,10 +669,10 @@ export default async function ClientDetailPage({
                         {clientUser.user_id}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                        {formatLabel(clientUser.role)}
+                        {formatLabel(clientUser.role, t)}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                        {formatLabel(clientUser.status)}
+                        {formatLabel(clientUser.status, t)}
                       </td>
                       <td className="px-3 py-3 align-top whitespace-nowrap text-muted-foreground">
                         {formatDateInTimezone(clientUser.criado_em, timeZone)}
@@ -664,20 +681,20 @@ export default async function ClientDetailPage({
                         <div className="flex flex-col gap-2">
                           <form action={activateAction}>
                             <FormSubmitButton
-                              className="h-9 w-full rounded-2xl border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                              className="ds-botao ds-botao-secundario ds-botao-p w-full"
                               disabled={clientUser.status === "ativo"}
-                              pendingLabel="Ativando..."
+                              pendingLabel={t("Ativando...")}
                             >
-                              Ativar
+                              {t("Ativar")}
                             </FormSubmitButton>
                           </form>
                           <form action={deactivateAction}>
                             <FormSubmitButton
-                              className="h-9 w-full rounded-2xl border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-surface-muted disabled:cursor-not-allowed disabled:text-muted-foreground"
+                              className="ds-botao ds-botao-secundario ds-botao-p w-full"
                               disabled={clientUser.status === "inativo"}
-                              pendingLabel="Inativando..."
+                              pendingLabel={t("Inativando...")}
                             >
-                              Inativar
+                              {t("Inativar")}
                             </FormSubmitButton>
                           </form>
                         </div>
@@ -690,13 +707,13 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="border-t border-border px-4 py-10 text-center text-sm text-muted-foreground">
-            Nenhum usuário vinculado a este cliente ainda.
+            {t("Nenhum usuário vinculado a este cliente ainda.")}
           </div>
         )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface p-5">
-        <h2 className="text-lg font-semibold">Workflow</h2>
+        <h2 className="text-lg font-semibold">{t("Workflow")}</h2>
         {workflows.length > 0 ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {workflows.map((workflow) => (
@@ -705,22 +722,22 @@ export default async function ClientDetailPage({
                 key={workflow.id}
               >
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoItem label="Nome">
+                  <InfoItem label={t("Nome")}>
                     <ExpandableText
-                      emptyText="Sem nome"
+                      emptyText={t("Sem nome")}
                       text={workflow.nome}
                       maxLength={80}
                     />
                   </InfoItem>
-                  <InfoItem label="Tipo">
-                    {workflow.tipo ?? "Sem tipo"}
+                  <InfoItem label={t("Tipo")}>
+                    {workflow.tipo ?? t("Sem tipo")}
                   </InfoItem>
-                  <InfoItem label="Status">
-                    {workflow.status ?? "Sem status"}
+                  <InfoItem label={t("Status")}>
+                    {workflow.status ?? t("Sem status")}
                   </InfoItem>
-                  <InfoItem label="Webhook">
+                  <InfoItem label={t("Webhook")}>
                     <ExpandableText
-                      emptyText="Sem webhook"
+                      emptyText={t("Sem webhook")}
                       text={workflow.webhook_url}
                       maxLength={90}
                     />
@@ -731,30 +748,32 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <p className="mt-4 text-sm text-muted-foreground">
-            Nenhum workflow configurado para este cliente.
+            {t("Nenhum workflow configurado para este cliente.")}
           </p>
         )}
       </section>
 
-      <section className="rounded-lg border border-red-200 bg-surface p-5">
+      <section className="rounded-2xl border border-danger/20 bg-surface p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Limpeza de dados de teste
+              {t("Limpeza de dados de teste")}
             </h2>
             <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-              Remove sessões, execuções, feedbacks ligados a testes, mensagens e
-              contactos de teste deste cliente. Handoffs reais de produção não
-              serão apagados.
+              {t(
+                "Remove sessões, execuções, feedbacks ligados a testes, mensagens e contatos de teste deste cliente. Handoffs reais de produção não serão apagados.",
+              )}
             </p>
           </div>
           <div>
             <ConfirmActionButton
               action={clearClientTestData.bind(null, clientData.slug)}
-              className="h-10 rounded-lg border border-red-300 px-4 text-sm font-medium text-red-700 transition hover:bg-red-50"
-              confirmMessage="Tem certeza? Isso vai apagar sessões de teste, execuções de teste, feedbacks ligados a testes, mensagens e contactos de teste deste cliente. Handoffs reais de produção não serão apagados."
+              className="ds-botao ds-botao-perigo"
+              confirmMessage={t(
+                "Tem certeza? Isso vai apagar sessões de teste, execuções de teste, feedbacks ligados a testes, mensagens e contatos de teste deste cliente. Handoffs reais de produção não serão apagados.",
+              )}
             >
-              Limpar dados de teste deste cliente
+              {t("Limpar dados de teste deste cliente")}
             </ConfirmActionButton>
           </div>
         </div>
@@ -762,7 +781,7 @@ export default async function ClientDetailPage({
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Últimas execuções de teste</h2>
+          <h2 className="text-lg font-semibold">{t("Últimas execuções de teste")}</h2>
         </div>
         {latestExecutions.length > 0 ? (
           <div className="overflow-x-auto">
@@ -770,19 +789,19 @@ export default async function ClientDetailPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Origem
+                    {t("Origem")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Rota
+                    {t("Rota")}
                   </th>
                   <th className="w-[280px] border-b border-border px-3 py-3 font-medium">
-                    Mensagem
+                    {t("Mensagem")}
                   </th>
                   <th className="w-[348px] border-b border-border px-3 py-3 font-medium">
-                    Resposta
+                    {t("Resposta")}
                   </th>
                 </tr>
               </thead>
@@ -793,20 +812,20 @@ export default async function ClientDetailPage({
                       {formatDateInTimezone(execution.criado_em, timeZone)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                      {formatLabel(execution.origem)}
+                      {formatLabel(execution.origem, t)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                      {execution.rota ?? "Sem rota"}
+                      {execution.rota ?? t("Sem rota")}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem mensagem"
+                        emptyText={t("Sem mensagem")}
                         text={execution.mensagem_teste}
                       />
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem resposta"
+                        emptyText={t("Sem resposta")}
                         text={getAgentResponseText(execution)}
                       />
                     </td>
@@ -817,14 +836,14 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Nenhuma execução de teste encontrada.
+            {t("Nenhuma execução de teste encontrada.")}
           </div>
         )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Últimos feedbacks</h2>
+          <h2 className="text-lg font-semibold">{t("Últimos feedbacks")}</h2>
         </div>
         {latestFeedbacks.length > 0 ? (
           <div className="overflow-x-auto">
@@ -832,22 +851,22 @@ export default async function ClientDetailPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[150px] border-b border-border px-3 py-3 font-medium">
-                    Categoria
+                    {t("Categoria")}
                   </th>
                   <th className="w-[262px] border-b border-border px-3 py-3 font-medium">
-                    Mensagem do cliente
+                    {t("Mensagem do cliente")}
                   </th>
                   <th className="w-[262px] border-b border-border px-3 py-3 font-medium">
-                    Resposta marcada
+                    {t("Resposta marcada")}
                   </th>
                   <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    Status
+                    {t("Status")}
                   </th>
                   <th className="w-[104px] border-b border-border px-3 py-3 font-medium">
-                    Link
+                    {t("Link")}
                   </th>
                 </tr>
               </thead>
@@ -869,13 +888,13 @@ export default async function ClientDetailPage({
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         <div className="flex flex-col gap-2">
-                          <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          <span className="ds-selo ds-selo-neutro w-fit">
                             {parsed.categoria ??
-                              formatLabel(feedback.avaliacao)}
+                              formatLabel(feedback.avaliacao, t)}
                           </span>
                           {parsed.observacao ? (
                             <ExpandableText
-                              emptyText="Sem observação"
+                              emptyText={t("Sem observação")}
                               text={parsed.observacao}
                               maxLength={90}
                             />
@@ -884,18 +903,18 @@ export default async function ClientDetailPage({
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         <ExpandableText
-                          emptyText="Mensagem do cliente não registada."
+                          emptyText={t("Mensagem do cliente não registrada.")}
                           text={feedback.mensagem_cliente}
                         />
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         <ExpandableText
-                          emptyText="Resposta marcada não registada."
+                          emptyText={t("Resposta marcada não registrada.")}
                           text={feedback.resposta_agente}
                         />
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                        {formatLabel(feedback.status)}
+                        {formatLabel(feedback.status, t)}
                       </td>
                       <td className="break-words px-3 py-3 align-top text-muted-foreground">
                         {conversationHref ? (
@@ -903,14 +922,14 @@ export default async function ClientDetailPage({
                             className="text-xs font-medium text-foreground underline-offset-2 hover:underline"
                             href={conversationHref}
                           >
-                            Ver conversa
+                            {t("Ver conversa")}
                           </Link>
                         ) : (
                           <Link
                             className="text-xs font-medium text-foreground underline-offset-2 hover:underline"
                             href="/admin/feedbacks"
                           >
-                            Ver feedback
+                            {t("Ver feedback")}
                           </Link>
                         )}
                       </td>
@@ -922,14 +941,14 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há feedbacks registados.
+            {t("Ainda não há feedbacks registrados.")}
           </div>
         )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold">Últimos handoffs</h2>
+          <h2 className="text-lg font-semibold">{t("Últimos handoffs")}</h2>
         </div>
         {latestHandoffs.length > 0 ? (
           <div className="overflow-x-auto">
@@ -937,19 +956,19 @@ export default async function ClientDetailPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[112px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[180px] border-b border-border px-3 py-3 font-medium">
-                    Nome
+                    {t("Nome")}
                   </th>
                   <th className="w-[348px] border-b border-border px-3 py-3 font-medium">
-                    Motivo
+                    {t("Motivo")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Prioridade
+                    {t("Prioridade")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Status
+                    {t("Status")}
                   </th>
                 </tr>
               </thead>
@@ -960,19 +979,19 @@ export default async function ClientDetailPage({
                       {formatDateInTimezone(handoff.criado_em, timeZone)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                      {handoff.nome_contacto ?? "Sem nome"}
+                      {handoff.nome_contacto ?? t("Sem nome")}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem motivo"
+                        emptyText={t("Sem motivo")}
                         text={handoff.motivo}
                       />
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                      {formatLabel(handoff.prioridade)}
+                      {formatLabel(handoff.prioridade, t)}
                     </td>
                     <td className="break-words px-3 py-3 align-top text-muted-foreground">
-                      {formatLabel(handoff.status)}
+                      {formatLabel(handoff.status, t)}
                     </td>
                   </tr>
                 ))}
@@ -981,7 +1000,7 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Nenhum handoff encontrado.
+            {t("Nenhum handoff encontrado.")}
           </div>
         )}
       </section>

@@ -2,10 +2,13 @@ import { redirect } from "next/navigation";
 
 import { LexiaBrand } from "@/app/components/lexia-brand";
 import { LoginForm } from "@/app/login/login-form";
+import { SeletorIdioma } from "@/app/components/seletor-idioma";
+import { SeletorTema } from "@/app/components/seletor-tema";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 
 export default async function LoginPage() {
-  const { profile } = await getLoggedInUserProfile();
+  const [{ profile }, t] = await Promise.all([getLoggedInUserProfile(), getT()]);
 
   // Mesmo destino do `getRedirectPath` da acção de login: quem já tem sessão
   // aberta e volta ao /login cai no dashboard, como quem acabou de entrar.
@@ -27,7 +30,7 @@ export default async function LoginPage() {
       <section className="hidden min-h-dvh flex-col justify-between overflow-hidden bg-[#050505] px-10 py-10 lg:flex">
         <LexiaBrand />
         <p className="max-w-xl text-5xl font-semibold tracking-tight text-white">
-          Atendimento com IA, medido ao detalhe.
+          {t("Atendimento com IA, medido nos mínimos detalhes.")}
         </p>
         <p className="text-xs font-medium tracking-[0.28em] text-white/40 uppercase">
           Lexia AI
@@ -40,9 +43,13 @@ export default async function LoginPage() {
             <LexiaBrand tone="light" />
           </div>
           <h1 className="mb-8 text-3xl font-semibold tracking-tight text-foreground">
-            Entrar
+            {t("Entrar")}
           </h1>
           <LoginForm />
+          <div className="mt-8 flex flex-col gap-2">
+            <SeletorTema />
+            <SeletorIdioma para="cima" />
+          </div>
         </div>
       </section>
     </main>

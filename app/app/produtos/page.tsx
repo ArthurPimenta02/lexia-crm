@@ -13,6 +13,7 @@ import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { getT } from "@/lib/i18n/servidor";
 import {
   getProdutos,
   getProdutosExcluidos,
@@ -21,9 +22,11 @@ import {
 import { getServicosConfig } from "@/lib/servicos/config";
 import { getServicosSimples } from "@/lib/servicos/read";
 
-export const metadata = {
-  title: "Produtos e stock",
-};
+export async function generateMetadata() {
+  const t = await getT();
+
+  return { title: t("Produtos e estoque") };
+}
 
 export default async function ProdutosPage() {
   const { profile } = await getLoggedInUserProfile();
@@ -42,6 +45,7 @@ export default async function ProdutosPage() {
     redirect("/app");
   }
 
+  const t = await getT();
   const [produtos, servicos, excluidos] = await Promise.all([
     getProdutos(profile.cliente_slug),
     getServicosSimples(profile.cliente_slug),
@@ -60,7 +64,7 @@ export default async function ProdutosPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo="Produtos" />
+      <PaginaCabecalho titulo={t("Produtos")} />
 
       <ProdutosPanel
         actionAjuste={registarAjusteAction}

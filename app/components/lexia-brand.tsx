@@ -1,5 +1,7 @@
 import Image from "next/image";
 
+import { Tr } from "@/app/components/idioma";
+
 type LexiaBrandProps = {
   compact?: boolean;
   showText?: boolean;
@@ -17,9 +19,9 @@ export function LexiaBrand({
     <div className="flex items-center gap-3">
       <Image
         alt="Lexia AI"
-        className={
-          compact ? "h-11 w-11 object-contain" : "h-16 w-16 object-contain"
-        }
+        className={`${compact ? "h-11 w-11" : "h-16 w-16"} object-contain ${
+          isDark ? "" : "lexia-simbolo-tema"
+        }`}
         height={compact ? 44 : 64}
         priority
         src={
@@ -31,17 +33,17 @@ export function LexiaBrand({
         <div className="min-w-0">
           <p
             className={`text-lg font-semibold tracking-tight ${
-              isDark ? "text-background" : "text-foreground"
+              isDark ? "text-white" : "text-foreground"
             }`}
           >
             Lexia AI
           </p>
           <p
             className={`mt-0.5 text-[11px] font-medium tracking-[0.22em] uppercase ${
-              isDark ? "text-muted-foreground/60" : "text-muted-foreground"
+              isDark ? "text-white/40" : "text-muted-foreground"
             }`}
           >
-            IA que entende
+            <Tr>IA que entende</Tr>
           </p>
         </div>
       ) : null}

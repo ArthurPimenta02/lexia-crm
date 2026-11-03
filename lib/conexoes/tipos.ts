@@ -7,7 +7,7 @@
  * (lib/conexoes/cifra.ts) e a tela nunca os mostra de volta, só o final.
  *
  * `global`: conexões da Lexia, partilhadas por todos os clientes (a conta
- * Google do Arthur, onde os clientes partilham a agenda; as chaves de IA de
+ * Google do Arthur, onde os clientes compartilham a agenda; as chaves de IA de
  * reserva). Gravam-se com `cliente_slug` nulo.
  */
 
@@ -89,7 +89,7 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     tipo: "google_agenda",
     titulo: "Agenda (Google)",
     descricao:
-      "Qual agenda, das partilhadas com a conta Google da Lexia, é a deste cliente.",
+      "Qual agenda, das compartilhadas com a conta Google da Lexia, é a deste cliente.",
     ambito: "cliente",
     campos: [
       {
@@ -176,7 +176,7 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     tipo: "google_conta",
     titulo: "Conta Google da Lexia",
     descricao:
-      "A conta onde os clientes partilham a agenda. Ligada uma vez, serve para todos.",
+      "A conta onde os clientes compartilham a agenda. Ligada uma vez, serve para todos.",
     ambito: "global",
     campos: [
       { nome: "email", label: "E-mail da conta", segredo: false },

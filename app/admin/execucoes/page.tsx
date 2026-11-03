@@ -7,10 +7,9 @@ import { ExpandableText } from "@/app/components/expandable-text";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type AdminExecutionsPageProps = {
@@ -74,9 +73,9 @@ function hasError(execution: Pick<AdminTestExecution, "erro">) {
   return Boolean(execution.erro?.trim());
 }
 
-function formatLabel(value: string | null) {
+function formatLabel(value: string | null, semValor: string) {
   if (!value) {
-    return "Sem valor";
+    return semValor;
   }
 
   return value.replaceAll("_", " ");
@@ -166,15 +165,13 @@ function Badge({
    * dizerem nada com isso — o texto da etiqueta já as distingue.
    */
   const classes = {
-    green: "border-border bg-muted text-positive",
-    neutral: "border-border bg-muted text-muted-foreground",
-    red: "border-border bg-muted text-danger",
+    green: "ds-selo-verde",
+    neutral: "ds-selo-neutro",
+    red: "ds-selo-perigo",
   };
 
   return (
-    <span
-      className={`inline-flex max-w-full rounded-full border px-2 py-1 text-xs font-medium ${classes[tone]}`}
-    >
+    <span className={`ds-selo max-w-full ${classes[tone]}`}>
       <span className="truncate">{children}</span>
     </span>
   );
@@ -193,6 +190,8 @@ export default async function AdminExecutionsPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const params = await searchParams;
   const selectedCliente = getSearchValue(params.cliente);
   const requestedRota = getSearchValue(params.rota);
@@ -232,11 +231,11 @@ export default async function AdminExecutionsPage({
   ]);
 
   if (optionsError) {
-    throw new Error("Não foi possível buscar as opções de filtro.");
+    throw new Error(t("Não foi possível buscar as opções de filtro."));
   }
 
   if (executionsError) {
-    throw new Error("Não foi possível buscar as execuções de teste.");
+    throw new Error(t("Não foi possível buscar as execuções de teste."));
   }
 
   const clientes = getUniqueClients((optionsData ?? []) as ExecutionOptions[]);
@@ -255,14 +254,14 @@ export default async function AdminExecutionsPage({
   );
 
   const summaryCards = [
-    { title: "Total de execuções", value: executions.length },
+    { title: t("Total de execuções"), value: executions.length },
     {
-      title: "Sucesso",
+      title: t("Sucesso"),
       value: executions.filter((item) => !hasError(item)).length,
     },
-    { title: "Erro", value: executions.filter(hasError).length },
+    { title: t("Erro"), value: executions.filter(hasError).length },
     {
-      title: "Painel cliente",
+      title: t("Painel cliente"),
       value: executions.filter(
         (execution) => execution.origem === "painel_cliente",
       ).length,
@@ -274,13 +273,13 @@ export default async function AdminExecutionsPage({
       <PaginaCabecalho
         acoes={
           <Link
-            className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90 active:scale-[0.98]"
+            className="ds-botao ds-botao-primario"
             href="/admin/area-testes"
           >
-            Executar novo teste
+            {t("Executar novo teste")}
           </Link>
         }
-        titulo="Execuções"
+        titulo={t("Execuções")}
       />
 
       <GrupoMetricas
@@ -302,15 +301,15 @@ export default async function AdminExecutionsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="cliente"
             >
-              Cliente
+              {t("Cliente")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedCliente}
               id="cliente"
               name="cliente"
             >
-              <option value="">Todos</option>
+              <option value="">{t("Todos")}</option>
               {clientes.map((cliente) => (
                 <option key={cliente} value={cliente}>
                   {cliente}
@@ -324,17 +323,17 @@ export default async function AdminExecutionsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="rota"
             >
-              Rota
+              {t("Rota")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedRota}
               id="rota"
               name="rota"
             >
               {routeFilters.map((rota) => (
                 <option key={rota.label} value={rota.value}>
-                  {rota.label}
+                  {rota.value ? rota.label : t(rota.label)}
                 </option>
               ))}
             </select>
@@ -345,35 +344,35 @@ export default async function AdminExecutionsPage({
               className="text-sm font-medium text-muted-foreground"
               htmlFor="estado"
             >
-              Estado
+              {t("Estado")}
             </label>
             <select
-              className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue={selectedEstado}
               id="estado"
               name="estado"
             >
-              <option value="todas">Todas</option>
-              <option value="sucesso">Sucesso</option>
-              <option value="erro">Erro</option>
+              <option value="todas">{t("Todas")}</option>
+              <option value="sucesso">{t("Sucesso")}</option>
+              <option value="erro">{t("Erro")}</option>
             </select>
           </div>
 
           <div className="flex items-end">
             <FormSubmitButton
-              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              pendingLabel="Filtrando..."
+              className="ds-botao ds-botao-primario"
+              pendingLabel={t("Filtrando...")}
             >
-              Filtrar
+              {t("Filtrar")}
             </FormSubmitButton>
           </div>
 
           <div className="flex items-end">
             <Link
-              className="flex h-10 items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+              className="ds-botao ds-botao-secundario"
               href="/admin/execucoes"
             >
-              Limpar
+              {t("Limpar")}
             </Link>
           </div>
         </div>
@@ -386,31 +385,31 @@ export default async function AdminExecutionsPage({
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
                   <th className="w-[110px] border-b border-border px-3 py-3 font-medium">
-                    Data
+                    {t("Data")}
                   </th>
                   <th className="w-[140px] border-b border-border px-3 py-3 font-medium">
-                    Cliente
+                    {t("Cliente")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Rota
+                    {t("Rota")}
                   </th>
                   <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    Origem
+                    {t("Origem")}
                   </th>
                   <th className="w-[220px] border-b border-border px-3 py-3 font-medium">
-                    Mensagem enviada
+                    {t("Mensagem enviada")}
                   </th>
                   <th className="w-[260px] border-b border-border px-3 py-3 font-medium">
-                    Resposta obtida
+                    {t("Resposta obtida")}
                   </th>
                   <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    Estado
+                    {t("Estado")}
                   </th>
                   <th className="w-[170px] border-b border-border px-3 py-3 font-medium">
-                    Sessão
+                    {t("Sessão")}
                   </th>
                   <th className="w-[170px] border-b border-border px-3 py-3 font-medium">
-                    Detalhes
+                    {t("Detalhes")}
                   </th>
                 </tr>
               </thead>
@@ -418,30 +417,33 @@ export default async function AdminExecutionsPage({
                 {executions.map((execution) => (
                   <tr className="border-b border-border" key={execution.id}>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
-                      {formatDateInTimezone(
-                        execution.criado_em,
-                        getClientTimezone(execution.cliente_slug),
-                      )}
+                      {execution.criado_em
+                        ? new Intl.DateTimeFormat(locale, {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                            timeZone: getClientTimezone(execution.cliente_slug),
+                          }).format(new Date(execution.criado_em))
+                        : t("Sem data")}
                     </td>
                     <td className="break-words px-3 py-4 align-top font-medium text-foreground">
                       {execution.cliente_slug}
                     </td>
                     <td className="px-3 py-4 align-top">
-                      <Badge>{execution.rota ?? "Sem rota"}</Badge>
+                      <Badge>{execution.rota ?? t("Sem rota")}</Badge>
                     </td>
                     <td className="px-3 py-4 align-top">
-                      <Badge>{formatLabel(execution.origem)}</Badge>
+                      <Badge>{formatLabel(execution.origem, t("Sem valor"))}</Badge>
                     </td>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem mensagem"
+                        emptyText={t("Sem mensagem")}
                         maxLength={100}
                         text={execution.mensagem_teste}
                       />
                     </td>
                     <td className="break-words px-3 py-4 align-top text-muted-foreground">
                       <ExpandableText
-                        emptyText="Sem resposta"
+                        emptyText={t("Sem resposta")}
                         maxLength={120}
                         text={getAgentResponseText(execution)}
                       />
@@ -449,12 +451,12 @@ export default async function AdminExecutionsPage({
                     <td className="px-3 py-4 align-top">
                       <div className="flex flex-col gap-2">
                         <Badge tone={hasError(execution) ? "red" : "green"}>
-                          {hasError(execution) ? "Erro" : "Sucesso"}
+                          {hasError(execution) ? t("Erro") : t("Sucesso")}
                         </Badge>
                         {hasError(execution) ? (
                           <div className="text-xs text-muted-foreground">
                             <ExpandableText
-                              emptyText="Sem erro"
+                              emptyText={t("Sem erro")}
                               maxLength={60}
                               text={execution.erro}
                             />
@@ -474,7 +476,7 @@ export default async function AdminExecutionsPage({
                         className="truncate"
                         title={execution.session_id ?? ""}
                       >
-                        {execution.session_id ?? "Sem session_id"}
+                        {execution.session_id ?? t("Sem session_id")}
                       </p>
                       {execution.run_id ? (
                         <p
@@ -489,7 +491,7 @@ export default async function AdminExecutionsPage({
                           className="mt-1.5 truncate text-muted-foreground/60"
                           title={execution.teste_id}
                         >
-                          teste: {execution.teste_id}
+                          {t("teste: {id}", { id: execution.teste_id })}
                         </p>
                       ) : null}
                     </td>
@@ -510,7 +512,7 @@ export default async function AdminExecutionsPage({
           </div>
         ) : (
           <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            Ainda não há execuções registadas.
+            {t("Ainda não há execuções registradas.")}
           </div>
         )}
       </div>

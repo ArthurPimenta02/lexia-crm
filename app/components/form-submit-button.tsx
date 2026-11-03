@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { useIdioma } from "@/app/components/idioma";
 
 type FormSubmitButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -16,9 +17,10 @@ export function FormSubmitButton({
   children,
   className,
   disabled,
-  pendingLabel = "Aguarde...",
+  pendingLabel,
   ...props
 }: FormSubmitButtonProps) {
+  const { t } = useIdioma();
   const { pending } = useFormStatus();
   const isDisabled = disabled || pending;
 
@@ -34,7 +36,7 @@ export function FormSubmitButton({
         {pending ? (
           <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
         ) : null}
-        {pending ? pendingLabel : children}
+        {pending ? (pendingLabel ?? t("Aguarde...")) : children}
       </span>
     </button>
   );

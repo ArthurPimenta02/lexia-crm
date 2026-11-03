@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { AtualizarCampanhasResultado } from "@/lib/campaigns/refresh";
 
 /**
@@ -36,6 +37,7 @@ export function CampaignsRefreshButton({
     AtualizarCampanhasResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <div
@@ -51,24 +53,24 @@ export function CampaignsRefreshButton({
         ) : null}
         {compacto ? (
           <FormSubmitButton
-            className="inline-flex items-center rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-muted disabled:opacity-60"
-            pendingLabel="A puxar..."
+            className="ds-botao ds-botao-secundario ds-botao-p"
+            pendingLabel={t("Puxando...")}
           >
-            Atualizar
+            {t("Atualizar")}
           </FormSubmitButton>
         ) : (
           <FormSubmitButton
-            className="inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-            pendingLabel="A puxar da Meta..."
+            className="ds-botao ds-botao-primario"
+            pendingLabel={t("Puxando da Meta...")}
           >
-            Atualizar dados
+            {t("Atualizar dados")}
           </FormSubmitButton>
         )}
       </form>
 
       {resultado ? (
         <p
-          className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+          className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
           role="status"
         >
           {resultado.mensagem}
@@ -76,8 +78,8 @@ export function CampaignsRefreshButton({
       ) : (
         <p className="text-xs text-muted-foreground">
           {atualizadoEm
-            ? `Última atualização: ${atualizadoEm}`
-            : "Nunca atualizado."}
+            ? t("Última atualização: {data}", { data: atualizadoEm })
+            : t("Nunca atualizado.")}
         </p>
       )}
     </div>

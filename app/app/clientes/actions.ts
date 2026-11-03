@@ -11,6 +11,7 @@ import {
   type CamposDaFicha,
   type GravarClienteResultado,
 } from "@/lib/clientes/write";
+import { getT } from "@/lib/i18n/servidor";
 
 /**
  * Gravações da ficha de clientes.
@@ -22,10 +23,11 @@ import {
 
 const caminho = "/app/clientes";
 
-const semPermissao: GravarClienteResultado = {
-  mensagem: "Sessão sem permissão para editar clientes.",
-  ok: false,
-};
+async function semPermissao(): Promise<GravarClienteResultado> {
+  const t = await getT();
+
+  return { mensagem: t("Sessão sem permissão para editar clientes."), ok: false };
+}
 
 /**
  * Os campos da ficha, lidos do formulário.
@@ -85,7 +87,7 @@ export async function criarClienteAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return semPermissao();
   }
 
   return criarCliente({
@@ -109,13 +111,15 @@ export async function gravarFichaAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return semPermissao();
   }
 
   const contactoId = String(formData.get("contacto_id") ?? "").trim();
 
   if (!contactoId) {
-    return { mensagem: "Cliente não identificado.", ok: false };
+    const t = await getT();
+
+    return { mensagem: t("Cliente não identificado."), ok: false };
   }
 
   return gravarFichaDoCliente({
@@ -142,13 +146,15 @@ export async function registarServicoAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return semPermissao();
   }
 
   const contactoId = String(formData.get("contacto_id") ?? "").trim();
 
   if (!contactoId) {
-    return { mensagem: "Cliente não identificado.", ok: false };
+    const t = await getT();
+
+    return { mensagem: t("Cliente não identificado."), ok: false };
   }
 
   return registarServicoDeCliente({
@@ -168,14 +174,16 @@ export async function juntarClientesAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return semPermissao();
   }
 
   const principalId = String(formData.get("principal_id") ?? "").trim();
   const duplicadoId = String(formData.get("duplicado_id") ?? "").trim();
 
   if (!principalId || !duplicadoId) {
-    return { mensagem: "Escolhe o contacto a juntar.", ok: false };
+    const t = await getT();
+
+    return { mensagem: t("Escolha o contato a juntar."), ok: false };
   }
 
   return juntarClientes({
@@ -194,13 +202,15 @@ export async function separarClientesAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return semPermissao;
+    return semPermissao();
   }
 
   const duplicadoId = String(formData.get("duplicado_id") ?? "").trim();
 
   if (!duplicadoId) {
-    return { mensagem: "Contacto não identificado.", ok: false };
+    const t = await getT();
+
+    return { mensagem: t("Contato não identificado."), ok: false };
   }
 
   return separarClientes({

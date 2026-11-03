@@ -7,6 +7,9 @@ import { Dica, GrupoMetricas, SeccaoTitulo } from "@/app/components/painel-ui";
 import type { CampanhaResumo, PainelCampanhas } from "@/lib/campaigns/read";
 import { getTimezoneLabel } from "@/lib/clientes/timezone";
 import { dashboardPeriodOptions } from "@/lib/dashboard/date-range";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 
 /**
  * Corpo do painel de campanhas, partilhado pelo ecrã do cliente
@@ -18,8 +21,13 @@ import { dashboardPeriodOptions } from "@/lib/dashboard/date-range";
  * divergiriam na primeira correcção.
  */
 
-export function formatCampanhasMoney(value: number, moeda: string) {
-  return new Intl.NumberFormat("pt-PT", {
+/** A moeda é a da conta de anúncios; o `locale` só muda a forma de escrever. */
+export function formatCampanhasMoney(
+  value: number,
+  moeda: string,
+  locale = LOCALE_DO_IDIOMA["pt-PT"],
+) {
+  return new Intl.NumberFormat(locale, {
     currency: moeda,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -27,8 +35,8 @@ export function formatCampanhasMoney(value: number, moeda: string) {
   }).format(value);
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("pt-PT").format(value);
+function formatNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale).format(value);
 }
 
 function formatDayLabel(dia: string) {
@@ -43,15 +51,19 @@ function formatDayLabel(dia: string) {
  */
 function DailySpendChart({
   dias,
+  locale,
   moeda,
+  t,
 }: {
   dias: { contactos: number; dia: string; gasto: number }[];
+  locale: string;
   moeda: string;
+  t: FuncaoT;
 }) {
   if (dias.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Sem gasto registado no período.
+        {t("Sem gasto registrado no período.")}
       </p>
     );
   }
@@ -77,9 +89,11 @@ function DailySpendChart({
             />
             <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden -translate-x-1/2 rounded-lg bg-primary px-2.5 py-1.5 text-center text-[11px] whitespace-nowrap text-primary-foreground group-hover:block">
               <p className="font-semibold">{formatDayLabel(dia.dia)}</p>
-              <p>{formatCampanhasMoney(dia.gasto, moeda)}</p>
-              <p className="text-muted-foreground/60">
-                {dia.contactos} contacto{dia.contactos === 1 ? "" : "s"}
+              <p>{formatCampanhasMoney(dia.gasto, moeda, locale)}</p>
+              <p className="opacity-70">
+                {dia.contactos === 1
+                  ? t("{n} contato", { n: dia.contactos })
+                  : t("{n} contatos", { n: dia.contactos })}
               </p>
             </div>
           </div>
@@ -102,15 +116,19 @@ function DailySpendChart({
 
 function CampaignRanking({
   campanhas,
+  locale,
   moeda,
+  t,
 }: {
   campanhas: CampanhaResumo[];
+  locale: string;
   moeda: string;
+  t: FuncaoT;
 }) {
   if (campanhas.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Sem campanhas com gasto no período.
+        {t("Sem campanhas com gasto no período.")}
       </p>
     );
   }
@@ -129,7 +147,7 @@ function CampaignRanking({
               {campanha.nome}
             </span>
             <span className="shrink-0 font-semibold text-foreground">
-              {formatCampanhasMoney(campanha.gasto, moeda)}
+              {formatCampanhasMoney(campanha.gasto, moeda, locale)}
             </span>
           </div>
           <div className="h-2 rounded-full bg-muted">
@@ -141,8 +159,10 @@ function CampaignRanking({
             />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {formatNumber(campanha.cliques)} cliques ·{" "}
-            {formatNumber(campanha.impressoes)} impressões
+            {t("{cliques} cliques · {impressoes} impressões", {
+              cliques: formatNumber(campanha.cliques, locale),
+              impressoes: formatNumber(campanha.impressoes, locale),
+            })}
             {campanha.estado ? ` · ${campanha.estado.toLowerCase()}` : ""}
           </p>
           {/*
@@ -152,15 +172,23 @@ function CampaignRanking({
             não manda os dados. O aviso abaixo do ranking explica-o uma vez.
           */}
           {campanha.contactosAtribuidos > 0 ? (
-            <p className="mt-1 text-xs font-medium text-emerald-700">
-              {formatNumber(campanha.contactosAtribuidos)}{" "}
-              {campanha.contactosAtribuidos === 1 ? "contacto" : "contactos"}{" "}
-              identificados
+            <p className="mt-1 text-xs font-medium text-positive">
+              {campanha.contactosAtribuidos === 1
+                ? t("{n} contato identificado", {
+                    n: formatNumber(campanha.contactosAtribuidos, locale),
+                  })
+                : t("{n} contatos identificados", {
+                    n: formatNumber(campanha.contactosAtribuidos, locale),
+                  })}
               {campanha.marcacoesAtribuidas > 0
-                ? ` · ${formatNumber(campanha.marcacoesAtribuidas)} ${
+                ? ` · ${
                     campanha.marcacoesAtribuidas === 1
-                      ? "marcação"
-                      : "marcações"
+                      ? t("{n} agendamento", {
+                          n: formatNumber(campanha.marcacoesAtribuidas, locale),
+                        })
+                      : t("{n} agendamentos", {
+                          n: formatNumber(campanha.marcacoesAtribuidas, locale),
+                        })
                   }`
                 : ""}
             </p>
@@ -171,7 +199,7 @@ function CampaignRanking({
   );
 }
 
-export function CampaignsPanel({
+export async function CampaignsPanel({
   basePath,
   fim,
   inicio,
@@ -197,6 +225,8 @@ export function CampaignsPanel({
   timezone: string;
   vazioMensagem: string;
 }) {
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const entradasFixas = Object.entries(parametrosFixos ?? {});
   const hrefPeriodo = (periodo: string) => {
     const query = new URLSearchParams([...entradasFixas, ["periodo", periodo]]);
@@ -211,7 +241,7 @@ export function CampaignsPanel({
           <div className="flex flex-col gap-3">
             {leading}
             <div>
-              <SeccaoTitulo sufixo={rangeLabel}>Período</SeccaoTitulo>
+              <SeccaoTitulo sufixo={rangeLabel}>{t("Período")}</SeccaoTitulo>
               <p className="mt-1 text-xs text-muted-foreground">
                 {getTimezoneLabel(timezone)}
               </p>
@@ -231,7 +261,7 @@ export function CampaignsPanel({
                   href={hrefPeriodo(option.key)}
                   key={option.key}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </Link>
               );
             })}
@@ -250,28 +280,28 @@ export function CampaignsPanel({
             ))}
             <input name="periodo" type="hidden" value="personalizado" />
             <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-              Início
+              {t("Início")}
               <input
-                className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+                className="ds-campo"
                 defaultValue={inicio}
                 name="inicio"
                 type="date"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
-              Fim
+              {t("Fim")}
               <input
-                className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+                className="ds-campo"
                 defaultValue={fim}
                 name="fim"
                 type="date"
               />
             </label>
             <FormSubmitButton
-              className="h-10 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              pendingLabel="Aplicando..."
+              className="ds-botao ds-botao-primario"
+              pendingLabel={t("Aplicando...")}
             >
-              Aplicar
+              {t("Aplicar")}
             </FormSubmitButton>
           </Form>
         ) : null}
@@ -280,62 +310,82 @@ export function CampaignsPanel({
       {painel.temDados ? (
         <>
           <div className="flex flex-col gap-3">
-            <SeccaoTitulo sufixo="no período">Investimento</SeccaoTitulo>
+            <SeccaoTitulo sufixo={t("no período")}>
+              {t("Investimento")}
+            </SeccaoTitulo>
             <GrupoMetricas
               itens={[
                 {
-                  dica: "Soma do que a Meta cobrou nos dias do período, no fuso da conta de anúncios.",
-                  label: "Investido",
-                  valor: formatCampanhasMoney(painel.gasto, painel.moeda),
+                  dica: t(
+                    "Soma do que a Meta cobrou nos dias do período, no fuso da conta de anúncios.",
+                  ),
+                  label: t("Investido"),
+                  valor: formatCampanhasMoney(painel.gasto, painel.moeda, locale),
                 },
                 {
-                  dica: "Pessoas que entraram em contacto no período, por qualquer via — não só por anúncio.",
-                  label: "Contactos novos",
-                  valor: formatNumber(painel.contactosNovos),
+                  dica: t(
+                    "Pessoas que entraram em contato no período, por qualquer via, não só por anúncio.",
+                  ),
+                  label: t("Contatos novos"),
+                  valor: formatNumber(painel.contactosNovos, locale),
                 },
                 {
-                  dica: "Investido a dividir pelos contactos novos. É um limite superior do custo real por lead de anúncio.",
-                  label: "Custo por contacto",
+                  dica: t(
+                    "Investido dividido pelos contatos novos. É um limite superior do custo real por lead de anúncio.",
+                  ),
+                  label: t("Custo por contato"),
                   valor:
                     painel.custoPorContacto === null
                       ? null
                       : formatCampanhasMoney(
                           painel.custoPorContacto,
                           painel.moeda,
+                          locale,
                         ),
                 },
                 {
-                  dica: "Cliques em qualquer parte do anúncio.",
-                  label: "Cliques",
-                  nota: `${formatNumber(painel.cliquesLink)} no link`,
-                  valor: formatNumber(painel.cliques),
+                  dica: t("Cliques em qualquer parte do anúncio."),
+                  label: t("Cliques"),
+                  nota: t("{n} no link", {
+                    n: formatNumber(painel.cliquesLink, locale),
+                  }),
+                  valor: formatNumber(painel.cliques, locale),
                 },
               ]}
             />
           </div>
 
           <div className="flex flex-col gap-3">
-            <SeccaoTitulo sufixo="no período">Entrega</SeccaoTitulo>
+            <SeccaoTitulo sufixo={t("no período")}>{t("Entrega")}</SeccaoTitulo>
             <GrupoMetricas
               itens={[
                 {
-                  dica: "Impressões servidas no período. Uma pessoa pode ver o anúncio várias vezes.",
-                  label: "Impressões",
-                  valor: formatNumber(painel.impressoes),
+                  dica: t(
+                    "Impressões servidas no período. Uma pessoa pode ver o anúncio várias vezes.",
+                  ),
+                  label: t("Impressões"),
+                  valor: formatNumber(painel.impressoes, locale),
                 },
                 {
-                  dica: "Custo por mil impressões, recalculado do total do período.",
+                  dica: t("Custo por mil impressões, recalculado do total do período."),
                   label: "CPM",
                   valor:
                     painel.cpm === null
                       ? null
-                      : formatCampanhasMoney(painel.cpm, painel.moeda),
+                      : formatCampanhasMoney(painel.cpm, painel.moeda, locale),
                 },
                 {
-                  dica: "Cliques a dividir pelas impressões, recalculado do total do período.",
+                  dica: t(
+                    "Cliques divididos pelas impressões, recalculado do total do período.",
+                  ),
                   label: "CTR",
                   valor:
-                    painel.ctr === null ? null : `${painel.ctr.toFixed(2)}%`,
+                    painel.ctr === null
+                      ? null
+                      : `${new Intl.NumberFormat(locale, {
+                          maximumFractionDigits: 2,
+                          minimumFractionDigits: 2,
+                        }).format(painel.ctr)}%`,
                 },
               ]}
             />
@@ -344,61 +394,66 @@ export function CampaignsPanel({
           <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="mb-5 flex items-center gap-1.5">
               <h2 className="text-sm font-semibold text-foreground">
-                Gasto por dia
+                {t("Gasto por dia")}
               </h2>
-              <Dica texto="Passa o rato numa barra para ver o gasto e os contactos daquele dia." />
+              <Dica
+                texto={t(
+                  "Passe o mouse sobre uma barra para ver o gasto e os contatos daquele dia.",
+                )}
+              />
             </div>
-            <DailySpendChart dias={painel.diario} moeda={painel.moeda} />
+            <DailySpendChart
+              dias={painel.diario}
+              locale={locale}
+              moeda={painel.moeda}
+              t={t}
+            />
           </div>
 
           <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <h2 className="mb-5 text-sm font-semibold text-foreground">
-              Gasto por campanha
+              {t("Gasto por campanha")}
               <span className="ml-1.5 font-normal text-muted-foreground">
-                por investimento
+                {t("por investimento")}
               </span>
             </h2>
             <CampaignRanking
               campanhas={painel.porCampanha}
+              locale={locale}
               moeda={painel.moeda}
+              t={t}
             />
           </div>
 
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-            <p className="text-sm font-semibold text-amber-900">
-              Porque não existe &quot;custo por mensagem&quot; por campanha
+          <div className="rounded-2xl border border-warning/20 bg-warning-soft p-5">
+            <p className="text-sm font-semibold text-warning">
+              {t('Por que não existe "custo por mensagem" por campanha')}
             </p>
-            <p className="mt-2 text-sm leading-6 text-amber-900/90">
-              A Meta não devolve conversas iniciadas nesta conta: os conjuntos
-              que optimizam conversas enviam as pessoas para o Instagram Direct,
-              que não identifica o anúncio de origem. Por isso o custo acima é
-              calculado sobre <strong>todos</strong> os contactos novos, e não
-              só sobre os que vieram de anúncio — serve para comparar períodos,
-              não para afirmar o custo exacto de um lead pago.
+            <p className="mt-2 text-sm leading-6 text-warning">
+              {t(
+                "A Meta não devolve conversas iniciadas nesta conta: os conjuntos que otimizam conversas enviam as pessoas para o Instagram Direct, que não identifica o anúncio de origem. Por isso o custo acima é calculado sobre todos os contatos novos, e não só sobre os que vieram de anúncio. Serve para comparar períodos, não para afirmar o custo exato de um lead pago.",
+              )}
             </p>
             {/*
               O mesmo limite, agora aplicado aos números por campanha. Dizer
               isto em voz alta é o que impede o dono de olhar para "3
               contactos" e concluir que a campanha trouxe três pessoas.
             */}
-            <p className="mt-3 text-sm leading-6 text-amber-900/90">
-              Os contactos identificados por campanha vêm da mesma limitação:{" "}
-              <strong>
-                {formatNumber(painel.contactosComAnuncio)} de{" "}
-                {formatNumber(painel.contactosNovos)}
-              </strong>{" "}
-              contactos novos do período trazem o anúncio de origem. Só o
-              clique-para-WhatsApp o envia. É um mínimo garantido, não um total:
-              vale para comparar campanhas entre si, porque a regra falha igual
-              em todas, e não vale para dizer que fatia dos contactos veio de
-              pago.
+            <p className="mt-3 text-sm leading-6 text-warning">
+              {t(
+                "Os contatos identificados por campanha vêm da mesma limitação: {com} de {total} contatos novos do período trazem o anúncio de origem. Só o clique para WhatsApp o envia. É um mínimo garantido, não um total: vale para comparar campanhas entre si, porque a regra falha igual em todas, e não vale para dizer que fatia dos contatos veio de anúncio pago.",
+                {
+                  com: formatNumber(painel.contactosComAnuncio, locale),
+                  total: formatNumber(painel.contactosNovos, locale),
+                },
+              )}
             </p>
           </div>
         </>
       ) : (
         <div className="rounded-2xl border border-border bg-surface p-8 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <p className="text-lg font-semibold text-foreground">
-            Ainda não há dados de campanhas
+            {t("Ainda não há dados de campanhas")}
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
             {vazioMensagem}

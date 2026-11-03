@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { useState } from "react";
 
 import { construirCsv, nomeDoFicheiro, type Coluna } from "@/lib/exportar/csv";
+import { useIdioma } from "@/app/components/idioma";
 
 /**
  * O botão que descarrega a lista que está no ecrã.
@@ -22,7 +23,7 @@ export function BotaoExportar<T>({
   assunto,
   colunas,
   linhas,
-  rotulo = "Exportar",
+  rotulo,
 }: {
   /** Entra no nome do ficheiro: `clientes-2026-10-19.csv`. */
   assunto: string;
@@ -31,6 +32,8 @@ export function BotaoExportar<T>({
   rotulo?: string;
 }) {
   const [aExportar, setAExportar] = useState(false);
+
+  const { t } = useIdioma();
 
   function exportar() {
     setAExportar(true);
@@ -64,13 +67,15 @@ export function BotaoExportar<T>({
       onClick={exportar}
       title={
         vazio
-          ? "Não há linhas para exportar."
-          : `Descarregar ${linhas.length} ${linhas.length === 1 ? "linha" : "linhas"} em CSV, para abrir no Excel.`
+          ? t("Não há linhas para exportar.")
+          : linhas.length === 1
+            ? t("Baixar 1 linha em CSV, para abrir no Excel.")
+            : t("Baixar {n} linhas em CSV, para abrir no Excel.", { n: linhas.length })
       }
       type="button"
     >
       <Download aria-hidden="true" className="h-4 w-4" />
-      {rotulo}
+      {rotulo ?? t("Exportar")}
     </button>
   );
 }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 export type NewClientState = {
@@ -36,8 +37,10 @@ export async function createClientAction(
   _state: NewClientState,
   formData: FormData,
 ): Promise<NewClientState> {
+  const t = await getT();
+
   if (!(await isLexiaAdmin())) {
-    return { message: "Acesso não autorizado." };
+    return { message: t("Acesso não autorizado.") };
   }
 
   const nome = getValue(formData, "nome");
@@ -52,15 +55,15 @@ export async function createClientAction(
   const workflowStatus = getValue(formData, "workflow_status");
 
   if (!nome || !slug) {
-    return { message: "Nome e slug são obrigatórios." };
+    return { message: t("Nome e slug são obrigatórios.") };
   }
 
   if (!clientStatuses.includes(status)) {
-    return { message: "Status do cliente inválido." };
+    return { message: t("Status do cliente inválido.") };
   }
 
   if (criarWorkflow && !workflowStatuses.includes(workflowStatus)) {
-    return { message: "Status do workflow inválido." };
+    return { message: t("Status do workflow inválido.") };
   }
 
   const supabase = await createClient();
@@ -71,11 +74,11 @@ export async function createClientAction(
     .maybeSingle();
 
   if (lookupError) {
-    return { message: "Não foi possível validar o slug." };
+    return { message: t("Não foi possível validar o slug.") };
   }
 
   if (existingClient) {
-    return { message: "Já existe um cliente com este slug." };
+    return { message: t("Já existe um cliente com este slug.") };
   }
 
   const { error: clientError } = await supabase.from("lexia_clientes").insert({
@@ -87,7 +90,7 @@ export async function createClientAction(
   });
 
   if (clientError) {
-    return { message: "Não foi possível criar o cliente." };
+    return { message: t("Não foi possível criar o cliente.") };
   }
 
   if (criarWorkflow) {
@@ -104,7 +107,7 @@ export async function createClientAction(
     if (workflowError) {
       return {
         message:
-          "Cliente criado, mas não foi possível criar o workflow inicial.",
+          t("Cliente criado, mas não foi possível criar o workflow inicial."),
       };
     }
   }

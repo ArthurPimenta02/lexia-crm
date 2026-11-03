@@ -9,6 +9,8 @@ import { SeccaoTitulo } from "@/app/components/painel-ui";
 import { ServicosExecucaoForm } from "@/app/components/servicos-execucao-form";
 import { ServicosLinhaForm } from "@/app/components/servicos-linha-form";
 import { ServicosReceitaForm } from "@/app/components/servicos-receita-form";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { criarT, type FuncaoT } from "@/lib/i18n/traduzir";
 import type { GravarProdutoResultado } from "@/lib/produtos/write";
 import {
   escalaoBase,
@@ -37,8 +39,8 @@ type ProdutoAction = (
   formData: FormData,
 ) => Promise<GravarProdutoResultado>;
 
-function formatMoney(value: number, moeda: string) {
-  return new Intl.NumberFormat("pt-PT", {
+function formatMoney(value: number, moeda: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     currency: moeda,
     maximumFractionDigits: 2,
     minimumFractionDigits: 2,
@@ -69,24 +71,28 @@ function formatDuracao(minutos: number | null) {
  * definido para este escalão" num serviço de preço único seria dar a entender
  * que falta informação quando não falta nada.
  */
-function legendaDoPreco(servico: ServicoLinha, escalaoActivo: string) {
+function legendaDoPreco(
+  servico: ServicoLinha,
+  escalaoActivo: string,
+  t: FuncaoT,
+) {
   if (escalaoActivo === escalaoBase) {
-    return servico.precoUnico ? "preço único" : "preço base";
+    return servico.precoUnico ? t("preço único") : t("preço base");
   }
 
   if (!servico.precoEstimado) {
-    return "preço deste escalão";
+    return t("preço deste escalão");
   }
 
   if (servico.precoUnico) {
-    return "preço único — não varia com a viatura";
+    return t("preço único, não varia com o veículo");
   }
 
   if (servico.precosAlternativos.length > 0) {
-    return "não é cobrado por escalão — mostra o base";
+    return t("não é cobrado por escalão, mostra o base");
   }
 
-  return "sem preço definido para este escalão — mostra o base";
+  return t("sem preço definido para este escalão, mostra o base");
 }
 
 function MetricCard({
@@ -113,10 +119,14 @@ function MetricCard({
 
 function ExecutorLinhaResumo({
   linha,
+  locale,
   moeda,
+  t,
 }: {
   linha: ServicoLinha["executores"][number];
+  locale: string;
   moeda: string;
+  t: FuncaoT;
 }) {
   if (!linha.executa) {
     return (
@@ -125,7 +135,7 @@ function ExecutorLinhaResumo({
           {linha.nome}
         </p>
         <p className="mt-1 text-xs text-muted-foreground/60">
-          Não executa este serviço.
+          {t("Não executa este serviço.")}
         </p>
       </div>
     );
@@ -141,13 +151,12 @@ function ExecutorLinhaResumo({
       </div>
 
       <p className="mt-1.5 text-xs text-muted-foreground">
-        Rende{" "}
-        <span className="font-semibold text-foreground">
-          {linha.euroPorHora === null
-            ? "—"
-            : formatMoney(linha.euroPorHora, moeda)}
-        </span>{" "}
-        por hora ocupada.
+        {t("Rende {valor} por hora ocupada.", {
+          valor:
+            linha.euroPorHora === null
+              ? "—"
+              : formatMoney(linha.euroPorHora, moeda, locale),
+        })}
       </p>
     </div>
   );
@@ -155,38 +164,42 @@ function ExecutorLinhaResumo({
 
 /** Custo de produto e margem do serviço, já com a receita somada. */
 function MargemDoServico({
+  locale,
   moeda,
   servico,
+  t,
 }: {
+  locale: string;
   moeda: string;
   servico: ServicoLinha;
+  t: FuncaoT;
 }) {
   const margemPositiva = servico.margem !== null && servico.margem >= 0;
 
   return (
     <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-3">
       <div>
-        <dt className="text-muted-foreground">Custo de produto</dt>
+        <dt className="text-muted-foreground">{t("Custo de produto")}</dt>
         <dd className="mt-0.5 text-sm font-semibold text-foreground">
           {servico.custoProduto === null
             ? "—"
-            : formatMoney(servico.custoProduto, moeda)}
+            : formatMoney(servico.custoProduto, moeda, locale)}
         </dd>
       </div>
       <div>
-        <dt className="text-muted-foreground">Margem</dt>
+        <dt className="text-muted-foreground">{t("Margem")}</dt>
         <dd
           className={`mt-0.5 text-sm font-semibold ${
             servico.margem === null
               ? "text-muted-foreground/60"
               : margemPositiva
-                ? "text-emerald-700"
-                : "text-red-700"
+                ? "text-positive"
+                : "text-danger"
           }`}
         >
           {servico.margem === null
             ? "—"
-            : `${formatMoney(servico.margem, moeda)}${
+            : `${formatMoney(servico.margem, moeda, locale)}${
                 servico.margemPercent === null
                   ? ""
                   : ` (${servico.margemPercent.toFixed(0)}%)`
@@ -194,7 +207,7 @@ function MargemDoServico({
         </dd>
       </div>
       <div>
-        <dt className="text-muted-foreground">Produtos na receita</dt>
+        <dt className="text-muted-foreground">{t("Produtos na receita")}</dt>
         <dd className="mt-0.5 text-sm font-semibold text-foreground">
           {servico.receita.length}
         </dd>
@@ -215,6 +228,8 @@ export function ServicosPanel({
   painel,
   parametrosFixos,
   podeEditar,
+  t = criarT(null),
+  locale = LOCALE_DO_IDIOMA["pt-BR"],
 }: {
   action: GravarAction;
   actionExcluir: GravarAction;
@@ -230,6 +245,13 @@ export function ServicosPanel({
   /** Parâmetros a preservar ao trocar de escalão (ex.: `cliente`). */
   parametrosFixos?: Record<string, string>;
   podeEditar: boolean;
+  /**
+   * O idioma de quem vê. A página passa-o (`await getT()`); o painel não o vai
+   * buscar sozinho para continuar a ser um componente síncrono, que é o que
+   * os testes desenham com `renderToStaticMarkup`.
+   */
+  t?: FuncaoT;
+  locale?: string;
 }) {
   const entradasFixas = Object.entries(parametrosFixos ?? {});
   const hrefEscalao = (escalao: string) => {
@@ -239,7 +261,7 @@ export function ServicosPanel({
   };
 
   const opcoesEscalao = [
-    { chave: escalaoBase, label: "Preço base" },
+    { chave: escalaoBase, label: t("Preço base") },
     ...painel.escaloes,
   ];
 
@@ -261,7 +283,7 @@ export function ServicosPanel({
   const nomePrincipal =
     painel.servicos
       .flatMap((servico) => servico.executores)
-      .find((linha) => linha.chave === principal)?.nome ?? "executor";
+      .find((linha) => linha.chave === principal)?.nome ?? t("executor");
 
   const temEscaloes = painel.escaloes.length > 0;
 
@@ -282,7 +304,7 @@ export function ServicosPanel({
                 aceso ao lado. O escalão escolhido lê-se no botão.
               */}
               {temEscaloes ? (
-                <SeccaoTitulo>Escalão de viatura</SeccaoTitulo>
+                <SeccaoTitulo>{t("Escalão de viatura")}</SeccaoTitulo>
               ) : null}
             </div>
 
@@ -313,7 +335,9 @@ export function ServicosPanel({
 
       {painel.vazioMotivo ? (
         <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <p className="text-sm text-muted-foreground">{painel.vazioMotivo}</p>
+          <p className="text-sm text-muted-foreground">
+            {t(painel.vazioMotivo)}
+          </p>
         </div>
       ) : (
         <>
@@ -321,42 +345,52 @@ export function ServicosPanel({
             <MetricCard
               description={
                 painel.semReceita === 0
-                  ? "Todos os serviços já têm produtos associados."
-                  : `${painel.semReceita} ainda sem produtos associados — marcar esses como realizados não desconta nada.`
+                  ? t("Todos os serviços já têm produtos associados.")
+                  : t(
+                      "{n} ainda sem produtos associados: marcar esses como realizados não desconta nada.",
+                      { n: painel.semReceita },
+                    )
               }
-              label="Serviços activos"
+              label={t("Serviços ativos")}
               value={String(painel.servicos.length)}
             />
             <MetricCard
               description={
                 melhor
-                  ? `${melhor.nome} — o que mais rende por hora ocupada do ${nomePrincipal}.`
-                  : "Faltam durações ou preços para comparar."
+                  ? t("{servico}: o que mais rende por hora ocupada de {executor}.", {
+                      executor: nomePrincipal,
+                      servico: melhor.nome,
+                    })
+                  : t("Faltam durações ou preços para comparar.")
               }
-              label="Melhor receita/hora"
-              value={melhor ? formatMoney(melhor.valor, painel.moeda) : "—"}
+              label={t("Melhor receita/hora")}
+              value={
+                melhor ? formatMoney(melhor.valor, painel.moeda, locale) : "—"
+              }
             />
             <MetricCard
               description={
                 pior
-                  ? `${pior.nome} — ocupa horas do ${nomePrincipal} e rende menos por hora.`
-                  : "Faltam durações ou preços para comparar."
+                  ? t("{servico}: ocupa horas de {executor} e rende menos por hora.", {
+                      executor: nomePrincipal,
+                      servico: pior.nome,
+                    })
+                  : t("Faltam durações ou preços para comparar.")
               }
-              label="Pior receita/hora"
-              value={pior ? formatMoney(pior.valor, painel.moeda) : "—"}
+              label={t("Pior receita/hora")}
+              value={pior ? formatMoney(pior.valor, painel.moeda, locale) : "—"}
             />
           </div>
 
           {painel.produtos.length === 0 ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
-              <p className="text-sm font-semibold text-amber-900">
-                Ainda não há produtos registados.
+            <div className="rounded-2xl border border-warning/20 bg-warning-soft p-5">
+              <p className="text-sm font-semibold text-warning">
+                {t("Ainda não há produtos registrados.")}
               </p>
-              <p className="mt-1 text-sm text-amber-800">
-                O custo de produto de cada serviço sai da lista de produtos que
-                ele gasta. Começa por registar os produtos e as compras na
-                página <span className="font-semibold">Produtos</span>; depois
-                voltas aqui e dizes quanto cada serviço gasta de cada um.
+              <p className="mt-1 text-sm text-warning">
+                {t(
+                  "O custo de produto de cada serviço sai da lista de produtos que ele gasta. Comece registrando os produtos e as compras na página Produtos; depois volte aqui e diga quanto cada serviço gasta de cada um.",
+                )}
               </p>
             </div>
           ) : null}
@@ -375,7 +409,7 @@ export function ServicosPanel({
                     <p className="mt-1 text-xs text-muted-foreground">
                       {[servico.categoria, servico.tipoPreco]
                         .filter(Boolean)
-                        .join(" · ") || "Sem categoria"}
+                        .join(" · ") || t("Sem categoria")}
                     </p>
                   </div>
 
@@ -383,10 +417,10 @@ export function ServicosPanel({
                     <p className="text-2xl font-semibold tracking-tight text-foreground">
                       {servico.preco === null
                         ? "—"
-                        : formatMoney(servico.preco, painel.moeda)}
+                        : formatMoney(servico.preco, painel.moeda, locale)}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {legendaDoPreco(servico, painel.escalaoActivo)}
+                      {legendaDoPreco(servico, painel.escalaoActivo, t)}
                     </p>
                   </div>
                 </div>
@@ -396,11 +430,13 @@ export function ServicosPanel({
                     <SeccaoTitulo
                       dica={
                         temEscaloes
-                          ? "Não variam com a viatura. A margem é calculada sobre o preço base."
-                          : "A margem é calculada sobre o preço base."
+                          ? t(
+                              "Não variam com o veículo. A margem é calculada sobre o preço base.",
+                            )
+                          : t("A margem é calculada sobre o preço base.")
                       }
                     >
-                      Outros preços deste serviço
+                      {t("Outros preços deste serviço")}
                     </SeccaoTitulo>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {servico.precosAlternativos.map((opcao) => (
@@ -412,7 +448,7 @@ export function ServicosPanel({
                             {opcao.label}
                           </span>
                           <span className="font-semibold text-foreground">
-                            {formatMoney(opcao.valor, painel.moeda)}
+                            {formatMoney(opcao.valor, painel.moeda, locale)}
                           </span>
                         </span>
                       ))}
@@ -423,7 +459,7 @@ export function ServicosPanel({
                 {servico.notasCatalogo.length > 0 ? (
                   <div className="mt-3 rounded-xl bg-muted px-3 py-2.5">
                     <p className="text-xs font-semibold text-muted-foreground">
-                      Nota do catálogo
+                      {t("Nota do catálogo")}
                     </p>
                     {servico.notasCatalogo.map((nota) => (
                       <p
@@ -437,25 +473,32 @@ export function ServicosPanel({
                 ) : null}
 
                 {servico.agendamentoId === null ? (
-                  <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                    Este serviço existe no catálogo de venda mas não tem linha
-                    de agendamento, logo não tem duração. Confirma se é
-                    intencional.
+                  <p className="mt-3 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning">
+                    {t(
+                      "Este serviço existe no catálogo de venda mas não tem linha de agendamento, então não tem duração. Confirme se é intencional.",
+                    )}
                   </p>
                 ) : null}
 
                 {servico.precoDivergente ? (
-                  <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-900">
-                    O preço está diferente nas duas tabelas do cliente: o
-                    catálogo diz{" "}
-                    {servico.preco === null
-                      ? "—"
-                      : formatMoney(servico.preco, painel.moeda)}{" "}
-                    e o agendamento diz{" "}
-                    {servico.precoBaseAgendamento === null
-                      ? "—"
-                      : formatMoney(servico.precoBaseAgendamento, painel.moeda)}
-                    . Gravar o preço aqui volta a alinhar os dois.
+                  <p className="mt-3 rounded-xl bg-danger-soft px-3 py-2 text-xs text-danger">
+                    {t(
+                      "O preço está diferente nas duas tabelas do cliente: o catálogo diz {catalogo} e o agendamento diz {agendamento}. Salvar o preço aqui volta a alinhar os dois.",
+                      {
+                        agendamento:
+                          servico.precoBaseAgendamento === null
+                            ? "—"
+                            : formatMoney(
+                                servico.precoBaseAgendamento,
+                                painel.moeda,
+                                locale,
+                              ),
+                        catalogo:
+                          servico.preco === null
+                            ? "—"
+                            : formatMoney(servico.preco, painel.moeda, locale),
+                      },
+                    )}
                   </p>
                 ) : null}
 
@@ -464,21 +507,26 @@ export function ServicosPanel({
                     <ExecutorLinhaResumo
                       key={linha.chave}
                       linha={linha}
+                      locale={locale}
                       moeda={painel.moeda}
+                      t={t}
                     />
                   ))}
                 </div>
 
                 <div className="mt-4 border-t border-border pt-4">
-                  <MargemDoServico moeda={painel.moeda} servico={servico} />
+                  <MargemDoServico
+                    locale={locale}
+                    moeda={painel.moeda}
+                    servico={servico}
+                    t={t}
+                  />
 
                   {servico.custoProdutoIncompleto ? (
-                    <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                      Há produtos nesta receita sem compra registada, por isso
-                      ainda não têm preço. O custo e a margem ficam vazios até
-                      registares quanto pagaste por eles na página Produtos —
-                      somar só os que têm preço dava uma margem melhor do que a
-                      real.
+                    <p className="mt-3 rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning">
+                      {t(
+                        "Há produtos nesta receita sem compra registrada, por isso ainda não têm preço. O custo e a margem ficam vazios até você registrar quanto pagou por eles na página Produtos: somar só os que têm preço daria uma margem melhor do que a real.",
+                      )}
                     </p>
                   ) : null}
                 </div>
@@ -540,8 +588,12 @@ export function ServicosPanel({
 
       {podeEditar && painel.excluidos.length > 0 ? (
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <SeccaoTitulo dica="Continuam na base de dados com preço, notas, receita e histórico. O agente é que deixou de os vender.">
-            Excluídos
+          <SeccaoTitulo
+            dica={t(
+              "Continuam no banco de dados com preço, notas, receita e histórico. Só o agente é que deixou de vendê-los.",
+            )}
+          >
+            {t("Excluídos")}
           </SeccaoTitulo>
           <ul className="mt-3 flex flex-col gap-2">
             {painel.excluidos.map((servico) => (

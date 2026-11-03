@@ -7,6 +7,7 @@ import {
   isClientRole,
   type LexiaUserRole,
 } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 export type LoginState = {
@@ -37,11 +38,12 @@ export async function loginAction(
   _state: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const t = await getT();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "Informe e-mail e senha." };
+    return { error: t("Informe e-mail e senha.") };
   }
 
   const supabase = await createClient();
@@ -51,21 +53,21 @@ export async function loginAction(
   });
 
   if (error) {
-    return { error: "E-mail ou senha inválidos." };
+    return { error: t("E-mail ou senha inválidos.") };
   }
 
   const { profile } = await getLoggedInUserProfile();
 
   if (!profile) {
     await supabase.auth.signOut();
-    return { error: "Usuário sem perfil vinculado na Lexia." };
+    return { error: t("Usuário sem perfil vinculado na Lexia.") };
   }
 
   const redirectPath = getRedirectPath(profile.role);
 
   if (!redirectPath) {
     await supabase.auth.signOut();
-    return { error: "Perfil sem permissão de acesso." };
+    return { error: t("Perfil sem permissão de acesso.") };
   }
 
   redirect(redirectPath);

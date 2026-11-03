@@ -6,6 +6,7 @@ import {
   marcarNaAgenda,
   prepararNovaMarcacao,
   type ConflitoNaAgenda,
+  type FraseParaTraduzir,
 } from "@/lib/agenda/marcar";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
@@ -27,20 +28,33 @@ import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 const caminho = "/app/agenda";
 
+/*
+ * Porque é que as mensagens vão em pt-BR e também como frase
+ * ---------------------------------------------------------
+ * A tradução faz-se no navegador, com o idioma de quem está a ver: o
+ * `mensagem`/`avisos` em texto corrido ficam para os testes e para quem lê o
+ * resultado sem painel, e o `mensagemFrase`/`avisosFrases` levam a chave do
+ * dicionário e as variáveis para o `t()` do formulário.
+ */
 export type MarcarResultado = {
   /** Coisas que o dono devia ver antes de confirmar. Não travam, avisam. */
   avisos: string[];
+  avisosFrases?: FraseParaTraduzir[];
   /** O que já está marcado àquela hora, se houver. */
   conflitos: ConflitoNaAgenda[];
   linkGoogle: string | null;
   mensagem: string;
+  mensagemFrase?: FraseParaTraduzir;
   ok: boolean;
 };
 
 const vazio = { avisos: [], conflitos: [], linkGoogle: null };
 
-function recusar(mensagem: string): MarcarResultado {
-  return { ...vazio, mensagem, ok: false };
+function recusar(
+  mensagem: string,
+  mensagemFrase: FraseParaTraduzir = { chave: mensagem },
+): MarcarResultado {
+  return { ...vazio, mensagem, mensagemFrase, ok: false };
 }
 
 async function perfilDoCliente() {
@@ -65,12 +79,12 @@ export async function marcarNaAgendaAction(
   const perfil = await perfilDoCliente();
 
   if (!perfil) {
-    return recusar("Sessão sem permissão para marcar na agenda.");
+    return recusar("Sessão sem permissão para agendar.");
   }
 
   const texto = (campo: string) => String(formData.get(campo) ?? "");
 
-  const { avisos, erro, marcacao } = await prepararNovaMarcacao({
+  const { avisos, erro, erroFrase, marcacao } = await prepararNovaMarcacao({
     campos: {
       contactoId: texto("contacto_id"),
       dataBruto: texto("data"),
@@ -87,7 +101,9 @@ export async function marcarNaAgendaAction(
   });
 
   if (erro || !marcacao) {
-    return recusar(erro ?? "Faltam dados para marcar.");
+    return erro
+      ? recusar(erro, erroFrase)
+      : recusar("Faltam dados para agendar.");
   }
 
   const confirmado = texto("confirmado") === "sim";
@@ -95,13 +111,21 @@ export async function marcarNaAgendaAction(
   // Nada é escrito nesta passagem: os avisos existem para serem lidos antes de
   // o evento entrar na agenda, não depois.
   if (avisos.length > 0 && !confirmado) {
+    const umSo = avisos.length === 1;
+
     return {
       ...vazio,
       avisos: avisos.map((aviso) => aviso.texto),
-      mensagem:
-        avisos.length === 1
-          ? "Há uma coisa a confirmar antes de marcar."
-          : `Há ${avisos.length} coisas a confirmar antes de marcar.`,
+      avisosFrases: avisos.map((aviso) => aviso.frase ?? { chave: aviso.texto }),
+      mensagem: umSo
+        ? "Há uma coisa para confirmar antes de agendar."
+        : `Há ${avisos.length} coisas para confirmar antes de agendar.`,
+      mensagemFrase: umSo
+        ? { chave: "Há uma coisa para confirmar antes de agendar." }
+        : {
+            chave: "Há {n} coisas para confirmar antes de agendar.",
+            variaveis: { n: avisos.length },
+          },
       ok: false,
     };
   }
@@ -116,13 +140,17 @@ export async function marcarNaAgendaAction(
     return {
       ...vazio,
       conflitos: resultado.conflitos,
-      mensagem: `${marcacao.executorNome} já tem trabalho marcado a esta hora.`,
+      mensagem: `${marcacao.executorNome} já tem trabalho marcado neste horário.`,
+      mensagemFrase: {
+        chave: "{executor} já tem trabalho marcado neste horário.",
+        variaveis: { executor: marcacao.executorNome },
+      },
       ok: false,
     };
   }
 
   if (!resultado.ok) {
-    return recusar(resultado.erro ?? "A marcação não entrou.");
+    return recusar(resultado.erro ?? "O agendamento não entrou.");
   }
 
   revalidatePath(caminho);
@@ -130,7 +158,11 @@ export async function marcarNaAgendaAction(
   return {
     ...vazio,
     linkGoogle: resultado.linkGoogle,
-    mensagem: `"${marcacao.servicoNome}" ficou marcado para ${marcacao.nomeCliente}.`,
+    mensagem: `"${marcacao.servicoNome}" ficou agendado para ${marcacao.nomeCliente}.`,
+    mensagemFrase: {
+      chave: '"{servico}" ficou agendado para {cliente}.',
+      variaveis: { cliente: marcacao.nomeCliente, servico: marcacao.servicoNome },
+    },
     ok: true,
   };
 }

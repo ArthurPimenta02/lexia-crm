@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { ItemReceita, ProdutoLinha } from "@/lib/produtos/read";
 import type { GravarProdutoResultado } from "@/lib/produtos/write";
 
@@ -29,7 +30,7 @@ function Mensagem({ resultado }: { resultado: GravarProdutoResultado | null }) {
 
   return (
     <p
-      className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+      className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
       role="status"
     >
       {resultado.mensagem}
@@ -38,7 +39,7 @@ function Mensagem({ resultado }: { resultado: GravarProdutoResultado | null }) {
 }
 
 const inputClass =
-  "h-9 rounded-2xl border border-border-strong bg-surface px-2.5 text-sm outline-none transition focus:border-foreground disabled:bg-surface-muted disabled:text-muted-foreground";
+  "ds-campo h-9! px-2.5! disabled:bg-surface-muted disabled:text-muted-foreground";
 
 function LinhaDaReceita({
   action,
@@ -59,6 +60,7 @@ function LinhaDaReceita({
     GravarProdutoResultado | null,
     FormData
   >(action, null);
+  const { locale, t } = useIdioma();
 
   return (
     <form action={formAction} className="flex flex-col gap-1.5">
@@ -77,10 +79,10 @@ function LinhaDaReceita({
           className="sr-only"
           htmlFor={`qtd-${servicoId}-${item.produtoId}`}
         >
-          Quantidade de {item.produtoNome}
+          {t("Quantidade de {produto}", { produto: item.produtoNome })}
         </label>
         <input
-          className={`${inputClass} w-24`}
+          className={`${inputClass} w-24!`}
           defaultValue={String(item.quantidade)}
           disabled={!podeEditar}
           id={`qtd-${servicoId}-${item.produtoId}`}
@@ -96,8 +98,8 @@ function LinhaDaReceita({
 
         <span className="w-24 text-right text-sm font-semibold text-foreground">
           {item.custo === null
-            ? "sem preço"
-            : new Intl.NumberFormat("pt-PT", {
+            ? t("sem preço")
+            : new Intl.NumberFormat(locale, {
                 currency: moeda,
                 maximumFractionDigits: 2,
                 minimumFractionDigits: 2,
@@ -107,10 +109,10 @@ function LinhaDaReceita({
 
         {podeEditar ? (
           <FormSubmitButton
-            className="inline-flex min-h-9 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
+            className="ds-botao ds-botao-secundario ds-botao-p"
             pendingLabel="..."
           >
-            Gravar
+            {t("Salvar")}
           </FormSubmitButton>
         ) : null}
       </div>
@@ -135,6 +137,7 @@ function AdicionarProduto({
     GravarProdutoResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <form action={formAction} className="flex flex-col gap-1.5">
@@ -145,10 +148,10 @@ function AdicionarProduto({
 
       <div className="flex flex-wrap items-center gap-2">
         <label className="sr-only" htmlFor={`novo-${servicoId}`}>
-          Produto a juntar
+          {t("Produto a adicionar")}
         </label>
         <select
-          className={`${inputClass} min-w-36 flex-1`}
+          className={`${inputClass} w-auto! min-w-36 flex-1`}
           defaultValue={produtos[0]?.id}
           id={`novo-${servicoId}`}
           name="produto_id"
@@ -161,10 +164,10 @@ function AdicionarProduto({
         </select>
 
         <label className="sr-only" htmlFor={`nova-qtd-${servicoId}`}>
-          Quantidade gasta
+          {t("Quantidade gasta")}
         </label>
         <input
-          className={`${inputClass} w-24`}
+          className={`${inputClass} w-24!`}
           id={`nova-qtd-${servicoId}`}
           inputMode="decimal"
           min="0"
@@ -175,10 +178,10 @@ function AdicionarProduto({
         />
 
         <FormSubmitButton
-          className="inline-flex min-h-9 items-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-          pendingLabel="A juntar..."
+          className="ds-botao ds-botao-primario ds-botao-p"
+          pendingLabel={t("Adicionando...")}
         >
-          Juntar à receita
+          {t("Adicionar à receita")}
         </FormSubmitButton>
       </div>
 
@@ -205,16 +208,19 @@ export function ServicosReceitaForm({
   receita: ItemReceita[];
   servicoId: string;
 }) {
+  const { t } = useIdioma();
+
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs font-semibold text-muted-foreground">
-        Produtos gastos neste serviço
+        {t("Produtos gastos neste serviço")}
       </p>
 
       {receita.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          Ainda nenhum. Enquanto esta lista estiver vazia, marcar o serviço como
-          realizado não desconta nada do stock.
+          {t(
+            "Nenhum ainda. Enquanto esta lista estiver vazia, marcar o serviço como realizado não desconta nada do estoque.",
+          )}
         </p>
       ) : (
         <div className="flex flex-col gap-2">

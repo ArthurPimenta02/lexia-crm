@@ -3,6 +3,7 @@ import Link from "next/link";
 import { bloquearConversa } from "@/app/admin/bloqueios/actions";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { bloqueioDaConversa } from "@/lib/bloqueios/identificador";
+import { getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -24,6 +25,7 @@ export async function BloquearContacto({
 }) {
   const alvo = bloqueioDaConversa(identificadorConversa);
   if (!alvo) return null;
+  const t = await getT();
 
   const { data, error } = await createAdminClient()
     .from("lexia_bloqueios")
@@ -41,7 +43,7 @@ export async function BloquearContacto({
         className="text-xs font-medium text-danger underline-offset-2 hover:underline"
         href={`/admin/bloqueios?cliente=${encodeURIComponent(clienteSlug)}`}
       >
-        Contacto bloqueado
+        {t("Contato bloqueado")}
       </Link>
     );
   }
@@ -49,11 +51,17 @@ export async function BloquearContacto({
   return (
     <ConfirmActionButton
       action={bloquearConversa.bind(null, clienteSlug, identificadorConversa, nome)}
-      className="inline-flex h-8 items-center justify-center rounded-lg border border-border-strong px-2.5 text-xs font-medium text-foreground transition hover:bg-muted"
-      confirmMessage={`Bloquear ${nome || "este contacto"}? A agente em código deixa de responder a esta pessoa.`}
+      className="ds-botao ds-botao-secundario ds-botao-p"
+      confirmMessage={
+        nome
+          ? t("Bloquear {nome}? A agente em código deixa de responder a esta pessoa.", {
+              nome,
+            })
+          : t("Bloquear este contato? A agente em código deixa de responder a esta pessoa.")
+      }
       pendingLabel="..."
     >
-      Bloquear contacto
+      {t("Bloquear contato")}
     </ConfirmActionButton>
   );
 }

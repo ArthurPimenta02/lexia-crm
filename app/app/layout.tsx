@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppSidebar } from "@/app/components/app-sidebar";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { ecraPermitido } from "@/lib/auth/ecras";
+import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 const clientNavigation = [
@@ -25,7 +26,7 @@ export default async function ClientAppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { profile } = await getLoggedInUserProfile();
+  const [{ profile }, t] = await Promise.all([getLoggedInUserProfile(), getT()]);
 
   if (!profile) {
     redirect("/login");
@@ -44,6 +45,7 @@ export default async function ClientAppLayout({
   */
   const navegacao = clientNavigation.map((item) => ({
     ...item,
+    label: t(item.label),
     indisponivel: !ecraPermitido(profile.cliente_slug, item.href),
   }));
 
@@ -56,7 +58,7 @@ export default async function ClientAppLayout({
       <AppSidebar
         comSino
         items={navegacao}
-        subtitle="Painel do agente"
+        subtitle={t("Painel do agente")}
       />
 
       <ScrollToTop alvoId="conteudo" />

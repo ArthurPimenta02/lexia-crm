@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
+import { useIdioma } from "@/app/components/idioma";
 import type { GravarServicoResultado } from "@/lib/servicos/write";
 
 /**
@@ -27,7 +28,7 @@ function Mensagem({ resultado }: { resultado: GravarServicoResultado | null }) {
 
   return (
     <p
-      className={`text-xs ${resultado.ok ? "text-emerald-700" : "text-red-700"}`}
+      className={`text-xs ${resultado.ok ? "text-positive" : "text-danger"}`}
       role="status"
     >
       {resultado.mensagem}
@@ -58,16 +59,17 @@ export function ExcluirServicoForm({
     FormData
   >(action, null);
   const [aConfirmar, setAConfirmar] = useState(false);
+  const { t } = useIdioma();
 
   if (!aConfirmar) {
     return (
       <div className="flex flex-col items-end gap-1.5">
         <button
-          className="text-xs font-semibold text-muted-foreground underline decoration-dotted transition hover:text-red-700"
+          className="text-xs font-semibold text-muted-foreground underline decoration-dotted transition hover:text-danger"
           onClick={() => setAConfirmar(true)}
           type="button"
         >
-          Excluir serviço
+          {t("Excluir serviço")}
         </button>
         <Mensagem resultado={resultado} />
       </div>
@@ -81,25 +83,26 @@ export function ExcluirServicoForm({
       ) : null}
       <input name="servico_id" type="hidden" value={servicoId} />
 
-      <p className="max-w-sm text-right text-xs text-amber-900">
-        Excluir &quot;{nome}&quot;? O agente deixa de o vender e o agendamento
-        deixa de o aceitar. O preço, a receita e o histórico ficam guardados, e
-        podes repô-lo em baixo.
+      <p className="max-w-sm text-right text-xs text-warning">
+        {t(
+          'Excluir "{nome}"? O agente deixa de vendê-lo e o agendamento deixa de aceitá-lo. O preço, a receita e o histórico ficam guardados, e você pode restaurá-lo logo abaixo.',
+          { nome },
+        )}
       </p>
 
       <div className="flex items-center gap-2">
         <button
-          className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+          className="ds-botao ds-botao-fantasma ds-botao-p"
           onClick={() => setAConfirmar(false)}
           type="button"
         >
-          Cancelar
+          {t("Cancelar")}
         </button>
         <FormSubmitButton
-          className="inline-flex min-h-8 items-center rounded-full bg-red-700 px-4 text-xs font-semibold text-white transition hover:bg-red-800 disabled:opacity-60"
-          pendingLabel="A excluir..."
+          className="ds-botao ds-botao-perigo ds-botao-p"
+          pendingLabel={t("Excluindo...")}
         >
-          Sim, excluir
+          {t("Sim, excluir")}
         </FormSubmitButton>
       </div>
 
@@ -121,6 +124,7 @@ export function ReporServicoForm({
     GravarServicoResultado | null,
     FormData
   >(action, null);
+  const { t } = useIdioma();
 
   return (
     <form action={formAction} className="flex flex-col gap-1">
@@ -130,10 +134,10 @@ export function ReporServicoForm({
       <input name="servico_id" type="hidden" value={servicoId} />
 
       <FormSubmitButton
-        className="inline-flex min-h-8 items-center rounded-full border border-border-strong bg-surface px-3 text-xs font-semibold text-foreground transition hover:bg-surface-muted disabled:opacity-60"
-        pendingLabel="A repor..."
+        className="ds-botao ds-botao-secundario ds-botao-p"
+        pendingLabel={t("Restaurando...")}
       >
-        Repor
+        {t("Restaurar")}
       </FormSubmitButton>
 
       <Mensagem resultado={resultado} />

@@ -18,6 +18,7 @@ import {
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getAgentLocksClientSlugs } from "@/lib/redis/agent-locks";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
@@ -108,7 +109,7 @@ const statusActions: { label: string; status: AdminHandoffStatus }[] = [
 ];
 
 const deleteButtonClass =
-  "h-10 w-full rounded-full border border-red-200 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-auto sm:text-xs";
+  "ds-botao ds-botao-perigo ds-botao-p w-full disabled:cursor-not-allowed sm:w-auto";
 
 export default async function AdminHandoffsPage() {
   // As pausas leem o Redis com credenciais de servidor, por isso a página
@@ -116,6 +117,7 @@ export default async function AdminHandoffsPage() {
   const { profile } = await getLoggedInUserProfile();
   const canManageAgentLocks =
     profile?.role === "lexia_admin" && profile.status === "ativo";
+  const t = await getT();
   const supabase = await createClient();
   const [
     { data: handoffsData, error: handoffsError },
@@ -150,7 +152,7 @@ export default async function AdminHandoffsPage() {
   return (
     <section className="flex w-full min-w-0 max-w-7xl flex-col gap-8">
       <AtualizacaoAutomatica segundos={15} sinal={sinalDaTela.bind(null, "handoffs", null)} />
-      <PaginaCabecalho titulo="Handoffs" />
+      <PaginaCabecalho titulo={t("Handoffs")} />
 
       {canManageAgentLocks
         ? getAgentLocksClientSlugs().map((clienteSlug) => (
@@ -168,8 +170,8 @@ export default async function AdminHandoffsPage() {
       <section className="flex w-full min-w-0 flex-col gap-4">
         <HandoffSectionHeader
           count={handoffs.length}
-          dica="Handoffs reais gravados pelos workflows em todos os clientes."
-          title="Handoffs recebidos"
+          dica={t("Handoffs reais gravados pelos workflows em todos os clientes.")}
+          title={t("Handoffs recebidos")}
         />
         {handoffs.length > 0 ? (
           <div className={handoffGridClass}>
@@ -198,13 +200,19 @@ export default async function AdminHandoffsPage() {
             ))}
           </div>
         ) : (
-          <HandoffEmptyState>Nenhum handoff recebido ainda.</HandoffEmptyState>
+          <HandoffEmptyState>
+            {t("Nenhum handoff recebido ainda.")}
+          </HandoffEmptyState>
         )}
       </section>
 
       <details className="group w-full min-w-0">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:border-border-strong [&::-webkit-details-marker]:hidden">
-          <span>Handoffs simulados em testes ({simulatedHandoffs.length})</span>
+          <span>
+            {t("Handoffs simulados em testes ({n})", {
+              n: simulatedHandoffs.length,
+            })}
+          </span>
           <span
             aria-hidden="true"
             className="text-muted-foreground/60 transition group-open:rotate-90"
@@ -231,9 +239,12 @@ export default async function AdminHandoffsPage() {
                         handoff.cliente_slug,
                       )}
                       className={deleteButtonClass}
-                      confirmMessage="Excluir este handoff simulado? Isso não afeta handoffs reais de produção."
+                      confirmMessage={t(
+                        "Excluir este handoff simulado? Isso não afeta handoffs reais de produção.",
+                      )}
+                      pendingLabel={t("Aguarde...")}
                     >
-                      Excluir simulado
+                      {t("Excluir simulado")}
                     </ConfirmActionButton>
                   }
                   key={handoff.id}
@@ -245,7 +256,7 @@ export default async function AdminHandoffsPage() {
             </div>
           ) : (
             <HandoffEmptyState>
-              Nenhum handoff simulado ainda.
+              {t("Nenhum handoff simulado ainda.")}
             </HandoffEmptyState>
           )}
         </div>

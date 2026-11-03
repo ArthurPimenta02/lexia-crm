@@ -11,11 +11,15 @@ import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getPainelServicos } from "@/lib/servicos/read";
 
-export const metadata = {
-  title: "Serviços e margem",
-};
+export async function generateMetadata() {
+  const t = await getT();
+
+  return { title: t("Serviços e margem") };
+}
 
 export default async function ServicosPage({
   searchParams,
@@ -38,6 +42,8 @@ export default async function ServicosPage({
     redirect("/app");
   }
 
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const parametros = await searchParams;
   const escalaoPedido = parametros.escalao;
   const painel = await getPainelServicos({
@@ -47,7 +53,7 @@ export default async function ServicosPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo="Serviços" />
+      <PaginaCabecalho titulo={t("Serviços")} />
 
       <ServicosPanel
         action={gravarServicoAction}
@@ -56,8 +62,10 @@ export default async function ServicosPage({
         actionReceita={definirReceitaAction}
         actionRepor={reporServicoAction}
         basePath="/app/servicos"
+        locale={locale}
         painel={painel}
         podeEditar={profile.role === "cliente_admin" && !painel.somenteLeitura}
+        t={t}
       />
     </div>
   );

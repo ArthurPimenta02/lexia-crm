@@ -3,6 +3,7 @@
 import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { useIdioma } from "@/app/components/idioma";
 
 type ActionResult = {
   ok: boolean;
@@ -23,10 +24,11 @@ export function ConfirmActionButton({
   children,
   className,
   confirmMessage,
-  pendingLabel = "Aguarde...",
+  pendingLabel,
   successHref,
 }: ConfirmActionButtonProps) {
   const router = useRouter();
+  const { t } = useIdioma();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -44,7 +46,7 @@ export function ConfirmActionButton({
             const result = await action();
 
             if (!result.ok) {
-              window.alert(result.error ?? "Não foi possível executar a ação.");
+              window.alert(result.error ?? t("Não foi possível executar a ação."));
               return;
             }
 
@@ -54,7 +56,7 @@ export function ConfirmActionButton({
 
             router.refresh();
           } catch {
-            window.alert("Não foi possível executar a ação. Tente novamente.");
+            window.alert(t("Não foi possível executar a ação. Tente novamente."));
           }
         });
       }}
@@ -64,7 +66,7 @@ export function ConfirmActionButton({
         {pending ? (
           <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" />
         ) : null}
-        {pending ? pendingLabel : children}
+        {pending ? (pendingLabel ?? t("Aguarde...")) : children}
       </span>
     </button>
   );

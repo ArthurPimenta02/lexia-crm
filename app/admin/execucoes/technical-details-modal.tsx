@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { useIdioma } from "@/app/components/idioma";
+
 type TechnicalDetailsModalProps = {
   sessionId: string | null;
   runId: string | null;
@@ -12,11 +14,12 @@ type TechnicalDetailsModalProps = {
 };
 
 function RawBlock({ label, value }: { label: string; value: string }) {
+  const { t } = useIdioma();
   return (
     <div className="min-w-0">
       <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
       <pre className="max-h-64 overflow-auto rounded-2xl border border-border bg-surface-muted p-3 text-xs leading-5 text-muted-foreground">
-        {value || `Sem ${label}`}
+        {value || t("Sem {campo}", { campo: label })}
       </pre>
     </div>
   );
@@ -30,16 +33,17 @@ export function TechnicalDetailsModal({
   rawContexto,
   rawHandoff,
 }: TechnicalDetailsModalProps) {
+  const { t } = useIdioma();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
       <button
-        className="h-9 rounded-lg border border-border-strong px-3 text-xs font-medium text-muted-foreground transition hover:bg-muted"
+        className="ds-botao ds-botao-secundario ds-botao-p"
         onClick={() => setIsOpen(true)}
         type="button"
       >
-        Ver detalhes
+        {t("Ver detalhes")}
       </button>
 
       {isOpen ? (
@@ -51,14 +55,14 @@ export function TechnicalDetailsModal({
           <div className="flex max-h-[86vh] w-full max-w-4xl flex-col rounded-2xl border border-border bg-surface shadow-xl">
             <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
               <h2 className="text-base font-semibold text-foreground">
-                Detalhes técnicos da execução
+                {t("Detalhes técnicos da execução")}
               </h2>
               <button
-                className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+                className="ds-botao ds-botao-secundario ds-botao-p"
                 onClick={() => setIsOpen(false)}
                 type="button"
               >
-                Fechar
+                {t("Fechar")}
               </button>
             </div>
 
@@ -69,7 +73,7 @@ export function TechnicalDetailsModal({
                     session_id
                   </p>
                   <p className="mt-1 break-words font-mono text-xs text-foreground">
-                    {sessionId ?? "Sem session_id"}
+                    {sessionId ?? t("Sem session_id")}
                   </p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border p-3">
@@ -77,7 +81,7 @@ export function TechnicalDetailsModal({
                     run_id
                   </p>
                   <p className="mt-1 break-words font-mono text-xs text-foreground">
-                    {runId ?? "Sem run_id"}
+                    {runId ?? t("Sem run_id")}
                   </p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border p-3">
@@ -85,7 +89,7 @@ export function TechnicalDetailsModal({
                     teste_id
                   </p>
                   <p className="mt-1 break-words font-mono text-xs text-foreground">
-                    {testeId ?? "Sem teste_id"}
+                    {testeId ?? t("Sem teste_id")}
                   </p>
                 </div>
               </div>

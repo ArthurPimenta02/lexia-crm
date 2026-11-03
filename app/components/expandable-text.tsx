@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useIdioma } from "@/app/components/idioma";
 
 type ExpandableTextProps = {
   text: string | null | undefined;
@@ -13,6 +14,7 @@ export function ExpandableText({
   emptyText,
   maxLength = 180,
 }: ExpandableTextProps) {
+  const { t } = useIdioma();
   const [isOpen, setIsOpen] = useState(false);
   const value = text?.trim() || emptyText;
   const shouldTruncate = value.length > maxLength;
@@ -28,7 +30,7 @@ export function ExpandableText({
           onClick={() => setIsOpen(true)}
           type="button"
         >
-          Ver mais
+          {t("Ver mais")}
         </button>
       ) : null}
 
@@ -41,14 +43,14 @@ export function ExpandableText({
           <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-xl">
             <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
               <h2 className="text-base font-semibold text-foreground">
-                Texto completo
+                {t("Texto completo")}
               </h2>
               <button
                 className="rounded-lg border border-border-strong px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
                 onClick={() => setIsOpen(false)}
                 type="button"
               >
-                Fechar
+                {t("Fechar")}
               </button>
             </div>
             <div className="overflow-y-auto px-5 py-4">

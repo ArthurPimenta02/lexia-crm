@@ -6,12 +6,14 @@ import {
   createClientAction,
   type NewClientState,
 } from "@/app/admin/clientes/novo/actions";
+import { useIdioma } from "@/app/components/idioma";
 
 const initialState: NewClientState = {
   message: null,
 };
 
 export function NewClientForm() {
+  const { t } = useIdioma();
   const [state, formAction, pending] = useActionState(
     createClientAction,
     initialState,
@@ -25,14 +27,9 @@ export function NewClientForm() {
             className="text-sm font-medium text-muted-foreground"
             htmlFor="nome"
           >
-            Nome
+            {t("Nome")}
           </label>
-          <input
-            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
-            id="nome"
-            name="nome"
-            required
-          />
+          <input className="ds-campo" id="nome" name="nome" required />
         </div>
 
         <div className="flex flex-col gap-2">
@@ -43,7 +40,7 @@ export function NewClientForm() {
             Slug
           </label>
           <input
-            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             id="slug"
             name="slug"
             placeholder="cliente_exemplo"
@@ -56,23 +53,23 @@ export function NewClientForm() {
             className="text-sm font-medium text-muted-foreground"
             htmlFor="status"
           >
-            Status
+            {t("Status")}
           </label>
           <select
-            className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             defaultValue="ativo"
             id="status"
             name="status"
           >
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
-            <option value="suspenso">Suspenso</option>
+            <option value="ativo">{t("Ativo")}</option>
+            <option value="inativo">{t("Inativo")}</option>
+            <option value="suspenso">{t("Suspenso")}</option>
           </select>
         </div>
 
         <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-3 text-sm font-medium text-muted-foreground">
-          <input className="h-4 w-4" name="modo_teste" type="checkbox" />
-          Modo teste ativo
+          <input className="h-4 w-4 accent-primary" name="modo_teste" type="checkbox" />
+          {t("Modo teste ativo")}
         </label>
 
         <div className="flex flex-col gap-2">
@@ -80,10 +77,10 @@ export function NewClientForm() {
             className="text-sm font-medium text-muted-foreground"
             htmlFor="cor_principal"
           >
-            Cor principal
+            {t("Cor principal")}
           </label>
           <input
-            className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+            className="ds-campo"
             id="cor_principal"
             name="cor_principal"
             placeholder="#151515"
@@ -93,8 +90,8 @@ export function NewClientForm() {
 
       <div className="border-t border-border pt-5">
         <label className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
-          <input className="h-4 w-4" name="criar_workflow" type="checkbox" />
-          Criar workflow inicial
+          <input className="h-4 w-4 accent-primary" name="criar_workflow" type="checkbox" />
+          {t("Criar workflow inicial")}
         </label>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -103,13 +100,9 @@ export function NewClientForm() {
               className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_nome"
             >
-              Nome do workflow
+              {t("Nome do workflow")}
             </label>
-            <input
-              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
-              id="workflow_nome"
-              name="workflow_nome"
-            />
+            <input className="ds-campo" id="workflow_nome" name="workflow_nome" />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -117,13 +110,9 @@ export function NewClientForm() {
               className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_tipo"
             >
-              Tipo
+              {t("Tipo")}
             </label>
-            <input
-              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
-              id="workflow_tipo"
-              name="workflow_tipo"
-            />
+            <input className="ds-campo" id="workflow_tipo" name="workflow_tipo" />
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">
@@ -131,10 +120,10 @@ export function NewClientForm() {
               className="text-sm font-medium text-muted-foreground"
               htmlFor="webhook_url"
             >
-              Webhook URL
+              {t("Webhook URL")}
             </label>
             <input
-              className="h-11 rounded-lg border border-border-strong px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               id="webhook_url"
               name="webhook_url"
               placeholder="https://..."
@@ -146,34 +135,34 @@ export function NewClientForm() {
               className="text-sm font-medium text-muted-foreground"
               htmlFor="workflow_status"
             >
-              Status
+              {t("Status")}
             </label>
             <select
-              className="h-11 rounded-2xl border border-border-strong bg-surface px-3 text-sm outline-none transition focus:border-foreground"
+              className="ds-campo"
               defaultValue="teste"
               id="workflow_status"
               name="workflow_status"
             >
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-              <option value="teste">Teste</option>
+              <option value="ativo">{t("Ativo")}</option>
+              <option value="inativo">{t("Inativo")}</option>
+              <option value="teste">{t("Teste")}</option>
             </select>
           </div>
         </div>
       </div>
 
       {state.message ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
           {state.message}
         </p>
       ) : null}
 
       <button
-        className="h-11 w-fit rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
+        className="ds-botao ds-botao-primario w-fit"
         disabled={pending}
         type="submit"
       >
-        {pending ? "Criando..." : "Criar cliente"}
+        {pending ? t("Criando...") : t("Criar cliente")}
       </button>
     </form>
   );

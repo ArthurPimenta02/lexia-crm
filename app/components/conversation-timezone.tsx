@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import { timezoneOptions } from "@/lib/clientes/timezone";
+import { getT } from "@/lib/i18n/servidor";
 
-export function TimezoneSwitcher({
+export async function TimezoneSwitcher({
   activeValue,
   buildHref,
   variant = "light",
@@ -11,6 +12,8 @@ export function TimezoneSwitcher({
   buildHref: (timezone: string) => string;
   variant?: "light" | "dark";
 }) {
+  const t = await getT();
+
   return (
     <div className="flex min-w-0 items-center gap-2">
       <p
@@ -18,7 +21,7 @@ export function TimezoneSwitcher({
           variant === "dark" ? "text-background" : "text-muted-foreground"
         }`}
       >
-        Fuso horário
+        {t("Fuso horário")}
       </p>
       <div className="flex min-w-0 gap-1.5 overflow-x-auto">
         {timezoneOptions.map((timezone) => {
@@ -38,7 +41,7 @@ export function TimezoneSwitcher({
               href={buildHref(timezone.value)}
               key={timezone.value}
             >
-              {timezone.label}
+              {t(timezone.label)}
             </Link>
           );
         })}

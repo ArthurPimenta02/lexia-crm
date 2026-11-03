@@ -36,10 +36,9 @@ import {
   fetchDashboardPeriodMessages,
   findStartedConversationKeys,
 } from "@/lib/dashboard/message-metrics-data";
-import {
-  formatDateInTimezone,
-  getClientTimezone,
-} from "@/lib/clientes/timezone";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
@@ -110,9 +109,9 @@ const channelOptions = [
 
 const allowedChannels = ["whatsapp", "messenger", "instagram"];
 
-function formatLabel(value: string | null) {
+function formatLabel(value: string | null, semValor: string) {
   if (!value) {
-    return "Sem valor";
+    return semValor;
   }
 
   return value.replaceAll("_", " ");
@@ -157,18 +156,26 @@ function countByClient<T extends { cliente_slug: string }>(
  * era mais texto do que dados, e empurrava metade dos números para fora do
  * ecrã.
  */
+function formatPercent(value: number, locale: string) {
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)}%`;
+}
+
 function formatConversionRate(
   appointments: number | null,
   conversations: number,
+  locale: string,
 ) {
   if (appointments === null || conversations === 0) {
     return "--";
   }
 
-  return `${Math.round((appointments / conversations) * 1000) / 10}%`;
+  return formatPercent(
+    Math.round((appointments / conversations) * 1000) / 10,
+    locale,
+  );
 }
 
-function formatSeconds(seconds: number | null) {
+function formatSeconds(seconds: number | null, locale: string) {
   if (seconds === null) {
     return "--";
   }
@@ -177,7 +184,33 @@ function formatSeconds(seconds: number | null) {
     return `${seconds}s`;
   }
 
-  return `${Math.round(seconds / 6) / 10} min`;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
+    Math.round(seconds / 6) / 10,
+  )} min`;
+}
+
+/**
+ * O rótulo do período no idioma de quem vê. O `range.label` de
+ * `lib/dashboard/date-range` vem sempre em pt-BR e é partilhado com o
+ * analista, por isso a data volta a ser escrita aqui com o mesmo fuso.
+ */
+function formatPeriodLabel(
+  range: { end: Date; key: string; start: Date },
+  timeZone: string,
+  locale: string,
+) {
+  const format = new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeZone,
+  });
+
+  if (range.key === "hoje") {
+    return format.format(range.start);
+  }
+
+  return `${format.format(range.start)} - ${format.format(
+    getInclusiveRangeEnd(range.end),
+  )}`;
 }
 
 function mergeRankings(groups: { label: string; value: number }[][]) {
@@ -217,6 +250,8 @@ export default async function AdminDashboard({
   searchParams,
 }: AdminDashboardProps) {
   const { profile, user } = await getLoggedInUserProfile();
+  const t = await getT();
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   if (!user || !profile) {
     redirect("/login");
@@ -676,6 +711,7 @@ export default async function AdminDashboard({
       conversionRate: formatConversionRate(
         metrics?.appointments ?? null,
         startedConversations,
+        locale,
       ),
       followups: getFollowupsSentCount(clientMessages),
       handoffs: pendingHandoffCounts.get(client.slug) ?? 0,
@@ -720,6 +756,7 @@ export default async function AdminDashboard({
   const totalConversionRate = formatConversionRate(
     selectedChannel ? null : totals.appointments,
     totals.conversations,
+    locale,
   );
   const channelRanking = [
     {
@@ -735,34 +772,38 @@ export default async function AdminDashboard({
       value: rows.reduce((total, row) => total + row.instagram, 0),
     },
     {
-      label: "Canal não identificado",
+      label: t("Canal não identificado"),
       value: rows.reduce((total, row) => total + row.unknownChannel, 0),
     },
   ].filter((item) => item.value > 0);
   const serviceRanking = mergeRankings(rows.map((row) => row.services));
-  const weekdayRanking = mergeRankings(rows.map((row) => row.weekdays)).filter(
-    (item) => item.value > 0,
-  );
+  const weekdayRanking = mergeRankings(rows.map((row) => row.weekdays))
+    .filter((item) => item.value > 0)
+    .map((item) => ({ ...item, label: t(item.label) }));
   const latestContacts = periodContacts.slice(0, 6);
   const newContactCount = new Set(periodContacts.map(getConversationKey)).size;
   const selectedClientLabel = selectedClient || "";
+  const autonomyStartLabel = new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(2026, 7, 1)));
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Dashboard
+            {t("Dashboard")}
           </h1>
         </div>
         <Link
-          className="inline-flex h-10 w-fit shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          className="ds-botao ds-botao-primario w-fit shrink-0"
           href={buildAdminHref("/admin/conversas", {
             cliente: selectedClientLabel,
             canal: selectedChannel,
           })}
         >
-          Ver conversas
+          {t("Ver conversas")}
         </Link>
       </div>
 
@@ -774,13 +815,13 @@ export default async function AdminDashboard({
           scroll={false}
         >
           <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Cliente
+            {t("Cliente")}
             <select
-              className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
+              className="ds-campo min-w-0"
               defaultValue={selectedClient}
               name="cliente"
             >
-              <option value="">Todos os clientes</option>
+              <option value="">{t("Todos os clientes")}</option>
               {clients.map((client) => (
                 <option key={client.slug} value={client.slug}>
                   {client.nome ?? client.slug} ({client.slug})
@@ -790,35 +831,35 @@ export default async function AdminDashboard({
           </label>
 
           <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            Canal
+            {t("Canal")}
             <select
-              className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
+              className="ds-campo min-w-0"
               defaultValue={selectedChannel}
               name="canal"
             >
               {channelOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {option.value ? option.label : t(option.label)}
                 </option>
               ))}
             </select>
           </label>
 
           <FormSubmitButton
-            className="h-10 shrink-0 rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-            pendingLabel="Aplicando..."
+            className="ds-botao ds-botao-primario shrink-0"
+            pendingLabel={t("Aplicando...")}
           >
-            Aplicar filtros
+            {t("Aplicar filtros")}
           </FormSubmitButton>
         </Form>
 
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {range.label}
+              {formatPeriodLabel(range, selectedTimezone, locale)}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {selectedClient ? selectedTimezone : "Vários fusos horários"}
+              {selectedClient ? selectedTimezone : t("Vários fusos horários")}
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface-muted p-1">
@@ -840,7 +881,7 @@ export default async function AdminDashboard({
                   href={href}
                   key={option.key}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </Link>
               );
             })}
@@ -862,9 +903,9 @@ export default async function AdminDashboard({
               <input name="canal" type="hidden" value={selectedChannel} />
             ) : null}
             <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Início
+              {t("Início")}
               <input
-                className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
+                className="ds-campo min-w-0"
                 defaultValue={
                   customStart ||
                   getDateInputValue(range.start, selectedTimezone)
@@ -874,9 +915,9 @@ export default async function AdminDashboard({
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              Fim
+              {t("Fim")}
               <input
-                className="h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none transition focus:border-primary"
+                className="ds-campo min-w-0"
                 defaultValue={
                   customEnd ||
                   getDateInputValue(
@@ -889,53 +930,75 @@ export default async function AdminDashboard({
               />
             </label>
             <FormSubmitButton
-              className="h-10 shrink-0 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-              pendingLabel="Aplicando..."
+              className="ds-botao ds-botao-primario shrink-0"
+              pendingLabel={t("Aplicando...")}
             >
-              Aplicar
+              {t("Aplicar")}
             </FormSubmitButton>
           </Form>
         ) : null}
       </div>
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo="no período">Resultado</SeccaoTitulo>
+        <SeccaoTitulo sufixo={t("no período")}>
+          {t("Resultado")}
+        </SeccaoTitulo>
         <GrupoMetricas
           itens={[
             {
-              dica: "Primeira mensagem recebida de cada conversa dentro do período.",
-              label: "Conversas iniciadas",
+              dica: t(
+                "Primeira mensagem recebida de cada conversa dentro do período.",
+              ),
+              label: t("Conversas iniciadas"),
               valor: totals.conversations,
             },
             {
               dica: selectedChannel
-                ? "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança."
-                : "Agendamentos válidos criados no período, conforme o estado de cada cliente.",
-              label: "Agendamentos",
+                ? t(
+                    "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança.",
+                  )
+                : t(
+                    "Agendamentos válidos criados no período, conforme o estado de cada cliente.",
+                  ),
+              label: t("Agendamentos"),
               valor: selectedChannel ? "--" : totals.appointments,
             },
             {
               dica: selectedChannel
-                ? "Indisponível com filtro de canal, pois os agendamentos não registam essa origem."
-                : "Agendamentos a dividir pelas conversas iniciadas no mesmo período; sem atribuição individual.",
-              label: "Agendam. / conversa",
+                ? t(
+                    "Indisponível com filtro de canal, pois os agendamentos não registram essa origem.",
+                  )
+                : t(
+                    "Agendamentos divididos pelas conversas iniciadas no mesmo período; sem atribuição individual.",
+                  ),
+              label: t("Agendam. / conversa"),
               nota: selectedChannel
                 ? undefined
-                : `${totals.appointments} para ${totals.conversations} conversas`,
+                : t("{agendamentos} para {conversas} conversas", {
+                    agendamentos: totals.appointments,
+                    conversas: totals.conversations,
+                  }),
               valor: totalConversionRate,
             },
             {
               dica: autonomyMetrics.dataAvailable
-                ? "Conversas resolvidas sem ninguém da equipa escrever. Dados fiáveis a partir de 01/08/2026."
-                : "Dados de autonomia disponíveis a partir de 01/08/2026.",
-              label: "Autonomia do agente",
+                ? t(
+                    "Conversas resolvidas sem ninguém da equipe escrever. Dados confiáveis a partir de {data}.",
+                    { data: autonomyStartLabel },
+                  )
+                : t("Dados de autonomia disponíveis a partir de {data}.", {
+                    data: autonomyStartLabel,
+                  }),
+              label: t("Autonomia do agente"),
               nota: autonomyMetrics.dataAvailable
-                ? `${autonomyMetrics.interventionConversations} com intervenção humana`
+                ? t("{n} com intervenção humana", {
+                    n: autonomyMetrics.interventionConversations,
+                  })
                 : undefined,
               valor:
                 autonomyMetrics.percentage === null
                   ? "--"
-                  : `${autonomyMetrics.percentage}%`,
+                  : formatPercent(autonomyMetrics.percentage, locale),
             },
           ]}
         />
@@ -966,74 +1029,94 @@ export default async function AdminDashboard({
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo="no período">Captação e retoma</SeccaoTitulo>
+        <SeccaoTitulo sufixo={t("no período")}>
+          {t("Captação e retomada")}
+        </SeccaoTitulo>
         <GrupoMetricas
           itens={[
             {
-              dica: "Contactos distintos criados pela primeira vez no período.",
-              label: "Novos contactos",
+              dica: t("Contatos distintos criados pela primeira vez no período."),
+              label: t("Novos contatos"),
               valor: newContactCount,
             },
             {
-              dica: "Mensagens automáticas de retomada efectivamente registadas no período.",
-              label: "Follow-ups enviados",
+              dica: t(
+                "Mensagens automáticas de retomada efetivamente registradas no período.",
+              ),
+              label: t("Follow-ups enviados"),
               valor: totals.followups,
             },
             {
-              dica: "Conversas que receberam follow-up rápido e voltaram a responder.",
-              label: "Recuperação por follow-up",
-              nota: `${followupRecovery.recoveredConversations} de ${followupRecovery.followupConversations} voltaram a responder`,
+              dica: t(
+                "Conversas que receberam follow-up rápido e voltaram a responder.",
+              ),
+              label: t("Recuperação por follow-up"),
+              nota: t("{voltaram} de {total} voltaram a responder", {
+                total: followupRecovery.followupConversations,
+                voltaram: followupRecovery.recoveredConversations,
+              }),
               valor:
                 followupRecovery.recoveryRate === null
                   ? "--"
-                  : `${followupRecovery.recoveryRate}%`,
+                  : formatPercent(followupRecovery.recoveryRate, locale),
             },
             {
-              dica: "Respostas enviadas fora de 9h-19h ou ao fim de semana.",
-              label: "Fora do horário",
-              nota: `${totalOutOfHoursCount} de ${totalOutOfHoursSent} respostas`,
+              dica: t("Respostas enviadas fora de 9h-19h ou no fim de semana."),
+              label: t("Fora do horário"),
+              nota: t("{fora} de {total} respostas", {
+                fora: totalOutOfHoursCount,
+                total: totalOutOfHoursSent,
+              }),
               valor:
                 totalOutOfHoursPercentage === null
                   ? "--"
-                  : `${totalOutOfHoursPercentage}%`,
+                  : formatPercent(totalOutOfHoursPercentage, locale),
             },
           ]}
         />
       </div>
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo="no período">Atendimento</SeccaoTitulo>
+        <SeccaoTitulo sufixo={t("no período")}>
+          {t("Atendimento")}
+        </SeccaoTitulo>
         <GrupoMetricas
           itens={[
             {
-              dica: "Conversas com pelo menos uma mensagem recebida ou enviada no período.",
-              label: "Conversas activas",
+              dica: t(
+                "Conversas com pelo menos uma mensagem recebida ou enviada no período.",
+              ),
+              label: t("Conversas ativas"),
               valor: totals.activeConversations,
             },
             {
-              dica: "Tempo até à primeira resposta automática, nas conversas respondidas em menos de 1h.",
-              label: "Primeira resposta",
-              nota: `${firstResponse.samples} conversas`,
-              valor: formatSeconds(firstResponse.averageSeconds),
+              dica: t(
+                "Tempo até a primeira resposta automática, nas conversas respondidas em menos de 1h.",
+              ),
+              label: t("Primeira resposta"),
+              nota: t("{n} conversas", { n: firstResponse.samples }),
+              valor: formatSeconds(firstResponse.averageSeconds, locale),
             },
             {
-              dica: "Mensagens recebidas dos clientes finais.",
-              label: "Mensagens recebidas",
+              dica: t("Mensagens recebidas dos clientes finais."),
+              label: t("Mensagens recebidas"),
               valor: totals.messagesReceived,
             },
             {
-              dica: "Todas as mensagens enviadas, incluindo agente, equipa e follow-ups.",
-              label: "Mensagens enviadas",
+              dica: t(
+                "Todas as mensagens enviadas, incluindo agente, equipe e follow-ups.",
+              ),
+              label: t("Mensagens enviadas"),
               valor: totals.messagesSent,
             },
             {
-              dica: "Handoffs reais ainda pendentes.",
-              label: "Handoffs pendentes",
+              dica: t("Handoffs reais ainda pendentes."),
+              label: t("Handoffs pendentes"),
               valor: totals.handoffs,
             },
             {
-              dica: "Feedbacks ainda pendentes de análise.",
-              label: "Feedbacks pendentes",
+              dica: t("Feedbacks ainda pendentes de análise."),
+              label: t("Feedbacks pendentes"),
               valor: totals.pendingFeedbacks,
             },
           ]}
@@ -1043,11 +1126,11 @@ export default async function AdminDashboard({
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-foreground">
-            Conversas iniciadas por canal
+            {t("Conversas iniciadas por canal")}
           </h2>
           <div className="mt-5">
             <RankingList
-              emptyText="Sem conversas por canal no período."
+              emptyText={t("Sem conversas por canal no período.")}
               items={channelRanking}
             />
           </div>
@@ -1055,11 +1138,11 @@ export default async function AdminDashboard({
 
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-foreground">
-            Serviços mais agendados
+            {t("Serviços mais agendados")}
           </h2>
           <div className="mt-5">
             <RankingList
-              emptyText="Sem agendamentos no período."
+              emptyText={t("Sem agendamentos no período.")}
               items={serviceRanking}
             />
           </div>
@@ -1067,11 +1150,11 @@ export default async function AdminDashboard({
 
         <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-foreground">
-            Agendamentos por dia
+            {t("Agendamentos por dia")}
           </h2>
           <div className="mt-5">
             <RankingList
-              emptyText="Sem agendamentos no período."
+              emptyText={t("Sem agendamentos no período.")}
               items={weekdayRanking}
             />
           </div>
@@ -1081,9 +1164,13 @@ export default async function AdminDashboard({
       <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-1.5">
           <h2 className="text-lg font-semibold text-foreground">
-            Horários de pico
+            {t("Horários de pico")}
           </h2>
-          <Dica texto="Mensagens recebidas por dia e hora. Em visão geral usa o fuso da plataforma; ao filtrar cliente, o fuso do cliente." />
+          <Dica
+            texto={t(
+              "Mensagens recebidas por dia e hora. Na visão geral usa o fuso da plataforma; ao filtrar um cliente, o fuso do cliente.",
+            )}
+          />
         </div>
         <div className="mt-5">
           <MiniHeatmap cells={heatmapCells} />
@@ -1093,7 +1180,7 @@ export default async function AdminDashboard({
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-semibold text-foreground">
-            Clientes no período
+            {t("Clientes no período")}
           </h2>
         </div>
 
@@ -1103,40 +1190,40 @@ export default async function AdminDashboard({
               <thead className="bg-surface-muted text-xs font-semibold text-muted-foreground">
                 <tr>
                   <th className="w-[15%] border-b border-border px-4 py-3">
-                    Cliente
+                    {t("Cliente")}
                   </th>
                   <th className="w-[7%] border-b border-border px-4 py-3">
-                    Iniciadas
+                    {t("Iniciadas")}
                   </th>
                   <th className="w-[11%] border-b border-border px-4 py-3">
-                    Canais
+                    {t("Canais")}
                   </th>
                   <th className="w-[8%] border-b border-border px-4 py-3">
-                    Recebidas
+                    {t("Recebidas")}
                   </th>
                   <th className="w-[8%] border-b border-border px-4 py-3">
-                    Enviadas
+                    {t("Enviadas")}
                   </th>
                   <th className="w-[9%] border-b border-border px-4 py-3">
-                    Agendamentos
+                    {t("Agendamentos")}
                   </th>
                   <th className="w-[9%] border-b border-border px-4 py-3">
-                    Relação
+                    {t("Relação")}
                   </th>
                   <th className="w-[9%] border-b border-border px-4 py-3">
-                    Autonomia
+                    {t("Autonomia")}
                   </th>
                   <th className="w-[8%] border-b border-border px-4 py-3">
-                    Follow-ups
+                    {t("Follow-ups")}
                   </th>
                   <th className="w-[9%] border-b border-border px-4 py-3">
-                    Pendências
+                    {t("Pendências")}
                   </th>
                   <th className="w-[7%] border-b border-border px-4 py-3">
-                    Workflows
+                    {t("Workflows")}
                   </th>
                   <th className="w-[7%] border-b border-border px-4 py-3">
-                    Ações
+                    {t("Ações")}
                   </th>
                 </tr>
               </thead>
@@ -1154,8 +1241,8 @@ export default async function AdminDashboard({
                         {row.client.slug}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {formatLabel(row.client.status)} ·{" "}
-                        {row.client.modo_teste ? "Modo teste" : "Produção"}
+                        {formatLabel(row.client.status, t("Sem valor"))} ·{" "}
+                        {row.client.modo_teste ? t("Modo teste") : t("Produção")}
                       </p>
                     </td>
                     <td className="px-4 py-4 align-top">
@@ -1163,7 +1250,7 @@ export default async function AdminDashboard({
                         {row.conversations}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {row.activeConversations} activas
+                        {t("{n} ativas", { n: row.activeConversations })}
                       </p>
                     </td>
                     <td className="px-4 py-4 align-top">
@@ -1172,7 +1259,11 @@ export default async function AdminDashboard({
                         <span>Messenger: {row.messenger}</span>
                         <span>Instagram: {row.instagram}</span>
                         {row.unknownChannel > 0 ? (
-                          <span>Não identificado: {row.unknownChannel}</span>
+                          <span>
+                            {t("Não identificado: {n}", {
+                              n: row.unknownChannel,
+                            })}
+                          </span>
                         ) : null}
                       </div>
                     </td>
@@ -1200,11 +1291,12 @@ export default async function AdminDashboard({
                         <span className="text-base font-semibold text-foreground">
                           {row.autonomy?.percentage == null
                             ? "--"
-                            : `${row.autonomy?.percentage}%`}
+                            : formatPercent(row.autonomy.percentage, locale)}
                         </span>
                         <span>
-                          {row.autonomy?.interventionConversations ?? 0} com
-                          intervenção
+                          {t("{n} com intervenção", {
+                            n: row.autonomy?.interventionConversations ?? 0,
+                          })}
                         </span>
                       </div>
                     </td>
@@ -1223,19 +1315,19 @@ export default async function AdminDashboard({
                     <td className="px-4 py-4 align-top">
                       <div className="flex flex-col gap-2">
                         <Link
-                          className="rounded-2xl border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
+                          className="ds-botao ds-botao-secundario ds-botao-p"
                           href={buildAdminHref("/admin/conversas", {
                             canal: selectedChannel,
                             cliente: row.client.slug,
                           })}
                         >
-                          Conversas
+                          {t("Conversas")}
                         </Link>
                         <Link
-                          className="rounded-2xl border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-muted"
+                          className="ds-botao ds-botao-secundario ds-botao-p"
                           href={`/admin/feedbacks`}
                         >
-                          Feedbacks
+                          {t("Feedbacks")}
                         </Link>
                       </div>
                     </td>
@@ -1246,7 +1338,7 @@ export default async function AdminDashboard({
           </div>
         ) : (
           <div className="px-5 py-10 text-sm text-muted-foreground">
-            Nenhum cliente encontrado com os filtros actuais.
+            {t("Nenhum cliente encontrado com os filtros atuais.")}
           </div>
         )}
       </div>
@@ -1255,7 +1347,7 @@ export default async function AdminDashboard({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Últimas conversas iniciadas
+              {t("Últimas conversas iniciadas")}
             </h2>
           </div>
           <Link
@@ -1265,7 +1357,7 @@ export default async function AdminDashboard({
               cliente: selectedClient,
             })}
           >
-            Ver todas
+            {t("Ver todas")}
           </Link>
         </div>
 
@@ -1284,28 +1376,31 @@ export default async function AdminDashboard({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-foreground">
-                      {contact.nome || contact.telefone || "Sem nome"}
+                      {contact.nome || contact.telefone || t("Sem nome")}
                     </p>
                     <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
                       {contact.cliente_slug}
                     </p>
                   </div>
-                  <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                    {formatLabel(contact.canal)}
+                  <span className="ds-selo ds-selo-neutro shrink-0">
+                    {formatLabel(contact.canal, t("Sem valor"))}
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  {formatDateInTimezone(
-                    contact.criado_em,
-                    getClientTimezone(contact.cliente_slug),
-                  )}
+                  {contact.criado_em
+                    ? new Intl.DateTimeFormat(locale, {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                        timeZone: getClientTimezone(contact.cliente_slug),
+                      }).format(new Date(contact.criado_em))
+                    : t("Sem data")}
                 </p>
               </Link>
             ))}
           </div>
         ) : (
           <p className="mt-5 text-sm text-muted-foreground">
-            Ainda não há conversas reais registadas neste período.
+            {t("Ainda não há conversas reais registradas neste período.")}
           </p>
         )}
       </div>

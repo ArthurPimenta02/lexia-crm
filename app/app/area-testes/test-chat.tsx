@@ -24,6 +24,7 @@ import {
   type TestSession,
   type TestWorkflow,
 } from "@/app/app/area-testes/actions";
+import { useIdioma } from "@/app/components/idioma";
 
 type TestChatProps = {
   sessions: TestSession[];
@@ -157,6 +158,7 @@ export function TestChat({
   selectedSessionId,
   workflows,
 }: TestChatProps) {
+  const { t } = useIdioma();
   const router = useRouter();
   const [isCreating, startCreating] = useTransition();
   const [isSending, startSending] = useTransition();
@@ -213,7 +215,7 @@ export function TestChat({
       const result = await createTestSession();
 
       if (result.error || !result.data) {
-        setError(result.error ?? "Não foi possível criar a sessão de teste.");
+        setError(result.error ?? t("Não foi possível criar a sessão de teste."));
         return;
       }
 
@@ -224,7 +226,9 @@ export function TestChat({
 
   function handleDeleteSession(sessionId: string) {
     const confirmed = window.confirm(
-      "Tem certeza que deseja excluir esta conversa de teste? As mensagens, respostas e feedbacks ligados a esta sessão também serão removidos.",
+      t(
+        "Tem certeza que deseja excluir esta conversa de teste? As mensagens, respostas e feedbacks ligados a esta sessão também serão removidos.",
+      ),
     );
 
     if (!confirmed) {
@@ -237,7 +241,7 @@ export function TestChat({
       const result = await deleteTestSession(sessionId);
 
       if (!result.ok) {
-        setError(result.error ?? "Não foi possível excluir a sessão.");
+        setError(result.error ?? t("Não foi possível excluir a sessão."));
         return;
       }
 
@@ -294,7 +298,7 @@ export function TestChat({
         setPendingText(null);
         setLastPendingRun({ sessionId, runId, text });
         setNotice(
-          "Mensagem enviada, mas ainda não houve resposta gravada pelo workflow.",
+          t("Mensagem enviada, mas ainda não houve resposta gravada pelo workflow."),
         );
         setLocalExecutions((current) => [
           ...current,
@@ -359,7 +363,7 @@ export function TestChat({
       setSavingFeedbackId(null);
 
       if (result.error || !result.data) {
-        setError(result.error ?? "Não foi possível salvar o feedback.");
+        setError(result.error ?? t("Não foi possível salvar o feedback."));
         return;
       }
 
@@ -421,7 +425,7 @@ export function TestChat({
 
       if (result.error || !result.data) {
         setPendingText(null);
-        setError(result.error ?? "Não foi possível enviar a mensagem.");
+        setError(result.error ?? t("Não foi possível enviar a mensagem."));
         return;
       }
 
@@ -435,19 +439,19 @@ export function TestChat({
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
             <h2 className="text-sm font-semibold text-foreground">
-              Conversas de teste
+              {t("Conversas de teste")}
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Histórico das simulações
+              {t("Histórico das simulações")}
             </p>
           </div>
           <button
-            className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-foreground"
+            className="ds-botao ds-botao-primario ds-botao-p"
             disabled={isCreating}
             onClick={handleCreateSession}
             type="button"
           >
-            {isCreating ? "Criando..." : "Nova conversa"}
+            {isCreating ? t("Criando...") : t("Nova conversa")}
           </button>
         </div>
 
@@ -474,10 +478,13 @@ export function TestChat({
                   }}
                 >
                   <span className="block font-medium">
-                    {session.nome ?? "Nova conversa"}
+                    {/* "Nova sessão" é o nome que o próprio painel grava ao criar. */}
+                    {session.nome === "Nova sessão"
+                      ? t("Nova sessão")
+                      : (session.nome ?? t("Nova conversa"))}
                   </span>
                   <span className="mt-1 block text-xs opacity-70">
-                    Conversa de teste
+                    {t("Conversa de teste")}
                   </span>
                 </Link>
                 <button
@@ -490,13 +497,13 @@ export function TestChat({
                   onClick={() => handleDeleteSession(session.session_id)}
                   type="button"
                 >
-                  Excluir
+                  {t("Excluir")}
                 </button>
               </div>
             ))
           ) : (
             <p className="px-3 py-8 text-sm text-muted-foreground">
-              Ainda não há conversas de teste.
+              {t("Ainda não há conversas de teste.")}
             </p>
           )}
         </div>
@@ -506,36 +513,36 @@ export function TestChat({
         <div className="border-b border-border bg-surface px-5 py-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <h2 className="font-semibold text-foreground">
-              Simulador de conversa
+              {t("Simulador de conversa")}
             </h2>
             <div className="flex w-full max-w-sm flex-col gap-2">
               <label
                 className="text-sm font-medium text-muted-foreground"
                 htmlFor="workflow"
               >
-                Canal de teste
+                {t("Canal de teste")}
               </label>
               <select
-                className="h-10 rounded-2xl border border-border-strong bg-surface px-3 text-sm text-foreground outline-none transition focus:border-foreground focus:ring-4 focus:ring-foreground/5 disabled:bg-muted disabled:text-muted-foreground"
+                className="ds-campo disabled:bg-muted disabled:text-muted-foreground"
                 disabled={workflows.length <= 1}
                 id="workflow"
                 onChange={(event) => setSelectedWorkflowId(event.target.value)}
                 value={selectedWorkflowId}
               >
                 {workflows.length === 0 ? (
-                  <option value="">Nenhum canal configurado</option>
+                  <option value="">{t("Nenhum canal configurado")}</option>
                 ) : workflows.length > 1 ? (
-                  <option value="">Seleccione um canal</option>
+                  <option value="">{t("Selecione um canal")}</option>
                 ) : null}
                 {workflows.map((workflow) => (
                   <option key={workflow.id} value={workflow.id}>
-                    {workflow.tipo ?? workflow.nome ?? "Canal"}
+                    {workflow.tipo ?? workflow.nome ?? t("Canal")}
                   </option>
                 ))}
               </select>
               {selectedWorkflow ? (
                 <p className="text-xs text-muted-foreground">
-                  Canal activo: {selectedWorkflow.tipo ?? "agente"}
+                  {t("Canal ativo: {canal}", { canal: selectedWorkflow.tipo ?? t("agente") })}
                 </p>
               ) : null}
             </div>
@@ -601,13 +608,13 @@ export function TestChat({
                               }
                               type="button"
                             >
-                              {option.label}
+                              {t(option.label)}
                             </button>
                           );
                         })}
                         {selectedFeedback ? (
                           <span className="text-xs text-muted-foreground">
-                            Feedback enviado
+                            {t("Feedback enviado")}
                           </span>
                         ) : null}
                       </div>
@@ -616,16 +623,16 @@ export function TestChat({
                       chatMessage.execution.id ? (
                         <div className="rounded-2xl border border-border bg-surface p-3 shadow-sm">
                           <textarea
-                            className="min-h-24 w-full resize-none rounded-2xl border border-border-strong bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5"
+                            className="ds-campo min-h-24 resize-none py-2 placeholder:text-muted-foreground/60"
                             onChange={(event) =>
                               setFeedbackComment(event.target.value)
                             }
-                            placeholder="Descreva o que deveria ser melhorado nesta resposta..."
+                            placeholder={t("Descreva o que deveria ser melhorado nesta resposta...")}
                             value={feedbackComment}
                           />
                           <div className="mt-3 flex flex-wrap gap-2">
                             <button
-                              className="h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong"
+                              className="ds-botao ds-botao-primario ds-botao-p"
                               disabled={
                                 savingFeedbackId ===
                                 `${chatMessage.execution.id}:${feedbackDraft.avaliacao}`
@@ -635,17 +642,17 @@ export function TestChat({
                               }
                               type="button"
                             >
-                              Enviar feedback
+                              {t("Enviar feedback")}
                             </button>
                             <button
-                              className="h-9 rounded-lg border border-border-strong px-3 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                              className="ds-botao ds-botao-secundario ds-botao-p"
                               onClick={() => {
                                 setFeedbackDraft(null);
                                 setFeedbackComment("");
                               }}
                               type="button"
                             >
-                              Cancelar
+                              {t("Cancelar")}
                             </button>
                           </div>
                         </div>
@@ -658,8 +665,8 @@ export function TestChat({
           ) : (
             <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
               {selectedSessionId
-                ? "Nenhuma mensagem nesta sessão ainda."
-                : "Crie ou selecione uma sessão para começar."}
+                ? t("Nenhuma mensagem nesta sessão ainda.")
+                : t("Crie ou selecione uma sessão para começar.")}
             </div>
           )}
 
@@ -669,7 +676,7 @@ export function TestChat({
                 {pendingText}
               </div>
               <div className="mr-auto max-w-[78%] rounded-2xl border border-border bg-surface px-4 py-3 text-sm leading-6 text-muted-foreground shadow-sm">
-                Aguardando resposta do agente...
+                {t("Aguardando resposta do agente...")}
               </div>
             </>
           ) : null}
@@ -679,25 +686,24 @@ export function TestChat({
 
         <div className="shrink-0 border-t border-border bg-surface p-4">
           {error ? (
-            <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="mb-3 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
               {error}
             </p>
           ) : null}
 
           {notice ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-warning">
               <p>
-                A mensagem foi enviada, mas o agente ainda não devolveu uma
-                resposta.
+                {t("A mensagem foi enviada, mas o agente ainda não devolveu uma resposta.")}
               </p>
               {lastPendingRun ? (
                 <button
-                  className="h-9 rounded-lg border border-amber-300 bg-surface px-3 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="ds-botao ds-botao-secundario ds-botao-p"
                   disabled={isChecking}
                   onClick={handleCheckAgain}
                   type="button"
                 >
-                  {isChecking ? "Verificando..." : "Verificar novamente"}
+                  {isChecking ? t("Verificando...") : t("Verificar novamente")}
                 </button>
               ) : null}
             </div>
@@ -705,7 +711,7 @@ export function TestChat({
 
           <form className="flex gap-3" onSubmit={handleSendMessage}>
             <input
-              className="h-12 flex-1 rounded-2xl border border-border-strong bg-surface px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-foreground focus:ring-4 focus:ring-foreground/5 disabled:bg-muted disabled:text-muted-foreground"
+              className="ds-campo flex-1 placeholder:text-muted-foreground/60 disabled:bg-muted disabled:text-muted-foreground"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -713,11 +719,11 @@ export function TestChat({
                 Boolean(pendingText)
               }
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="Escreva uma mensagem para o agente"
+              placeholder={t("Escreva uma mensagem para o agente")}
               value={message}
             />
             <button
-              className="h-12 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-border-strong disabled:text-muted-foreground"
+              className="ds-botao ds-botao-primario"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -727,7 +733,7 @@ export function TestChat({
               }
               type="submit"
             >
-              {isSending ? "Enviando..." : "Enviar"}
+              {isSending ? t("Enviando...") : t("Enviar")}
             </button>
           </form>
         </div>

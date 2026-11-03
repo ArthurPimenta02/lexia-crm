@@ -19,6 +19,7 @@ import {
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
@@ -106,7 +107,7 @@ const statusActions: { label: string; status: HandoffStatus }[] = [
 ];
 
 const deleteButtonClass =
-  "h-10 w-full rounded-full border border-red-200 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-auto sm:text-xs";
+  "ds-botao ds-botao-perigo ds-botao-p w-full disabled:cursor-not-allowed sm:w-auto";
 
 export default async function ClientHandoffsPage() {
   const { profile, user } = await getLoggedInUserProfile();
@@ -125,6 +126,7 @@ export default async function ClientHandoffsPage() {
     redirect("/app");
   }
 
+  const t = await getT();
   const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
   const [
@@ -162,7 +164,7 @@ export default async function ClientHandoffsPage() {
   return (
     <section className="flex w-full min-w-0 max-w-7xl flex-col gap-8">
       <AtualizacaoAutomatica segundos={15} sinal={sinalDaTela.bind(null, "handoffs", null)} />
-      <PaginaCabecalho titulo="Handoffs" />
+      <PaginaCabecalho titulo={t("Handoffs")} />
 
       {profile.status === "ativo" ? (
         <Suspense fallback={null}>
@@ -176,8 +178,10 @@ export default async function ClientHandoffsPage() {
       <section className="flex w-full min-w-0 flex-col gap-4">
         <HandoffSectionHeader
           count={handoffs.length}
-          dica="Pedidos em que o agente encaminhou a conversa para acompanhamento da equipa."
-          title="Pedidos de atendimento"
+          dica={t(
+            "Pedidos em que o agente encaminhou a conversa para acompanhamento da equipe.",
+          )}
+          title={t("Pedidos de atendimento")}
         />
         {handoffs.length > 0 ? (
           <div className={handoffGridClass}>
@@ -205,14 +209,18 @@ export default async function ClientHandoffsPage() {
           </div>
         ) : (
           <HandoffEmptyState>
-            Ainda não há pedidos de atendimento humano.
+            {t("Ainda não há pedidos de atendimento humano.")}
           </HandoffEmptyState>
         )}
       </section>
 
       <details className="group w-full min-w-0">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:border-border-strong [&::-webkit-details-marker]:hidden">
-          <span>Pedidos simulados em testes ({simulatedHandoffs.length})</span>
+          <span>
+            {t("Pedidos simulados em testes ({n})", {
+              n: simulatedHandoffs.length,
+            })}
+          </span>
           <span
             aria-hidden="true"
             className="text-muted-foreground/60 transition group-open:rotate-90"
@@ -233,9 +241,12 @@ export default async function ClientHandoffsPage() {
                         handoff.id,
                       )}
                       className={deleteButtonClass}
-                      confirmMessage="Excluir este handoff simulado? Isso não afeta handoffs reais de produção."
+                      confirmMessage={t(
+                        "Excluir este handoff simulado? Isso não afeta handoffs reais de produção.",
+                      )}
+                      pendingLabel={t("Aguarde...")}
                     >
-                      Excluir simulado
+                      {t("Excluir simulado")}
                     </ConfirmActionButton>
                   }
                   key={handoff.id}
@@ -247,7 +258,7 @@ export default async function ClientHandoffsPage() {
             </div>
           ) : (
             <HandoffEmptyState>
-              Ainda não há pedidos simulados.
+              {t("Ainda não há pedidos simulados.")}
             </HandoffEmptyState>
           )}
         </div>

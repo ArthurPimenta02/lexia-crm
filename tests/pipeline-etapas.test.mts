@@ -400,8 +400,8 @@ test("a exportação do quadro leva as colunas abertas e não os perdidos escond
 
   // O próprio botão diz quantas linhas vão sair, por isso a conta lê-se do
   // ecrã — é a mesma frase que o dono vê antes de carregar.
-  assert.match(html, /Descarregar 1 linha em CSV/);
-  assert.doesNotMatch(html, /Descarregar 2 linhas em CSV/);
+  assert.match(html, /Baixar 1 linha em CSV/);
+  assert.doesNotMatch(html, /Baixar 2 linhas em CSV/);
 });
 
 test("sem nada no quadro, o botão de exportar não deixa carregar", () => {

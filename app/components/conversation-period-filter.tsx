@@ -13,6 +13,7 @@ import {
   conversationPeriodOptions,
   type ConversationPeriod,
 } from "@/lib/conversations/date-range";
+import { getT } from "@/lib/i18n/servidor";
 
 export type ConversationPeriodState = {
   end: string;
@@ -85,7 +86,7 @@ function buildPeriodHref({
   return `${basePath}?${params.toString()}`;
 }
 
-export function ConversationPeriodFilter({
+export async function ConversationPeriodFilter({
   basePath,
   channel,
   clientSlug,
@@ -102,11 +103,15 @@ export function ConversationPeriodFilter({
   searchQuery?: string;
   timezone: string;
 }) {
+  const t = await getT();
+
   return (
     <div className="mt-3 border-t border-border pt-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-muted-foreground">Período</p>
-        <p className="text-xs text-muted-foreground">{rangeLabel}</p>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {t("Período")}
+        </p>
+        <p className="text-xs text-muted-foreground">{t(rangeLabel)}</p>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -132,7 +137,7 @@ export function ConversationPeriodFilter({
               })}
               key={option.key}
             >
-              {option.label}
+              {t(option.label)}
             </Link>
           );
         })}
@@ -158,28 +163,28 @@ export function ConversationPeriodFilter({
           ) : null}
 
           <label className="min-w-0">
-            <span className="sr-only">Início</span>
+            <span className="sr-only">{t("Início")}</span>
             <input
-              className="h-8 w-full min-w-0 rounded-2xl border border-border-strong bg-surface px-2 text-xs text-foreground outline-none transition focus:border-foreground"
+              className="ds-campo h-8 min-w-0 px-2 text-xs"
               defaultValue={period.start}
               name="inicio"
               type="date"
             />
           </label>
           <label className="min-w-0">
-            <span className="sr-only">Fim</span>
+            <span className="sr-only">{t("Fim")}</span>
             <input
-              className="h-8 w-full min-w-0 rounded-2xl border border-border-strong bg-surface px-2 text-xs text-foreground outline-none transition focus:border-foreground"
+              className="ds-campo h-8 min-w-0 px-2 text-xs"
               defaultValue={period.end}
               name="fim"
               type="date"
             />
           </label>
           <FormSubmitButton
-            aria-label="Aplicar período"
+            aria-label={t("Aplicar período")}
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90"
             pendingLabel=""
-            title="Aplicar período"
+            title={t("Aplicar período")}
           >
             <Check aria-hidden="true" className="h-4 w-4" />
           </FormSubmitButton>

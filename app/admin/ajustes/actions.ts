@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { getT } from "@/lib/i18n/servidor";
+import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 
 export type AgentAdjustmentActionResult = {
@@ -17,7 +19,8 @@ async function getAdminContext() {
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile || profile.role !== "lexia_admin" || profile.status !== "ativo") {
-    return { error: "Acesso não autorizado." };
+    const t = await getT();
+    return { error: t("Acesso não autorizado.") };
   }
 
   return { userId: user.id };
@@ -36,7 +39,7 @@ function getPriority(formData: FormData) {
   return Number.isFinite(priority) ? priority : Number.NaN;
 }
 
-function validateAdjustmentForm(formData: FormData) {
+function validateAdjustmentForm(formData: FormData, t: FuncaoT) {
   const clienteSlug = getRequiredString(formData, "cliente_slug");
   const modulo = getRequiredString(formData, "modulo");
   const titulo = getRequiredString(formData, "titulo");
@@ -49,27 +52,27 @@ function validateAdjustmentForm(formData: FormData) {
   const origemFeedbackId = getRequiredString(formData, "origem_feedback_id");
 
   if (!clienteSlug) {
-    return { error: "Cliente obrigatório." };
+    return { error: t("Cliente obrigatório.") };
   }
 
   if (!allowedModules.includes(modulo)) {
-    return { error: "Módulo inválido." };
+    return { error: t("Módulo inválido.") };
   }
 
   if (!titulo) {
-    return { error: "Título obrigatório." };
+    return { error: t("Título obrigatório.") };
   }
 
   if (!gatilho) {
-    return { error: "Gatilho obrigatório." };
+    return { error: t("Gatilho obrigatório.") };
   }
 
   if (!comportamentoCorreto) {
-    return { error: "Comportamento correcto obrigatório." };
+    return { error: t("Comportamento correto obrigatório.") };
   }
 
   if (!Number.isInteger(prioridade) || prioridade < 0 || prioridade > 100) {
-    return { error: "Prioridade deve estar entre 0 e 100." };
+    return { error: t("Prioridade deve estar entre 0 e 100.") };
   }
 
   return {
@@ -103,7 +106,7 @@ export async function createAgentAdjustment(formData: FormData) {
     redirect("/admin/ajustes?status=erro");
   }
 
-  const validated = validateAdjustmentForm(formData);
+  const validated = validateAdjustmentForm(formData, await getT());
 
   if (validated.error) {
     redirect(`/admin/ajustes?status=erro&mensagem=${encodeURIComponent(validated.error)}`);
@@ -147,7 +150,7 @@ export async function updateAgentAdjustment(
     redirect("/admin/ajustes?status=erro");
   }
 
-  const validated = validateAdjustmentForm(formData);
+  const validated = validateAdjustmentForm(formData, await getT());
 
   if (validated.error) {
     redirect(`/admin/ajustes?status=erro&mensagem=${encodeURIComponent(validated.error)}`);
@@ -204,7 +207,7 @@ export async function updateAgentAdjustmentStatus(
 
   if (error) {
     console.error("Erro ao alterar estado do ajuste do agente", error);
-    return { ok: false, error: "Não foi possível alterar o ajuste." };
+    return { ok: false, error: (await getT())("Não foi possível alterar o ajuste.") };
   }
 
   revalidatePath("/admin/ajustes");
