@@ -8,6 +8,7 @@ import {
   MessageSquareWarning,
   MessagesSquare,
   MoonStar,
+  Percent,
   RotateCcw,
   Send,
   Timer,
@@ -797,6 +798,10 @@ export default async function AdminDashboard({
     selectedTimezone,
     porHora,
   );
+  // A taxa de cada dia, só para a forma do mini-gráfico.
+  const serieTaxa = serieConversas.map((c, i) =>
+    c > 0 ? Math.min(100, ((serieAgendamentos[i] ?? 0) / c) * 100) : 0,
+  );
   const seriePorCliente = new Map(
     visibleClients.map((client) => [
       client.slug,
@@ -862,23 +867,29 @@ export default async function AdminDashboard({
       href: undefined,
       icone: <CalendarCheck aria-hidden="true" className="h-4 w-4" />,
       label: t("Agendamentos"),
-      nota:
-        totalConversionRate === "--"
-          ? undefined
-          : t("{taxa} das conversas", { taxa: totalConversionRate }),
+      nota: undefined,
       valor: selectedChannel ? "--" : numero.format(totals.appointments),
     },
     {
-      cor: "var(--info)",
-      dica: t(
-        "Tempo até a primeira resposta automática, nas conversas respondidas em menos de 1h.",
-      ),
-      faisca: undefined,
+      cor: "var(--ds-destaque)",
+      dica: selectedChannel
+        ? t(
+            "Indisponível com filtro de canal, pois os agendamentos não registram essa origem.",
+          )
+        : t(
+            "Agendamentos divididos pelas conversas iniciadas no mesmo período; sem atribuição individual.",
+          ),
+      faisca: temAgendamentos ? serieTaxa : undefined,
       href: undefined,
-      icone: <Timer aria-hidden="true" className="h-4 w-4" />,
-      label: t("Primeira resposta"),
-      nota: t("{n} conversas", { n: firstResponse.samples }),
-      valor: formatSeconds(firstResponse.averageSeconds, locale),
+      icone: <Percent aria-hidden="true" className="h-4 w-4" />,
+      label: t("Taxa de agendamento"),
+      nota: selectedChannel
+        ? undefined
+        : t("{agendamentos} agendamentos em {conversas} conversas", {
+            agendamentos: numero.format(totals.appointments),
+            conversas: numero.format(totals.conversations),
+          }),
+      valor: totalConversionRate,
     },
     {
       cor: "var(--ds-ouro)",
@@ -1328,6 +1339,16 @@ export default async function AdminDashboard({
         <Card>
           <CardTitulo>{t("Atendimento")}</CardTitulo>
           <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--info)"
+              dica={t(
+                "Tempo até a primeira resposta automática, nas conversas respondidas em menos de 1h.",
+              )}
+              icone={<Timer aria-hidden="true" className="h-4 w-4" />}
+              nota={t("{n} conversas", { n: firstResponse.samples })}
+              rotulo={t("Primeira resposta")}
+              valor={formatSeconds(firstResponse.averageSeconds, locale)}
+            />
             <LinhaLista
               cor="var(--info)"
               dica={t("Mensagens recebidas dos clientes finais.")}

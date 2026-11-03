@@ -338,6 +338,11 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
     timezone,
     porHora,
   );
+  // A taxa de cada dia: agendamentos do dia ÷ conversas do dia (só para a
+  // forma do mini-gráfico; o número grande é o do período inteiro).
+  const serieTaxa = serieConversas.map((c, i) =>
+    c > 0 ? Math.min(100, ((serieAgendamentos[i] ?? 0) / c) * 100) : 0,
+  );
   const esperando = conversasEsperando(messages);
   const saudacao = t(saudacaoDaHora(timezone));
   const diasDoMapa: [string, string][] = [
@@ -372,10 +377,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       href: "/app/agenda",
       icone: <CalendarCheck aria-hidden="true" className="h-4 w-4" />,
       label: t("Agendamentos"),
-      nota:
-        conversionRate === null
-          ? undefined
-          : t("{taxa} das conversas", { taxa: conversionRate }),
+      nota: undefined,
       valor:
         externalMetrics.appointments === null
           ? "--"
@@ -383,15 +385,21 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
     },
     {
       dica: t(
-        "Tempo médio até a primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora.",
+        "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
       ),
-      cor: "var(--info)",
-      faisca: undefined,
+      cor: "var(--ds-destaque)",
+      faisca: externalMetrics.isConfigured ? serieTaxa : undefined,
       href: undefined,
-      icone: <Timer aria-hidden="true" className="h-4 w-4" />,
-      label: t("Primeira resposta"),
-      nota: t("{n} conversas", { n: firstResponse.samples }),
-      valor: formatSeconds(firstResponse.averageSeconds, locale),
+      icone: <Percent aria-hidden="true" className="h-4 w-4" />,
+      label: t("Taxa de agendamento"),
+      nota:
+        externalMetrics.appointments === null
+          ? undefined
+          : t("{agendamentos} agendamentos em {conversas} conversas", {
+              agendamentos: numero.format(externalMetrics.appointments),
+              conversas: numero.format(startedConversations),
+            }),
+      valor: conversionRate ?? "--",
     },
     {
       dica: autonomyMetrics.dataAvailable
@@ -642,21 +650,14 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
           <CardTitulo>{t("Qualidade do atendimento")}</CardTitulo>
           <div className="ds-lista pb-1.5">
             <LinhaLista
-              cor="var(--ds-destaque)"
-              icone={<Percent aria-hidden="true" className="h-4 w-4" />}
+              cor="var(--info)"
+              icone={<Timer aria-hidden="true" className="h-4 w-4" />}
               dica={t(
-                "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
+                "Tempo médio até a primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora.",
               )}
-              rotulo={t("Agendam. / conversa")}
-              nota={
-                externalMetrics.appointments === null
-                  ? undefined
-                  : t("{agendamentos} para {conversas} conversas", {
-                      agendamentos: externalMetrics.appointments,
-                      conversas: startedConversations,
-                    })
-              }
-              valor={conversionRate ?? "--"}
+              rotulo={t("Primeira resposta")}
+              nota={t("{n} conversas", { n: firstResponse.samples })}
+              valor={formatSeconds(firstResponse.averageSeconds, locale)}
             />
             <LinhaLista
               cor="var(--info)"

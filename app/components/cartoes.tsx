@@ -63,7 +63,7 @@ export function CartaoMetrica({
     </>
   );
 
-  const classe = "ds-bloco flex min-w-0 flex-col p-4 sm:p-5";
+  const classe = "ds-bloco flex h-full min-w-0 flex-col p-4 sm:p-5";
   return href ? (
     <Link className={`${classe} ds-interativo`} href={href} prefetch>
       {miolo}
