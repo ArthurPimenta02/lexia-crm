@@ -478,61 +478,21 @@ function Catalogo() {
 
 
 const paletas = [
-  {
-    id: "coral", nome: "Coral", nota: "coral + tinta noturna", cores: ["#fff5ef", "#ff5a4e", "#1b1b3a"],
-    conceito: "A secretária simpática. Calor humano, nada de cara de robô.",
-    personalidade: ["acolhedora", "próxima", "sorridente"],
-    mascote: "Um balão de conversa coral, redondo, que sorri e pisca quando responde.",
-  },
-  {
-    id: "eletrica", nome: "Elétrica", nota: "ultramarino + lima ácida", cores: ["#f4f4f0", "#3a1cff", "#d4ff3a"],
-    conceito: "Tecnologia que impressiona. Rápida, jovem, um pouco atrevida.",
-    personalidade: ["rápida", "ousada", "nerd do bem"],
-    mascote: "Uma faísca azul com olhos de pixel, que deixa um rastro lima quando corre.",
-  },
-  {
-    id: "magenta", nome: "Magenta", nota: "magenta + verde", cores: ["#fff1f7", "#e6007e", "#00b386"],
-    conceito: "Inesquecível. Uma cor que ninguém do setor usa.",
-    personalidade: ["confiante", "vibrante", "memorável"],
-    mascote: "Uma gota magenta com fones verdes, sempre pronta para atender.",
-  },
-  {
-    id: "ceu", nome: "Céu", nota: "azul-céu + sol", cores: ["#f1f7ff", "#2d7ff9", "#ffb800"],
-    conceito: "Otimista e fácil. Qualquer dono de negócio entende de primeira.",
-    personalidade: ["clara", "otimista", "confiável"],
-    mascote: "Uma nuvem azul com um solzinho no lugar do coração.",
-  },
-  {
-    id: "uva", nome: "Uva", nota: "uva + menta", cores: ["#f5f2fb", "#4b1f8f", "#2fcf9f"],
-    conceito: "Premium e calma. Combina com spa, estética e clínicas.",
-    personalidade: ["elegante", "serena", "inteligente"],
-    mascote: "Uma coruja uva de óculos menta, que sabe a agenda de cor.",
-  },
-  {
-    id: "terracota", nome: "Terracota", nota: "terracota + pinho", cores: ["#fbf3ea", "#c2451e", "#2e5e4e"],
-    conceito: "Feita à mão. Negócio local, conversa de balcão, confiança.",
-    personalidade: ["artesanal", "calorosa", "honesta"],
-    mascote: "Um vasinho de barro com uma folha de pinho que balança ao falar.",
-  },
-  {
-    id: "amarelo", nome: "Amarelo", nota: "preto + amarelo vivo", cores: ["#fffaeb", "#1a1a1a", "#ffd60a"],
-    conceito: "Marca forte, de outdoor. Contraste máximo, reconhecível de longe.",
-    personalidade: ["direta", "enérgica", "bem-humorada"],
-    mascote: "Um balão amarelo de traço preto grosso, estilo desenho animado.",
-  },
-  {
-    id: "floresta", nome: "Floresta", nota: "verde-floresta + lima", cores: ["#f3f7ec", "#1f4d2b", "#b6f23a"],
-    conceito: "Crescimento. O agente que faz o negócio do cliente crescer.",
-    personalidade: ["sólida", "fresca", "de confiança"],
-    mascote: "Um broto lima que cresce um pouco a cada cliente atendido.",
-  },
+  { id: "esmeralda", nome: "Esmeralda", nota: "esmeralda + verde-noite", cores: ["#f2f6f3", "#0e8f6a", "#0b2a22"], conceito: "Calma e confiança. Um verde só, em dois tons." },
+  { id: "esmeralda-laranja", nome: "Esmeralda & Laranja", nota: "esmeralda + laranja", cores: ["#f6f4ef", "#0e8f6a", "#ff7a1a"], conceito: "O verde dá confiança, o laranja dá energia nos destaques." },
+  { id: "jade", nome: "Jade", nota: "verde profundo + menta", cores: ["#eff5f1", "#075e46", "#3ee0a6"], conceito: "Verde mais escuro e sério, com menta vivo nos detalhes." },
+  { id: "laranja", nome: "Laranja", nota: "laranja + café", cores: ["#fff6ee", "#ff6a00", "#2a1608"], conceito: "Quente e enérgica. O laranja manda em tudo." },
+  { id: "laranja-grafite", nome: "Laranja & Grafite", nota: "grafite + laranja", cores: ["#f1f0ee", "#1e2124", "#ff6a00"], conceito: "Sóbria e técnica. O laranja aparece só onde importa." },
+  { id: "vermelho", nome: "Vermelho", nota: "vermelho + quase-preto", cores: ["#fbf3f2", "#e0312b", "#1f1414"], conceito: "Forte e decidida. Vermelho puro com contraste máximo." },
+  { id: "brasa", nome: "Brasa", nota: "vermelho + laranja", cores: ["#fff5f0", "#e2322b", "#ff8a1f"], conceito: "Calor do vermelho ao laranja. Viva e acolhedora." },
+  { id: "tomate", nome: "Tomate & Pinho", nota: "vermelho + verde-pinho", cores: ["#fff4f1", "#f0402f", "#1b3a33"], conceito: "Vermelho alegre com um verde-pinho escuro para equilibrar." },
 ] as const;
 
 type IdPaleta = (typeof paletas)[number]["id"];
 
 function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; valor: IdPaleta }) {
   return (
-    <div className="ds-vidro flex max-w-full gap-1.5 overflow-x-auto rounded-[16px] p-1.5">
+    <div className="ds-vidro flex max-w-full flex-wrap justify-center gap-1.5 rounded-[16px] p-1.5">
       {paletas.map((p) => (
         <button
           aria-pressed={p.id === valor}
@@ -557,50 +517,18 @@ function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; v
 }
 
 
-/** Rascunho de mascote: só para imaginar a marca, não é o desenho final. */
-function RascunhoMascote() {
-  return (
-    <svg aria-hidden className="h-36 w-36" viewBox="0 0 120 120">
-      <ellipse cx="60" cy="110" fill="var(--ds-texto)" opacity="0.08" rx="30" ry="5" />
-      <path
-        d="M60 14c26 0 44 16 44 38s-18 38-44 38c-5 0-10-.6-14-1.8L28 98l4-16C21 75 16 64 16 52 16 30 34 14 60 14Z"
-        fill="var(--ds-acao)"
-      />
-      <ellipse cx="45" cy="50" fill="var(--ds-superficie)" rx="9" ry="11" />
-      <ellipse cx="75" cy="50" fill="var(--ds-superficie)" rx="9" ry="11" />
-      <circle cx="47" cy="52" fill="var(--ds-texto)" r="4.5" />
-      <circle cx="77" cy="52" fill="var(--ds-texto)" r="4.5" />
-      <path d="M48 68c6 6 18 6 24 0" fill="none" stroke="var(--ds-acao-texto)" strokeLinecap="round" strokeWidth="4" />
-      <circle cx="94" cy="20" fill="var(--ds-mancha-2)" r="7" />
-      <path d="M86 28l-6 6" stroke="var(--ds-mancha-2)" strokeLinecap="round" strokeWidth="4" />
-    </svg>
-  );
-}
-
 function DirecaoMarca({ id }: { id: IdPaleta }) {
   const p = paletas.find((x) => x.id === id) ?? paletas[0];
   return (
-    <section className="ds-cartao grid items-center gap-8 overflow-hidden p-8 md:grid-cols-[auto_1fr_auto]">
-      <div className="flex items-center justify-center">
-        <RascunhoMascote />
-      </div>
+    <section className="ds-cartao grid items-center gap-8 overflow-hidden p-8 md:grid-cols-[1fr_auto]">
       <div className="flex flex-col gap-3">
-        <p className="ds-sobretitulo">Direção de marca // {p.nome}</p>
+        <p className="ds-sobretitulo">Paleta // {p.nome}</p>
         <p className="text-[2.75rem] leading-none font-semibold tracking-[-0.045em]">
           lexia<span className="ds-destaque">.</span>
         </p>
         <p className="ds-titulo-3 max-w-md">{p.conceito}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {p.personalidade.map((x) => (
-            <Selo key={x} tom="verde">{x}</Selo>
-          ))}
-        </div>
-        <p className="ds-corpo max-w-md text-[var(--ds-texto-2)]">
-          <span className="font-medium text-[var(--ds-texto)]">Mascote: </span>
-          {p.mascote}
-        </p>
       </div>
-      <div className="flex gap-2 md:flex-col">
+      <div className="flex gap-3 md:flex-col">
         {p.cores.map((c, i) => (
           <div className="flex items-center gap-2.5" key={c}>
             <span className="size-11 rounded-[12px] shadow-[inset_0_0_0_1px_var(--ds-linha)]" style={{ background: c }} />
@@ -618,15 +546,17 @@ function DirecaoMarca({ id }: { id: IdPaleta }) {
 type Modo = "claro" | "escuro";
 
 export function Vitrine() {
-  const [paleta, setPaleta] = useState<IdPaleta>("coral");
+  const [paleta, setPaleta] = useState<IdPaleta>("esmeralda");
   const [modo, setModo] = useState<Modo>("claro");
 
-  // A paleta vai no endereço (/design#coral-escuro) para dar para partilhar.
+  // A paleta vai no endereço (/design#esmeralda-escuro) para dar para partilhar.
   useEffect(() => {
     const ler = () => {
-      const [h, m] = window.location.hash.slice(1).split("-");
+      const hash = window.location.hash.slice(1);
+      const escuro = hash.endsWith("-escuro");
+      const h = escuro ? hash.slice(0, -"-escuro".length) : hash;
       if (paletas.some((p) => p.id === h)) setPaleta(h as IdPaleta);
-      setModo(m === "escuro" ? "escuro" : "claro");
+      setModo(escuro ? "escuro" : "claro");
     };
     ler();
     window.addEventListener("hashchange", ler);
