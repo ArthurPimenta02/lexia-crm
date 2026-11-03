@@ -1,0 +1,548 @@
+/*
+ * Design system da Lexia (v1, em avaliação).
+ *
+ * Referência estética: fundo quase branco com manchas de cor desfocadas,
+ * cartões brancos com sombra longa e suave, verde-menta como cor de acção,
+ * botão principal preto em pílula, números em fonte mono.
+ *
+ * Tudo vive debaixo de `.ds` para não mexer nas telas actuais enquanto o
+ * Arthur avalia. Quando for aprovado, os tokens sobem para o `:root`.
+ */
+
+.ds {
+  /* ===== As 3 cores da paleta. Tudo o resto sai delas. ===== */
+  --c1: #f2f6f3;            /* fundo */
+  --c2: #0e8f6a;            /* principal: botões, barras, seleção */
+  --c3: #0b2a22;            /* destaque: palavras-chave, manchas, 2.ª série */
+  --c2-texto: #ffffff;      /* texto em cima da principal */
+  --c3-legivel: #0b2a22;    /* o destaque quando é texto sobre fundo claro */
+
+  /* Superfícies */
+  --ds-fundo: var(--c1);
+  --ds-superficie: color-mix(in oklab, var(--c1) 22%, white);
+  --ds-superficie-2: color-mix(in oklab, var(--c1) 55%, white);
+  --ds-linha: color-mix(in oklab, var(--ds-texto) 8%, transparent);
+  --ds-linha-forte: color-mix(in oklab, var(--ds-texto) 14%, transparent);
+
+  /* Texto: quase preto, puxado para a cor principal */
+  --ds-texto: color-mix(in oklab, var(--c2) 14%, #0d0f12);
+  --ds-texto-2: color-mix(in oklab, var(--ds-texto) 64%, var(--c1));
+  --ds-texto-3: color-mix(in oklab, var(--ds-texto) 40%, var(--c1));
+
+  /* Ação e destaque */
+  --ds-acao: var(--c2);
+  --ds-acao-forte: color-mix(in oklab, var(--c2) 84%, black);
+  --ds-acao-suave: color-mix(in oklab, var(--c2) 20%, var(--ds-superficie));
+  --ds-acao-fundo: color-mix(in oklab, var(--c2) 9%, var(--ds-superficie));
+  --ds-acao-texto: var(--c2-texto);
+  --ds-botao: var(--c2);
+  --ds-botao-texto: var(--c2-texto);
+  --ds-destaque: var(--c3-legivel);
+  --ds-positivo: #1f8a5f;
+  --ds-vidro: color-mix(in oklab, var(--ds-superficie) 74%, transparent);
+  --ds-mancha-1: var(--c2);
+  --ds-mancha-2: var(--c3);
+  --ds-mancha-3: var(--c3);
+
+  /* Estados */
+  --ds-alerta: #c2410c;
+  --ds-alerta-fundo: #fff4ec;
+  --ds-perigo: #d63c3c;
+  --ds-perigo-fundo: #fdf0f0;
+  --ds-ouro: #b7791f;
+  --ds-ouro-fundo: #fff8e8;
+
+  /* Forma */
+  --ds-raio-cartao: 20px;
+  --ds-raio-bloco: 14px;
+  --ds-raio-chip: 9px;
+
+  /* Profundidade: uma sombra curta que assenta + uma longa que levanta */
+  --ds-sombra-1: 0 1px 2px rgb(16 24 20 / 0.04), 0 8px 24px -12px rgb(16 24 20 / 0.10);
+  --ds-sombra-2: 0 1px 2px rgb(16 24 20 / 0.04), 0 24px 48px -20px rgb(16 24 20 / 0.18);
+
+  /* Movimento: curto e sem ressalto */
+  --ds-curva: cubic-bezier(0.22, 1, 0.36, 1);
+
+  background: var(--ds-fundo);
+  color: var(--ds-texto);
+  transition: background-color 400ms var(--ds-curva), color 400ms var(--ds-curva);
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
+}
+
+/* Fundo com manchas de cor desfocadas (o "aurora" da referência) */
+.ds-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 6% 10%, color-mix(in oklab, var(--ds-mancha-1) 26%, transparent), transparent 70%),
+    radial-gradient(34% 30% at 92% 6%, color-mix(in oklab, var(--ds-mancha-2) 22%, transparent), transparent 70%),
+    radial-gradient(40% 36% at 90% 96%, color-mix(in oklab, var(--ds-mancha-3) 20%, transparent), transparent 70%),
+    radial-gradient(30% 30% at 4% 92%, color-mix(in oklab, var(--ds-mancha-1) 10%, transparent), transparent 70%);
+  filter: blur(8px);
+}
+
+
+/* ================================================================
+ * Paletas: cada uma são 3 cores (fundo, principal, destaque) e o
+ * texto que fica legível em cima delas. Tudo o resto é calculado.
+ * ================================================================ */
+.ds[data-paleta="esmeralda"] {
+  --c1: #f2f6f3; --c2: #0e8f6a; --c3: #0b2a22; --c2-texto: #ffffff; --c3-legivel: #0b2a22;
+  --c2-escuro: #2fd39f; --c2-escuro-texto: #03140e; --c3-escuro: #b8f0dc;
+}
+.ds[data-paleta="esmeralda-laranja"] {
+  --c1: #f6f4ef; --c2: #0e8f6a; --c3: #ff7a1a; --c2-texto: #ffffff; --c3-legivel: #d9600a;
+  --c2-escuro: #2fd39f; --c2-escuro-texto: #03140e; --c3-escuro: #ff9a4d;
+}
+.ds[data-paleta="jade"] {
+  --c1: #eff5f1; --c2: #075e46; --c3: #3ee0a6; --c2-texto: #ffffff; --c3-legivel: #0e8f6a;
+  --c2-escuro: #3ee0a6; --c2-escuro-texto: #03140e; --c3-escuro: #a6f5d6;
+}
+.ds[data-paleta="laranja"] {
+  --c1: #fff6ee; --c2: #ff6a00; --c3: #2a1608; --c2-texto: #ffffff; --c3-legivel: #2a1608;
+  --c2-escuro: #ff8a33; --c2-escuro-texto: #1f0c00; --c3-escuro: #ffd2ad;
+}
+.ds[data-paleta="laranja-grafite"] {
+  --c1: #f1f0ee; --c2: #1e2124; --c3: #ff6a00; --c2-texto: #ffffff; --c3-legivel: #e05a00;
+  --c2-escuro: #ff7a1a; --c2-escuro-texto: #1f0c00; --c3-escuro: #e8e6e3;
+}
+.ds[data-paleta="vermelho"] {
+  --c1: #fbf3f2; --c2: #e0312b; --c3: #1f1414; --c2-texto: #ffffff; --c3-legivel: #1f1414;
+  --c2-escuro: #ff5a52; --c2-escuro-texto: #1f0303; --c3-escuro: #ffc9c5;
+}
+.ds[data-paleta="brasa"] {
+  --c1: #fff5f0; --c2: #e2322b; --c3: #ff8a1f; --c2-texto: #ffffff; --c3-legivel: #d0670a;
+  --c2-escuro: #ff5a52; --c2-escuro-texto: #1f0303; --c3-escuro: #ffa94d;
+}
+.ds[data-paleta="tomate"] {
+  --c1: #fff4f1; --c2: #f0402f; --c3: #1b3a33; --c2-texto: #ffffff; --c3-legivel: #1b3a33;
+  --c2-escuro: #ff6655; --c2-escuro-texto: #1f0303; --c3-escuro: #8fd6bf;
+}
+
+/* ---------- Modo escuro: o mesmo trio, sobre um quase-preto tingido pela principal ---------- */
+.ds[data-modo="escuro"] {
+  --ds-fundo: color-mix(in oklab, var(--c2) 9%, #08090b);
+  --ds-superficie: color-mix(in oklab, var(--c2) 7%, #14161a);
+  --ds-superficie-2: color-mix(in oklab, var(--c2) 9%, #191b20);
+  --ds-texto: color-mix(in oklab, var(--c1) 70%, white);
+  --ds-texto-2: color-mix(in oklab, var(--ds-texto) 62%, var(--ds-fundo));
+  --ds-texto-3: color-mix(in oklab, var(--ds-texto) 40%, var(--ds-fundo));
+  --ds-acao: var(--c2-escuro);
+  --ds-acao-forte: color-mix(in oklab, var(--c2-escuro) 85%, white);
+  --ds-acao-suave: color-mix(in oklab, var(--c2-escuro) 24%, var(--ds-superficie));
+  --ds-acao-fundo: color-mix(in oklab, var(--c2-escuro) 13%, var(--ds-superficie));
+  --ds-acao-texto: var(--c2-escuro-texto);
+  --ds-botao: var(--c2-escuro);
+  --ds-botao-texto: var(--c2-escuro-texto);
+  --ds-destaque: var(--c3-escuro);
+  --ds-mancha-1: var(--c2-escuro);
+  --ds-mancha-2: var(--c3-escuro);
+  --ds-mancha-3: var(--c3-escuro);
+  --ds-positivo: #6ee7a0;
+  --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717;
+  --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
+  --ds-ouro: #f5c04a; --ds-ouro-fundo: #33280f;
+  --ds-sombra-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+.ds[data-modo="escuro"] .ds-selo-verde { color: var(--ds-acao); }
+
+/* ---------- Tipografia ---------- */
+
+.ds-titulo-1 {
+  font-size: clamp(1.75rem, 2.4vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+}
+.ds-titulo-2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.ds-titulo-3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+.ds-corpo {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ds-legenda {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ds-texto-3);
+}
+.ds-sobretitulo {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-texto-3);
+}
+.ds-numero {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  word-spacing: -0.25em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ds-destaque {
+  color: var(--ds-destaque);
+}
+
+/* ---------- Cartões ---------- */
+
+.ds-cartao {
+  position: relative;
+  background: var(--ds-superficie);
+  border-radius: var(--ds-raio-cartao);
+  box-shadow: var(--ds-sombra-2), inset 0 0 0 1px var(--ds-linha);
+}
+.ds-bloco {
+  background: var(--ds-superficie);
+  border-radius: var(--ds-raio-bloco);
+  box-shadow: var(--ds-sombra-1), inset 0 0 0 1px var(--ds-linha);
+}
+.ds-vidro {
+  background: var(--ds-vidro);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: inset 0 0 0 1px var(--ds-linha), var(--ds-sombra-1);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-vidro {
+    background: var(--ds-superficie);
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- Botões ---------- */
+
+.ds-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1.125rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition:
+    transform 120ms var(--ds-curva),
+    background-color 160ms var(--ds-curva),
+    box-shadow 160ms var(--ds-curva),
+    color 160ms var(--ds-curva);
+}
+/* Feedback no toque, não no soltar */
+.ds-botao:not(:disabled):active {
+  transform: scale(0.97);
+  opacity: 1;
+}
+.ds-botao:disabled {
+  opacity: 0.45;
+}
+.ds-botao:focus-visible {
+  outline: 2px solid var(--ds-acao);
+  outline-offset: 2px;
+}
+.ds-botao-p {
+  height: 2rem;
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+  gap: 0.375rem;
+}
+.ds-botao-g {
+  height: 3rem;
+  padding: 0 1.75rem;
+  font-size: 0.9375rem;
+}
+
+.ds-botao-primario {
+  background: var(--ds-botao);
+  color: var(--ds-botao-texto);
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.2), 0 6px 16px -6px rgb(0 0 0 / 0.35);
+}
+@media (hover: hover) {
+  .ds-botao-primario:not(:disabled):hover { background: color-mix(in oklab, var(--ds-botao) 86%, var(--ds-superficie)); }
+}
+
+.ds-botao-verde {
+  background: var(--ds-acao);
+  color: var(--ds-acao-texto);
+  box-shadow: 0 1px 1px color-mix(in oklab, var(--ds-acao-forte) 30%, transparent), 0 6px 16px -6px color-mix(in oklab, var(--ds-acao-forte) 50%, transparent);
+}
+@media (hover: hover) {
+  .ds-botao-verde:not(:disabled):hover { background: var(--ds-acao-forte); }
+}
+
+.ds-botao-secundario {
+  background: var(--ds-superficie);
+  color: var(--ds-texto);
+  box-shadow: inset 0 0 0 1px var(--ds-linha-forte), 0 1px 2px rgb(16 24 20 / 0.05);
+}
+@media (hover: hover) {
+  .ds-botao-secundario:not(:disabled):hover { background: var(--ds-superficie-2); }
+}
+
+.ds-botao-fantasma {
+  background: transparent;
+  color: var(--ds-texto-2);
+}
+@media (hover: hover) {
+  .ds-botao-fantasma:not(:disabled):hover {
+    background: color-mix(in oklab, var(--ds-texto) 5%, transparent);
+    color: var(--ds-texto);
+  }
+}
+
+.ds-botao-perigo {
+  background: var(--ds-perigo-fundo);
+  color: var(--ds-perigo);
+}
+
+/* ---------- Selos ---------- */
+
+.ds-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: 7px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ds-selo-ponto::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.ds-selo-verde { background: var(--ds-acao-fundo); color: var(--ds-acao-forte); }
+.ds-selo-neutro { background: color-mix(in oklab, var(--ds-texto) 5%, transparent); color: var(--ds-texto-2); }
+.ds-selo-alerta { background: var(--ds-alerta-fundo); color: var(--ds-alerta); }
+.ds-selo-perigo { background: var(--ds-perigo-fundo); color: var(--ds-perigo); }
+.ds-selo-ouro {
+  background: var(--ds-ouro-fundo);
+  color: var(--ds-ouro);
+  box-shadow: inset 0 0 0 1px rgb(183 121 31 / 0.2);
+}
+.ds-selo-escuro { background: var(--ds-botao); color: var(--ds-botao-texto); }
+
+/* ---------- Segmentado (as pílulas M1…M12 da referência) ---------- */
+
+.ds-segmentado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.ds-segmento {
+  height: 2rem;
+  min-width: 2.75rem;
+  padding: 0 0.75rem;
+  border-radius: var(--ds-raio-chip);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  background: var(--ds-superficie);
+  box-shadow: inset 0 0 0 1px var(--ds-linha), 0 1px 2px rgb(16 24 20 / 0.04);
+  transition: background-color 180ms var(--ds-curva), color 180ms var(--ds-curva), transform 120ms var(--ds-curva);
+}
+.ds-segmento:active { transform: scale(0.96); opacity: 1 !important; }
+@media (hover: hover) {
+  .ds-segmento:hover:not([aria-pressed="true"]) { color: var(--ds-texto); }
+}
+.ds-segmento[aria-pressed="true"] {
+  background: var(--ds-acao);
+  color: var(--ds-acao-texto);
+  box-shadow: 0 1px 1px color-mix(in oklab, var(--ds-acao-forte) 30%, transparent), 0 4px 12px -4px color-mix(in oklab, var(--ds-acao-forte) 50%, transparent);
+}
+
+/* Abas em trilho (alternativa compacta) */
+.ds-trilho {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 11px;
+  background: color-mix(in oklab, var(--ds-texto) 5%, transparent);
+}
+.ds-trilho > button {
+  height: 1.875rem;
+  padding: 0 0.875rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  transition: background-color 180ms var(--ds-curva), color 180ms var(--ds-curva), box-shadow 180ms var(--ds-curva);
+}
+.ds-trilho > button[aria-pressed="true"] {
+  background: var(--ds-superficie);
+  color: var(--ds-texto);
+  box-shadow: 0 1px 2px rgb(16 24 20 / 0.08), 0 0 0 1px var(--ds-linha);
+}
+
+/* ---------- Interruptor ---------- */
+
+.ds-interruptor {
+  position: relative;
+  width: 2.25rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ds-texto) 14%, transparent);
+  transition: background-color 200ms var(--ds-curva);
+  flex-shrink: 0;
+  min-height: 0 !important;
+}
+.ds-interruptor::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  background: var(--ds-superficie-elevada, #fff);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  transition: transform 260ms var(--ds-curva);
+}
+.ds-interruptor[aria-checked="true"] { background: var(--ds-acao); }
+.ds-interruptor[aria-checked="true"]::after { transform: translateX(0.875rem); }
+
+/* ---------- Campos ---------- */
+
+.ds-campo {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: 11px;
+  background: var(--ds-superficie);
+  font-size: 0.875rem;
+  color: var(--ds-texto);
+  box-shadow: inset 0 0 0 1px var(--ds-linha-forte);
+  transition: box-shadow 160ms var(--ds-curva);
+  outline: none;
+}
+.ds-campo::placeholder { color: var(--ds-texto-3); }
+.ds-campo:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ds-acao), 0 0 0 4px color-mix(in oklab, var(--ds-acao) 16%, transparent);
+}
+
+/* ---------- Etapas (lista com check verde e linha a ligar) ---------- */
+
+.ds-etapas { position: relative; display: grid; gap: 1.125rem; }
+.ds-etapa { position: relative; display: grid; grid-template-columns: 1.25rem 1fr; gap: 0.75rem; }
+.ds-etapa:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(0.625rem - 1px);
+  top: 1.375rem;
+  bottom: -1.125rem;
+  width: 2px;
+  background: var(--ds-linha);
+}
+.ds-etapa[data-feita="true"]:not(:last-child)::before { background: var(--ds-acao); }
+.ds-etapa-marca {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--ds-texto-3);
+  box-shadow: inset 0 0 0 1.5px var(--ds-linha-forte);
+  background: var(--ds-superficie);
+}
+.ds-etapa[data-feita="true"] .ds-etapa-marca {
+  background: var(--ds-acao);
+  color: var(--ds-acao-texto);
+  box-shadow: none;
+}
+
+/* ---------- Barras ---------- */
+
+.ds-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ds-texto) 6%, transparent);
+  overflow: hidden;
+}
+.ds-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ds-acao);
+  transition: width 600ms var(--ds-curva);
+}
+
+/* ---------- Avatar ---------- */
+
+.ds-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--ds-superficie);
+}
+
+/* ---------- Navegação lateral ---------- */
+
+.ds-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  transition: background-color 160ms var(--ds-curva), color 160ms var(--ds-curva);
+}
+@media (hover: hover) {
+  .ds-nav-item:hover { background: color-mix(in oklab, var(--ds-texto) 4%, transparent); color: var(--ds-texto); }
+}
+.ds-nav-item[aria-current="page"] {
+  background: color-mix(in oklab, var(--ds-texto) 6%, transparent);
+  color: var(--ds-texto);
+}
+
+/* ---------- Entrada (texto que aparece desfocado → nítido, como no vídeo) ---------- */
+
+@keyframes ds-entrar {
+  from { opacity: 0; filter: blur(8px); transform: translateY(8px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+.ds-entrar {
+  animation: ds-entrar 700ms var(--ds-curva) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Movimento reduzido: só um fade curto, sem deslocar nem desfocar */
+@media (prefers-reduced-motion: reduce) {
+  .ds-entrar { animation: none; }
+  .ds, .ds * { transition-duration: 0s !important; }
+  .ds-botao, .ds-segmento, .ds-interruptor::after, .ds-barra > span { transition: none; }
+}
