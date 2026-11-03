@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ArrowRight,
@@ -62,15 +62,15 @@ function GraficoArea() {
     <svg className="h-40 w-full" preserveAspectRatio="none" viewBox={`0 0 ${w} ${h}`}>
       <defs>
         <linearGradient id="ds-area" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="var(--ds-verde)" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="var(--ds-verde)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--ds-acao)" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="var(--ds-acao)" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[0.25, 0.5, 0.75].map((p) => (
         <line key={p} stroke="var(--ds-linha)" strokeDasharray="3 4" x1="0" x2={w} y1={h * p} y2={h * p} />
       ))}
       <path d={`${linha} L${w},${h} L0,${h} Z`} fill="url(#ds-area)" />
-      <path d={linha} fill="none" stroke="var(--ds-verde)" strokeLinejoin="round" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <path d={linha} fill="none" stroke="var(--ds-acao)" strokeLinejoin="round" strokeWidth="2" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -91,7 +91,7 @@ function BarrasCanal() {
             className="w-full rounded-[8px]"
             style={{
               height: `${d.v * 1.6}px`,
-              background: i === 0 ? "var(--ds-verde)" : "var(--ds-verde-suave)",
+              background: i === 0 ? "var(--ds-acao)" : "var(--ds-acao-suave)",
             }}
           />
           <span className="ds-legenda">{d.r}</span>
@@ -113,9 +113,9 @@ function BarraLateral() {
     { i: Settings, t: "Configurações" },
   ];
   return (
-    <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-[var(--ds-linha)] bg-white/70 p-4 backdrop-blur-xl lg:flex">
+    <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-[var(--ds-linha)] bg-[var(--ds-vidro)] p-4 backdrop-blur-xl lg:flex">
       <div className="flex items-center gap-2.5 px-1.5">
-        <span className="grid size-7 place-items-center rounded-[8px] bg-[var(--ds-verde)] text-[0.75rem] font-bold text-white">L</span>
+        <span className="grid size-7 place-items-center rounded-[8px] bg-[var(--ds-acao)] text-[0.75rem] font-bold text-[var(--ds-acao-texto)]">L</span>
         <div className="leading-tight">
           <p className="text-[0.8125rem] font-semibold">Lexia</p>
           <p className="ds-legenda">Detail by Cordeiro</p>
@@ -127,7 +127,7 @@ function BarraLateral() {
             <Icone size={16} strokeWidth={1.75} />
             <span className="flex-1">{t}</span>
             {n ? (
-              <span className="grid size-[1.125rem] place-items-center rounded-full bg-[var(--ds-preto)] text-[0.625rem] font-semibold text-white">
+              <span className="grid size-[1.125rem] place-items-center rounded-full bg-[var(--ds-botao)] text-[0.625rem] font-semibold text-[var(--ds-botao-texto)]">
                 {n}
               </span>
             ) : null}
@@ -157,10 +157,10 @@ function TelaExemplo() {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Barra de topo em vidro */}
           <header className="ds-vidro sticky top-0 z-10 flex items-center gap-3 px-6 py-3">
-            <div className="flex h-9 flex-1 items-center gap-2 rounded-[11px] bg-[rgb(17_20_18/0.04)] px-3 text-[var(--ds-texto-3)] sm:max-w-xs">
+            <div className="flex h-9 flex-1 items-center gap-2 rounded-[11px] bg-[rgb(var(--ds-tinta)/0.05)] px-3 text-[var(--ds-texto-3)] sm:max-w-xs">
               <Search size={15} />
               <span className="text-[0.8125rem]">Buscar lead, conversa…</span>
-              <kbd className="ml-auto rounded-[5px] bg-white px-1.5 text-[0.625rem] font-medium shadow-[0_0_0_1px_var(--ds-linha)]">⌘K</kbd>
+              <kbd className="ml-auto rounded-[5px] bg-[var(--ds-superficie)] px-1.5 text-[0.625rem] font-medium shadow-[0_0_0_1px_var(--ds-linha)]">⌘K</kbd>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <button aria-label="Avisos" className="ds-botao ds-botao-fantasma relative !h-9 !w-9 !p-0">
@@ -240,12 +240,12 @@ function TelaExemplo() {
                   {conversas.map((c) => (
                     <li key={c.nome}>
                       <a
-                        className="flex items-center gap-3 rounded-[12px] px-3 py-2.5 transition-colors hover:bg-[rgb(17_20_18/0.03)]"
+                        className="flex items-center gap-3 rounded-[12px] px-3 py-2.5 transition-colors hover:bg-[rgb(var(--ds-tinta)/0.04)]"
                         href="#"
                       >
                         <div className="relative">
                           <Avatar nome={c.nome} tamanho={34} />
-                          <span className="absolute -right-0.5 -bottom-0.5 grid size-4 place-items-center rounded-full bg-white">
+                          <span className="absolute -right-0.5 -bottom-0.5 grid size-4 place-items-center rounded-full bg-[var(--ds-superficie)]">
                             {c.canal === "wa" ? (
                               <WhatsAppGlyph className="size-3 text-[#25d366]" />
                             ) : (
@@ -344,12 +344,12 @@ function Catalogo() {
       <Cartao className="p-6">
         <p className="ds-sobretitulo">01 // cores</p>
         <div className="mt-4 grid grid-cols-2 gap-4">
-          <Amostra cor="var(--ds-fundo)" nome="Fundo" nota="#f6f7f4" />
-          <Amostra cor="var(--ds-superficie)" nome="Superfície" nota="#ffffff" />
-          <Amostra cor="var(--ds-preto)" nome="Preto (ação principal)" nota="#0f1110" />
-          <Amostra cor="var(--ds-verde)" nome="Verde (marca)" nota="#2bb88a" />
-          <Amostra cor="var(--ds-verde-suave)" nome="Verde suave" nota="#d6f2e7" />
-          <Amostra cor="var(--ds-texto-2)" nome="Texto secundário" nota="#5c625f" />
+          <Amostra cor="var(--ds-fundo)" nome="Fundo" nota="--ds-fundo" />
+          <Amostra cor="var(--ds-superficie)" nome="Superfície" nota="--ds-superficie" />
+          <Amostra cor="var(--ds-botao)" nome="Botão principal" nota="--ds-botao" />
+          <Amostra cor="var(--ds-acao)" nome="Cor de ação" nota="--ds-acao" />
+          <Amostra cor="var(--ds-acao-suave)" nome="Ação suave" nota="--ds-acao-suave" />
+          <Amostra cor="var(--ds-destaque)" nome="Destaque" nota="--ds-destaque" />
         </div>
       </Cartao>
 
@@ -471,9 +471,66 @@ function Catalogo() {
   );
 }
 
-export function Vitrine() {
+
+const paletas = [
+  { id: "menta", nome: "Menta", nota: "a do vídeo", cores: ["#f6f7f4", "#0f1110", "#2bb88a"] },
+  { id: "bubblegum", nome: "Bubblegum", nota: "sua referência 1", cores: ["#f0f0f0", "#4b3bff", "#f25cc4"] },
+  { id: "limao", nome: "Limão", nota: "sua referência 2", cores: ["#171717", "#fff21a", "#a668ff"] },
+  { id: "barro", nome: "Barro", nota: "terracota + oliva", cores: ["#f3efe7", "#c8532e", "#8c9a55"] },
+  { id: "cobalto", nome: "Cobalto", nota: "cobalto + coral", cores: ["#0b1340", "#2741ff", "#ff6b4a"] },
+  { id: "ameixa", nome: "Ameixa", nota: "ameixa + pêssego", cores: ["#2e1640", "#6b34a3", "#ffb38a"] },
+  { id: "petroleo", nome: "Petróleo", nota: "petróleo + laranja ácido", cores: ["#0e3b3a", "#ff6a13", "#eef2f0"] },
+  { id: "noite", nome: "Noite", nota: "escuro, lima + lilás", cores: ["#0c0d10", "#c6ff3d", "#b79cff"] },
+] as const;
+
+type IdPaleta = (typeof paletas)[number]["id"];
+
+function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; valor: IdPaleta }) {
   return (
-    <div className="ds relative min-h-screen">
+    <div className="ds-vidro sticky top-3 z-20 mx-auto flex max-w-full gap-1.5 overflow-x-auto rounded-[16px] p-1.5">
+      {paletas.map((p) => (
+        <button
+          aria-pressed={p.id === valor}
+          className="flex shrink-0 items-center gap-2 rounded-[11px] px-2.5 py-1.5 text-left transition-colors aria-pressed:bg-[var(--ds-superficie)] aria-pressed:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_var(--ds-linha)]"
+          key={p.id}
+          onClick={() => onChange(p.id)}
+          type="button"
+        >
+          <span className="flex -space-x-1.5">
+            {p.cores.map((c) => (
+              <span className="size-4 rounded-full shadow-[0_0_0_1.5px_var(--ds-superficie),inset_0_0_0_1px_rgb(0_0_0/0.08)]" key={c} style={{ background: c }} />
+            ))}
+          </span>
+          <span className="leading-tight">
+            <span className="block text-[0.75rem] font-semibold">{p.nome}</span>
+            <span className="block text-[0.625rem] text-[var(--ds-texto-3)]">{p.nota}</span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Vitrine() {
+  const [paleta, setPaleta] = useState<IdPaleta>("menta");
+
+  // A paleta vai no endereço (/design#noite) para dar para partilhar.
+  useEffect(() => {
+    const ler = () => {
+      const h = window.location.hash.slice(1);
+      if (paletas.some((p) => p.id === h)) setPaleta(h as IdPaleta);
+    };
+    ler();
+    window.addEventListener("hashchange", ler);
+    return () => window.removeEventListener("hashchange", ler);
+  }, []);
+
+  const escolher = (v: IdPaleta) => {
+    setPaleta(v);
+    history.replaceState(null, "", `#${v}`);
+  };
+  return (
+    <div className="ds relative min-h-screen" data-paleta={paleta}>
       <div aria-hidden className="ds-aurora" />
       <div className="relative z-[1] mx-auto flex max-w-[1320px] flex-col gap-10 px-4 py-12 sm:px-8">
         <header className="flex flex-col items-center gap-4 text-center">
@@ -487,6 +544,8 @@ export function Vitrine() {
             Uma tela de exemplo já no estilo novo, e abaixo todas as peças que as telas vão usar.
           </p>
         </header>
+
+        <SeletorPaleta onChange={escolher} valor={paleta} />
 
         <section className="ds-entrar" style={{ ["--i" as string]: 3 }}>
           <TelaExemplo />

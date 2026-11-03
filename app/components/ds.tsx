@@ -245,7 +245,7 @@ export function Metrica({
       {variacao ? (
         <span
           className="text-xs font-medium"
-          style={{ color: variacao.positiva ? "var(--ds-verde-forte)" : "var(--ds-perigo)" }}
+          style={{ color: variacao.positiva ? "var(--ds-positivo)" : "var(--ds-perigo)" }}
         >
           {variacao.texto}
         </span>
