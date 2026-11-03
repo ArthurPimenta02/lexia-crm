@@ -1,0 +1,464 @@
+/*
+ * Design system da Lexia (v1, em avaliação).
+ *
+ * Referência estética: fundo quase branco com manchas de cor desfocadas,
+ * cartões brancos com sombra longa e suave, verde-menta como cor de acção,
+ * botão principal preto em pílula, números em fonte mono.
+ *
+ * Tudo vive debaixo de `.ds` para não mexer nas telas actuais enquanto o
+ * Arthur avalia. Quando for aprovado, os tokens sobem para o `:root`.
+ */
+
+.ds {
+  /* Superfícies */
+  --ds-fundo: #f6f7f4;
+  --ds-superficie: #ffffff;
+  --ds-superficie-2: #fafbf9;
+  --ds-linha: rgb(17 20 18 / 0.07);
+  --ds-linha-forte: rgb(17 20 18 / 0.12);
+
+  /* Texto */
+  --ds-texto: #0f1110;
+  --ds-texto-2: #5c625f;
+  --ds-texto-3: #9aa09d;
+
+  /* Marca */
+  --ds-verde: #2bb88a;
+  --ds-verde-forte: #1f9a72;
+  --ds-verde-suave: #d6f2e7;
+  --ds-verde-fundo: #eefaf5;
+  --ds-preto: #0f1110;
+
+  /* Estados */
+  --ds-alerta: #c2410c;
+  --ds-alerta-fundo: #fff4ec;
+  --ds-perigo: #d63c3c;
+  --ds-perigo-fundo: #fdf0f0;
+  --ds-ouro: #b7791f;
+  --ds-ouro-fundo: #fff8e8;
+
+  /* Forma */
+  --ds-raio-cartao: 20px;
+  --ds-raio-bloco: 14px;
+  --ds-raio-chip: 9px;
+
+  /* Profundidade: uma sombra curta que assenta + uma longa que levanta */
+  --ds-sombra-1: 0 1px 2px rgb(16 24 20 / 0.04), 0 8px 24px -12px rgb(16 24 20 / 0.10);
+  --ds-sombra-2: 0 1px 2px rgb(16 24 20 / 0.04), 0 24px 48px -20px rgb(16 24 20 / 0.18);
+
+  /* Movimento: curto e sem ressalto */
+  --ds-curva: cubic-bezier(0.22, 1, 0.36, 1);
+
+  background: var(--ds-fundo);
+  color: var(--ds-texto);
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
+}
+
+/* Fundo com manchas de cor desfocadas (o "aurora" da referência) */
+.ds-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 6% 10%, rgb(43 184 138 / 0.20), transparent 70%),
+    radial-gradient(34% 30% at 92% 6%, rgb(120 150 240 / 0.16), transparent 70%),
+    radial-gradient(40% 36% at 90% 96%, rgb(245 170 130 / 0.14), transparent 70%),
+    radial-gradient(30% 30% at 4% 92%, rgb(43 184 138 / 0.08), transparent 70%);
+  filter: blur(8px);
+}
+
+/* ---------- Tipografia ---------- */
+
+.ds-titulo-1 {
+  font-size: clamp(1.75rem, 2.4vw, 2.25rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+}
+.ds-titulo-2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.ds-titulo-3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+.ds-corpo {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ds-legenda {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ds-texto-3);
+}
+.ds-sobretitulo {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ds-texto-3);
+}
+.ds-numero {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  word-spacing: -0.25em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ds-destaque {
+  color: var(--ds-verde);
+}
+
+/* ---------- Cartões ---------- */
+
+.ds-cartao {
+  position: relative;
+  background: var(--ds-superficie);
+  border-radius: var(--ds-raio-cartao);
+  box-shadow: var(--ds-sombra-2), inset 0 0 0 1px var(--ds-linha);
+}
+.ds-bloco {
+  background: var(--ds-superficie);
+  border-radius: var(--ds-raio-bloco);
+  box-shadow: var(--ds-sombra-1), inset 0 0 0 1px var(--ds-linha);
+}
+.ds-vidro {
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.6), var(--ds-sombra-1);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ds-vidro {
+    background: var(--ds-superficie);
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- Botões ---------- */
+
+.ds-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1.125rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition:
+    transform 120ms var(--ds-curva),
+    background-color 160ms var(--ds-curva),
+    box-shadow 160ms var(--ds-curva),
+    color 160ms var(--ds-curva);
+}
+/* Feedback no toque, não no soltar */
+.ds-botao:not(:disabled):active {
+  transform: scale(0.97);
+  opacity: 1;
+}
+.ds-botao:disabled {
+  opacity: 0.45;
+}
+.ds-botao:focus-visible {
+  outline: 2px solid var(--ds-verde);
+  outline-offset: 2px;
+}
+.ds-botao-p {
+  height: 2rem;
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+  gap: 0.375rem;
+}
+.ds-botao-g {
+  height: 3rem;
+  padding: 0 1.75rem;
+  font-size: 0.9375rem;
+}
+
+.ds-botao-primario {
+  background: var(--ds-preto);
+  color: #fff;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.2), 0 6px 16px -6px rgb(0 0 0 / 0.35);
+}
+@media (hover: hover) {
+  .ds-botao-primario:not(:disabled):hover { background: #2a2d2b; }
+}
+
+.ds-botao-verde {
+  background: var(--ds-verde);
+  color: #fff;
+  box-shadow: 0 1px 1px rgb(31 154 114 / 0.3), 0 6px 16px -6px rgb(31 154 114 / 0.5);
+}
+@media (hover: hover) {
+  .ds-botao-verde:not(:disabled):hover { background: var(--ds-verde-forte); }
+}
+
+.ds-botao-secundario {
+  background: var(--ds-superficie);
+  color: var(--ds-texto);
+  box-shadow: inset 0 0 0 1px var(--ds-linha-forte), 0 1px 2px rgb(16 24 20 / 0.05);
+}
+@media (hover: hover) {
+  .ds-botao-secundario:not(:disabled):hover { background: var(--ds-superficie-2); }
+}
+
+.ds-botao-fantasma {
+  background: transparent;
+  color: var(--ds-texto-2);
+}
+@media (hover: hover) {
+  .ds-botao-fantasma:not(:disabled):hover {
+    background: rgb(17 20 18 / 0.05);
+    color: var(--ds-texto);
+  }
+}
+
+.ds-botao-perigo {
+  background: var(--ds-perigo-fundo);
+  color: var(--ds-perigo);
+}
+
+/* ---------- Selos ---------- */
+
+.ds-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: 7px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ds-selo-ponto::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.ds-selo-verde { background: var(--ds-verde-fundo); color: var(--ds-verde-forte); }
+.ds-selo-neutro { background: rgb(17 20 18 / 0.05); color: var(--ds-texto-2); }
+.ds-selo-alerta { background: var(--ds-alerta-fundo); color: var(--ds-alerta); }
+.ds-selo-perigo { background: var(--ds-perigo-fundo); color: var(--ds-perigo); }
+.ds-selo-ouro {
+  background: var(--ds-ouro-fundo);
+  color: var(--ds-ouro);
+  box-shadow: inset 0 0 0 1px rgb(183 121 31 / 0.2);
+}
+.ds-selo-escuro { background: var(--ds-preto); color: #fff; }
+
+/* ---------- Segmentado (as pílulas M1…M12 da referência) ---------- */
+
+.ds-segmentado {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.ds-segmento {
+  height: 2rem;
+  min-width: 2.75rem;
+  padding: 0 0.75rem;
+  border-radius: var(--ds-raio-chip);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  background: var(--ds-superficie);
+  box-shadow: inset 0 0 0 1px var(--ds-linha), 0 1px 2px rgb(16 24 20 / 0.04);
+  transition: background-color 180ms var(--ds-curva), color 180ms var(--ds-curva), transform 120ms var(--ds-curva);
+}
+.ds-segmento:active { transform: scale(0.96); opacity: 1 !important; }
+@media (hover: hover) {
+  .ds-segmento:hover:not([aria-pressed="true"]) { color: var(--ds-texto); }
+}
+.ds-segmento[aria-pressed="true"] {
+  background: var(--ds-verde);
+  color: #fff;
+  box-shadow: 0 1px 1px rgb(31 154 114 / 0.3), 0 4px 12px -4px rgb(31 154 114 / 0.5);
+}
+
+/* Abas em trilho (alternativa compacta) */
+.ds-trilho {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 11px;
+  background: rgb(17 20 18 / 0.05);
+}
+.ds-trilho > button {
+  height: 1.875rem;
+  padding: 0 0.875rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  transition: background-color 180ms var(--ds-curva), color 180ms var(--ds-curva), box-shadow 180ms var(--ds-curva);
+}
+.ds-trilho > button[aria-pressed="true"] {
+  background: var(--ds-superficie);
+  color: var(--ds-texto);
+  box-shadow: 0 1px 2px rgb(16 24 20 / 0.08), 0 0 0 1px var(--ds-linha);
+}
+
+/* ---------- Interruptor ---------- */
+
+.ds-interruptor {
+  position: relative;
+  width: 2.25rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: rgb(17 20 18 / 0.14);
+  transition: background-color 200ms var(--ds-curva);
+  flex-shrink: 0;
+  min-height: 0 !important;
+}
+.ds-interruptor::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  transition: transform 260ms var(--ds-curva);
+}
+.ds-interruptor[aria-checked="true"] { background: var(--ds-verde); }
+.ds-interruptor[aria-checked="true"]::after { transform: translateX(0.875rem); }
+
+/* ---------- Campos ---------- */
+
+.ds-campo {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.875rem;
+  border-radius: 11px;
+  background: var(--ds-superficie);
+  font-size: 0.875rem;
+  color: var(--ds-texto);
+  box-shadow: inset 0 0 0 1px var(--ds-linha-forte);
+  transition: box-shadow 160ms var(--ds-curva);
+  outline: none;
+}
+.ds-campo::placeholder { color: var(--ds-texto-3); }
+.ds-campo:focus {
+  box-shadow: inset 0 0 0 1.5px var(--ds-verde), 0 0 0 4px rgb(43 184 138 / 0.14);
+}
+
+/* ---------- Etapas (lista com check verde e linha a ligar) ---------- */
+
+.ds-etapas { position: relative; display: grid; gap: 1.125rem; }
+.ds-etapa { position: relative; display: grid; grid-template-columns: 1.25rem 1fr; gap: 0.75rem; }
+.ds-etapa:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(0.625rem - 1px);
+  top: 1.375rem;
+  bottom: -1.125rem;
+  width: 2px;
+  background: var(--ds-linha);
+}
+.ds-etapa[data-feita="true"]:not(:last-child)::before { background: var(--ds-verde); }
+.ds-etapa-marca {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--ds-texto-3);
+  box-shadow: inset 0 0 0 1.5px var(--ds-linha-forte);
+  background: var(--ds-superficie);
+}
+.ds-etapa[data-feita="true"] .ds-etapa-marca {
+  background: var(--ds-verde);
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ---------- Barras ---------- */
+
+.ds-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(17 20 18 / 0.06);
+  overflow: hidden;
+}
+.ds-barra > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ds-verde);
+  transition: width 600ms var(--ds-curva);
+}
+
+/* ---------- Avatar ---------- */
+
+.ds-avatar {
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* ---------- Navegação lateral ---------- */
+
+.ds-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2rem;
+  padding: 0 0.625rem;
+  border-radius: 9px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-texto-2);
+  transition: background-color 160ms var(--ds-curva), color 160ms var(--ds-curva);
+}
+@media (hover: hover) {
+  .ds-nav-item:hover { background: rgb(17 20 18 / 0.04); color: var(--ds-texto); }
+}
+.ds-nav-item[aria-current="page"] {
+  background: rgb(17 20 18 / 0.06);
+  color: var(--ds-texto);
+}
+
+/* ---------- Entrada (texto que aparece desfocado → nítido, como no vídeo) ---------- */
+
+@keyframes ds-entrar {
+  from { opacity: 0; filter: blur(8px); transform: translateY(8px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+.ds-entrar {
+  animation: ds-entrar 700ms var(--ds-curva) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Movimento reduzido: só um fade curto, sem deslocar nem desfocar */
+@media (prefers-reduced-motion: reduce) {
+  .ds-entrar { animation: none; }
+  .ds-botao, .ds-segmento, .ds-interruptor::after, .ds-barra > span { transition: none; }
+}
