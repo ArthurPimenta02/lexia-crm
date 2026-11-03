@@ -186,11 +186,22 @@ export function GraficoArea({
 
       <div className="relative mt-2 h-4 text-[0.6875rem] text-muted-foreground">
         {rotulos.map((r, i) =>
-          (i % salto === 0 && n - 1 - i >= salto / 2) || i === n - 1 ? (
+          // O último rótulo encosta à direita e o primeiro à esquerda; um
+          // rótulo a menos de um salto do último fica de fora para não se
+          // encavalitarem ("12:0013:00").
+          (i % salto === 0 && (n - 1 - i >= salto || n === 1)) || i === n - 1 ? (
             <span
-              className="absolute -translate-x-1/2 whitespace-nowrap tabular-nums"
+              className={`absolute whitespace-nowrap tabular-nums ${
+                i === n - 1 && n > 1 ? "" : i === 0 ? "" : "-translate-x-1/2"
+              }`}
               key={`${r}-${i}`}
-              style={{ left: `${Math.min(96, Math.max(4, xPct(i)))}%` }}
+              style={
+                i === n - 1 && n > 1
+                  ? { right: 0 }
+                  : i === 0
+                    ? { left: 0 }
+                    : { left: `${xPct(i)}%` }
+              }
             >
               {r}
             </span>

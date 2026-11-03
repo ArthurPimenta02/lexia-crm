@@ -14,6 +14,10 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "1 workflow": "1 workflow",
+    "{n} pendências": "{n} pendências",
+    "Sem pendências": "Sem pendências",
+    "{n} workflows": "{n} workflows",
     "conversas": "conversas",
     "agendamentos": "marcações",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} mensagens",
@@ -207,6 +211,10 @@ const textos: TextosDaArea = {
       'Em Campanhas, podes puxar o histórico com "Atualizar dados".',
   },
   es: {
+    "1 workflow": "1 workflow",
+    "{n} pendências": "{n} pendientes",
+    "Sem pendências": "Sin pendientes",
+    "{n} workflows": "{n} workflows",
     "conversas": "conversaciones",
     "agendamentos": "citas",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} mensajes",
@@ -400,6 +408,10 @@ const textos: TextosDaArea = {
       'En Campañas puedes traer el historial con "Actualizar datos".',
   },
   en: {
+    "1 workflow": "1 workflow",
+    "{n} pendências": "{n} pending",
+    "Sem pendências": "Nothing pending",
+    "{n} workflows": "{n} workflows",
     "conversas": "conversations",
     "agendamentos": "appointments",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} messages",

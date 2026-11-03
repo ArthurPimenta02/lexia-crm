@@ -1,17 +1,30 @@
+import {
+  ArrowUpRight,
+  Bot,
+  CalendarCheck,
+  Hand,
+  Inbox,
+  MessageCircleReply,
+  MessageSquareWarning,
+  MessagesSquare,
+  MoonStar,
+  RotateCcw,
+  Send,
+  Timer,
+  UserPlus,
+} from "lucide-react";
 import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { atualizarCampanhasAdminAction } from "@/app/admin/campanhas/actions";
 import { CampaignsDashboardStrip } from "@/app/components/campaigns-dashboard-strip";
+import { CartaoMetrica, Faisca, LinhaLista, separarUnidade } from "@/app/components/cartoes";
+import { ChannelIcon } from "@/app/components/channel-brand";
+import { Avatar } from "@/app/components/ds";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import {
-  Dica,
-  GrupoMetricas,
-  HorariosDePico,
-  Ranking,
-  SeccaoTitulo,
-} from "@/app/components/painel-ui";
+import { GraficoArea, GraficoBarras, MapaDeCalor } from "@/app/components/graficos";
+import { Card, CardTitulo, Dica, Ranking } from "@/app/components/painel-ui";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import {
   dashboardPeriodOptions,
@@ -36,7 +49,15 @@ import {
   fetchDashboardPeriodMessages,
   findStartedConversationKeys,
 } from "@/lib/dashboard/message-metrics-data";
-import { getClientTimezone } from "@/lib/clientes/timezone";
+import {
+  baldesDoPeriodo,
+  conversasEsperando,
+  conversasPorBalde,
+  datasPorBalde,
+  periodoAteAgora,
+  saudacaoDaHora,
+} from "@/lib/dashboard/series";
+import { getClientTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
@@ -108,14 +129,6 @@ const channelOptions = [
 ] as const;
 
 const allowedChannels = ["whatsapp", "messenger", "instagram"];
-
-function formatLabel(value: string | null, semValor: string) {
-  if (!value) {
-    return semValor;
-  }
-
-  return value.replaceAll("_", " ");
-}
 
 function buildAdminHref(basePath: string, params: Record<string, string>) {
   const urlParams = new URLSearchParams();
@@ -226,24 +239,6 @@ function mergeRankings(groups: { label: string; value: number }[][]) {
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
-}
-
-function RankingList({
-  emptyText,
-  items,
-}: {
-  emptyText: string;
-  items: { label: string; value: number }[];
-}) {
-  return <Ranking itens={items} vazio={emptyText} />;
-}
-
-function MiniHeatmap({
-  cells,
-}: {
-  cells: { day: string; hour: number; value: number }[];
-}) {
-  return <HorariosDePico cells={cells} />;
 }
 
 export default async function AdminDashboard({
@@ -758,24 +753,6 @@ export default async function AdminDashboard({
     totals.conversations,
     locale,
   );
-  const channelRanking = [
-    {
-      label: "WhatsApp",
-      value: rows.reduce((total, row) => total + row.whatsapp, 0),
-    },
-    {
-      label: "Messenger",
-      value: rows.reduce((total, row) => total + row.messenger, 0),
-    },
-    {
-      label: "Instagram",
-      value: rows.reduce((total, row) => total + row.instagram, 0),
-    },
-    {
-      label: t("Canal não identificado"),
-      value: rows.reduce((total, row) => total + row.unknownChannel, 0),
-    },
-  ].filter((item) => item.value > 0);
   const serviceRanking = mergeRankings(rows.map((row) => row.services));
   const weekdayRanking = mergeRankings(rows.map((row) => row.weekdays))
     .filter((item) => item.value > 0)
@@ -788,220 +765,350 @@ export default async function AdminDashboard({
     timeZone: "UTC",
   }).format(new Date(Date.UTC(2026, 7, 1)));
 
+  // As séries do gráfico, no mesmo formato do dashboard do cliente. Com
+  // todos os clientes, os dias são contados no fuso da plataforma.
+  const porHora = range.key === "hoje";
+  const baldes = baldesDoPeriodo(periodoAteAgora(range), selectedTimezone, porHora);
+  const formatoBalde = new Intl.DateTimeFormat(
+    locale,
+    porHora
+      ? { hour: "2-digit", minute: "2-digit", timeZone: selectedTimezone }
+      : { day: "2-digit", month: "short", timeZone: selectedTimezone },
+  );
+  const rotulosBaldes = baldes.map((b) =>
+    formatoBalde.format(b.inicio).replace(/\.$/, ""),
+  );
+  const serieConversas = conversasPorBalde(
+    messageMetricRows,
+    baldes,
+    selectedTimezone,
+    porHora,
+  );
+  const temAgendamentos =
+    !selectedChannel &&
+    visibleClients.some((client) => externalMetrics.get(client.slug)?.isConfigured);
+  const serieAgendamentos = datasPorBalde(
+    selectedChannel
+      ? []
+      : visibleClients.flatMap(
+          (client) => externalMetrics.get(client.slug)?.appointmentDates ?? [],
+        ),
+    baldes,
+    selectedTimezone,
+    porHora,
+  );
+  const seriePorCliente = new Map(
+    visibleClients.map((client) => [
+      client.slug,
+      conversasPorBalde(
+        messageMetricRows.filter((m) => m.cliente_slug === client.slug),
+        baldes,
+        selectedTimezone,
+        porHora,
+      ),
+    ]),
+  );
+  const esperando = conversasEsperando(messageMetricRows);
+  const saudacao = t(saudacaoDaHora(selectedTimezone));
+  const numero = new Intl.NumberFormat(locale);
+  const diasDoMapa: [string, string][] = [
+    "Seg",
+    "Ter",
+    "Qua",
+    "Qui",
+    "Sex",
+    "Sáb",
+    "Dom",
+  ].map((d) => [d, t(d)]);
+  const nomeSelecionado = selectedClient
+    ? (clients.find((c) => c.slug === selectedClient)?.nome ?? selectedClient)
+    : t("Todos os clientes");
+  const totalCanais = {
+    instagram: rows.reduce((total, row) => total + row.instagram, 0),
+    messenger: rows.reduce((total, row) => total + row.messenger, 0),
+    unknown: rows.reduce((total, row) => total + row.unknownChannel, 0),
+    whatsapp: rows.reduce((total, row) => total + row.whatsapp, 0),
+  };
+  const filtrosAtivos = {
+    canal: selectedChannel,
+    cliente: selectedClient,
+  };
+  const metricasTopo = [
+    {
+      cor: "var(--ds-acao)",
+      dica: t("Primeira mensagem recebida de cada conversa dentro do período."),
+      faisca: serieConversas,
+      href: buildAdminHref("/admin/conversas", {
+        canal: selectedChannel,
+        cliente: selectedClientLabel,
+      }),
+      icone: <MessagesSquare aria-hidden="true" className="h-4 w-4" />,
+      label: t("Conversas iniciadas"),
+      nota: t("{n} conversas ativas", {
+        n: numero.format(totals.activeConversations),
+      }),
+      valor: numero.format(totals.conversations),
+    },
+    {
+      cor: "var(--ds-destaque)",
+      dica: selectedChannel
+        ? t(
+            "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança.",
+          )
+        : t(
+            "Agendamentos válidos criados no período, conforme o estado de cada cliente.",
+          ),
+      faisca: temAgendamentos ? serieAgendamentos : undefined,
+      href: undefined,
+      icone: <CalendarCheck aria-hidden="true" className="h-4 w-4" />,
+      label: t("Agendamentos"),
+      nota:
+        totalConversionRate === "--"
+          ? undefined
+          : t("{taxa} das conversas", { taxa: totalConversionRate }),
+      valor: selectedChannel ? "--" : numero.format(totals.appointments),
+    },
+    {
+      cor: "var(--info)",
+      dica: t(
+        "Tempo até a primeira resposta automática, nas conversas respondidas em menos de 1h.",
+      ),
+      faisca: undefined,
+      href: undefined,
+      icone: <Timer aria-hidden="true" className="h-4 w-4" />,
+      label: t("Primeira resposta"),
+      nota: t("{n} conversas", { n: firstResponse.samples }),
+      valor: formatSeconds(firstResponse.averageSeconds, locale),
+    },
+    {
+      cor: "var(--ds-ouro)",
+      dica: autonomyMetrics.dataAvailable
+        ? t(
+            "Conversas resolvidas sem ninguém da equipe escrever. Dados confiáveis a partir de {data}.",
+            { data: autonomyStartLabel },
+          )
+        : t("Dados de autonomia disponíveis a partir de {data}.", {
+            data: autonomyStartLabel,
+          }),
+      faisca: undefined,
+      href: undefined,
+      icone: <Bot aria-hidden="true" className="h-4 w-4" />,
+      label: t("Autonomia do agente"),
+      nota: autonomyMetrics.dataAvailable
+        ? t("{n} com intervenção humana", {
+            n: autonomyMetrics.interventionConversations,
+          })
+        : undefined,
+      valor:
+        autonomyMetrics.percentage === null
+          ? "--"
+          : formatPercent(autonomyMetrics.percentage, locale),
+    },
+  ];
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <header className="ds-entrar flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {t("Dashboard")}
+          <p className="ds-sobretitulo truncate">
+            Lexia {"//"} {nomeSelecionado}
+          </p>
+          <h1 className="ds-titulo-1 mt-2 text-foreground">
+            {saudacao}.{" "}
+            {esperando === 0 ? (
+              <span className="text-muted-foreground">
+                {t("Ninguém esperando resposta.")}
+              </span>
+            ) : (
+              <span className="text-accent">
+                {esperando === 1
+                  ? t("1 conversa esperando resposta.")
+                  : t("{n} conversas esperando resposta.", { n: esperando })}
+              </span>
+            )}
           </h1>
+          <p className="mt-2 text-sm tabular-nums text-muted-foreground">
+            {formatPeriodLabel(range, selectedTimezone, locale)} ·{" "}
+            {selectedClient
+              ? t(getTimezoneLabel(selectedTimezone))
+              : t("Vários fusos horários")}
+          </p>
         </div>
-        <Link
-          className="ds-botao ds-botao-primario w-fit shrink-0"
-          href={buildAdminHref("/admin/conversas", {
-            cliente: selectedClientLabel,
-            canal: selectedChannel,
-          })}
-        >
-          {t("Ver conversas")}
-        </Link>
-      </div>
 
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <Form
-          action="/admin"
-          className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-          replace
-          scroll={false}
-        >
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {t("Cliente")}
-            <select
-              className="ds-campo min-w-0"
-              defaultValue={selectedClient}
-              name="cliente"
-            >
-              <option value="">{t("Todos os clientes")}</option>
-              {clients.map((client) => (
-                <option key={client.slug} value={client.slug}>
-                  {client.nome ?? client.slug} ({client.slug})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {t("Canal")}
-            <select
-              className="ds-campo min-w-0"
-              defaultValue={selectedChannel}
-              name="canal"
-            >
-              {channelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.value ? option.label : t(option.label)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <FormSubmitButton
-            className="ds-botao ds-botao-primario shrink-0"
-            pendingLabel={t("Aplicando...")}
-          >
-            {t("Aplicar filtros")}
-          </FormSubmitButton>
-        </Form>
-
-        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
-              {formatPeriodLabel(range, selectedTimezone, locale)}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {selectedClient ? selectedTimezone : t("Vários fusos horários")}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-1 rounded-xl border border-border bg-surface-muted p-1">
-            {dashboardPeriodOptions.map((option) => {
-              const isActive = option.key === range.key;
-              const href = buildAdminHref("/admin", {
-                canal: selectedChannel,
-                cliente: selectedClient,
-                periodo: option.key,
-              });
-
-              return (
-                <Link
-                  className={`inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium transition ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                  href={href}
-                  key={option.key}
-                >
-                  {t(option.label)}
-                </Link>
-              );
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+          <nav aria-label={t("Período")} className="ds-trilho max-w-full overflow-x-auto">
+            {dashboardPeriodOptions.map((option) => (
+              <Link
+                aria-current={option.key === range.key ? "page" : undefined}
+                className={`inline-flex h-[1.875rem] shrink-0 items-center rounded-[8px] px-3.5 text-[0.8125rem] font-medium whitespace-nowrap transition-[background-color,color,box-shadow] ${
+                  option.key === range.key
+                    ? "bg-surface text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_var(--border)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                href={buildAdminHref("/admin", { ...filtrosAtivos, periodo: option.key })}
+                key={option.key}
+                prefetch
+              >
+                {t(option.label)}
+              </Link>
+            ))}
+          </nav>
+          <Link
+            className="ds-botao ds-botao-primario ds-botao-p"
+            href={buildAdminHref("/admin/conversas", {
+              canal: selectedChannel,
+              cliente: selectedClientLabel,
             })}
-          </div>
-        </div>
-
-        {range.key === "personalizado" ? (
-          <Form
-            action="/admin"
-            className="mt-4 flex flex-wrap items-end gap-3"
-            replace
-            scroll={false}
           >
-            <input name="periodo" type="hidden" value="personalizado" />
-            {selectedClient ? (
-              <input name="cliente" type="hidden" value={selectedClient} />
-            ) : null}
-            {selectedChannel ? (
-              <input name="canal" type="hidden" value={selectedChannel} />
-            ) : null}
-            <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              {t("Início")}
-              <input
-                className="ds-campo min-w-0"
-                defaultValue={
-                  customStart ||
-                  getDateInputValue(range.start, selectedTimezone)
-                }
-                name="inicio"
-                type="date"
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-              {t("Fim")}
-              <input
-                className="ds-campo min-w-0"
-                defaultValue={
-                  customEnd ||
-                  getDateInputValue(
-                    getInclusiveRangeEnd(range.end),
-                    selectedTimezone,
-                  )
-                }
-                name="fim"
-                type="date"
-              />
-            </label>
-            <FormSubmitButton
-              className="ds-botao ds-botao-primario shrink-0"
-              pendingLabel={t("Aplicando...")}
-            >
-              {t("Aplicar")}
-            </FormSubmitButton>
-          </Form>
+            {t("Conversas")}
+            <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </header>
+
+      <Form
+        action="/admin"
+        className="ds-entrar flex flex-wrap items-center gap-2"
+        replace
+        scroll={false}
+        style={{ ["--i" as string]: 1 }}
+      >
+        {range.key !== "hoje" ? (
+          <input name="periodo" type="hidden" value={range.key} />
         ) : null}
+        <select
+          aria-label={t("Cliente")}
+          className="ds-campo h-9 w-full min-w-0 sm:w-auto sm:min-w-[14rem]"
+          defaultValue={selectedClient}
+          name="cliente"
+        >
+          <option value="">{t("Todos os clientes")}</option>
+          {clients.map((client) => (
+            <option key={client.slug} value={client.slug}>
+              {client.nome ?? client.slug}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label={t("Canal")}
+          className="ds-campo h-9 min-w-0 flex-1 sm:flex-none sm:w-auto"
+          defaultValue={selectedChannel}
+          name="canal"
+        >
+          {channelOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.value ? option.label : t(option.label)}
+            </option>
+          ))}
+        </select>
+        {range.key === "personalizado" ? (
+          <>
+            <input
+              aria-label={t("Início")}
+              className="ds-campo h-9 w-auto"
+              defaultValue={
+                customStart || getDateInputValue(range.start, selectedTimezone)
+              }
+              name="inicio"
+              type="date"
+            />
+            <input
+              aria-label={t("Fim")}
+              className="ds-campo h-9 w-auto"
+              defaultValue={
+                customEnd ||
+                getDateInputValue(getInclusiveRangeEnd(range.end), selectedTimezone)
+              }
+              name="fim"
+              type="date"
+            />
+          </>
+        ) : null}
+        <FormSubmitButton
+          className="ds-botao ds-botao-secundario ds-botao-p shrink-0"
+          pendingLabel={t("Aplicando...")}
+        >
+          {t("Aplicar filtros")}
+        </FormSubmitButton>
+      </Form>
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        {metricasTopo.map((m, i) => {
+          const { unidade, valor } = separarUnidade(m.valor);
+          return (
+            <div className="ds-entrar min-w-0" key={m.label} style={{ ["--i" as string]: i + 2 }}>
+              <CartaoMetrica
+                cor={m.cor}
+                dica={m.dica}
+                faisca={m.faisca}
+                href={m.href}
+                icone={m.icone}
+                nota={m.nota}
+                rotulo={m.label}
+                unidade={unidade}
+                valor={valor}
+              />
+            </div>
+          );
+        })}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo={t("no período")}>
-          {t("Resultado")}
-        </SeccaoTitulo>
-        <GrupoMetricas
-          itens={[
-            {
-              dica: t(
-                "Primeira mensagem recebida de cada conversa dentro do período.",
-              ),
-              label: t("Conversas iniciadas"),
-              valor: totals.conversations,
-            },
-            {
-              dica: selectedChannel
-                ? t(
-                    "Os agendamentos não possuem canal associado e não podem ser filtrados com segurança.",
-                  )
-                : t(
-                    "Agendamentos válidos criados no período, conforme o estado de cada cliente.",
-                  ),
-              label: t("Agendamentos"),
-              valor: selectedChannel ? "--" : totals.appointments,
-            },
-            {
-              dica: selectedChannel
-                ? t(
-                    "Indisponível com filtro de canal, pois os agendamentos não registram essa origem.",
-                  )
-                : t(
-                    "Agendamentos divididos pelas conversas iniciadas no mesmo período; sem atribuição individual.",
-                  ),
-              label: t("Agendam. / conversa"),
-              nota: selectedChannel
-                ? undefined
-                : t("{agendamentos} para {conversas} conversas", {
-                    agendamentos: totals.appointments,
-                    conversas: totals.conversations,
-                  }),
-              valor: totalConversionRate,
-            },
-            {
-              dica: autonomyMetrics.dataAvailable
-                ? t(
-                    "Conversas resolvidas sem ninguém da equipe escrever. Dados confiáveis a partir de {data}.",
-                    { data: autonomyStartLabel },
-                  )
-                : t("Dados de autonomia disponíveis a partir de {data}.", {
-                    data: autonomyStartLabel,
-                  }),
-              label: t("Autonomia do agente"),
-              nota: autonomyMetrics.dataAvailable
-                ? t("{n} com intervenção humana", {
-                    n: autonomyMetrics.interventionConversations,
-                  })
-                : undefined,
-              valor:
-                autonomyMetrics.percentage === null
-                  ? "--"
-                  : formatPercent(autonomyMetrics.percentage, locale),
-            },
-          ]}
-        />
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <div className="ds-bloco ds-entrar min-w-0 p-5" style={{ ["--i" as string]: 6 }}>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="ds-titulo-3 text-foreground">{t("Conversas e agendamentos")}</h2>
+              <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span className="ds-valor text-[1.75rem] text-foreground">
+                  {numero.format(serieConversas.reduce((a, b) => a + b, 0))}
+                  <small>{t("conversas")}</small>
+                </span>
+                {temAgendamentos ? (
+                  <span className="ds-valor text-[1.75rem] text-accent">
+                    {numero.format(serieAgendamentos.reduce((a, b) => a + b, 0))}
+                    <small>{t("agendamentos")}</small>
+                  </span>
+                ) : null}
+              </p>
+              <p className="ds-legenda mt-1">
+                {porHora ? t("Por hora, hoje") : t("Por dia, no período")}
+              </p>
+            </div>
+            <span className="ds-selo ds-selo-neutro shrink-0">
+              {selectedClient
+                ? t(getTimezoneLabel(selectedTimezone))
+                : t(getTimezoneLabel(dashboardTimeZone))}
+            </span>
+          </div>
+          <GraficoArea
+            rotulos={rotulosBaldes}
+            series={[
+              { nome: t("Conversas"), valores: serieConversas },
+              ...(temAgendamentos
+                ? [{ nome: t("Agendamentos"), tracejada: true, valores: serieAgendamentos }]
+                : []),
+            ]}
+            vazio={t("Sem conversas no período.")}
+          />
+        </div>
+
+        <div className="ds-bloco ds-entrar min-w-0 p-5" style={{ ["--i" as string]: 7 }}>
+          <div className="mb-4">
+            <h2 className="ds-titulo-3 text-foreground">{t("Canal")}</h2>
+            <p className="ds-legenda mt-0.5">{t("De onde vem cada conversa")}</p>
+          </div>
+          <GraficoBarras
+            itens={[
+              { icone: <ChannelIcon channel="whatsapp" size="sm" />, rotulo: "WhatsApp", valor: totalCanais.whatsapp },
+              { icone: <ChannelIcon channel="instagram" size="sm" />, rotulo: "Instagram", valor: totalCanais.instagram },
+              { icone: <ChannelIcon channel="messenger" size="sm" />, rotulo: "Messenger", valor: totalCanais.messenger },
+              ...(totalCanais.unknown > 0
+                ? [{ rotulo: t("Sem canal"), valor: totalCanais.unknown }]
+                : []),
+            ]}
+            vazio={t("Sem conversas por canal no período.")}
+          />
+        </div>
       </div>
 
       {/*
@@ -1029,380 +1136,326 @@ export default async function AdminDashboard({
       ) : null}
 
       <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo={t("no período")}>
-          {t("Captação e retomada")}
-        </SeccaoTitulo>
-        <GrupoMetricas
-          itens={[
-            {
-              dica: t("Contatos distintos criados pela primeira vez no período."),
-              label: t("Novos contatos"),
-              valor: newContactCount,
-            },
-            {
-              dica: t(
-                "Mensagens automáticas de retomada efetivamente registradas no período.",
-              ),
-              label: t("Follow-ups enviados"),
-              valor: totals.followups,
-            },
-            {
-              dica: t(
-                "Conversas que receberam follow-up rápido e voltaram a responder.",
-              ),
-              label: t("Recuperação por follow-up"),
-              nota: t("{voltaram} de {total} voltaram a responder", {
-                total: followupRecovery.followupConversations,
-                voltaram: followupRecovery.recoveredConversations,
-              }),
-              valor:
-                followupRecovery.recoveryRate === null
-                  ? "--"
-                  : formatPercent(followupRecovery.recoveryRate, locale),
-            },
-            {
-              dica: t("Respostas enviadas fora de 9h-19h ou no fim de semana."),
-              label: t("Fora do horário"),
-              nota: t("{fora} de {total} respostas", {
-                fora: totalOutOfHoursCount,
-                total: totalOutOfHoursSent,
-              }),
-              valor:
-                totalOutOfHoursPercentage === null
-                  ? "--"
-                  : formatPercent(totalOutOfHoursPercentage, locale),
-            },
-          ]}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo={t("no período")}>
-          {t("Atendimento")}
-        </SeccaoTitulo>
-        <GrupoMetricas
-          itens={[
-            {
-              dica: t(
-                "Conversas com pelo menos uma mensagem recebida ou enviada no período.",
-              ),
-              label: t("Conversas ativas"),
-              valor: totals.activeConversations,
-            },
-            {
-              dica: t(
-                "Tempo até a primeira resposta automática, nas conversas respondidas em menos de 1h.",
-              ),
-              label: t("Primeira resposta"),
-              nota: t("{n} conversas", { n: firstResponse.samples }),
-              valor: formatSeconds(firstResponse.averageSeconds, locale),
-            },
-            {
-              dica: t("Mensagens recebidas dos clientes finais."),
-              label: t("Mensagens recebidas"),
-              valor: totals.messagesReceived,
-            },
-            {
-              dica: t(
-                "Todas as mensagens enviadas, incluindo agente, equipe e follow-ups.",
-              ),
-              label: t("Mensagens enviadas"),
-              valor: totals.messagesSent,
-            },
-            {
-              dica: t("Handoffs reais ainda pendentes."),
-              label: t("Handoffs pendentes"),
-              valor: totals.handoffs,
-            },
-            {
-              dica: t("Feedbacks ainda pendentes de análise."),
-              label: t("Feedbacks pendentes"),
-              valor: totals.pendingFeedbacks,
-            },
-          ]}
-        />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("Conversas iniciadas por canal")}
-          </h2>
-          <div className="mt-5">
-            <RankingList
-              emptyText={t("Sem conversas por canal no período.")}
-              items={channelRanking}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("Serviços mais agendados")}
-          </h2>
-          <div className="mt-5">
-            <RankingList
-              emptyText={t("Sem agendamentos no período.")}
-              items={serviceRanking}
-            />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("Agendamentos por dia")}
-          </h2>
-          <div className="mt-5">
-            <RankingList
-              emptyText={t("Sem agendamentos no período.")}
-              items={weekdayRanking}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center gap-1.5">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("Horários de pico")}
-          </h2>
-          <Dica
-            texto={t(
-              "Mensagens recebidas por dia e hora. Na visão geral usa o fuso da plataforma; ao filtrar um cliente, o fuso do cliente.",
-            )}
-          />
-        </div>
-        <div className="mt-5">
-          <MiniHeatmap cells={heatmapCells} />
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="ds-titulo-3 text-foreground">
             {t("Clientes no período")}
+            <span className="ml-2 text-sm font-normal text-muted-foreground tabular-nums">
+              {rows.length}
+            </span>
           </h2>
+          <Link
+            className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+            href="/admin/clientes/novo"
+          >
+            {t("Novo cliente")}
+          </Link>
         </div>
 
         {rows.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1380px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-surface-muted text-xs font-semibold text-muted-foreground">
-                <tr>
-                  <th className="w-[15%] border-b border-border px-4 py-3">
-                    {t("Cliente")}
-                  </th>
-                  <th className="w-[7%] border-b border-border px-4 py-3">
-                    {t("Iniciadas")}
-                  </th>
-                  <th className="w-[11%] border-b border-border px-4 py-3">
-                    {t("Canais")}
-                  </th>
-                  <th className="w-[8%] border-b border-border px-4 py-3">
-                    {t("Recebidas")}
-                  </th>
-                  <th className="w-[8%] border-b border-border px-4 py-3">
-                    {t("Enviadas")}
-                  </th>
-                  <th className="w-[9%] border-b border-border px-4 py-3">
-                    {t("Agendamentos")}
-                  </th>
-                  <th className="w-[9%] border-b border-border px-4 py-3">
-                    {t("Relação")}
-                  </th>
-                  <th className="w-[9%] border-b border-border px-4 py-3">
-                    {t("Autonomia")}
-                  </th>
-                  <th className="w-[8%] border-b border-border px-4 py-3">
-                    {t("Follow-ups")}
-                  </th>
-                  <th className="w-[9%] border-b border-border px-4 py-3">
-                    {t("Pendências")}
-                  </th>
-                  <th className="w-[7%] border-b border-border px-4 py-3">
-                    {t("Workflows")}
-                  </th>
-                  <th className="w-[7%] border-b border-border px-4 py-3">
-                    {t("Ações")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    className="border-b border-border transition last:border-0 hover:bg-surface-muted"
-                    key={row.client.slug}
-                  >
-                    <td className="px-4 py-4 align-top">
-                      <p className="font-semibold text-foreground">
-                        {row.client.nome ?? row.client.slug}
-                      </p>
-                      <p className="mt-1 font-mono text-xs text-muted-foreground">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {/* Quem teve mais conversas primeiro; empate fica por nome. */}
+            {[...rows].sort((a, b) => b.conversations - a.conversations).map((row) => {
+              const nome = row.client.nome ?? row.client.slug;
+              const pendencias = row.pendingFeedbacks + row.handoffs;
+              return (
+                <article className="ds-bloco flex min-w-0 flex-col p-4 sm:p-5" key={row.client.slug}>
+                  <div className="flex items-start gap-3">
+                    <Avatar nome={nome} tamanho={36} />
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        className="block truncate font-semibold text-foreground underline-offset-2 hover:underline"
+                        href={buildAdminHref("/admin", {
+                          canal: selectedChannel,
+                          cliente: row.client.slug,
+                          periodo: range.key === "hoje" ? "" : range.key,
+                        })}
+                      >
+                        {nome}
+                      </Link>
+                      <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
                         {row.client.slug}
                       </p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {formatLabel(row.client.status, t("Sem valor"))} ·{" "}
-                        {row.client.modo_teste ? t("Modo teste") : t("Produção")}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 align-top">
-                      <p className="text-2xl font-semibold text-foreground">
-                        {row.conversations}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {t("{n} ativas", { n: row.activeConversations })}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 align-top">
-                      <div className="flex flex-col gap-1.5 text-xs font-medium text-foreground">
-                        <span>WhatsApp: {row.whatsapp}</span>
-                        <span>Messenger: {row.messenger}</span>
-                        <span>Instagram: {row.instagram}</span>
-                        {row.unknownChannel > 0 ? (
-                          <span>
-                            {t("Não identificado: {n}", {
-                              n: row.unknownChannel,
-                            })}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-end justify-between gap-3">
+                    <p className="ds-valor text-foreground">
+                      {numero.format(row.conversations)}
+                      <small>{t("conversas")}</small>
+                    </p>
+                    {(seriePorCliente.get(row.client.slug) ?? []).some((v) => v > 0) ? (
+                      <Faisca
+                        cor="var(--ds-acao)"
+                        valores={seriePorCliente.get(row.client.slug) ?? []}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("{n} ativas", { n: row.activeConversations })} · WhatsApp{" "}
+                    {row.whatsapp} · Instagram {row.instagram} · Messenger{" "}
+                    {row.messenger}
+                  </p>
+
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4 text-sm">
+                    <div className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{t("Agendamentos")}</dt>
+                      <dd className="font-semibold tabular-nums text-foreground">
+                        {row.appointments ?? "--"}
+                        {row.conversionRate !== "--" ? (
+                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                            {row.conversionRate}
                           </span>
                         ) : null}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      {row.messagesReceived}
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      {row.messagesSent}
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      {row.appointments ?? "--"}
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      <div className="flex flex-col gap-1 text-xs">
-                        <span className="text-base font-semibold text-foreground">
-                          {row.conversionRate}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{t("Autonomia")}</dt>
+                      <dd className="font-semibold tabular-nums text-foreground">
+                        {row.autonomy?.percentage == null
+                          ? "--"
+                          : formatPercent(row.autonomy.percentage, locale)}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{t("Mensagens")}</dt>
+                      <dd className="font-semibold tabular-nums text-foreground">
+                        {numero.format(row.messagesReceived)}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {" "}↓ · {numero.format(row.messagesSent)} ↑
                         </span>
-                        <span>
-                          {row.conversations} → {row.appointments ?? "--"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      <div className="flex flex-col gap-1 text-xs">
-                        <span className="text-base font-semibold text-foreground">
-                          {row.autonomy?.percentage == null
-                            ? "--"
-                            : formatPercent(row.autonomy.percentage, locale)}
-                        </span>
-                        <span>
-                          {t("{n} com intervenção", {
-                            n: row.autonomy?.interventionConversations ?? 0,
-                          })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      {row.followups ?? "--"}
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      <div className="flex flex-col gap-1.5 text-xs font-medium">
-                        <span>Feedbacks: {row.pendingFeedbacks}</span>
-                        <span>Handoffs: {row.handoffs}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-top text-foreground">
-                      {row.workflows}
-                    </td>
-                    <td className="px-4 py-4 align-top">
-                      <div className="flex flex-col gap-2">
-                        <Link
-                          className="ds-botao ds-botao-secundario ds-botao-p"
-                          href={buildAdminHref("/admin/conversas", {
-                            canal: selectedChannel,
-                            cliente: row.client.slug,
-                          })}
-                        >
-                          {t("Conversas")}
-                        </Link>
-                        <Link
-                          className="ds-botao ds-botao-secundario ds-botao-p"
-                          href={`/admin/feedbacks`}
-                        >
-                          {t("Feedbacks")}
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="truncate text-xs text-muted-foreground">{t("Follow-ups")}</dt>
+                      <dd className="font-semibold tabular-nums text-foreground">
+                        {row.followups}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+                    {pendencias > 0 ? (
+                      <Link
+                        className="ds-selo ds-selo-alerta"
+                        href={row.handoffs > 0 ? "/admin/handoffs" : "/admin/feedbacks"}
+                      >
+                        {t("{n} pendências", { n: pendencias })}
+                      </Link>
+                    ) : (
+                      <span className="ds-selo ds-selo-neutro">{t("Sem pendências")}</span>
+                    )}
+                    <span className="ds-selo ds-selo-neutro">
+                      {row.workflows === 1
+                        ? t("1 workflow")
+                        : t("{n} workflows", { n: row.workflows })}
+                    </span>
+                    <Link
+                      className="ds-botao ds-botao-secundario ds-botao-p ml-auto"
+                      href={buildAdminHref("/admin/conversas", {
+                        canal: selectedChannel,
+                        cliente: row.client.slug,
+                      })}
+                    >
+                      {t("Conversas")}
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
-          <div className="px-5 py-10 text-sm text-muted-foreground">
+          <div className="ds-bloco px-5 py-10 text-sm text-muted-foreground">
             {t("Nenhum cliente encontrado com os filtros atuais.")}
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              {t("Últimas conversas iniciadas")}
-            </h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardTitulo>{t("Captação e retomada")}</CardTitulo>
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--ds-ouro)"
+              dica={t("Contatos distintos criados pela primeira vez no período.")}
+              icone={<UserPlus aria-hidden="true" className="h-4 w-4" />}
+              rotulo={t("Novos contatos")}
+              valor={newContactCount}
+            />
+            <LinhaLista
+              cor="var(--ds-acao)"
+              dica={t(
+                "Mensagens automáticas de retomada efetivamente registradas no período.",
+              )}
+              icone={<MessageCircleReply aria-hidden="true" className="h-4 w-4" />}
+              rotulo={t("Follow-ups enviados")}
+              valor={totals.followups}
+            />
+            <LinhaLista
+              cor="var(--ds-destaque)"
+              dica={t(
+                "Conversas que receberam follow-up rápido e voltaram a responder.",
+              )}
+              icone={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
+              nota={t("{voltaram} de {total} voltaram a responder", {
+                total: followupRecovery.followupConversations,
+                voltaram: followupRecovery.recoveredConversations,
+              })}
+              rotulo={t("Recuperação por follow-up")}
+              valor={
+                followupRecovery.recoveryRate === null
+                  ? "--"
+                  : formatPercent(followupRecovery.recoveryRate, locale)
+              }
+            />
+            <LinhaLista
+              cor="var(--info)"
+              dica={t("Respostas enviadas fora de 9h-19h ou no fim de semana.")}
+              icone={<MoonStar aria-hidden="true" className="h-4 w-4" />}
+              nota={t("{fora} de {total} respostas", {
+                fora: totalOutOfHoursCount,
+                total: totalOutOfHoursSent,
+              })}
+              rotulo={t("Fora do horário")}
+              valor={
+                totalOutOfHoursPercentage === null
+                  ? "--"
+                  : formatPercent(totalOutOfHoursPercentage, locale)
+              }
+            />
           </div>
-          <Link
-            className="text-sm font-semibold text-foreground underline-offset-2 hover:underline"
-            href={buildAdminHref("/admin/conversas", {
-              canal: selectedChannel,
-              cliente: selectedClient,
-            })}
-          >
-            {t("Ver todas")}
-          </Link>
+        </Card>
+
+        <Card>
+          <CardTitulo>{t("Atendimento")}</CardTitulo>
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--info)"
+              dica={t("Mensagens recebidas dos clientes finais.")}
+              icone={<Inbox aria-hidden="true" className="h-4 w-4" />}
+              rotulo={t("Mensagens recebidas")}
+              valor={totals.messagesReceived}
+            />
+            <LinhaLista
+              cor="var(--ds-destaque)"
+              dica={t(
+                "Todas as mensagens enviadas, incluindo agente, equipe e follow-ups.",
+              )}
+              icone={<Send aria-hidden="true" className="h-4 w-4" />}
+              rotulo={t("Mensagens enviadas")}
+              valor={totals.messagesSent}
+            />
+            <Link className="ds-interativo block rounded-none" href="/admin/handoffs">
+              <LinhaLista
+                cor="var(--warning)"
+                dica={t("Handoffs reais ainda pendentes.")}
+                icone={<Hand aria-hidden="true" className="h-4 w-4" />}
+                rotulo={t("Handoffs pendentes")}
+                valor={totals.handoffs}
+              />
+            </Link>
+            <Link className="ds-interativo block rounded-none" href="/admin/feedbacks">
+              <LinhaLista
+                cor="var(--ds-ouro)"
+                dica={t("Feedbacks ainda pendentes de análise.")}
+                icone={<MessageSquareWarning aria-hidden="true" className="h-4 w-4" />}
+                rotulo={t("Feedbacks pendentes")}
+                valor={totals.pendingFeedbacks}
+              />
+            </Link>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <div className="ds-bloco min-w-0 p-5">
+          <div className="mb-4 flex items-center gap-1.5">
+            <h2 className="ds-titulo-3 text-foreground">{t("Horários de pico")}</h2>
+            <Dica
+              texto={t(
+                "Mensagens recebidas por dia e hora. Na visão geral usa o fuso da plataforma; ao filtrar um cliente, o fuso do cliente.",
+              )}
+            />
+          </div>
+          <MapaDeCalor
+            celulas={heatmapCells}
+            dias={diasDoMapa}
+            vazio={t("Sem mensagens recebidas no período.")}
+          />
         </div>
 
-        {latestContacts.length > 0 ? (
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {latestContacts.map((contact) => (
-              <Link
-                className="rounded-2xl border border-border bg-surface-muted p-4 transition hover:border-border hover:bg-surface"
-                href={buildAdminHref("/admin/conversas", {
-                  canal: contact.canal ?? "",
-                  cliente: contact.cliente_slug,
-                  conversa: contact.identificador_conversa,
-                })}
-                key={`${contact.cliente_slug}-${contact.identificador_conversa}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-foreground">
-                      {contact.nome || contact.telefone || t("Sem nome")}
-                    </p>
-                    <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
-                      {contact.cliente_slug}
-                    </p>
-                  </div>
-                  <span className="ds-selo ds-selo-neutro shrink-0">
-                    {formatLabel(contact.canal, t("Sem valor"))}
-                  </span>
-                </div>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  {contact.criado_em
-                    ? new Intl.DateTimeFormat(locale, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                        timeZone: getClientTimezone(contact.cliente_slug),
-                      }).format(new Date(contact.criado_em))
-                    : t("Sem data")}
-                </p>
-              </Link>
-            ))}
+        <div className="ds-bloco min-w-0 p-5">
+          <h2 className="ds-titulo-3 mb-4 text-foreground">
+            {t("Serviços mais agendados")}
+          </h2>
+          <Ranking itens={serviceRanking} vazio={t("Sem agendamentos no período.")} />
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1fr_1.65fr]">
+        <div className="ds-bloco min-w-0 p-5">
+          <h2 className="ds-titulo-3 mb-4 text-foreground">
+            {t("Agendamentos por dia")}
+          </h2>
+          <Ranking itens={weekdayRanking} vazio={t("Sem agendamentos no período.")} />
+        </div>
+
+        <Card className="min-w-0">
+          <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+            <h2 className="ds-titulo-3 text-foreground">
+              {t("Últimas conversas iniciadas")}
+            </h2>
+            <Link
+              className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+              href={buildAdminHref("/admin/conversas", {
+                canal: selectedChannel,
+                cliente: selectedClient,
+              })}
+            >
+              {t("Ver todas")}
+            </Link>
           </div>
-        ) : (
-          <p className="mt-5 text-sm text-muted-foreground">
-            {t("Ainda não há conversas reais registradas neste período.")}
-          </p>
-        )}
+          {latestContacts.length > 0 ? (
+            <div className="ds-lista pb-1.5">
+              {latestContacts.map((contact) => {
+                const nome = contact.nome || contact.telefone || t("Sem nome");
+                return (
+                  <Link
+                    className="ds-interativo flex min-h-14 items-center gap-3 rounded-none px-4 py-2.5"
+                    href={buildAdminHref("/admin/conversas", {
+                      canal: contact.canal ?? "",
+                      cliente: contact.cliente_slug,
+                      conversa: contact.identificador_conversa,
+                    })}
+                    key={`${contact.cliente_slug}-${contact.identificador_conversa}`}
+                  >
+                    <Avatar nome={nome} tamanho={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{nome}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {clients.find((c) => c.slug === contact.cliente_slug)?.nome ??
+                          contact.cliente_slug}
+                      </p>
+                    </div>
+                    <ChannelIcon channel={contact.canal} size="sm" />
+                    <p className="w-[7.5rem] shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                      {contact.criado_em
+                        ? new Intl.DateTimeFormat(locale, {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                            timeZone: getClientTimezone(contact.cliente_slug),
+                          }).format(new Date(contact.criado_em))
+                        : t("Sem data")}
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="px-5 pb-5 text-sm text-muted-foreground">
+              {t("Ainda não há conversas reais registradas neste período.")}
+            </p>
+          )}
+        </Card>
       </div>
     </section>
   );
