@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { IdiomaProvider } from "@/app/components/idioma";
+import { dicionarioDe } from "@/lib/i18n/dicionarios";
+import { getIdioma } from "@/lib/i18n/servidor";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,18 +21,22 @@ export const metadata: Metadata = {
   description: "Plataforma Lexia",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const idioma = await getIdioma();
+
   return (
     <html
-      lang="pt-BR"
+      lang={idioma}
       className={`${geistSans.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
     >
       <body className="flex min-h-full w-full flex-col overflow-x-hidden">
-        {children}
+        <IdiomaProvider dicionario={dicionarioDe(idioma)} idioma={idioma}>
+          {children}
+        </IdiomaProvider>
       </body>
     </html>
   );
