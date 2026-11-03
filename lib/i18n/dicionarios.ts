@@ -2,13 +2,29 @@ import type { Idioma } from "./idiomas";
 import type { Dicionario, TextosDaArea } from "./traduzir";
 
 import moldura from "./textos/moldura";
+import dashboard from "./textos/dashboard";
+import conversas from "./textos/conversas";
+import agenda from "./textos/agenda";
+import clientes from "./textos/clientes";
+import catalogo from "./textos/catalogo";
+import gestao from "./textos/gestao";
+import operacao from "./textos/operacao";
 
 /**
  * Cada área do painel tem o seu ficheiro em `textos/`. Estão separados para
  * que duas pessoas possam traduzir áreas diferentes sem pisar o mesmo
  * ficheiro. Uma área nova entra nesta lista.
  */
-const AREAS: TextosDaArea[] = [moldura];
+const AREAS: TextosDaArea[] = [
+  moldura,
+  dashboard,
+  conversas,
+  agenda,
+  clientes,
+  catalogo,
+  gestao,
+  operacao,
+];
 
 function juntar(idioma: Exclude<Idioma, "pt-BR">): Dicionario {
   return Object.assign({}, ...AREAS.map((area) => area[idioma]));

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "./design-system.css";
 import "./globals.css";
 
 import { IdiomaProvider } from "@/app/components/idioma";
 import { dicionarioDe } from "@/lib/i18n/dicionarios";
-import { getIdioma } from "@/lib/i18n/servidor";
+import { getIdioma, getTema } from "@/lib/i18n/servidor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,15 +27,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const idioma = await getIdioma();
+  const [idioma, tema] = await Promise.all([getIdioma(), getTema()]);
 
   return (
     <html
+      data-tema={tema}
       lang={idioma}
       className={`${geistSans.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
     >
       <body className="flex min-h-full w-full flex-col overflow-x-hidden">
-        <IdiomaProvider dicionario={dicionarioDe(idioma)} idioma={idioma}>
+        <IdiomaProvider dicionario={dicionarioDe(idioma)} idioma={idioma} tema={tema}>
           {children}
         </IdiomaProvider>
       </body>

@@ -1,21 +1,24 @@
 /*
- * Design system da Lexia (v1, em avaliação).
+ * Design system da Lexia.
  *
- * Referência estética: fundo quase branco com manchas de cor desfocadas,
- * cartões brancos com sombra longa e suave, verde-menta como cor de acção,
- * botão principal preto em pílula, números em fonte mono.
- *
- * Tudo vive debaixo de `.ds` para não mexer nas telas actuais enquanto o
- * Arthur avalia. Quando for aprovado, os tokens sobem para o `:root`.
+ * Paleta Jade (3 cores em `--c1/--c2/--c3`), modo claro e escuro, e as peças
+ * visuais (botões, selos, cartões, segmentos…). As cores antigas do painel
+ * (`--background`, `--primary`…) apontam para estes tokens em `globals.css`,
+ * por isso as telas que ainda usam os nomes antigos mudam junto.
  */
 
-.ds {
-  /* ===== As 3 cores da paleta. Tudo o resto sai delas. ===== */
-  --c1: #f2f6f3;            /* fundo */
-  --c2: #0e8f6a;            /* principal: botões, barras, seleção */
-  --c3: #0b2a22;            /* destaque: palavras-chave, manchas, 2.ª série */
-  --c2-texto: #ffffff;      /* texto em cima da principal */
-  --c3-legivel: #0b2a22;    /* o destaque quando é texto sobre fundo claro */
+/* ============ Cores da Lexia: Jade ============ */
+:root {
+  /* As 3 cores da marca. Tudo o resto é calculado a partir delas. */
+  --c1: #eff5f1;            /* fundo */
+  --c2: #075e46;            /* principal: botões, barras, seleção */
+  --c3: #3ee0a6;            /* destaque */
+  --c2-texto: #ffffff;
+  --c3-legivel: #0e8f6a;    /* o destaque quando é texto sobre fundo claro */
+  /* As mesmas, afinadas para o modo escuro */
+  --c2-escuro: #3ee0a6;
+  --c2-escuro-texto: #03140e;
+  --c3-escuro: #a6f5d6;
 
   /* Superfícies */
   --ds-fundo: var(--c1);
@@ -38,7 +41,10 @@
   --ds-botao: var(--c2);
   --ds-botao-texto: var(--c2-texto);
   --ds-destaque: var(--c3-legivel);
-  --ds-positivo: #1f8a5f;
+  --ds-positivo: #0e8f6a;
+  --ds-positivo-fundo: #e3f4ec;
+  --ds-info: #2563eb;
+  --ds-info-fundo: #eaf1ff;
   --ds-vidro: color-mix(in oklab, var(--ds-superficie) 74%, transparent);
   --ds-mancha-1: var(--c2);
   --ds-mancha-2: var(--c3);
@@ -64,11 +70,6 @@
   /* Movimento: curto e sem ressalto */
   --ds-curva: cubic-bezier(0.22, 1, 0.36, 1);
 
-  background: var(--ds-fundo);
-  color: var(--ds-texto);
-  transition: background-color 400ms var(--ds-curva), color 400ms var(--ds-curva);
-  font-feature-settings: "cv11", "ss01";
-  letter-spacing: -0.006em;
 }
 
 /* Fundo com manchas de cor desfocadas (o "aurora" da referência) */
@@ -86,45 +87,11 @@
 }
 
 
-/* ================================================================
- * Paletas: cada uma são 3 cores (fundo, principal, destaque) e o
- * texto que fica legível em cima delas. Tudo o resto é calculado.
- * ================================================================ */
-.ds[data-paleta="esmeralda"] {
-  --c1: #f2f6f3; --c2: #0e8f6a; --c3: #0b2a22; --c2-texto: #ffffff; --c3-legivel: #0b2a22;
-  --c2-escuro: #2fd39f; --c2-escuro-texto: #03140e; --c3-escuro: #b8f0dc;
-}
-.ds[data-paleta="esmeralda-laranja"] {
-  --c1: #f6f4ef; --c2: #0e8f6a; --c3: #ff7a1a; --c2-texto: #ffffff; --c3-legivel: #d9600a;
-  --c2-escuro: #2fd39f; --c2-escuro-texto: #03140e; --c3-escuro: #ff9a4d;
-}
-.ds[data-paleta="jade"] {
-  --c1: #eff5f1; --c2: #075e46; --c3: #3ee0a6; --c2-texto: #ffffff; --c3-legivel: #0e8f6a;
-  --c2-escuro: #3ee0a6; --c2-escuro-texto: #03140e; --c3-escuro: #a6f5d6;
-}
-.ds[data-paleta="laranja"] {
-  --c1: #fff6ee; --c2: #ff6a00; --c3: #2a1608; --c2-texto: #ffffff; --c3-legivel: #2a1608;
-  --c2-escuro: #ff8a33; --c2-escuro-texto: #1f0c00; --c3-escuro: #ffd2ad;
-}
-.ds[data-paleta="laranja-grafite"] {
-  --c1: #f1f0ee; --c2: #1e2124; --c3: #ff6a00; --c2-texto: #ffffff; --c3-legivel: #e05a00;
-  --c2-escuro: #ff7a1a; --c2-escuro-texto: #1f0c00; --c3-escuro: #e8e6e3;
-}
-.ds[data-paleta="vermelho"] {
-  --c1: #fbf3f2; --c2: #e0312b; --c3: #1f1414; --c2-texto: #ffffff; --c3-legivel: #1f1414;
-  --c2-escuro: #ff5a52; --c2-escuro-texto: #1f0303; --c3-escuro: #ffc9c5;
-}
-.ds[data-paleta="brasa"] {
-  --c1: #fff5f0; --c2: #e2322b; --c3: #ff8a1f; --c2-texto: #ffffff; --c3-legivel: #d0670a;
-  --c2-escuro: #ff5a52; --c2-escuro-texto: #1f0303; --c3-escuro: #ffa94d;
-}
-.ds[data-paleta="tomate"] {
-  --c1: #fff4f1; --c2: #f0402f; --c3: #1b3a33; --c2-texto: #ffffff; --c3-legivel: #1b3a33;
-  --c2-escuro: #ff6655; --c2-escuro-texto: #1f0303; --c3-escuro: #8fd6bf;
-}
-
-/* ---------- Modo escuro: o mesmo trio, sobre um quase-preto tingido pela principal ---------- */
-.ds[data-modo="escuro"] {
+/* ---------- Modo escuro ----------
+ * Liga quando a pessoa escolhe "Escuro", ou quando escolhe "Automático" e o
+ * computador dela está em escuro. O bloco é o mesmo nos dois casos.
+ */
+:root[data-tema="escuro"] {
   --ds-fundo: color-mix(in oklab, var(--c2) 9%, #08090b);
   --ds-superficie: color-mix(in oklab, var(--c2) 7%, #14161a);
   --ds-superficie-2: color-mix(in oklab, var(--c2) 9%, #191b20);
@@ -142,7 +109,10 @@
   --ds-mancha-1: var(--c2-escuro);
   --ds-mancha-2: var(--c3-escuro);
   --ds-mancha-3: var(--c3-escuro);
-  --ds-positivo: #6ee7a0;
+  --ds-positivo: #4ade9b;
+  --ds-positivo-fundo: #10291f;
+  --ds-info: #7aa7ff;
+  --ds-info-fundo: #142039;
   --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717;
   --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
   --ds-ouro: #f5c04a; --ds-ouro-fundo: #33280f;
@@ -150,7 +120,37 @@
   --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
-.ds[data-modo="escuro"] .ds-selo-verde { color: var(--ds-acao); }
+@media (prefers-color-scheme: dark) {
+  :root[data-tema="sistema"] {
+  --ds-fundo: color-mix(in oklab, var(--c2) 9%, #08090b);
+  --ds-superficie: color-mix(in oklab, var(--c2) 7%, #14161a);
+  --ds-superficie-2: color-mix(in oklab, var(--c2) 9%, #191b20);
+  --ds-texto: color-mix(in oklab, var(--c1) 70%, white);
+  --ds-texto-2: color-mix(in oklab, var(--ds-texto) 62%, var(--ds-fundo));
+  --ds-texto-3: color-mix(in oklab, var(--ds-texto) 40%, var(--ds-fundo));
+  --ds-acao: var(--c2-escuro);
+  --ds-acao-forte: color-mix(in oklab, var(--c2-escuro) 85%, white);
+  --ds-acao-suave: color-mix(in oklab, var(--c2-escuro) 24%, var(--ds-superficie));
+  --ds-acao-fundo: color-mix(in oklab, var(--c2-escuro) 13%, var(--ds-superficie));
+  --ds-acao-texto: var(--c2-escuro-texto);
+  --ds-botao: var(--c2-escuro);
+  --ds-botao-texto: var(--c2-escuro-texto);
+  --ds-destaque: var(--c3-escuro);
+  --ds-mancha-1: var(--c2-escuro);
+  --ds-mancha-2: var(--c3-escuro);
+  --ds-mancha-3: var(--c3-escuro);
+  --ds-positivo: #4ade9b;
+  --ds-positivo-fundo: #10291f;
+  --ds-info: #7aa7ff;
+  --ds-info-fundo: #142039;
+  --ds-perigo: #f87171; --ds-perigo-fundo: #3a1717;
+  --ds-alerta: #fb923c; --ds-alerta-fundo: #3a2414;
+  --ds-ouro: #f5c04a; --ds-ouro-fundo: #33280f;
+  --ds-sombra-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --ds-sombra-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+  }
+}
 
 /* ---------- Tipografia ---------- */
 

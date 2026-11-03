@@ -3,6 +3,8 @@ import "server-only";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
+import { COOKIE_TEMA, eTema, TEMA_PADRAO, type Tema } from "@/lib/tema";
+
 import { COOKIE_IDIOMA, eIdioma, idiomaDoNavegador, type Idioma } from "./idiomas";
 import { dicionarioDe } from "./dicionarios";
 import { criarT, type FuncaoT } from "./traduzir";
@@ -18,3 +20,9 @@ export const getIdioma = cache(async (): Promise<Idioma> => {
 export async function getT(): Promise<FuncaoT> {
   return criarT(dicionarioDe(await getIdioma()));
 }
+
+/** O tema escolhido neste navegador (claro por omissão). */
+export const getTema = cache(async (): Promise<Tema> => {
+  const escolhido = (await cookies()).get(COOKIE_TEMA)?.value;
+  return eTema(escolhido) ? escolhido : TEMA_PADRAO;
+});

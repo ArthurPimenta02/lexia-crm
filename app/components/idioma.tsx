@@ -4,13 +4,15 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 
 import { IDIOMA_PADRAO, LOCALE_DO_IDIOMA, type Idioma } from "@/lib/i18n/idiomas";
 import { criarT, type Dicionario, type FuncaoT } from "@/lib/i18n/traduzir";
+import type { Tema } from "@/lib/tema";
 
-type ContextoIdioma = { idioma: Idioma; locale: string; t: FuncaoT };
+type ContextoIdioma = { idioma: Idioma; locale: string; t: FuncaoT; tema: Tema };
 
 const Contexto = createContext<ContextoIdioma>({
   idioma: IDIOMA_PADRAO,
   locale: LOCALE_DO_IDIOMA[IDIOMA_PADRAO],
   t: criarT(null),
+  tema: "claro",
 });
 
 /**
@@ -21,14 +23,16 @@ export function IdiomaProvider({
   children,
   dicionario,
   idioma,
+  tema,
 }: {
   children: ReactNode;
   dicionario: Dicionario | null;
   idioma: Idioma;
+  tema: Tema;
 }) {
   const valor = useMemo(
-    () => ({ idioma, locale: LOCALE_DO_IDIOMA[idioma], t: criarT(dicionario) }),
-    [dicionario, idioma],
+    () => ({ idioma, locale: LOCALE_DO_IDIOMA[idioma], t: criarT(dicionario), tema }),
+    [dicionario, idioma, tema],
   );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
