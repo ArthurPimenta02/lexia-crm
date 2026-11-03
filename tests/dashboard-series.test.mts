@@ -113,3 +113,12 @@ test("a saudação segue a hora do cliente, não a do servidor", () => {
   assert.equal(saudacaoDaHora("Europe/Lisbon", meioDiaUtc), "Boa tarde");
   assert.equal(saudacaoDaHora("Asia/Tokyo", meioDiaUtc), "Boa noite");
 });
+
+test("a curva suave passa pelos pontos e não inventa picos nem valores abaixo de zero", async () => {
+  const { caminhoSuave } = await import("../lib/curva");
+  const d = caminhoSuave([[0, 100], [10, 100], [20, 0], [30, 100]]);
+  const nums = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+  const ys = nums.filter((_, i) => i % 2 === 1);
+  assert.ok(Math.max(...ys) <= 100 && Math.min(...ys) >= 0, d);
+  assert.ok(d.startsWith("M0.0,100.0") && d.endsWith("30.0,100.0"), d);
+});

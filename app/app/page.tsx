@@ -1,4 +1,18 @@
-import { ArrowUpRight, PlugZap } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bot,
+  CalendarCheck,
+  Inbox,
+  MessageCircleReply,
+  MessagesSquare,
+  MoonStar,
+  PlugZap,
+  Send,
+  RotateCcw,
+  Timer,
+  UserPlus,
+  Percent,
+} from "lucide-react";
 import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
@@ -10,9 +24,9 @@ import {
   Card,
   CardTitulo,
   Dica,
-  LinhaMetrica,
   Ranking,
 } from "@/app/components/painel-ui";
+import { CartaoMetrica, LinhaLista, separarUnidade } from "@/app/components/cartoes";
 import { ChannelIcon } from "@/app/components/channel-brand";
 import { GraficoArea, GraficoBarras, MapaDeCalor } from "@/app/components/graficos";
 import { exigirEcra } from "@/lib/auth/ecras";
@@ -341,6 +355,10 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       dica: t(
         "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
       ),
+      cor: "var(--ds-acao)",
+      faisca: serieConversas,
+      href: "/app/conversas",
+      icone: <MessagesSquare aria-hidden="true" className="h-4 w-4" />,
       label: t("Conversas iniciadas"),
       nota: t("{n} conversas ativas", { n: numero.format(activeConversations) }),
       valor: numero.format(startedConversations),
@@ -349,6 +367,10 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       dica: t(
         "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
       ),
+      cor: "var(--ds-destaque)",
+      faisca: externalMetrics.isConfigured ? serieAgendamentos : undefined,
+      href: "/app/agenda",
+      icone: <CalendarCheck aria-hidden="true" className="h-4 w-4" />,
       label: t("Agendamentos"),
       nota:
         conversionRate === null
@@ -363,6 +385,10 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       dica: t(
         "Tempo médio até a primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora.",
       ),
+      cor: "var(--info)",
+      faisca: undefined,
+      href: undefined,
+      icone: <Timer aria-hidden="true" className="h-4 w-4" />,
       label: t("Primeira resposta"),
       nota: t("{n} conversas", { n: firstResponse.samples }),
       valor: formatSeconds(firstResponse.averageSeconds, locale),
@@ -384,6 +410,10 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
               timeZone: "UTC",
             }).format(new Date(Date.UTC(2026, 7, 1))),
           }),
+      cor: "var(--ds-ouro)",
+      faisca: undefined,
+      href: undefined,
+      icone: <Bot aria-hidden="true" className="h-4 w-4" />,
       label: t("Autonomia do agente"),
       nota: autonomyMetrics.dataAvailable
         ? t("{n} com intervenção humana", {
@@ -488,32 +518,44 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {metricasTopo.map((m, i) => (
-          <div
-            className="ds-bloco ds-entrar flex min-w-0 flex-col gap-2 p-4 sm:p-5"
-            key={m.label}
-            style={{ ["--i" as string]: i + 1 }}
-          >
-            <div className="flex items-center gap-1">
-              <span className="ds-sobretitulo truncate">{m.label}</span>
-              <Dica texto={m.dica} />
+        {metricasTopo.map((m, i) => {
+          const { unidade, valor } = separarUnidade(m.valor);
+          return (
+            <div className="ds-entrar min-w-0" key={m.label} style={{ ["--i" as string]: i + 1 }}>
+              <CartaoMetrica
+                cor={m.cor}
+                dica={m.dica}
+                faisca={m.faisca}
+                href={m.href}
+                icone={m.icone}
+                nota={m.nota}
+                rotulo={m.label}
+                unidade={unidade}
+                valor={valor}
+              />
             </div>
-            <span className="ds-numero text-[1.75rem] text-foreground sm:text-[2rem]">
-              {m.valor}
-            </span>
-            {m.nota ? (
-              <span className="truncate text-xs text-muted-foreground">{m.nota}</span>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
         <div className="ds-bloco ds-entrar min-w-0 p-5" style={{ ["--i" as string]: 5 }}>
-          <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="mb-5 flex items-start justify-between gap-3">
             <div>
               <h2 className="ds-titulo-3 text-foreground">{t("Conversas e agendamentos")}</h2>
-              <p className="ds-legenda mt-0.5">
+              <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span className="ds-valor text-[1.75rem] text-foreground">
+                  {numero.format(serieConversas.reduce((a, b) => a + b, 0))}
+                  <small>{t("conversas")}</small>
+                </span>
+                {externalMetrics.isConfigured ? (
+                  <span className="ds-valor text-[1.75rem] text-accent">
+                    {numero.format(serieAgendamentos.reduce((a, b) => a + b, 0))}
+                    <small>{t("agendamentos")}</small>
+                  </span>
+                ) : null}
+              </p>
+              <p className="ds-legenda mt-1">
                 {porHora ? t("Por hora, hoje") : t("Por dia, no período")}
               </p>
             </div>
@@ -562,27 +604,35 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardTitulo>{t("Volume no período")}</CardTitulo>
-          <div className="divide-y divide-border border-t border-border">
-            <LinhaMetrica
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--ds-acao)"
+              icone={<MessagesSquare aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Conversas com pelo menos uma mensagem recebida ou enviada no período, mesmo que tenham começado antes.",
               )}
-              label={t("Conversas ativas")}
+              rotulo={t("Conversas ativas")}
               valor={activeConversations}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--info)"
+              icone={<Inbox aria-hidden="true" className="h-4 w-4" />}
               dica={t("Mensagens que os clientes finais enviaram.")}
-              label={t("Mensagens recebidas")}
+              rotulo={t("Mensagens recebidas")}
               valor={receivedMessages}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-destaque)"
+              icone={<Send aria-hidden="true" className="h-4 w-4" />}
               dica={t("Todas as mensagens enviadas: agente, equipe e follow-ups.")}
-              label={t("Mensagens enviadas")}
+              rotulo={t("Mensagens enviadas")}
               valor={sentMessages}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-ouro)"
+              icone={<UserPlus aria-hidden="true" className="h-4 w-4" />}
               dica={t("Contatos distintos criados pela primeira vez no período.")}
-              label={t("Novos contatos")}
+              rotulo={t("Novos contatos")}
               valor={newContacts}
             />
           </div>
@@ -590,12 +640,14 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
 
         <Card>
           <CardTitulo>{t("Qualidade do atendimento")}</CardTitulo>
-          <div className="divide-y divide-border border-t border-border">
-            <LinhaMetrica
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--ds-destaque)"
+              icone={<Percent aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
               )}
-              label={t("Agendam. / conversa")}
+              rotulo={t("Agendam. / conversa")}
               nota={
                 externalMetrics.appointments === null
                   ? undefined
@@ -606,11 +658,13 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
               }
               valor={conversionRate ?? "--"}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--info)"
+              icone={<MoonStar aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Respostas do agente fora de 9h-19h ou no fim de semana. É o que o agente cobre e uma pessoa não cobriria.",
               )}
-              label={t("Fora do horário")}
+              rotulo={t("Fora do horário")}
               nota={t("{fora} de {total} respostas", {
                 fora: outOfHours.outsideCount,
                 total: outOfHours.sentCount,
@@ -621,18 +675,22 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                   : formatPercent(outOfHours.percentage, locale)
               }
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-acao)"
+              icone={<MessageCircleReply aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Mensagens automáticas de retomada efetivamente registradas no período.",
               )}
-              label={t("Follow-ups enviados")}
+              rotulo={t("Follow-ups enviados")}
               valor={followupsSent}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-ouro)"
+              icone={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Das conversas que receberam follow-up rápido, quantas voltaram a responder.",
               )}
-              label={t("Recuperação por follow-up")}
+              rotulo={t("Recuperação por follow-up")}
               nota={t("{voltaram} de {total} voltaram", {
                 total: followupRecovery.followupConversations,
                 voltaram: followupRecovery.recoveredConversations,

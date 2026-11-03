@@ -14,6 +14,8 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "conversas": "conversas",
+    "agendamentos": "marcações",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} mensagens",
     "Passe o mouse para ver cada horário.": "Passe o rato para ver cada horário.",
     "{n} conversas ativas": "{n} conversas ativas",
@@ -205,6 +207,8 @@ const textos: TextosDaArea = {
       'Em Campanhas, podes puxar o histórico com "Atualizar dados".',
   },
   es: {
+    "conversas": "conversaciones",
+    "agendamentos": "citas",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} mensajes",
     "Passe o mouse para ver cada horário.": "Pasa el cursor para ver cada horario.",
     "{n} conversas ativas": "{n} conversaciones activas",
@@ -396,6 +400,8 @@ const textos: TextosDaArea = {
       'En Campañas puedes traer el historial con "Actualizar datos".',
   },
   en: {
+    "conversas": "conversations",
+    "agendamentos": "appointments",
     "{dia}, {hora}h: {n} mensagens": "{dia}, {hora}h: {n} messages",
     "Passe o mouse para ver cada horário.": "Hover to see each time slot.",
     "{n} conversas ativas": "{n} active conversations",

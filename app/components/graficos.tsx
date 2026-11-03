@@ -3,6 +3,7 @@
 import { useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useIdioma } from "@/app/components/idioma";
+import { caminhoSuave } from "@/lib/curva";
 
 /**
  * Gráficos do painel, desenhados à mão em SVG (sem biblioteca: são poucas
@@ -30,14 +31,10 @@ function caminho(valores: number[], max: number, largura: number) {
     const y = (ALTURA - (valores[0] / max) * (ALTURA - 16) - 4).toFixed(1);
     return `M0,${y} L${largura},${y}`;
   }
-  const passo = valores.length > 1 ? largura / (valores.length - 1) : 0;
-  return valores
-    .map((v, i) => {
-      const x = valores.length > 1 ? i * passo : largura / 2;
-      const y = ALTURA - (v / max) * (ALTURA - 16) - 4;
-      return `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+  const passo = largura / (valores.length - 1);
+  return caminhoSuave(
+    valores.map((v, i) => [i * passo, ALTURA - (v / max) * (ALTURA - 16) - 4]),
+  );
 }
 
 export function GraficoArea({
