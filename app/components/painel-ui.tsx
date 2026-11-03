@@ -64,7 +64,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-[20px] border border-border bg-surface shadow-[var(--ds-sombra-1)] ${className}`}
+      className={`ds-bloco ${className}`}
     >
       {children}
     </div>
@@ -80,7 +80,7 @@ export function CardTitulo({
 }) {
   return (
     <div className="flex items-center gap-1.5 px-5 pt-4 pb-3">
-      <h2 className="text-sm font-semibold text-foreground">{children}</h2>
+      <h2 className="ds-titulo-3 text-foreground">{children}</h2>
       {dica ? <Dica texto={dica} /> : null}
     </div>
   );
@@ -151,7 +151,7 @@ export function GrupoMetricas({ itens }: { itens: ItemMetrica[] }) {
   const colunas = colunasPorContagem[itens.length] ?? "lg:grid-cols-4";
 
   return (
-    <div className="overflow-hidden rounded-[20px] border border-border bg-surface shadow-[var(--ds-sombra-1)]">
+    <div className="ds-bloco overflow-hidden">
       <div
         className={`-mr-px -mb-px grid grid-cols-2 sm:grid-cols-3 ${colunas}`}
       >
@@ -171,7 +171,7 @@ export function GrupoMetricas({ itens }: { itens: ItemMetrica[] }) {
               </div>
 
               <p
-                className={`ds-numero mt-2.5 text-[1.6rem] ${
+                className={`mt-2.5 text-[1.75rem] leading-none font-[650] tracking-[-0.035em] tabular-nums ${
                   porLigar ? "text-muted-foreground/50" : "text-foreground"
                 }`}
               >

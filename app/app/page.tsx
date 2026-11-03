@@ -1,4 +1,18 @@
-import { ArrowUpRight, PlugZap } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bot,
+  CalendarCheck,
+  Inbox,
+  MessageCircleReply,
+  MessagesSquare,
+  MoonStar,
+  PlugZap,
+  Send,
+  RotateCcw,
+  Timer,
+  UserPlus,
+  Percent,
+} from "lucide-react";
 import Link from "next/link";
 import Form from "next/form";
 import { redirect } from "next/navigation";
@@ -10,12 +24,11 @@ import {
   Card,
   CardTitulo,
   Dica,
-  GrupoMetricas,
-  HorariosDePico,
-  LinhaMetrica,
   Ranking,
-  SeccaoTitulo,
 } from "@/app/components/painel-ui";
+import { CartaoMetrica, LinhaLista, separarUnidade } from "@/app/components/cartoes";
+import { ChannelIcon } from "@/app/components/channel-brand";
+import { GraficoArea, GraficoBarras, MapaDeCalor } from "@/app/components/graficos";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import {
@@ -41,6 +54,14 @@ import {
   findStartedConversationKeys,
 } from "@/lib/dashboard/message-metrics-data";
 import { getClientTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
+import {
+  baldesDoPeriodo,
+  conversasEsperando,
+  conversasPorBalde,
+  datasPorBalde,
+  periodoAteAgora,
+  saudacaoDaHora,
+} from "@/lib/dashboard/series";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
@@ -236,12 +257,22 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         messagesResult.data,
         rangesByClient,
       );
-  const [contactsResult, externalMetrics, startedConversationsResult] =
-    await Promise.all([
-      contactsPromise,
-      externalMetricsPromise,
-      startedConversationsPromise,
-    ]);
+  const nomeClientePromise = supabase
+    .from("lexia_clientes")
+    .select("nome")
+    .eq("slug", profile.cliente_slug)
+    .maybeSingle();
+  const [
+    contactsResult,
+    externalMetrics,
+    startedConversationsResult,
+    nomeClienteResult,
+  ] = await Promise.all([
+    contactsPromise,
+    externalMetricsPromise,
+    startedConversationsPromise,
+    nomeClientePromise,
+  ]);
 
   if (
     messagesResult.error ||
@@ -284,53 +315,175 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
     locale,
   );
 
+  const nomeCliente =
+    (nomeClienteResult.data as { nome?: string | null } | null)?.nome ??
+    profile.cliente_slug;
+  const porHora = range.key === "hoje";
+  // O gráfico pára em agora: os dias que ainda não chegaram são zeros que
+  // achatam a linha e não dizem nada.
+  const baldes = baldesDoPeriodo(periodoAteAgora(range), timezone, porHora);
+  const formatoBalde = new Intl.DateTimeFormat(
+    locale,
+    porHora
+      ? { hour: "2-digit", minute: "2-digit", timeZone: timezone }
+      : { day: "2-digit", month: "short", timeZone: timezone },
+  );
+  const rotulosBaldes = baldes.map((b) =>
+    formatoBalde.format(b.inicio).replace(/\.$/, ""),
+  );
+  const serieConversas = conversasPorBalde(messages, baldes, timezone, porHora);
+  const serieAgendamentos = datasPorBalde(
+    externalMetrics.appointmentDates,
+    baldes,
+    timezone,
+    porHora,
+  );
+  // A taxa de cada dia: agendamentos do dia ÷ conversas do dia (só para a
+  // forma do mini-gráfico; o número grande é o do período inteiro).
+  const serieTaxa = serieConversas.map((c, i) =>
+    c > 0 ? Math.min(100, ((serieAgendamentos[i] ?? 0) / c) * 100) : 0,
+  );
+  const esperando = conversasEsperando(messages);
+  const saudacao = t(saudacaoDaHora(timezone));
+  const diasDoMapa: [string, string][] = [
+    "Seg",
+    "Ter",
+    "Qua",
+    "Qui",
+    "Sex",
+    "Sáb",
+    "Dom",
+  ].map((d) => [d, t(d)]);
+  const numero = new Intl.NumberFormat(locale);
+  const metricasTopo = [
+    {
+      dica: t(
+        "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
+      ),
+      cor: "var(--ds-acao)",
+      faisca: serieConversas,
+      href: "/app/conversas",
+      icone: <MessagesSquare aria-hidden="true" className="h-4 w-4" />,
+      label: t("Conversas iniciadas"),
+      nota: t("{n} conversas ativas", { n: numero.format(activeConversations) }),
+      valor: numero.format(startedConversations),
+    },
+    {
+      dica: t(
+        "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
+      ),
+      cor: "var(--ds-destaque)",
+      faisca: externalMetrics.isConfigured ? serieAgendamentos : undefined,
+      href: "/app/agenda",
+      icone: <CalendarCheck aria-hidden="true" className="h-4 w-4" />,
+      label: t("Agendamentos"),
+      nota: undefined,
+      valor:
+        externalMetrics.appointments === null
+          ? "--"
+          : numero.format(externalMetrics.appointments),
+    },
+    {
+      dica: t(
+        "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
+      ),
+      cor: "var(--ds-destaque)",
+      faisca: externalMetrics.isConfigured ? serieTaxa : undefined,
+      href: undefined,
+      icone: <Percent aria-hidden="true" className="h-4 w-4" />,
+      label: t("Taxa de agendamento"),
+      nota:
+        externalMetrics.appointments === null
+          ? undefined
+          : t("{agendamentos} agendamentos em {conversas} conversas", {
+              agendamentos: numero.format(externalMetrics.appointments),
+              conversas: numero.format(startedConversations),
+            }),
+      valor: conversionRate ?? "--",
+    },
+    {
+      dica: autonomyMetrics.dataAvailable
+        ? t(
+            "Porcentagem de conversas que o agente fechou sozinho. Dados a partir de {data}.",
+            {
+              data: new Intl.DateTimeFormat(locale, {
+                dateStyle: "short",
+                timeZone: timezone,
+              }).format(autonomyMetrics.effectiveStart),
+            },
+          )
+        : t("Dados de autonomia só existem a partir de {data}.", {
+            data: new Intl.DateTimeFormat(locale, {
+              dateStyle: "short",
+              timeZone: "UTC",
+            }).format(new Date(Date.UTC(2026, 7, 1))),
+          }),
+      cor: "var(--ds-ouro)",
+      faisca: undefined,
+      href: undefined,
+      icone: <Bot aria-hidden="true" className="h-4 w-4" />,
+      label: t("Autonomia do agente"),
+      nota: autonomyMetrics.dataAvailable
+        ? t("{n} com intervenção humana", {
+            n: autonomyMetrics.interventionConversations,
+          })
+        : undefined,
+      valor:
+        autonomyMetrics.percentage === null
+          ? "--"
+          : formatPercent(autonomyMetrics.percentage, locale),
+    },
+  ];
+
   return (
-    <section className="flex w-full flex-col gap-5">
-      {/*
-        Título e período na mesma linha. O período deixou de ser um cartão
-        com três linhas de texto por cima dos botões: o que ele tem a dizer
-        ("1 a 16 de Outubro", "Europa/Lisboa") cabe por baixo dos botões, em
-        letra pequena, e o botão escolhido já diz qual é o período.
-      */}
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <section className="flex w-full flex-col gap-6">
+      <header className="ds-entrar flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {t("Dashboard")}
+          <p className="ds-sobretitulo truncate">
+            {nomeCliente} {"//"} {t("visão geral")}
+          </p>
+          <h1 className="ds-titulo-1 mt-2 text-foreground">
+            {saudacao}.{" "}
+            {esperando === 0 ? (
+              <span className="text-muted-foreground">
+                {t("Ninguém esperando resposta.")}
+              </span>
+            ) : (
+              <span className="text-accent">
+                {esperando === 1
+                  ? t("1 conversa esperando resposta.")
+                  : t("{n} conversas esperando resposta.", { n: esperando })}
+              </span>
+            )}
           </h1>
-          <p className="mt-1 text-sm tabular-nums text-muted-foreground">
+          <p className="mt-2 text-sm tabular-nums text-muted-foreground">
             {formatPeriodLabel(range, timezone, locale)} ·{" "}
             {t(getTimezoneLabel(timezone))}
           </p>
         </div>
 
         <div className="flex flex-col items-start gap-3 lg:items-end">
-          <div className="flex w-full items-center gap-2 overflow-x-auto lg:w-auto">
-            <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface p-1">
-              {dashboardPeriodOptions.map((option) => {
-                const isActive = option.key === range.key;
-
-                return (
-                  <Link
-                    className={`inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-xs font-semibold whitespace-nowrap transition ${
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                    href={`/app?periodo=${option.key}`}
-                    key={option.key}
-                  >
-                    {t(option.label)}
-                  </Link>
-                );
-              })}
-            </div>
-
-            <Link
-              className="ds-botao ds-botao-secundario shrink-0"
-              href="/app/conversas"
-            >
+          <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+            <nav aria-label={t("Período")} className="ds-trilho max-w-full overflow-x-auto">
+              {dashboardPeriodOptions.map((option) => (
+                <Link
+                  aria-current={option.key === range.key ? "page" : undefined}
+                  className={`inline-flex h-[1.875rem] shrink-0 items-center rounded-[8px] px-3.5 text-[0.8125rem] font-medium whitespace-nowrap transition-[background-color,color,box-shadow] ${
+                    option.key === range.key
+                      ? "bg-surface text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_var(--border)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  href={`/app?periodo=${option.key}`}
+                  key={option.key}
+                  prefetch
+                >
+                  {t(option.label)}
+                </Link>
+              ))}
+            </nav>
+            <Link className="ds-botao ds-botao-primario ds-botao-p" href="/app/conversas">
               {t("Conversas")}
-              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+              <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
             </Link>
           </div>
 
@@ -344,8 +497,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
               <input name="periodo" type="hidden" value="personalizado" />
               <input
                 aria-label={t("Início")}
-                className="ds-campo"
-                style={{ width: "auto" }}
+                className="ds-campo w-auto"
                 defaultValue={
                   customStart || getDateInputValue(range.start, timezone)
                 }
@@ -354,8 +506,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
               />
               <input
                 aria-label={t("Fim")}
-                className="ds-campo"
-                style={{ width: "auto" }}
+                className="ds-campo w-auto"
                 defaultValue={
                   customEnd ||
                   getDateInputValue(getInclusiveRangeEnd(range.end), timezone)
@@ -374,83 +525,81 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         </div>
       </header>
 
-      {/*
-        Os quatro números que respondem à pergunta "como é que isto está a
-        correr". Os outros oito não desapareceram — desceram para a lista
-        logo a seguir, porque eram oito cartões gigantes a disputar a mesma
-        atenção que estes quatro.
-      */}
-      <div className="flex flex-col gap-3">
-        <SeccaoTitulo sufixo={t("no período")}>
-          {t("Resultado")}
-        </SeccaoTitulo>
-        <GrupoMetricas
-          itens={[
-            {
-              dica: t(
-                "Conversas em que a primeira mensagem do cliente caiu dentro do período escolhido.",
-              ),
-              label: t("Conversas iniciadas"),
-              valor: startedConversations,
-            },
-            {
-              dica: t(
-                "Agendamentos válidos criados no período, conforme o estado usado por este cliente.",
-              ),
-              label: t("Agendamentos"),
-              valor: externalMetrics.appointments ?? "--",
-            },
-            {
-              dica: t(
-                "Agendamentos divididos pelas conversas iniciadas no mesmo período. Não é atribuição individual: não diz que foi aquela conversa que gerou aquele agendamento.",
-              ),
-              label: t("Agendam. / conversa"),
-              nota:
-                externalMetrics.appointments === null
-                  ? undefined
-                  : t("{agendamentos} para {conversas} conversas", {
-                      agendamentos: externalMetrics.appointments,
-                      conversas: startedConversations,
-                    }),
-              valor: conversionRate ?? "--",
-            },
-            {
-              dica: autonomyMetrics.dataAvailable
-                ? t(
-                    "Porcentagem de conversas que o agente fechou sozinho. Dados a partir de {data}.",
-                    {
-                      data: new Intl.DateTimeFormat(locale, {
-                        dateStyle: "short",
-                        timeZone: timezone,
-                      }).format(autonomyMetrics.effectiveStart),
-                    },
-                  )
-                : t("Dados de autonomia só existem a partir de {data}.", {
-                    data: new Intl.DateTimeFormat(locale, {
-                      dateStyle: "short",
-                      timeZone: "UTC",
-                    }).format(new Date(Date.UTC(2026, 7, 1))),
-                  }),
-              label: t("Autonomia do agente"),
-              nota: autonomyMetrics.dataAvailable
-                ? t("{n} com intervenção humana", {
-                    n: autonomyMetrics.interventionConversations,
-                  })
-                : undefined,
-              valor:
-                autonomyMetrics.percentage === null
-                  ? "--"
-                  : formatPercent(autonomyMetrics.percentage, locale),
-            },
-          ]}
-        />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        {metricasTopo.map((m, i) => {
+          const { unidade, valor } = separarUnidade(m.valor);
+          return (
+            <div className="ds-entrar min-w-0" key={m.label} style={{ ["--i" as string]: i + 1 }}>
+              <CartaoMetrica
+                cor={m.cor}
+                dica={m.dica}
+                faisca={m.faisca}
+                href={m.href}
+                icone={m.icone}
+                nota={m.nota}
+                rotulo={m.label}
+                unidade={unidade}
+                valor={valor}
+              />
+            </div>
+          );
+        })}
       </div>
 
-      {/*
-        Logo depois do resultado, porque é a leitura que lhe falta: as conversas
-        iniciadas acima não dizem nada sobre o que custaram. Devolve `null`
-        sozinha para quem não tem conta de anúncios ligada.
-      */}
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <div className="ds-bloco ds-entrar min-w-0 p-5" style={{ ["--i" as string]: 5 }}>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="ds-titulo-3 text-foreground">{t("Conversas e agendamentos")}</h2>
+              <p className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span className="ds-valor text-[1.75rem] text-foreground">
+                  {numero.format(serieConversas.reduce((a, b) => a + b, 0))}
+                  <small>{t("conversas")}</small>
+                </span>
+                {externalMetrics.isConfigured ? (
+                  <span className="ds-valor text-[1.75rem] text-accent">
+                    {numero.format(serieAgendamentos.reduce((a, b) => a + b, 0))}
+                    <small>{t("agendamentos")}</small>
+                  </span>
+                ) : null}
+              </p>
+              <p className="ds-legenda mt-1">
+                {porHora ? t("Por hora, hoje") : t("Por dia, no período")}
+              </p>
+            </div>
+            <span className="ds-selo ds-selo-neutro shrink-0">{t(getTimezoneLabel(timezone))}</span>
+          </div>
+          <GraficoArea
+            rotulos={rotulosBaldes}
+            series={[
+              { nome: t("Conversas"), valores: serieConversas },
+              ...(externalMetrics.isConfigured
+                ? [{ nome: t("Agendamentos"), tracejada: true, valores: serieAgendamentos }]
+                : []),
+            ]}
+            vazio={t("Sem conversas no período.")}
+          />
+        </div>
+
+        <div className="ds-bloco ds-entrar min-w-0 p-5" style={{ ["--i" as string]: 6 }}>
+          <div className="mb-4">
+            <h2 className="ds-titulo-3 text-foreground">{t("Canal")}</h2>
+            <p className="ds-legenda mt-0.5">{t("De onde vem cada conversa")}</p>
+          </div>
+          <GraficoBarras
+            itens={[
+              { icone: <ChannelIcon channel="whatsapp" size="sm" />, rotulo: "WhatsApp", valor: channelCounts.whatsapp },
+              { icone: <ChannelIcon channel="instagram" size="sm" />, rotulo: "Instagram", valor: channelCounts.instagram },
+              { icone: <ChannelIcon channel="messenger" size="sm" />, rotulo: "Messenger", valor: channelCounts.messenger },
+              ...(channelCounts.unknown > 0
+                ? [{ rotulo: t("Sem canal"), valor: channelCounts.unknown }]
+                : []),
+            ]}
+            vazio={t("Sem conversas por canal no período.")}
+          />
+        </div>
+      </div>
+
       <CampaignsDashboardStrip
         acaoAtualizar={atualizarCampanhasAction}
         clienteSlug={profile.cliente_slug}
@@ -460,30 +609,38 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         timezone={timezone}
       />
 
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardTitulo>{t("Volume no período")}</CardTitulo>
-          <div className="divide-y divide-border border-t border-border">
-            <LinhaMetrica
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--ds-acao)"
+              icone={<MessagesSquare aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Conversas com pelo menos uma mensagem recebida ou enviada no período, mesmo que tenham começado antes.",
               )}
-              label={t("Conversas ativas")}
+              rotulo={t("Conversas ativas")}
               valor={activeConversations}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--info)"
+              icone={<Inbox aria-hidden="true" className="h-4 w-4" />}
               dica={t("Mensagens que os clientes finais enviaram.")}
-              label={t("Mensagens recebidas")}
+              rotulo={t("Mensagens recebidas")}
               valor={receivedMessages}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-destaque)"
+              icone={<Send aria-hidden="true" className="h-4 w-4" />}
               dica={t("Todas as mensagens enviadas: agente, equipe e follow-ups.")}
-              label={t("Mensagens enviadas")}
+              rotulo={t("Mensagens enviadas")}
               valor={sentMessages}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-ouro)"
+              icone={<UserPlus aria-hidden="true" className="h-4 w-4" />}
               dica={t("Contatos distintos criados pela primeira vez no período.")}
-              label={t("Novos contatos")}
+              rotulo={t("Novos contatos")}
               valor={newContacts}
             />
           </div>
@@ -491,20 +648,24 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
 
         <Card>
           <CardTitulo>{t("Qualidade do atendimento")}</CardTitulo>
-          <div className="divide-y divide-border border-t border-border">
-            <LinhaMetrica
+          <div className="ds-lista pb-1.5">
+            <LinhaLista
+              cor="var(--info)"
+              icone={<Timer aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Tempo médio até a primeira resposta automática, nas conversas iniciadas no período em que essa resposta chegou em menos de uma hora.",
               )}
-              label={t("Primeira resposta")}
+              rotulo={t("Primeira resposta")}
               nota={t("{n} conversas", { n: firstResponse.samples })}
               valor={formatSeconds(firstResponse.averageSeconds, locale)}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--info)"
+              icone={<MoonStar aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Respostas do agente fora de 9h-19h ou no fim de semana. É o que o agente cobre e uma pessoa não cobriria.",
               )}
-              label={t("Fora do horário")}
+              rotulo={t("Fora do horário")}
               nota={t("{fora} de {total} respostas", {
                 fora: outOfHours.outsideCount,
                 total: outOfHours.sentCount,
@@ -515,18 +676,22 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                   : formatPercent(outOfHours.percentage, locale)
               }
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-acao)"
+              icone={<MessageCircleReply aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Mensagens automáticas de retomada efetivamente registradas no período.",
               )}
-              label={t("Follow-ups enviados")}
+              rotulo={t("Follow-ups enviados")}
               valor={followupsSent}
             />
-            <LinhaMetrica
+            <LinhaLista
+              cor="var(--ds-ouro)"
+              icone={<RotateCcw aria-hidden="true" className="h-4 w-4" />}
               dica={t(
                 "Das conversas que receberam follow-up rápido, quantas voltaram a responder.",
               )}
-              label={t("Recuperação por follow-up")}
+              rotulo={t("Recuperação por follow-up")}
               nota={t("{voltaram} de {total} voltaram", {
                 total: followupRecovery.followupConversations,
                 voltaram: followupRecovery.recoveredConversations,
@@ -541,61 +706,36 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
         </Card>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-3">
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">
-            {t("Conversas por canal")}
-          </h2>
-          <Ranking
-            itens={[
-              { label: "WhatsApp", value: channelCounts.whatsapp },
-              { label: "Messenger", value: channelCounts.messenger },
-              { label: "Instagram", value: channelCounts.instagram },
-              { label: t("Sem canal"), value: channelCounts.unknown },
-            ].filter((item) => item.value > 0)}
-            vazio={t("Sem conversas por canal no período.")}
+      <div className="grid gap-4 xl:grid-cols-[1.65fr_1fr]">
+        <div className="ds-bloco min-w-0 p-5">
+          <div className="mb-4 flex items-center gap-1.5">
+            <h2 className="ds-titulo-3 text-foreground">{t("Horários de pico")}</h2>
+            <Dica
+              texto={t(
+                "Mensagens recebidas por dia da semana e hora, no fuso do cliente. Quanto mais escuro, mais movimento.",
+              )}
+            />
+          </div>
+          <MapaDeCalor
+            celulas={heatmapCells}
+            dias={diasDoMapa}
+            vazio={t("Sem mensagens recebidas no período.")}
           />
-        </Card>
+        </div>
 
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">
+        <div className="ds-bloco min-w-0 p-5">
+          <h2 className="ds-titulo-3 mb-4 text-foreground">
             {t("Serviços mais agendados")}
           </h2>
           <Ranking
             itens={externalMetrics.services}
             vazio={t("Sem agendamentos no período.")}
           />
-        </Card>
-
-        <Card className="p-5">
-          <h2 className="mb-4 text-sm font-semibold text-foreground">
-            {t("Agendamentos por dia")}
-          </h2>
-          <Ranking
-            itens={externalMetrics.appointmentWeekdays
-              .filter((item) => item.value > 0)
-              .map((item) => ({ ...item, label: t(item.label) }))}
-            vazio={t("Sem agendamentos no período.")}
-          />
-        </Card>
+        </div>
       </div>
 
-      <Card className="p-5">
-        <div className="mb-4 flex items-center gap-1.5">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t("Horários de pico")}
-          </h2>
-          <Dica
-            texto={t(
-              "As oito horas com mais mensagens recebidas, no fuso do cliente.",
-            )}
-          />
-        </div>
-        <HorariosDePico cells={heatmapCells} />
-      </Card>
-
       {!externalMetrics.isConfigured ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface-muted px-5 py-4">
+        <div className="flex items-start gap-3 rounded-[20px] border border-border bg-surface-muted px-5 py-4">
           <PlugZap
             aria-hidden="true"
             className="mt-0.5 h-4 w-4 shrink-0 text-warning"

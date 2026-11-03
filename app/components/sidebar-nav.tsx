@@ -105,8 +105,8 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
   const { t } = useIdioma();
 
   return (
-    <nav className="flex flex-col gap-1">
-      <p className="mb-2 px-3 text-[10px] font-semibold tracking-[0.22em] text-sidebar-muted uppercase">
+    <nav className="flex flex-col gap-0.5">
+      <p className="ds-sobretitulo mb-2 px-3">
         {groupLabel}
       </p>
 
@@ -123,13 +123,13 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
           return (
             <span
               aria-disabled="true"
-              className="flex min-h-10 cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-muted opacity-50"
+              className="flex min-h-9 cursor-not-allowed items-center gap-2.5 rounded-[10px] px-3 py-1.5 text-[0.8125rem] font-medium text-sidebar-muted opacity-50"
               key={item.href}
               title={t("Tela indisponível nesta conta")}
             >
               <Icone
                 aria-hidden="true"
-                className="h-[18px] w-[18px] shrink-0"
+                className="h-4 w-4 shrink-0"
                 strokeWidth={1.8}
               />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -143,9 +143,9 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
         return (
           <Link
             aria-current={activo ? "page" : undefined}
-            className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+            className={`group relative flex min-h-9 items-center gap-2.5 rounded-[10px] px-3 py-1.5 text-[0.8125rem] transition-[background-color,color] duration-150 ${
               activo
-                ? "bg-sidebar-active font-semibold text-sidebar-active-foreground"
+                ? "bg-sidebar-active font-semibold text-sidebar-active-foreground before:absolute before:top-2 before:bottom-2 before:-left-2.5 before:w-[3px] before:rounded-r-full before:bg-primary"
                 : "font-medium text-sidebar-muted hover:bg-muted hover:text-sidebar-foreground"
             }`}
             href={item.href}
@@ -154,7 +154,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
           >
             <Icone
               aria-hidden="true"
-              className={`h-[18px] w-[18px] shrink-0 transition ${
+              className={`h-4 w-4 shrink-0 transition ${
                 activo
                   ? ""
                   : "text-sidebar-muted group-hover:text-sidebar-foreground"

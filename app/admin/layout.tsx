@@ -37,7 +37,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
+      <div aria-hidden="true" className="ds-aurora" />
       <AppSidebar
         items={adminNavigation.map((item) => ({ ...item, label: t(item.label) }))}
         subtitle={t("Administração")}
@@ -46,7 +47,7 @@ export default async function AdminLayout({
       <ScrollToTop alvoId="conteudo" />
 
       <main
-        className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background"
+        className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
         id="conteudo"
       >
         <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8 sm:py-8 lg:px-10">

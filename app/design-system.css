@@ -217,8 +217,97 @@
 }
 .ds-bloco {
   background: var(--ds-superficie);
-  border-radius: var(--ds-raio-bloco);
-  box-shadow: var(--ds-sombra-1), inset 0 0 0 1px var(--ds-linha);
+  border-radius: 22px;
+  /* Contorno de meio píxel + sombra curta + sombra longa, como os cartões
+     do iOS: o cartão separa-se do fundo sem precisar de borda. */
+  box-shadow:
+    0 0 0 0.5px color-mix(in oklab, var(--ds-texto) 11%, transparent),
+    0 1px 2px rgb(16 24 20 / 0.04),
+    0 12px 32px -14px rgb(16 24 20 / 0.14);
+}
+[data-tema="escuro"] .ds-bloco {
+  /* No escuro a luz vem de cima: um fio claro no topo dá a espessura. */
+  box-shadow:
+    0 0 0 0.5px rgb(255 255 255 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 12px 32px -14px rgb(0 0 0 / 0.6);
+}
+@media (prefers-color-scheme: dark) {
+  [data-tema="sistema"] .ds-bloco {
+    box-shadow:
+      0 0 0 0.5px rgb(255 255 255 / 0.08),
+      inset 0 1px 0 rgb(255 255 255 / 0.05),
+      0 12px 32px -14px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Cartão que leva a algum sítio: sobe um pouco no rato, afunda no toque. */
+.ds-interativo {
+  transition:
+    transform 220ms var(--ds-curva),
+    box-shadow 220ms var(--ds-curva);
+}
+@media (hover: hover) {
+  .ds-interativo:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 0.5px color-mix(in oklab, var(--ds-texto) 14%, transparent),
+      0 2px 4px rgb(16 24 20 / 0.05),
+      0 20px 40px -16px rgb(16 24 20 / 0.22);
+  }
+  .ds-interativo:hover .ds-seta { opacity: 1; transform: translateX(0); }
+}
+.ds-interativo:active {
+  transform: scale(0.985);
+  transition-duration: 90ms;
+}
+.ds-seta {
+  opacity: 0;
+  transform: translateX(-3px);
+  transition: opacity 180ms var(--ds-curva), transform 180ms var(--ds-curva);
+}
+@media (hover: none) {
+  .ds-seta { opacity: 0.5; transform: none; }
+}
+
+/* Ícone em quadradinho colorido (estilo app Saúde). */
+.ds-chip-icone {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+  color: var(--chip, var(--ds-acao));
+  background: color-mix(in oklab, var(--chip, var(--ds-acao)) 14%, transparent);
+}
+
+/* Número grande com unidade pequena: "25 s", "100 %". */
+.ds-valor {
+  font-size: 2.125rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+.ds-valor small {
+  margin-left: 0.2em;
+  font-size: 0.5em;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  color: var(--ds-texto-2);
+}
+
+/* Lista agrupada (Ajustes do iPhone): separadores que começam no texto. */
+.ds-lista > * { position: relative; }
+.ds-lista > * + *::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3.75rem;
+  right: 0;
+  height: 0.5px;
+  background: color-mix(in oklab, var(--ds-texto) 14%, transparent);
 }
 .ds-vidro {
   background: var(--ds-vidro);
@@ -551,6 +640,20 @@
   .ds-entrar { animation: none; }
   .ds, .ds * { transition-duration: 0s !important; }
   .ds-botao, .ds-segmento, .ds-interruptor::after, .ds-barra > span { transition: none; }
+}
+
+/* ---------- Entrada dos gráficos ---------- */
+@keyframes grafico-revelar { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes grafico-aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes grafico-crescer { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.grafico-revelar { animation: grafico-revelar 900ms var(--ds-curva) both; }
+.grafico-barra {
+  transform-origin: bottom;
+  animation: grafico-crescer 650ms var(--ds-curva) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .grafico-revelar, .grafico-barra { animation: none; }
+  .ds-interativo, .ds-interativo:hover, .ds-interativo:active { transform: none; }
 }
 
 }

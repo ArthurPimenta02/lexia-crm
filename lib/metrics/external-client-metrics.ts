@@ -4,6 +4,8 @@ import { getClientTimezone } from "@/lib/clientes/timezone";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 
 export type ExternalClientMetrics = {
+  /** Quando cada agendamento do período foi criado (para o gráfico por dia). */
+  appointmentDates: string[];
   appointmentWeekdays: { label: string; value: number }[];
   appointments: number | null;
   isConfigured: boolean;
@@ -67,6 +69,7 @@ const emptyAppointmentWeekdays = [
 
 function emptyExternalMetrics(isConfigured: boolean): ExternalClientMetrics {
   return {
+    appointmentDates: [],
     appointmentWeekdays: emptyAppointmentWeekdays,
     appointments: null,
     isConfigured,
@@ -237,6 +240,11 @@ export async function getExternalClientMetrics(
     ((appointmentsListResult.data ?? []) as Record<string, unknown>[]) ?? [];
 
   return {
+    appointmentDates: appointmentsListResult.error
+      ? []
+      : appointmentRows
+          .map((row) => getTextValue(row, config.appointments.dateColumn))
+          .filter((valor): valor is string => Boolean(valor)),
     appointmentWeekdays: appointmentsListResult.error
       ? emptyAppointmentWeekdays
       : buildWeekdayCounts(
