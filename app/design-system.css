@@ -11,11 +11,11 @@
 
 .ds {
   /* ===== As 3 cores da paleta. Tudo o resto sai delas. ===== */
-  --c1: #eef3f5;            /* fundo */
-  --c2: #0b6e8c;            /* principal: botões, barras, seleção */
-  --c3: #ffc23d;            /* destaque: palavras-chave, manchas, 2.ª série */
+  --c1: #fff5ef;            /* fundo */
+  --c2: #ff5a4e;            /* principal: botões, barras, seleção */
+  --c3: #1b1b3a;            /* destaque: palavras-chave, manchas, 2.ª série */
   --c2-texto: #ffffff;      /* texto em cima da principal */
-  --c3-legivel: #b98100;    /* o destaque quando é texto sobre fundo claro */
+  --c3-legivel: #1b1b3a;    /* o destaque quando é texto sobre fundo claro */
 
   /* Superfícies */
   --ds-fundo: var(--c1);
@@ -90,37 +90,37 @@
  * Paletas: cada uma são 3 cores (fundo, principal, destaque) e o
  * texto que fica legível em cima delas. Tudo o resto é calculado.
  * ================================================================ */
-.ds[data-paleta="oceano"] {
-  --c1: #eef3f5; --c2: #0b6e8c; --c3: #ffc23d; --c2-texto: #ffffff; --c3-legivel: #b98100;
-  --c2-escuro: #3fb5d6; --c2-escuro-texto: #04151b; --c3-escuro: #ffc23d;
+.ds[data-paleta="coral"] {
+  --c1: #fff5ef; --c2: #ff5a4e; --c3: #1b1b3a; --c2-texto: #ffffff; --c3-legivel: #1b1b3a;
+  --c2-escuro: #ff7a6e; --c2-escuro-texto: #1a0605; --c3-escuro: #b9b8ff;
 }
-.ds[data-paleta="vinho"] {
-  --c1: #f6f0ed; --c2: #7a1e3a; --c3: #d9a441; --c2-texto: #ffffff; --c3-legivel: #9c6c12;
-  --c2-escuro: #e0668a; --c2-escuro-texto: #1a050c; --c3-escuro: #e8b95a;
+.ds[data-paleta="eletrica"] {
+  --c1: #f4f4f0; --c2: #3a1cff; --c3: #d4ff3a; --c2-texto: #ffffff; --c3-legivel: #5d7a00;
+  --c2-escuro: #8a78ff; --c2-escuro-texto: #0b0626; --c3-escuro: #d4ff3a;
 }
-.ds[data-paleta="matcha"] {
-  --c1: #f2f3ea; --c2: #5e7a2b; --c3: #8a4b2f; --c2-texto: #ffffff; --c3-legivel: #8a4b2f;
-  --c2-escuro: #a9c76a; --c2-escuro-texto: #11160a; --c3-escuro: #d9946e;
+.ds[data-paleta="magenta"] {
+  --c1: #fff1f7; --c2: #e6007e; --c3: #00b386; --c2-texto: #ffffff; --c3-legivel: #00875f;
+  --c2-escuro: #ff4fa8; --c2-escuro-texto: #1f0010; --c3-escuro: #3fe0b0;
 }
-.ds[data-paleta="grafite"] {
-  --c1: #edeef0; --c2: #2b313c; --c3: #ff5a1f; --c2-texto: #ffffff; --c3-legivel: #e2470e;
-  --c2-escuro: #e8eaee; --c2-escuro-texto: #111317; --c3-escuro: #ff7a45;
+.ds[data-paleta="ceu"] {
+  --c1: #f1f7ff; --c2: #2d7ff9; --c3: #ffb800; --c2-texto: #ffffff; --c3-legivel: #b37f00;
+  --c2-escuro: #6aa8ff; --c2-escuro-texto: #04122a; --c3-escuro: #ffc83d;
 }
-.ds[data-paleta="lilas"] {
-  --c1: #f3f0f7; --c2: #6f5bb5; --c3: #3f6b47; --c2-texto: #ffffff; --c3-legivel: #3f6b47;
-  --c2-escuro: #a99be8; --c2-escuro-texto: #120d24; --c3-escuro: #8fc79a;
+.ds[data-paleta="uva"] {
+  --c1: #f5f2fb; --c2: #4b1f8f; --c3: #2fcf9f; --c2-texto: #ffffff; --c3-legivel: #12916a;
+  --c2-escuro: #a88bea; --c2-escuro-texto: #140828; --c3-escuro: #4fe3b5;
 }
-.ds[data-paleta="cereja"] {
-  --c1: #f2f6fb; --c2: #d7264f; --c3: #3d8bff; --c2-texto: #ffffff; --c3-legivel: #2f6bff;
-  --c2-escuro: #ff6683; --c2-escuro-texto: #1a0309; --c3-escuro: #7db0ff;
+.ds[data-paleta="terracota"] {
+  --c1: #fbf3ea; --c2: #c2451e; --c3: #2e5e4e; --c2-texto: #ffffff; --c3-legivel: #2e5e4e;
+  --c2-escuro: #e8714a; --c2-escuro-texto: #1f0a03; --c3-escuro: #7cc4a8;
 }
-.ds[data-paleta="marinho"] {
-  --c1: #f5f1e6; --c2: #1c2b4a; --c3: #e0a526; --c2-texto: #ffffff; --c3-legivel: #a8740a;
-  --c2-escuro: #8ea6d9; --c2-escuro-texto: #0a1122; --c3-escuro: #f2be4a;
+.ds[data-paleta="amarelo"] {
+  --c1: #fffaeb; --c2: #1a1a1a; --c3: #ffd60a; --c2-texto: #ffd60a; --c3-legivel: #a88600;
+  --c2-escuro: #ffd60a; --c2-escuro-texto: #1a1a1a; --c3-escuro: #fff3b0;
 }
-.ds[data-paleta="esmeralda"] {
-  --c1: #f7f1eb; --c2: #0f7b5f; --c3: #ff9e7a; --c2-texto: #ffffff; --c3-legivel: #d9562b;
-  --c2-escuro: #3fd1a6; --c2-escuro-texto: #03140f; --c3-escuro: #ffb59a;
+.ds[data-paleta="floresta"] {
+  --c1: #f3f7ec; --c2: #1f4d2b; --c3: #b6f23a; --c2-texto: #ffffff; --c3-legivel: #5a8a00;
+  --c2-escuro: #b6f23a; --c2-escuro-texto: #102a00; --c3-escuro: #e6ffb0;
 }
 
 /* ---------- Modo escuro: o mesmo trio, sobre um quase-preto tingido pela principal ---------- */

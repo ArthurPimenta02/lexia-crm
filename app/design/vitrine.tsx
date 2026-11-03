@@ -478,14 +478,54 @@ function Catalogo() {
 
 
 const paletas = [
-  { id: "oceano", nome: "Oceano", nota: "azul-petróleo + girassol", cores: ["#eef3f5", "#0b6e8c", "#ffc23d"] },
-  { id: "vinho", nome: "Vinho", nota: "bordô + dourado", cores: ["#f6f0ed", "#7a1e3a", "#d9a441"] },
-  { id: "matcha", nome: "Matcha", nota: "matcha + cacau", cores: ["#f2f3ea", "#5e7a2b", "#8a4b2f"] },
-  { id: "grafite", nome: "Grafite", nota: "grafite + laranja", cores: ["#edeef0", "#2b313c", "#ff5a1f"] },
-  { id: "lilas", nome: "Lilás", nota: "lilás + musgo", cores: ["#f3f0f7", "#6f5bb5", "#3f6b47"] },
-  { id: "cereja", nome: "Cereja", nota: "cereja + azul-céu", cores: ["#f2f6fb", "#d7264f", "#3d8bff"] },
-  { id: "marinho", nome: "Marinho", nota: "marinho + mostarda", cores: ["#f5f1e6", "#1c2b4a", "#e0a526"] },
-  { id: "esmeralda", nome: "Esmeralda", nota: "esmeralda + pêssego", cores: ["#f7f1eb", "#0f7b5f", "#ff9e7a"] },
+  {
+    id: "coral", nome: "Coral", nota: "coral + tinta noturna", cores: ["#fff5ef", "#ff5a4e", "#1b1b3a"],
+    conceito: "A secretária simpática. Calor humano, nada de cara de robô.",
+    personalidade: ["acolhedora", "próxima", "sorridente"],
+    mascote: "Um balão de conversa coral, redondo, que sorri e pisca quando responde.",
+  },
+  {
+    id: "eletrica", nome: "Elétrica", nota: "ultramarino + lima ácida", cores: ["#f4f4f0", "#3a1cff", "#d4ff3a"],
+    conceito: "Tecnologia que impressiona. Rápida, jovem, um pouco atrevida.",
+    personalidade: ["rápida", "ousada", "nerd do bem"],
+    mascote: "Uma faísca azul com olhos de pixel, que deixa um rastro lima quando corre.",
+  },
+  {
+    id: "magenta", nome: "Magenta", nota: "magenta + verde", cores: ["#fff1f7", "#e6007e", "#00b386"],
+    conceito: "Inesquecível. Uma cor que ninguém do setor usa.",
+    personalidade: ["confiante", "vibrante", "memorável"],
+    mascote: "Uma gota magenta com fones verdes, sempre pronta para atender.",
+  },
+  {
+    id: "ceu", nome: "Céu", nota: "azul-céu + sol", cores: ["#f1f7ff", "#2d7ff9", "#ffb800"],
+    conceito: "Otimista e fácil. Qualquer dono de negócio entende de primeira.",
+    personalidade: ["clara", "otimista", "confiável"],
+    mascote: "Uma nuvem azul com um solzinho no lugar do coração.",
+  },
+  {
+    id: "uva", nome: "Uva", nota: "uva + menta", cores: ["#f5f2fb", "#4b1f8f", "#2fcf9f"],
+    conceito: "Premium e calma. Combina com spa, estética e clínicas.",
+    personalidade: ["elegante", "serena", "inteligente"],
+    mascote: "Uma coruja uva de óculos menta, que sabe a agenda de cor.",
+  },
+  {
+    id: "terracota", nome: "Terracota", nota: "terracota + pinho", cores: ["#fbf3ea", "#c2451e", "#2e5e4e"],
+    conceito: "Feita à mão. Negócio local, conversa de balcão, confiança.",
+    personalidade: ["artesanal", "calorosa", "honesta"],
+    mascote: "Um vasinho de barro com uma folha de pinho que balança ao falar.",
+  },
+  {
+    id: "amarelo", nome: "Amarelo", nota: "preto + amarelo vivo", cores: ["#fffaeb", "#1a1a1a", "#ffd60a"],
+    conceito: "Marca forte, de outdoor. Contraste máximo, reconhecível de longe.",
+    personalidade: ["direta", "enérgica", "bem-humorada"],
+    mascote: "Um balão amarelo de traço preto grosso, estilo desenho animado.",
+  },
+  {
+    id: "floresta", nome: "Floresta", nota: "verde-floresta + lima", cores: ["#f3f7ec", "#1f4d2b", "#b6f23a"],
+    conceito: "Crescimento. O agente que faz o negócio do cliente crescer.",
+    personalidade: ["sólida", "fresca", "de confiança"],
+    mascote: "Um broto lima que cresce um pouco a cada cliente atendido.",
+  },
 ] as const;
 
 type IdPaleta = (typeof paletas)[number]["id"];
@@ -516,13 +556,72 @@ function SeletorPaleta({ onChange, valor }: { onChange: (v: IdPaleta) => void; v
   );
 }
 
+
+/** Rascunho de mascote: só para imaginar a marca, não é o desenho final. */
+function RascunhoMascote() {
+  return (
+    <svg aria-hidden className="h-36 w-36" viewBox="0 0 120 120">
+      <ellipse cx="60" cy="110" fill="var(--ds-texto)" opacity="0.08" rx="30" ry="5" />
+      <path
+        d="M60 14c26 0 44 16 44 38s-18 38-44 38c-5 0-10-.6-14-1.8L28 98l4-16C21 75 16 64 16 52 16 30 34 14 60 14Z"
+        fill="var(--ds-acao)"
+      />
+      <ellipse cx="45" cy="50" fill="var(--ds-superficie)" rx="9" ry="11" />
+      <ellipse cx="75" cy="50" fill="var(--ds-superficie)" rx="9" ry="11" />
+      <circle cx="47" cy="52" fill="var(--ds-texto)" r="4.5" />
+      <circle cx="77" cy="52" fill="var(--ds-texto)" r="4.5" />
+      <path d="M48 68c6 6 18 6 24 0" fill="none" stroke="var(--ds-acao-texto)" strokeLinecap="round" strokeWidth="4" />
+      <circle cx="94" cy="20" fill="var(--ds-mancha-2)" r="7" />
+      <path d="M86 28l-6 6" stroke="var(--ds-mancha-2)" strokeLinecap="round" strokeWidth="4" />
+    </svg>
+  );
+}
+
+function DirecaoMarca({ id }: { id: IdPaleta }) {
+  const p = paletas.find((x) => x.id === id) ?? paletas[0];
+  return (
+    <section className="ds-cartao grid items-center gap-8 overflow-hidden p-8 md:grid-cols-[auto_1fr_auto]">
+      <div className="flex items-center justify-center">
+        <RascunhoMascote />
+      </div>
+      <div className="flex flex-col gap-3">
+        <p className="ds-sobretitulo">Direção de marca // {p.nome}</p>
+        <p className="text-[2.75rem] leading-none font-semibold tracking-[-0.045em]">
+          lexia<span className="ds-destaque">.</span>
+        </p>
+        <p className="ds-titulo-3 max-w-md">{p.conceito}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {p.personalidade.map((x) => (
+            <Selo key={x} tom="verde">{x}</Selo>
+          ))}
+        </div>
+        <p className="ds-corpo max-w-md text-[var(--ds-texto-2)]">
+          <span className="font-medium text-[var(--ds-texto)]">Mascote: </span>
+          {p.mascote}
+        </p>
+      </div>
+      <div className="flex gap-2 md:flex-col">
+        {p.cores.map((c, i) => (
+          <div className="flex items-center gap-2.5" key={c}>
+            <span className="size-11 rounded-[12px] shadow-[inset_0_0_0_1px_var(--ds-linha)]" style={{ background: c }} />
+            <span className="hidden leading-tight md:block">
+              <span className="block text-[0.75rem] font-medium">{["Fundo", "Principal", "Destaque"][i]}</span>
+              <span className="ds-legenda block font-mono">{c}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type Modo = "claro" | "escuro";
 
 export function Vitrine() {
-  const [paleta, setPaleta] = useState<IdPaleta>("oceano");
+  const [paleta, setPaleta] = useState<IdPaleta>("coral");
   const [modo, setModo] = useState<Modo>("claro");
 
-  // A paleta vai no endereço (/design#oceano-escuro) para dar para partilhar.
+  // A paleta vai no endereço (/design#coral-escuro) para dar para partilhar.
   useEffect(() => {
     const ler = () => {
       const [h, m] = window.location.hash.slice(1).split("-");
@@ -568,6 +667,8 @@ export function Vitrine() {
             />
           </div>
         </div>
+
+        <DirecaoMarca id={paleta} />
 
         <section className="ds-entrar" style={{ ["--i" as string]: 3 }}>
           <TelaExemplo />
