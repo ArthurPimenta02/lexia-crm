@@ -57,9 +57,9 @@ export default async function HojeMovel() {
 
       <section className="m-destaque">
         <span className="m-destaque-agente"><i />{c.clienteNome}</span>
-        <div className="rot">{t("Previsto para hoje")}</div>
-        <div className="valor">{dinheiro(previsto)}</div>
-        <div className="sub">{d.agenda.length === 1 ? t("1 agendamento") : t("{n} agendamentos", { n: d.agenda.length })}{d.amanha ? ` · ${t("amanhã: {n}", { n: d.amanha })}` : ""}</div>
+        <div className="rot">{t("Agendamentos hoje")}</div>
+        <div className="valor">{d.agenda.length}</div>
+        <div className="sub">{[futuros.length && futuros.length < d.agenda.length ? t("{n} ainda por vir", { n: futuros.length }) : null, d.amanha ? t("amanhã: {n}", { n: d.amanha }) : null, previsto ? t("previsto {valor}", { valor: dinheiro(previsto) }) : null].filter(Boolean).join(" · ") || t("Nenhum agendamento hoje.")}</div>
         <div className="m-accoes">
           <Link className="m-accao" href="/m/agenda?nova=1"><span className="b"><IcMais /></span>{t("Marcar")}</Link>
           <Link className="m-accao" href="/m/conversas"><span className="b"><IcConversa /></span>{t("Conversas")}</Link>

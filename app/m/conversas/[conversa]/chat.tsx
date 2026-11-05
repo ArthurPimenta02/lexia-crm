@@ -151,7 +151,27 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
   const ultimoQuando = useRef<string | null>(inicial.mensagens.at(-1)?.criado_em ?? null);
   const perto = useRef(true);
 
+  const raiz = useRef<HTMLDivElement>(null);
   const visiveis = useMemo(() => semEcos(mensagens), [mensagens]);
+
+  // Teclado como no WhatsApp: o topo fica parado e só a lista encolhe. No
+  // iPhone o teclado não muda o tamanho da página, empurra-a para cima; aqui o
+  // chat acompanha a área visível (visualViewport) em vez de deixar a página
+  // subir. Com o plugin de teclado da casca em modo "native" isto não mexe.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = raiz.current;
+    if (!vv || !el) return;
+    const ajustar = () => {
+      el.style.height = `${vv.height}px`;
+      el.style.transform = `translateY(${vv.offsetTop}px)`;
+      if (perto.current) lista.current?.scrollTo({ top: lista.current.scrollHeight });
+    };
+    ajustar();
+    vv.addEventListener("resize", ajustar);
+    vv.addEventListener("scroll", ajustar);
+    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); };
+  }, []);
   const foraDaJanela = inicial.canal !== "whatsapp" && inicial.ultimaRecebida && Date.now() - Date.parse(inicial.ultimaRecebida) > 24 * 3600_000;
 
   const descer = useCallback((suave = false) => {
@@ -361,7 +381,7 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
   const comigo = estado !== "agente";
 
   return (
-    <div className="m-chat">
+    <div className="m-chat" ref={raiz}>
       <header className="m-chat-cab">
         <Link aria-label={textos.voltar} className="m-redondo" href="/m/conversas"><IcVoltar /></Link>
         <div className="m-av p" style={{ background: inicial.cor }}>

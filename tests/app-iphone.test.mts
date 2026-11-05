@@ -35,7 +35,7 @@ mock.module("@/lib/auth/profile", {
 
 const aparelho = await import("@/app/api/app/aparelho/route");
 const preferencias = await import("@/app/api/app/preferencias/route");
-const { destinoDoAviso } = await import("@/app/components/ponte-do-app");
+const { destinoDoAviso, paraAsTelasDoApp } = await import("@/app/components/ponte-do-app");
 
 const pedido = (metodo: string, corpo: unknown) =>
   new Request("https://painel.test/api", {
@@ -151,4 +151,13 @@ test("gesto de voltar: só da borda, para a direita e com distância", async () 
   assert.equal(decideVoltar(10, 40, 5), false, "curto demais");
   assert.equal(decideVoltar(10, 90, 80), false, "foi mais para baixo do que para o lado");
   assert.equal(decideVoltar(10, -90, 0), false, "para a esquerda");
+});
+
+test("dentro do app, o painel do computador leva às telas do iPhone", () => {
+  assert.equal(paraAsTelasDoApp("/admin"), "/m");
+  assert.equal(paraAsTelasDoApp("/app"), "/m");
+  assert.equal(paraAsTelasDoApp("/app/agenda"), "/m/agenda");
+  assert.equal(paraAsTelasDoApp("/app/conversas", "?conversa=whatsapp%3A1"), "/m/conversas/whatsapp%3A1");
+  assert.equal(paraAsTelasDoApp("/m/agenda"), null);
+  assert.equal(paraAsTelasDoApp("/login"), null);
 });

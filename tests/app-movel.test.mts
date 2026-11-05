@@ -148,3 +148,16 @@ test("chat: o eco que o agente grava na Meta não aparece duas vezes", () => {
   const ms = [m("1", "recebida", "workflow", "oi", "2026-11-06T10:00:00Z"), m("2", "enviada", "humano", "olá!", "2026-11-06T10:01:00Z"), m("3", "enviada", "humano", "olá!", "2026-11-06T10:01:20Z"), m("4", "enviada", "humano", "olá!", "2026-11-06T10:09:00Z")];
   assert.deepEqual(semEcos(ms).map((x) => x.id), ["1", "2", "4"]);
 });
+
+test("resultados: períodos (hoje, ontem, semana, mês, personalizado com limites)", async () => {
+  const { intervaloDe, diasDoIntervalo } = await import("@/lib/movel/resultados");
+  const hoje = "2026-11-06"; // sexta
+  assert.deepEqual(intervaloDe("hoje", null, null, hoje), { ate: hoje, chave: "hoje", de: hoje });
+  assert.deepEqual(intervaloDe("ontem", null, null, hoje), { ate: "2026-11-05", chave: "ontem", de: "2026-11-05" });
+  assert.deepEqual(intervaloDe(undefined, null, null, hoje), { ate: hoje, chave: "semana", de: "2026-11-02" });
+  assert.deepEqual(intervaloDe("mes", null, null, hoje), { ate: hoje, chave: "mes", de: "2026-11-01" });
+  assert.deepEqual(intervaloDe("personalizado", "2026-11-10", "2026-10-01", hoje), { ate: hoje, chave: "personalizado", de: "2026-10-01" });
+  const longo = intervaloDe("personalizado", "2025-01-01", "2026-11-01", hoje);
+  assert.equal(diasDoIntervalo(longo), 92);
+  assert.equal(intervaloDe("personalizado", "lixo", "2026-11-01", hoje).chave, "semana");
+});
