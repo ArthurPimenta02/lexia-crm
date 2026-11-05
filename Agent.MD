@@ -276,6 +276,24 @@ Arquivos de referência:
 | `/app/execucoes` | Histórico técnico de testes. | Não |
 | `/app/configuracoes` | Dados do cliente, workflows e acesso. | Não |
 
+### App do iPhone (`/m`)
+
+A casca nativa (repo privado `lexia-app`, Capacitor) abre `https://app.uselexia.app/m`.
+Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel()`
+(`lib/movel/contexto.ts`): o dono vê sempre a sua; a Lexia escolhe nos Ajustes
+(cookie `lexia_m_cliente`).
+
+- `/m` Hoje · `/m/conversas` e `/m/conversas/[conversa]` (chat com envio) ·
+  `/m/agenda` (`?nova=1` abre marcar) · `/m/resultados` · `/m/mais` ·
+  `/m/campanhas` · `/m/clientes` · `/m/testes` (Área de testes) · `/m/busca` ·
+  `/m/ajustes`.
+- Aparência: cookie `lexia_m_modo` (`auto`/`claro`/`escuro`) → `data-modo` em `.m-app`.
+- Meta do mês: `user_metadata.meta_mes` e `meta_conta` da própria conta.
+- Rapidez: cada rota tem `loading.tsx`; `lib/movel/cache.ts` guarda Hoje (20 s),
+  Resultados e Mais (60 s), sempre com a empresa na chave; `next.config.ts` liga
+  `experimental.staleTimes.dynamic = 30` (vale para todo o site: voltar a uma
+  tela aberta há menos de 30 s não volta a pedir ao servidor).
+
 ### Administração
 
 | Rota | Função | Navegação lateral |
