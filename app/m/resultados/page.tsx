@@ -60,7 +60,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
           : [0, 0.25, 0.5, 0.75, 1].map((f) => curto(d!.leadsPorDia[Math.round(f * (d!.leadsPorDia.length - 1))].dia));
         return (
           <>
-            <div className="m-rot">{t("Agendamentos")}</div>
+            <div className="m-rot">{t("Agendamentos marcados")}</div>
             <div className="m-grande">{d.atual.agendamentos} <span>· {t("{n} pelo agente", { n: d.atual.doAgente })}</span></div>
 
             {d.dias > 1 ? (
