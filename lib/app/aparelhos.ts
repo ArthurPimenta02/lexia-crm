@@ -19,6 +19,7 @@ export const TIPOS_DE_AVISO = [
   "agendamento_remarcado",
   "agendamento_cancelado",
   "agenda_manual",
+  "resumo_manha",
   "todos_os_clientes",
 ] as const;
 
