@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { IcEnviar, IcMais, IcRobo, IcVoltar } from "../_c/icones";
+import { useTecladoDoChat } from "../_c/teclado";
 import { enviarTeste, lerConversaTeste } from "./actions";
 import { bolhasDe, SEM_SESSAO, type ExecucaoTeste } from "./bolhas";
 
@@ -61,20 +62,10 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
   }, [workflows]);
 
   // Teclado como no chat real: o topo fica parado e só a lista encolhe.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const el = raiz.current;
-    if (!vv || !el) return;
-    const ajustar = () => {
-      el.style.height = `${vv.height}px`;
-      el.style.transform = `translateY(${vv.offsetTop}px)`;
-      if (perto.current) msgs.current?.scrollTo({ top: msgs.current.scrollHeight });
-    };
-    ajustar();
-    vv.addEventListener("resize", ajustar);
-    vv.addEventListener("scroll", ajustar);
-    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); };
+  const aoMudarTeclado = useCallback(() => {
+    if (perto.current) msgs.current?.scrollTo({ top: msgs.current.scrollHeight });
   }, []);
+  useTecladoDoChat(raiz, aoMudarTeclado);
 
   const descer = useCallback((suave = false) => {
     const el = msgs.current;

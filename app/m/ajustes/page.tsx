@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 
 import { IcEmpresa, IcGlobo, IcSair } from "../_c/icones";
 import { Aparencia } from "./aparencia";
+import { FaceId } from "./face-id";
 import { Meta } from "./meta";
 import { escolherEmpresa, sairDoApp } from "./acoes";
 import { PreferenciasAvisos } from "./preferencias";
@@ -60,7 +61,7 @@ export default async function AjustesMovel() {
         </>
       ) : null}
 
-      <div className="m-rotulo-g">{t("Avisos no iPhone")}</div>
+      <div className="m-rotulo-g" id="avisos">{t("Avisos no iPhone")}</div>
       <PreferenciasAvisos
         textos={{
           agenda: t("Agendamentos"), agendaSub: t("novo, remarcado, cancelado"),
@@ -74,6 +75,7 @@ export default async function AjustesMovel() {
 
       <div className="m-rotulo-g">{t("App")}</div>
       <div className="m-caixa">
+        <FaceId textos={{ codigo: t("Pedir o código ao abrir"), faceid: t("Pedir Face ID ao abrir"), sub: t("ninguém abre o app sem você"), touchid: t("Pedir Touch ID ao abrir") }} />
         <div className="m-opcao"><div className="ic"><IcGlobo /></div><div><b>{t("Idioma")}</b></div><span className="m-valor-dir">{NOME_DO_IDIOMA[c.idioma]} · {t("igual ao iPhone")}</span></div>
         <form action={sairDoApp}>
           <button className="m-opcao" style={{ color: "var(--m-vermelho)" }} type="submit"><div className="ic" style={{ color: "var(--m-vermelho)" }}><IcSair /></div><div><b>{t("Sair")}</b></div></button>

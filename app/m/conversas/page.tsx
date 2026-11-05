@@ -1,5 +1,5 @@
 import { contextoMovel } from "@/lib/movel/contexto";
-import { listarConversas } from "@/lib/movel/conversas";
+import { conversasRapido } from "@/lib/movel/cache";
 import { corDe, duracaoCurta, iniciais, quandoCurto } from "@/lib/movel/formato";
 
 import { ListaConversas, type ItemLista } from "./lista";
@@ -13,7 +13,7 @@ export default async function ConversasMovel() {
   let erro: string | null = null;
 
   try {
-    const conversas = await listarConversas(c.clienteSlug, agora);
+    const conversas = await conversasRapido(c.clienteSlug);
     itens = conversas.map((v) => ({
       canal: v.canal,
       cor: corDe(v.conversa),
