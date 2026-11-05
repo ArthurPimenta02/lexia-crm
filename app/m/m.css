@@ -420,7 +420,7 @@
 
 /* Hoje: o número do dia e a barra de riscas */
 .m-dia-num { display: flex; align-items: baseline; gap: 8px; }
-.m-dia-num b { font-size: 44px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.m-dia-num b { font-size: 44px; font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
 .m-dia-num span { font-size: 15px; color: var(--m-texto2); }
 .m-dia-barra { display: flex; gap: 4px; margin-top: 12px; }
 .m-dia-barra i { flex: 1; height: 6px; border-radius: 3px; background: var(--m-suave); }
@@ -451,7 +451,7 @@
 .m-cartao-c.c1 { background: var(--m-jade); }
 .m-cartao-c.c2 { background: var(--m-lilas); width: 120px; color: #0d0b2a; }
 .m-cartao-c .l1 { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 600; opacity: 0.7; }
-.m-cartao-c .hr { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.m-cartao-c .hr { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; }
 .m-cartao-c .q { margin-top: 6px; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-cartao-c .s { font-size: 12px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 16px; }
 
@@ -472,13 +472,13 @@
 
 /* Resultados e Campanhas: número, curva e cartões */
 .m-rot { color: var(--m-texto2); font-size: 13px; }
-.m-grande { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.05; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.m-grande { font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.05; margin-top: 2px; }
 .m-grande span { font-weight: 300; color: var(--m-texto2); font-size: 20px; letter-spacing: -0.01em; }
 .m-grafico { position: relative; height: 128px; margin: 10px -18px 0; }
 .m-grafico svg { display: block; width: 100%; height: 100%; }
 .m-bolha { position: absolute; background: var(--m-jade); color: var(--m-no-jade); font-weight: 700; font-size: 11.5px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .m-curva-ponto { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; background: var(--m-fundo); border: 2.5px solid #3ee0a6; }
-.m-eixo { display: flex; justify-content: space-between; color: var(--m-texto2); font-size: 11.5px; margin: 4px 0 16px; text-transform: capitalize; }
+.m-eixo { display: flex; justify-content: space-between; color: var(--m-texto2); font-size: 11.5px; margin: 4px -12px 16px; text-transform: capitalize; }
 .m-duas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .m-vc { background: var(--m-cartao); border: 1px solid var(--m-linha); border-radius: 18px; padding: 12px; min-width: 0; }
 .m-vc small { display: block; color: var(--m-texto2); font-size: 12px; }
@@ -534,7 +534,7 @@
 .m-op + .m-op { border-top: 1px solid var(--m-linha); }
 .m-op .t { flex: 1; min-width: 0; }
 .m-num-in { width: 84px; height: 36px; border-radius: 10px; border: 1px solid var(--m-linha); background: var(--m-suave); text-align: right; padding: 0 10px; font-weight: 600; outline: 0; }
-.m-sel { height: 36px; border-radius: 10px; border: 1px solid var(--m-linha); background: var(--m-suave); color: var(--m-texto); padding: 0 8px; font-size: 16px; max-width: 60%; }
+.m-sel { height: 36px; border-radius: 10px; border: 1px solid var(--m-linha); background: var(--m-suave); color: var(--m-texto); padding: 0 8px; font-size: 16px; max-width: 72%; }
 
 /* Campanhas: um cartão por campanha */
 .m-lista-camp { display: flex; flex-direction: column; gap: 8px; }

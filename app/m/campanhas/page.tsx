@@ -73,7 +73,7 @@ export default async function CampanhasMovel({ searchParams }: { searchParams: P
           {dias > 1 ? <Curva bolha={(n) => dinheiro(n)} valores={listaDias.map((k) => gastoPorDia.get(k) ?? 0)} /> : <div style={{ height: 16 }} />}
 
           <div className="m-duas">
-            <div className="m-vc"><small>{t("Leads novos")}</small><strong>{d.contactosNovos}</strong><em>{t("{n} com anúncio identificado", { n: d.contactosComAnuncio })}</em></div>
+            <div className="m-vc"><small>{t("Leads novos")}</small><strong>{d.contactosNovos}</strong><em>{t("{n} de anúncio", { n: d.contactosComAnuncio })}</em></div>
             <div className="m-vc"><small>{t("Custo por lead")}</small><strong>{d.custoPorContacto === null ? "—" : dinheiro(d.custoPorContacto)}</strong><em>{t("{n} cliques", { n: d.cliquesLink || d.cliques })}</em></div>
           </div>
 

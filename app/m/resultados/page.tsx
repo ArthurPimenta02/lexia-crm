@@ -72,7 +72,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
 
             <div className="m-duas">
               <div className="m-vc"><small>{t("Leads novos")}</small><strong>{d.atual.leads}</strong><em>{t("{n} de anúncio", { n: d.atual.leadsAnuncio })}</em></div>
-              <div className="m-vc"><small>{t("Custo por lead")}</small><strong>{d.atual.leadsAnuncio && d.gasto ? dinheiro(d.gasto / d.atual.leadsAnuncio) : "—"}</strong><em>{t("{valor} investidos", { valor: dinheiro(d.gasto) })}</em></div>
+              <div className="m-vc"><small>{t("Custo por lead")}</small><strong>{d.atual.leads && d.gasto ? dinheiro(d.gasto / d.atual.leads) : "—"}</strong><em>{t("{valor} investidos", { valor: dinheiro(d.gasto) })}</em></div>
             </div>
             <Link className="m-faixa-l" href="/m/campanhas">
               <span>{v === null ? t("Sem período anterior para comparar") : <><b>{v > 0 ? `+${v}%` : `${v}%`}</b>{t("em relação ao período anterior")}</>}</span>

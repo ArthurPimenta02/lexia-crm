@@ -65,7 +65,7 @@ export default async function ClientesMovel({ searchParams }: { searchParams: Pr
                   <b>{nome}</b>
                   <span>{[canal === "whatsapp" ? telefoneLegivel(p.telefone_digitos) : null, p.origem_tipo && p.origem_tipo !== "organico" ? t("de anúncio") : null].filter(Boolean).join(" · ") || " "}</span>
                 </div>
-                <div className="dir"><span className="h">{p.criado_em ? quandoCurto(p.criado_em, agora, c.fuso, c.locale, t("Ontem")) : ""}</span></div>
+                <div className="dir"><span className="h">{p.atualizado_em || p.criado_em ? quandoCurto((p.atualizado_em || p.criado_em) as string, agora, c.fuso, c.locale, t("Ontem")) : ""}</span></div>
               </>
             );
             return conversa ? <Link className="m-conv" href={`/m/conversas/${encodeURIComponent(conversa)}`} key={p.id} prefetch={false}>{linha}</Link> : <div className="m-conv" key={p.id}>{linha}</div>;
