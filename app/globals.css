@@ -167,3 +167,92 @@ summary:focus-visible,
     filter: invert(1);
   }
 }
+
+/* ───────────── Celular e app do iPhone ─────────────
+   O básico para não parecer um site no telemóvel (ver skill mobile-native):
+   sem o clarão cinzento ao tocar, sem zoom ao entrar num campo (16px), toque
+   sem atraso, botões sem seleção de texto ao segurar, e a página não "puxa"
+   para baixo como um documento. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"],
+.barra-do-app__aba {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* A barra de abas só existe dentro do app (classe posta pela PonteDoApp). */
+.barra-do-app {
+  display: none;
+}
+
+html.no-app .barra-do-app {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  border-top: 1px solid var(--sidebar-border);
+  background: var(--ds-vidro);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.barra-do-app__aba {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 3.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--sidebar-muted);
+  transition: color 120ms ease-out, transform 120ms ease-out;
+}
+
+.barra-do-app__aba[data-activa="true"] {
+  color: var(--primary);
+}
+
+.barra-do-app__aba:active {
+  transform: scale(0.94);
+}
+
+/* Dentro do app o conteúdo não pode ficar escondido atrás da barra de abas. */
+html.no-app #conteudo {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* No app não há hover: tirar o texto selecionável dos rótulos de navegação. */
+html.no-app nav a {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}

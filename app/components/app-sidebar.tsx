@@ -16,6 +16,7 @@ import {
   type SidebarNavItem,
 } from "@/app/components/sidebar-nav";
 import { SinoAvisos, useAvisos } from "@/app/components/sino-avisos";
+import { BarraDoApp } from "@/app/components/barra-do-app";
 
 /**
  * A moldura do painel: barra lateral no computador, gaveta no telemóvel.
@@ -89,7 +90,7 @@ export function AppSidebar({
         sempre "Lexia AI", que é a única coisa que quem está lá dentro já
         sabe.
       */}
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-sidebar-border bg-[var(--ds-vidro)] px-3 backdrop-blur-xl lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-[calc(3.5rem+env(safe-area-inset-top,0px))] items-center gap-3 border-b border-sidebar-border bg-[var(--ds-vidro)] px-3 pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl lg:hidden">
         <button
           aria-controls="lexia-menu"
           aria-expanded={isOpen}
@@ -137,7 +138,7 @@ export function AppSidebar({
         }`}
         id="lexia-menu"
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-5 pb-5">
+        <div className="flex shrink-0 items-center justify-between gap-2 px-4 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-5 lg:pt-5">
           <LexiaBrand compact tone="light" />
           {comSino ? (
             <SinoAvisos
@@ -165,7 +166,7 @@ export function AppSidebar({
           />
         </div>
 
-        <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-border p-2.5">
+        <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-border p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] lg:pb-2.5">
           <SeletorTema compacto />
           <SeletorIdioma />
           <form action={logoutAction}>
@@ -179,6 +180,7 @@ export function AppSidebar({
           </form>
         </div>
       </aside>
+      <BarraDoApp items={items} onMais={() => setIsOpen(true)} />
     </>
   );
 }

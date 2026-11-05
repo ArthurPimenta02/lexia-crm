@@ -55,7 +55,7 @@ export default async function ClientAppLayout({
     // a janela deixa de rolar e quem rola é o `<main>`. É o que mantém a
     // barra lateral — e o "Sair" — parada, por mais comprida que a página
     // seja.
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-[calc(3.5rem+env(safe-area-inset-top,0px))] text-foreground lg:flex-row lg:pt-0">
       <div aria-hidden="true" className="ds-aurora" />
       <AppSidebar
         comSino

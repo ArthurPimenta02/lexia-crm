@@ -38,7 +38,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-14 text-foreground lg:flex-row lg:pt-0">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-[calc(3.5rem+env(safe-area-inset-top,0px))] text-foreground lg:flex-row lg:pt-0">
       <div aria-hidden="true" className="ds-aurora" />
       <AppSidebar
         items={adminNavigation.map((item) => ({ ...item, label: t(item.label) }))}
