@@ -108,6 +108,7 @@ test("preferências: omissões iguais às do serviço; cada um só grava as suas
     agendamento_cancelado: true,
     agendamento_novo: true,
     agendamento_remarcado: true,
+    resumo_manha: true,
     todos_os_clientes: false,
   });
 
@@ -118,6 +119,13 @@ test("preferências: omissões iguais às do serviço; cada um só grava as suas
     [["dono-a", "a_espera", false]],
   );
   assert.equal((await (await preferencias.GET()).json()).preferencias.a_espera, false);
+});
+
+test("resumo da manhã: qualquer pessoa liga e desliga o seu", async () => {
+  const r = await preferencias.PUT(pedido("PUT", { ligado: false, tipo: "resumo_manha" }));
+  assert.equal(r.status, 200);
+  assert.equal((await (await preferencias.GET()).json()).preferencias.resumo_manha, false);
+  await preferencias.PUT(pedido("PUT", { ligado: true, tipo: "resumo_manha" }));
 });
 
 test("'todos os clientes' é só para a Lexia; tipos inventados recusam", async () => {

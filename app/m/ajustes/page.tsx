@@ -67,6 +67,7 @@ export default async function AjustesMovel() {
           agenda: t("Agendamentos"), agendaSub: t("novo, remarcado, cancelado"),
           espera: t("Cliente à espera"), esperaSub: t("ninguém respondeu em 5 minutos"),
           manual: t("Também os marcados à mão"), manualSub: t("normalmente foi você que marcou"),
+          resumo: t("Resumo da manhã"), resumoSub: t("às 8h, o dia num aviso"),
           todos: t("Todas as empresas"), todosSub: t("só para a Lexia"),
           erro: t("Não foi possível gravar."),
         }}
