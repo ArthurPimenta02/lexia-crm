@@ -657,3 +657,16 @@
 }
 
 }
+
+/* ── Mascote: o beija-flor (05/11) ─────────────────────────────── */
+.mascote { display: block; user-select: none; -webkit-user-drag: none; }
+.mascote-pairar { animation: mascote-pairar 2.4s ease-in-out infinite; }
+@keyframes mascote-pairar { 50% { transform: translateY(-6px); } }
+.mascote-avatar { display: inline-flex; flex: none; border-radius: 9999px; overflow: hidden; background: radial-gradient(circle at 50% 28%, #ffffff, #d4f6e7 75%); }
+.mascote-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; transform: scale(1.12) translateY(4%); }
+.mascote-fab { position: relative; display: inline-block; flex: none; animation: mascote-fab 2.4s ease-in-out infinite; }
+@keyframes mascote-fab { 50% { transform: translateY(-2.5px); } }
+.mascote-fab-disco { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 50% 28%, #1c3a2f, #0b1512 70%); border: 1.5px solid rgba(62, 224, 166, 0.55); box-shadow: 0 8px 22px rgba(62, 224, 166, 0.28); }
+.mascote-fab-corte { position: absolute; }
+.mascote-fab-corte img { position: absolute; display: block; }
+@media (prefers-reduced-motion: reduce) { .mascote-pairar, .mascote-fab { animation: none; } }

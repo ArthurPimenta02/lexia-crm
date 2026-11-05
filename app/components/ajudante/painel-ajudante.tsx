@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useIdioma } from "@/app/components/idioma";
 
 import { blocosDe, partesDe, useAjudante } from "./usar-ajudante";
+import { AvatarMascote } from "@/app/components/mascote";
 
 /**
  * O Analista Lexia no painel do computador: a mesma conversa serve o painel
@@ -34,7 +35,7 @@ export function PainelAjudante({ cliente, modo, onFechar, tela, telaInteira }: {
   return (
     <div className={`flex h-full min-h-0 flex-col bg-surface ${modo === "lateral" ? "border-l border-border shadow-2xl" : "rounded-2xl border border-border"}`}>
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
-        <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">✦</span>
+        <AvatarMascote tamanho={34} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">{t("Analista Lexia")}</p>
           <p className="truncate text-xs text-muted-foreground">{t("Pergunte qualquer coisa sobre o seu negócio")}</p>

@@ -6,6 +6,7 @@ import { corDe, duracaoCurta, iniciais, moeda, partesNoFuso } from "@/lib/movel/
 import type { DadosHoje } from "@/lib/movel/hoje";
 
 import { IcBusca, IcCalendario, IcConversa, IcMais, IcPessoa, IcSino } from "./_c/icones";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,7 @@ export default async function HojeMovel() {
           ))}
         </div>
       ) : (
-        <div className="m-vazio">{d.agenda.length ? t("Os agendamentos de hoje já passaram.") : t("Nenhum agendamento hoje.")}</div>
+        <VazioMascote pose={d.agenda.length ? "feliz" : "ola"}>{d.agenda.length ? t("Os agendamentos de hoje já passaram.") : t("Nenhum agendamento hoje.")}</VazioMascote>
       )}
 
       <section className="m-folha-baixo">

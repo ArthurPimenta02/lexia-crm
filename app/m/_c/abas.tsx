@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { IcBarras, IcCasa, IcConversa, IcGrade, IcMais } from "./icones";
+import { CabecaMascoteFab } from "@/app/components/mascote";
 
 /**
  * A barra de abas flutuante (desenho v5, 05/11): Hoje, Conversas, o botão
@@ -64,7 +65,7 @@ export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
 
   return (
     <>
-    {principal ? <Link aria-label={rotulos.analista} className="m-aj-botao" href={`/m/ajudante?tela=${encodeURIComponent(caminho)}`}>✦</Link> : null}
+    {principal ? <Link aria-label={rotulos.analista} className="m-aj-botao" href={`/m/ajudante?tela=${encodeURIComponent(caminho)}`}><CabecaMascoteFab tamanho={50} /></Link> : null}
     <nav aria-label={rotulos.menu} className="m-abas">
       {aba("/m", <IcCasa tamanho={22} />, rotulos.hoje, caminho === "/m")}
       {aba("/m/conversas", <IcConversa tamanho={22} />, rotulos.conversas, caminho.startsWith("/m/conversas"), espera)}

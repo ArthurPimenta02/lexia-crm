@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { IcCalendario, IcConversa, IcSino } from "../_c/icones";
 import { BotaoVoltar } from "../_c/voltar";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function AvisosMovel() {
         <Link className="m-pill" href="/m/ajustes#avisos">{t("Ajustes")}</Link>
       </div>
       {error ? <div className="m-vazio">{t("Não foi possível carregar.")}</div> : !data?.length ? (
-        <div className="m-vazio">{t("Ainda não houve avisos.")}</div>
+        <VazioMascote pose="piscadinha">{t("Ainda não houve avisos.")}</VazioMascote>
       ) : (
         <div className="m-lista-conv">
           {data.map((a) => (

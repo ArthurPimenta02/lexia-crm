@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useIdioma } from "@/app/components/idioma";
 
 import { PainelAjudante } from "./painel-ajudante";
+import { AvatarMascote } from "@/app/components/mascote";
 
 /**
  * O botão do Analista Lexia, sempre no canto do painel (como o Sidekick):
@@ -46,12 +47,12 @@ function Lancador({ base }: { base: "/app" | "/admin" }) {
       ) : (
         <button
           aria-label={t("Analista Lexia")}
-          className="fixed right-5 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-40 flex h-12 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-95"
+          className="fixed right-5 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-40 flex h-12 items-center gap-2 rounded-full bg-primary py-1.5 pr-4 pl-1.5 text-sm max-sm:pr-1.5 font-semibold text-primary-foreground shadow-lg transition hover:opacity-90 active:scale-95"
           onClick={() => setAberto(true)}
           title={`${t("Analista Lexia")} (⌘J)`}
           type="button"
         >
-          <span aria-hidden="true">✦</span>
+          <AvatarMascote tamanho={36} />
           <span className="max-sm:hidden">{t("Pergunte à Lexia")}</span>
         </button>
       )}

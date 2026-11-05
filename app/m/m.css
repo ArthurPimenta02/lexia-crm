@@ -584,10 +584,13 @@
 .m-aj-proposta .falhou { color: var(--m-vermelho); font-size: 13px; }
 .m-aj-pensar { align-self: flex-start; color: var(--m-texto2); font-size: 13px; animation: m-pulso 1.1s ease-in-out infinite; margin: 2px; }
 .m-aj-sessao { display: block; width: 100%; text-align: left; padding: 12px 4px; border-bottom: 1px solid var(--m-linha); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.m-aj-botao { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); width: 46px; height: 46px; border-radius: 50%; background: var(--m-abas); border: 1px solid var(--m-linha); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); color: var(--m-acento); font-size: 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18); z-index: 45; transition: transform 120ms ease-out; }
+.m-aj-botao { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); width: 50px; height: 50px; display: flex; z-index: 45; transition: transform 120ms ease-out; -webkit-tap-highlight-color: transparent; } /* o desenho é o beija-flor (CabecaMascoteFab) */
 .m-aj-botao:active { transform: scale(0.92); }
 .m-tile-largo { display: flex; flex-direction: column; justify-content: flex-end; height: 84px; padding: 12px; margin-bottom: 8px; position: relative; overflow: hidden; }
 .m-tile-largo .emo { position: absolute; top: 10px; right: 14px; font-size: 26px; color: var(--m-acento); }
 .m-tile-largo b { font-size: 15px; font-weight: 600; }
 .m-tile-largo small { font-size: 12.5px; color: var(--m-texto2); }
 .m-aj-vazio button:disabled { opacity: 0.5; }
+/* Tela vazia com o mascote (05/11) */
+.m-vazio-mascote { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 18px 20px; }
+.m-meta-feliz { display: flex; align-items: center; gap: 10px; }
