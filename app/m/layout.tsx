@@ -32,6 +32,7 @@ export default async function LayoutMovel({ children }: { children: React.ReactN
       {children}
       <AbasMovel
         rotulos={{
+          analista: c.t("Analista Lexia"),
           conversas: c.t("Conversas"),
           hoje: c.t("Hoje"),
           marcar: c.t("Marcar"),

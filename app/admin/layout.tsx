@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { LancadorAjudante } from "@/app/components/ajudante/lancador";
 import { AppSidebar } from "@/app/components/app-sidebar";
 import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
@@ -58,6 +59,7 @@ export default async function AdminLayout({
           {children}
         </div>
       </main>
+      <LancadorAjudante base="/admin" />
     </div>
   );
 }

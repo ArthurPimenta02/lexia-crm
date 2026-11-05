@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 
-import { AnalystWorkspace } from "@/app/components/analyst-workspace";
+import { PainelAjudante } from "@/app/components/ajudante/painel-ajudante";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import { getT } from "@/lib/i18n/servidor";
-import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Analista Lexia em tela inteira (o mesmo do botão do canto). O Analista
+ * antigo (n8n, app/components/analyst-workspace.tsx) continua no código, mas
+ * já não é aberto daqui.
+ */
 export default async function ClientAnalystPage() {
   const { profile } = await getLoggedInUserProfile();
 
@@ -14,22 +17,9 @@ export default async function ClientAnalystPage() {
   exigirEcra(profile.cliente_slug, "/app/analista");
   if (!profile.cliente_slug) redirect("/login");
 
-  const supabase = await createClient();
-  const { data: client, error } = await supabase
-    .from("lexia_clientes")
-    .select("nome, slug")
-    .eq("slug", profile.cliente_slug)
-    .maybeSingle();
-
-  if (error || !client) {
-    const t = await getT();
-    throw new Error(t("Não foi possível carregar o cliente do Analista Lexia."));
-  }
-
   return (
-    <AnalystWorkspace
-      client={{ name: client.nome || client.slug, slug: client.slug }}
-      mode="client"
-    />
+    <div className="h-[calc(100dvh-7rem)] lg:h-[calc(100dvh-4rem)]">
+      <PainelAjudante modo="tela" tela="/app/analista" />
+    </div>
   );
 }
