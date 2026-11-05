@@ -20,6 +20,7 @@ import {
   type ConversationPeriodState,
   getConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
+import { CaixaDeEnvio } from "@/app/components/caixa-de-envio";
 import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
 import { getSelectedTimezone } from "@/lib/clientes/timezone";
 import { exigirEcra } from "@/lib/auth/ecras";
@@ -758,6 +759,7 @@ export default async function ClientConversationsPage({
                   </div>
                 )}
               </ScrollToBottomPanel>
+              <CaixaDeEnvio key={selectedContact.identificador_conversa} conversa={selectedContact.identificador_conversa} />
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">

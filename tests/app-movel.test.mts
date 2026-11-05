@@ -22,6 +22,7 @@ let contexto: unknown = null;
 const chamadas: { caminho: string; corpo: Record<string, unknown> }[] = [];
 mock.module("@/lib/movel/contexto", {
   namedExports: {
+    clientesAtivos: async () => [{ nome: "A", slug: "empresa_a" }, { nome: "B", slug: "empresa_b" }],
     contextoMovel: async () => contexto,
   },
 });
@@ -61,6 +62,23 @@ test("envio: a empresa vem da sessão, nunca do pedido", async () => {
   assert.equal(chamadas[0].caminho, "/enviar");
   assert.equal(chamadas[0].corpo.cliente_slug, "empresa_a");
   assert.equal(chamadas[0].corpo.texto, "Olá");
+});
+
+test("envio pelo painel: só a Lexia pode indicar a empresa, e só uma empresa ativa", async () => {
+  // O dono pede outra empresa: fica a dele.
+  contexto = sessaoDe("empresa_a");
+  chamadas.length = 0;
+  assert.equal((await enviar.POST(pedido({ cliente: "empresa_b", conversa: "whatsapp:351912345678", texto: "Olá" }))).status, 200);
+  assert.equal(chamadas[0].corpo.cliente_slug, "empresa_a");
+  // A Lexia indica a empresa da página: vale essa.
+  contexto = { ...sessaoDe("empresa_a"), admin: true };
+  chamadas.length = 0;
+  assert.equal((await enviar.POST(pedido({ cliente: "empresa_b", conversa: "whatsapp:351912345678", texto: "Olá" }))).status, 200);
+  assert.equal(chamadas[0].corpo.cliente_slug, "empresa_b");
+  // Empresa que não está ativa: recusa sem chamar a VPS.
+  chamadas.length = 0;
+  assert.equal((await enviar.POST(pedido({ cliente: "inventada", conversa: "whatsapp:351912345678", texto: "Olá" }))).status, 401);
+  assert.equal(chamadas.length, 0);
 });
 
 test("envio: mídia de outra empresa ou fora da pasta é recusada antes de chamar a VPS", async () => {
