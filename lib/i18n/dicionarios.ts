@@ -10,6 +10,7 @@ import catalogo from "./textos/catalogo";
 import gestao from "./textos/gestao";
 import operacao from "./textos/operacao";
 import movel from "./textos/movel";
+import movelTestes from "./textos/movel-testes";
 
 /**
  * Cada área do painel tem o seu ficheiro em `textos/`. Estão separados para
@@ -26,6 +27,7 @@ const AREAS: TextosDaArea[] = [
   gestao,
   operacao,
   movel,
+  movelTestes,
 ];
 
 function juntar(idioma: Exclude<Idioma, "pt-BR">): Dicionario {
