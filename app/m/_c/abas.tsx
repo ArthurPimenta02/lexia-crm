@@ -12,7 +12,7 @@ import { IcBarras, IcCasa, IcConversa, IcGrade, IcMais } from "./icones";
  * é quantos clientes estão à espera de uma pessoa; atualiza-se a cada 30 s,
  * só com a página visível.
  */
-type Rotulos = { conversas: string; hoje: string; marcar: string; mais: string; menu: string; resultados: string };
+type Rotulos = { analista: string; conversas: string; hoje: string; marcar: string; mais: string; menu: string; resultados: string };
 
 // Telas que vivem dentro de "Mais": a aba Mais fica acesa nelas.
 const DO_MAIS = ["/m/mais", "/m/campanhas", "/m/clientes", "/m/agenda", "/m/busca", "/m/testes", "/m/avisos"];
@@ -49,7 +49,7 @@ export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
   }, []);
 
   // O chat, a área de testes e os ajustes ocupam a tela inteira, como no WhatsApp.
-  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/ajustes") || /^\/m\/testes\/.+/.test(caminho)) return null;
+  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/ajustes") || /^\/m\/testes\/.+/.test(caminho) || caminho.startsWith("/m/ajudante")) return null;
 
   const aba = (href: string, icone: React.ReactNode, rotulo: string, activa: boolean, emblema = 0) => (
     <Link aria-current={activa ? "page" : undefined} className={`m-aba${activa ? " on" : ""}`} href={href} key={href} prefetch>
@@ -59,7 +59,12 @@ export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
     </Link>
   );
 
+  // O Analista Lexia, sempre à mão nas telas principais (como no computador).
+  const principal = ["/m", "/m/conversas", "/m/resultados", "/m/mais"].includes(caminho);
+
   return (
+    <>
+    {principal ? <Link aria-label={rotulos.analista} className="m-aj-botao" href={`/m/ajudante?tela=${encodeURIComponent(caminho)}`}>✦</Link> : null}
     <nav aria-label={rotulos.menu} className="m-abas">
       {aba("/m", <IcCasa tamanho={22} />, rotulos.hoje, caminho === "/m")}
       {aba("/m/conversas", <IcConversa tamanho={22} />, rotulos.conversas, caminho.startsWith("/m/conversas"), espera)}
@@ -67,5 +72,6 @@ export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
       {aba("/m/resultados", <IcBarras tamanho={22} />, rotulos.resultados, caminho.startsWith("/m/resultados"))}
       {aba("/m/mais", <IcGrade tamanho={22} />, rotulos.mais, DO_MAIS.some((p) => caminho.startsWith(p)))}
     </nav>
+    </>
   );
 }

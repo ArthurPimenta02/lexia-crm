@@ -78,7 +78,7 @@ export default async function HojeMovel() {
                 <Link className="m-pessoa" href={href} key={`${p.tipo}-${p.conversa ?? p.nome}`}>
                   <div className="c" style={{ background: corDe(p.conversa ?? nome) }}>{iniciais(nome)}</div>
                   <b>{primeiroNome(nome)}</b>
-                  <small>{p.tipo === "espera" ? duracaoCurta(p.desde, agora) : t("sinal")}</small>
+                  <small>{p.tipo === "espera" ? duracaoCurta(p.desde, agora).replace(/ h \d+ min$/, " h") : t("sinal")}</small>
                 </Link>
               );
             })}

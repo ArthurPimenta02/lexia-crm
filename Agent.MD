@@ -731,6 +731,28 @@ autoriza as rotas chamadas pelo n8n.
   ela a tela de conexões não grava e o agente não lê. Trocá-la torna ilegíveis
   todos os segredos já gravados: seria preciso gravá-los de novo.
 
+### Analista Lexia novo (ajudante, em código)
+
+O Analista que o dono usa agora (botão ✦ no canto do painel, painel lateral,
+`/app/analista`, `/admin/analista`, `/m/ajudante` no app) corre no próprio painel,
+sem n8n: `lib/ajudante/motor.ts` (OpenAI Responses API, `store: false`, até 6
+voltas de ferramentas) e `lib/ajudante/ferramentas.ts` (só leitura, sempre com a
+empresa da sessão; `propor_mensagem` não envia, o dono confirma e vai por
+`/api/m/enviar`). Rota: `/api/ajudante` (POST em NDJSON, GET sessões/mensagens).
+Guarda em `lexia_ai_sessoes` (`contexto.tipo = "ajudante"`), `lexia_ai_mensagens`
+e `lexia_ai_execucoes` (`versao_prompt = ajudante_v1`, tokens e duração).
+
+```text
+AJUDANTE_LIGADO=1            # sem isto responde 503 "ainda não está ligado"
+OPENAI_API_KEY               # a mesma do Analista antigo
+OPENAI_AJUDANTE_MODEL        # opcional; padrão gpt-5.5
+OPENAI_AJUDANTE_ESFORCO      # opcional; low | medium | high (padrão low)
+```
+
+Limite: 40 perguntas por pessoa por hora. O Analista antigo (n8n,
+`analyst-workspace.tsx`, `/api/analista/*`) continua no código, mas as páginas já
+não o abrem.
+
 ### Analista Lexia (n8n ativo)
 
 ```text

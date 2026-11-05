@@ -42,6 +42,7 @@ export default async function MaisMovel() {
     <main className="m-pagina">
       <div className="m-titulo"><h1>{t("Mais")}</h1></div>
 
+      <Link className="m-tile destaque m-tile-largo" href="/m/ajudante?tela=/m/mais"><span className="emo">✦</span><b>{t("Analista Lexia")}</b><small>{t("Pergunte qualquer coisa sobre o seu negócio")}</small></Link>
       {grandes.length ? (
         <div className="m-g2">
           {grandes.map((g) => <Link className={`m-tile${g.destaque ? " destaque" : ""}`} href={g.href} key={g.href}><span className="emo">{g.emo}</span>{g.r}</Link>)}
