@@ -12,7 +12,8 @@ import { useEffect } from "react";
  *
  * O que faz dentro do app:
  * 1. pede licença para avisos (a primeira vez) e regista o iPhone no painel;
- * 2. quando a pessoa toca num aviso, abre a tela que o aviso traz (`url`).
+ * 2. quando a pessoa toca num aviso, abre a tela que o aviso traz (`url`);
+ * 3. põe a classe `no-app` no `<html>`, que liga o modo app (barra de abas).
  */
 
 type Ouvinte = { remove: () => Promise<void> };
@@ -43,7 +44,14 @@ export function PonteDoApp() {
       .Capacitor;
     const push = capacitor?.Plugins?.PushNotifications;
 
-    if (!capacitor?.isNativePlatform?.() || !push) {
+    if (!capacitor?.isNativePlatform?.()) {
+      return;
+    }
+
+    // Marca o documento: o CSS mostra a barra de abas e ajusta o resto (globals.css).
+    document.documentElement.classList.add("no-app");
+
+    if (!push) {
       return;
     }
 

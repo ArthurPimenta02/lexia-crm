@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "./design-system.css";
@@ -20,6 +20,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lexia",
   description: "Plataforma Lexia",
+};
+
+/*
+  `viewportFit: "cover"` deixa a página ir até debaixo da ilha e da barra de
+  baixo do iPhone; sem ele, `env(safe-area-inset-*)` vale sempre 0 e o app não
+  consegue afastar o cabeçalho do relógio (era por isso que o menu de cima não
+  respondia ao toque dentro do app). O zoom continua permitido.
+*/
+export const viewport: Viewport = {
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
+  themeColor: [
+    { color: "#ffffff", media: "(prefers-color-scheme: light)" },
+    { color: "#000000", media: "(prefers-color-scheme: dark)" },
+  ],
+  viewportFit: "cover",
+  width: "device-width",
 };
 
 export default async function RootLayout({

@@ -38,7 +38,7 @@ import { useIdioma } from "@/app/components/idioma";
  * tradução para desenho acontece aqui.
  */
 
-const icones: Record<string, LucideIcon> = {
+export const icones: Record<string, LucideIcon> = {
   agenda: CalendarDays,
   analista: Telescope,
   campanhas: Megaphone,
