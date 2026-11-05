@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
+import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
@@ -45,6 +46,7 @@ export default async function AdminLayout({
       />
 
       <ScrollToTop alvoId="conteudo" />
+      <PonteDoApp />
 
       <main
         className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"

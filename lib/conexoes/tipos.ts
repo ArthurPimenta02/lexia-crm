@@ -186,6 +186,29 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ],
   },
   {
+    tipo: "apns",
+    titulo: "Avisos do iPhone (Apple)",
+    descricao:
+      "A chave .p8 da conta Apple Developer que manda os avisos do app da Lexia. Ligada uma vez, serve para todos.",
+    ambito: "global",
+    campos: [
+      { nome: "team_id", label: "Team ID", segredo: false, exemplo: "A1B2C3D4E5" },
+      { nome: "key_id", label: "Key ID", segredo: false, exemplo: "F6G7H8I9J0" },
+      {
+        nome: "bundle_id",
+        label: "Bundle ID do app",
+        segredo: false,
+        exemplo: "app.uselexia.painel",
+      },
+      {
+        nome: "chave_p8",
+        label: "Conteúdo do ficheiro .p8",
+        segredo: true,
+        ajuda: "Abra o ficheiro .p8 e cole tudo, incluindo as linhas BEGIN e END.",
+      },
+    ],
+  },
+  {
     tipo: "ia",
     titulo: "Chaves de IA",
     descricao:
