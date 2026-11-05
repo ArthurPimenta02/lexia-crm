@@ -125,7 +125,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
               aria-disabled="true"
               className="flex min-h-9 cursor-not-allowed items-center gap-2.5 rounded-[10px] px-3 py-1.5 text-[0.8125rem] font-medium text-sidebar-muted opacity-50"
               key={item.href}
-              title={t("Tela indisponível nesta conta")}
+              title={t("Disponível em breve")}
             >
               <Icone
                 aria-hidden="true"
@@ -134,7 +134,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
               />
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
               <span className="shrink-0 rounded border border-sidebar-border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase">
-                {t("Indisponível")}
+                {t("Em breve")}
               </span>
             </span>
           );

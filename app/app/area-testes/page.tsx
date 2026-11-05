@@ -8,7 +8,7 @@ import {
   type TestSession,
   type TestWorkflow,
 } from "@/app/app/area-testes/actions";
-import { exigirEcra } from "@/lib/auth/ecras";
+import { exigirEcra, temOPainelInteiro } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
@@ -116,6 +116,7 @@ export default async function ClientTestAreaPage({
         key={selectedSessionId ?? "sem-sessao"}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
+        semEscolhaDeCanal={!temOPainelInteiro(profile.cliente_slug) && workflows.length === 1}
         workflows={workflows}
       />
     </section>
