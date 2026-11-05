@@ -48,6 +48,12 @@ export function destinoDoAviso(url: unknown): string | null {
   return "/m";
 }
 
+/** Caminho do painel do computador → a tela equivalente do app; `null` se já está no app. */
+export function paraAsTelasDoApp(caminho: string, busca = ""): string | null {
+  if (!/^\/(app|admin)(\/|$)/.test(caminho)) return null;
+  return destinoDoAviso(`${caminho.replace(/^\/admin/, "/app")}${busca}`) ?? "/m";
+}
+
 export function PonteDoApp() {
   const router = useRouter();
 
@@ -62,6 +68,15 @@ export function PonteDoApp() {
 
     // Marca o documento: o CSS mostra a barra de abas e ajusta o resto (globals.css).
     document.documentElement.classList.add("no-app");
+
+    // Dentro do app, o painel do computador (/app, /admin) nunca aparece: vai
+    // sempre para as telas do iPhone (/m). Acontecia ao sair e entrar de novo
+    // numa versão do app que ainda abria o painel antigo.
+    const destinoNoApp = paraAsTelasDoApp(window.location.pathname, window.location.search);
+    if (destinoNoApp) {
+      window.location.replace(destinoNoApp);
+      return;
+    }
 
     if (!push) {
       return;
