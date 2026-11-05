@@ -58,7 +58,7 @@ export function iniciais(nome: string) {
 }
 
 /** Uma cor estável por pessoa (para o círculo das iniciais). */
-const CORES = ["#8fa8c9", "#c99a8f", "#9bc48f", "#b79bd6", "#d6b46b", "#7fbfbf", "#d68fb0", "#8fb3a8"];
+const CORES = ["#ffd8a8", "#f8c8dc", "#c8f0dc", "#c9e7ff", "#e3d7ff", "#ffe6a8", "#d4ecc4", "#ffd0c7"];
 export function corDe(chave: string) {
   let h = 0;
   for (const c of chave) h = (h * 31 + c.charCodeAt(0)) >>> 0;

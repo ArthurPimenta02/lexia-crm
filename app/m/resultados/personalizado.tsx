@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 /** O chip "Personalizado": escolhe duas datas e mostra os resultados desse período. */
-export function Personalizado({ activo, de, ate, hoje, textos }: { activo: boolean; de: string; ate: string; hoje: string; textos: Record<"aplicar" | "ate" | "de" | "personalizado", string> }) {
+export function Personalizado({ activo, caminho = "/m/resultados", de, ate, hoje, textos }: { activo: boolean; caminho?: string; de: string; ate: string; hoje: string; textos: Record<"aplicar" | "ate" | "de" | "personalizado", string> }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [inicio, setInicio] = useState(de);
@@ -23,7 +23,7 @@ export function Personalizado({ activo, de, ate, hoje, textos }: { activo: boole
               <label className="m-campo"><small>{textos.de}</small><input max={hoje} onChange={(e) => setInicio(e.target.value)} type="date" value={inicio} /></label>
               <label className="m-campo"><small>{textos.ate}</small><input max={hoje} onChange={(e) => setFim(e.target.value)} type="date" value={fim} /></label>
             </div>
-            <button className="m-botao verde" disabled={!inicio || !fim} onClick={() => { setAberto(false); router.replace(`/m/resultados?p=personalizado&de=${inicio}&ate=${fim}`); }} style={{ marginTop: 10 }} type="button">{textos.aplicar}</button>
+            <button className="m-botao verde" disabled={!inicio || !fim} onClick={() => { setAberto(false); router.replace(`${caminho}?p=personalizado&de=${inicio}&ate=${fim}`); }} style={{ marginTop: 10 }} type="button">{textos.aplicar}</button>
           </div>
         </>
       ) : null}

@@ -1,16 +1,15 @@
 import Link from "next/link";
 
+import { hojeRapido } from "@/lib/movel/cache";
 import { contextoMovel } from "@/lib/movel/contexto";
-import { chaveDoDia, diferencaDias, duracaoCurta, iniciais, moeda, partesNoFuso } from "@/lib/movel/formato";
-import { dadosHoje, type DadosHoje } from "@/lib/movel/hoje";
+import { corDe, duracaoCurta, iniciais, moeda, partesNoFuso } from "@/lib/movel/formato";
+import type { DadosHoje } from "@/lib/movel/hoje";
 
-import { IcBarras, IcBusca, IcCalendario, IcCanal, IcConversa, IcEuro, IcMais, IcSeta, IcSino } from "./_c/icones";
+import { IcBusca, IcCalendario, IcConversa, IcMais, IcPessoa, IcSino } from "./_c/icones";
 
 export const dynamic = "force-dynamic";
 
-function minutosAte(iso: string, agora: Date) {
-  return Math.round((Date.parse(iso) - agora.getTime()) / 60_000);
-}
+const primeiroNome = (nome: string) => nome.split(/\s+/)[0] ?? nome;
 
 export default async function HojeMovel() {
   const c = (await contextoMovel())!;
@@ -18,153 +17,105 @@ export default async function HojeMovel() {
   const agora = new Date();
   let d: DadosHoje | null = null;
   try {
-    d = await dadosHoje(c.clienteSlug, c.fuso, agora);
+    d = await hojeRapido(c.clienteSlug, c.fuso);
   } catch {
     d = null;
   }
 
   const hora = Number(partesNoFuso(agora, c.fuso).hora.slice(0, 2));
   const saudacao = hora < 12 ? t("Bom dia") : hora < 19 ? t("Boa tarde") : t("Boa noite");
-  const dataBruta = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: c.fuso, weekday: "long" }).format(agora);
-  const dataLonga = dataBruta.charAt(0).toUpperCase() + dataBruta.slice(1);
-  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? "EUR");
-  const hojeChave = chaveDoDia(agora, c.fuso);
   const semNome = (canal: string) => (canal === "instagram" ? t("Cliente do Instagram") : canal === "messenger" ? t("Cliente do Messenger") : t("Cliente"));
+  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? "EUR");
+  const hhmm = (iso: string) => partesNoFuso(iso, c.fuso).hora;
+
+  const topo = (
+    <div className="m-topo">
+      <Link aria-label={t("Ajustes")} className="m-avatar" href="/m/ajustes">{iniciais(c.nomeUsuario || c.clienteNome)}</Link>
+      <div className="m-ola"><small>{c.nomeUsuario ? `${saudacao},` : saudacao}</small> {c.nomeUsuario}</div>
+      <Link aria-label={t("Procurar")} className="m-redondo" href="/m/busca"><IcBusca tamanho={17} /></Link>
+      <Link aria-label={t("Conversas")} className="m-redondo" href="/m/conversas">{d?.pendencias.some((p) => p.tipo === "espera") ? <span className="m-ponto" /> : null}<IcSino tamanho={17} /></Link>
+    </div>
+  );
 
   if (!d) {
-    return <main className="m-pagina"><div className="m-vazio">{t("Não foi possível carregar a tela Hoje.")}</div></main>;
+    return <main className="m-pagina">{topo}<div className="m-vazio">{t("Não foi possível carregar a tela Hoje.")}</div></main>;
   }
 
+  const feitos = d.agenda.filter((m) => Date.parse(m.fim) <= agora.getTime()).length;
   const futuros = d.agenda.filter((m) => Date.parse(m.fim) > agora.getTime());
   const proximo = futuros[0] ?? null;
-  const depois = futuros.slice(1, 3);
-  const restantes = Math.max(0, futuros.length - 3);
-  const previsto = d.agenda.reduce((a, m) => a + (m.valor ?? 0), 0);
-  const maxLeads = Math.max(1, ...d.ontem.leadsPorDia);
-  const maxGasto = Math.max(0.01, ...(d.campanhas?.gastoPorDia ?? [0]));
-  const nomesDias = d.semana.map((k) => new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${k}T12:00:00Z`)).replace(".", ""));
-  const dias7 = d.ontem.leadsPorDia.map((_, i) => new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(Date.parse(`${hojeChave}T12:00:00Z`) - (7 - i) * 86_400_000)).replace(".", ""));
-  const diferenca = Math.round(d.ontem.leads - d.ontem.mediaLeads);
+  const minutos = proximo ? Math.round((Date.parse(proximo.inicio) - agora.getTime()) / 60_000) : 0;
+  const falta = !proximo ? "" : minutos <= 0 ? t("agora") : minutos < 60 ? t("em {n} min", { n: minutos }) : t("em {n} h", { n: Math.round(minutos / 60) });
+  // Uma risca por agendamento (no máximo 16, para caberem): as verdes já passaram.
+  const riscas = d.agenda.length <= 16 ? d.agenda.map((m) => Date.parse(m.fim) <= agora.getTime()) : Array.from({ length: 16 }, (_, i) => i < Math.round((feitos / d!.agenda.length) * 16));
 
   return (
-    <main className="m-pagina">
-      <div className="m-topo">
-        <Link aria-label={t("Ajustes")} className="m-avatar" href="/m/ajustes">{iniciais(c.nomeUsuario || c.clienteNome)}</Link>
-        <div className="m-ola"><small>{dataLonga}</small><b>{c.nomeUsuario ? `${saudacao}, ${c.nomeUsuario}` : saudacao}</b></div>
-        <Link aria-label={t("Procurar")} className="m-redondo" href="/m/busca"><IcBusca /></Link>
-        <Link aria-label={t("Conversas")} className="m-redondo" href="/m/conversas">{d.pendencias.some((p) => p.tipo === "espera") ? <span className="m-ponto" /> : null}<IcSino /></Link>
+    <main className="m-pagina m-com-folha">
+      {topo}
+
+      <div className="m-dia-num"><b>{d.agenda.length}</b><span>{d.agenda.length === 1 ? t("agendamento hoje") : t("agendamentos hoje")}</span></div>
+      <div aria-hidden="true" className="m-dia-barra">{riscas.length ? riscas.map((f, i) => <i className={f ? "f" : ""} key={i} />) : <i />}</div>
+      <div className="m-dia-leg">
+        {d.agenda.length ? <span>{feitos === 1 ? t("1 feito") : t("{n} feitos", { n: feitos })}</span> : null}
+        {d.agenda.length ? <span className="sep" /> : null}
+        {proximo ? <span>{t("próximo às")} <b>{hhmm(proximo.inicio)}</b></span> : <span>{d.amanha ? t("amanhã: {n}", { n: d.amanha }) : t("nada marcado para amanhã")}</span>}
       </div>
 
-      <section className="m-destaque">
-        <span className="m-destaque-agente"><i />{c.clienteNome}</span>
-        <div className="rot">{t("Agendamentos hoje")}</div>
-        <div className="valor">{d.agenda.length}</div>
-        <div className="sub">{[futuros.length && futuros.length < d.agenda.length ? t("{n} ainda por vir", { n: futuros.length }) : null, d.amanha ? t("amanhã: {n}", { n: d.amanha }) : null, previsto ? t("previsto {valor}", { valor: dinheiro(previsto) }) : null].filter(Boolean).join(" · ") || t("Nenhum agendamento hoje.")}</div>
-        <div className="m-accoes">
-          <Link className="m-accao" href="/m/agenda?nova=1"><span className="b"><IcMais /></span>{t("Marcar")}</Link>
-          <Link className="m-accao" href="/m/conversas"><span className="b"><IcConversa /></span>{t("Conversas")}</Link>
-          <Link className="m-accao" href="/m/agenda"><span className="b"><IcCalendario /></span>{t("Agenda")}</Link>
-          <Link className="m-accao" href="/m/resultados"><span className="b"><IcBarras /></span>{t("Resultados")}</Link>
-        </div>
-      </section>
-
-      <nav aria-label={t("Agenda")} className="m-dias">
-        {d.semana.map((k, i) => (
-          <Link className={`m-dia${k === hojeChave ? " on" : ""}`} href={`/m/agenda?dia=${k}`} key={k}>
-            {d!.diasComMarcacao.includes(k) ? <i /> : null}
-            <span style={{ textTransform: "capitalize" }}>{nomesDias[i]}</span>
-            <b>{Number(k.slice(8))}</b>
-          </Link>
-        ))}
-      </nav>
+      <div className="m-pills">
+        <Link className="m-pill jade" href="/m/agenda?nova=1"><IcMais tamanho={15} />{t("Marcar")}</Link>
+        <Link className="m-pill" href="/m/conversas"><IcConversa tamanho={15} />{t("Conversas")}</Link>
+        <Link className="m-pill" href="/m/agenda"><IcCalendario tamanho={15} />{t("Agenda")}</Link>
+      </div>
 
       {d.pendencias.length ? (
         <>
-          <div className="m-sec"><h2>{t("Precisa de você")}<span className="m-n">{d.pendencias.length}</span></h2></div>
-          <div className="m-lista">
-            {d.pendencias.slice(0, 6).map((p) =>
-              p.tipo === "espera" ? (
-                <Link className="m-linha" href={`/m/conversas/${encodeURIComponent(p.conversa)}`} key={`e-${p.conversa}`}>
-                  <div className={`m-quad ${p.canal === "instagram" ? "ig" : p.canal === "messenger" ? "ms" : "wa"}`}><IcCanal canal={p.canal} tamanho={22} /></div>
-                  <div className="m-meio"><b>{p.nome || semNome(p.canal)}</b><span><span className="m-espera">{duracaoCurta(p.desde, agora)}</span>{p.previa ? ` · ${p.previa}` : ""}</span></div>
-                  <span className="m-pilula">{t("Responder")}</span>
+          <div className="m-sec"><h2>{t("À sua espera")}</h2><Link href="/m/conversas">{t("Ver todas")}</Link></div>
+          <div className="m-pessoas">
+            {d.pendencias.slice(0, 12).map((p) => {
+              const nome = p.tipo === "espera" ? p.nome || semNome(p.canal) : p.nome || t("Cliente");
+              const href = p.conversa ? `/m/conversas/${encodeURIComponent(p.conversa)}` : "/m/agenda";
+              return (
+                <Link className="m-pessoa" href={href} key={`${p.tipo}-${p.conversa ?? p.nome}`}>
+                  <div className="c" style={{ background: corDe(p.conversa ?? nome) }}>{iniciais(nome)}</div>
+                  <b>{primeiroNome(nome)}</b>
+                  <small>{p.tipo === "espera" ? duracaoCurta(p.desde, agora) : t("sinal")}</small>
                 </Link>
-              ) : (
-                <Link className="m-linha" href={p.conversa ? `/m/conversas/${encodeURIComponent(p.conversa)}` : "/m/agenda"} key={`s-${p.nome}-${p.inicio}`}>
-                  <div className="m-quad eur"><IcEuro /></div>
-                  <div className="m-meio"><b>{p.nome}</b><span>{p.valor ? t("Falta o sinal · {valor}", { valor: dinheiro(p.valor) }) : t("Falta o sinal")} · {partesNoFuso(p.inicio, c.fuso).hora}</span></div>
-                  <span className="m-pilula">{t("Cobrar")}</span>
-                </Link>
-              ),
-            )}
+              );
+            })}
           </div>
         </>
       ) : null}
 
-      <div className="m-sec"><h2>{t("Agenda de hoje")}</h2><Link href="/m/agenda">{t("Ver tudo")} <IcSeta /></Link></div>
+      <div className="m-sec"><h2>{t("Próximos")}</h2><Link href="/m/agenda">{t("Agenda")}</Link></div>
       {proximo ? (
-        <div className="m-bento">
-          <Link className="m-prox" href="/m/agenda">
-            <span className="etq">{t("Próximo")}</span>
-            <div className="hora">{partesNoFuso(proximo.inicio, c.fuso).hora}</div>
-            <div className="em">{minutosAte(proximo.inicio, agora) <= 0 ? t("acontecendo agora") : minutosAte(proximo.inicio, agora) < 60 ? t("daqui a {n} min", { n: minutosAte(proximo.inicio, agora) }) : t("daqui a {n} h", { n: Math.round(minutosAte(proximo.inicio, agora) / 60) })}</div>
-            <div className="quem"><b>{proximo.nome || t("Agendamento")}</b><span>{[proximo.servico, proximo.executor].filter(Boolean).join(" · ")}</span>{proximo.valor ? <span>{dinheiro(proximo.valor)}{proximo.pendenteSinal ? ` · ${t("falta sinal")}` : ""}</span> : null}</div>
-          </Link>
-          {depois.map((m) => (
-            <Link className="m-peq" href="/m/agenda" key={m.id}>
-              <div className="h">{partesNoFuso(m.inicio, c.fuso).hora}</div>
-              <b>{m.nome || t("Agendamento")}</b>
-              <span>{[m.servico, m.valor ? dinheiro(m.valor) : null].filter(Boolean).join(" · ")}</span>
+        <div className="m-carrossel">
+          {futuros.slice(0, 8).map((m, i) => (
+            <Link className={`m-cartao-c ${i === 0 ? "c1" : "c2"}`} href={m.conversa ? `/m/conversas/${encodeURIComponent(m.conversa)}` : "/m/agenda"} key={m.id}>
+              <div className="l1"><span>{i === 0 ? t("Próximo") : t("Depois")}</span>{i === 0 ? <span>{falta}</span> : null}</div>
+              <div className="hr">{hhmm(m.inicio)}</div>
+              <div className="q">{m.nome || t("Agendamento")}</div>
+              {i === 0 ? <div className="s">{[m.servico, m.executor].filter(Boolean).join(" · ")}</div> : null}
             </Link>
           ))}
-          {restantes ? <Link className="m-mais" href="/m/agenda">{t("Ver os outros {n}", { n: restantes })} <IcSeta /></Link> : null}
         </div>
       ) : (
         <div className="m-vazio">{d.agenda.length ? t("Os agendamentos de hoje já passaram.") : t("Nenhum agendamento hoje.")}</div>
       )}
 
-      <div className="m-sec"><h2>{t("Ontem")}</h2><Link href="/m/resultados">{t("Resultados")} <IcSeta /></Link></div>
-      <Link className="m-cartao-num" href="/m/resultados" style={{ display: "block" }}>
-        <div className="m-nums">
-          <div className="m-num"><strong>{d.ontem.leads}</strong><small>{t("leads")}</small></div>
-          <div className="m-num"><strong>{d.ontem.agendaram}</strong><small>{t("agendaram")}</small></div>
-          <div className="m-num"><strong>{dinheiro(d.ontem.valor)}</strong><small>{t("agendado")}</small></div>
-        </div>
-        <div aria-hidden="true" className="m-barras">{d.ontem.leadsPorDia.map((v, i) => <div className={i === 6 ? "on" : ""} key={i} style={{ height: `${Math.max(8, (v / maxLeads) * 100)}%` }} />)}</div>
-        <div aria-hidden="true" className="m-dias-b">{dias7.map((n, i) => <span key={i} style={{ textTransform: "capitalize" }}>{n}</span>)}</div>
-        <div className="m-rodape">
-          {diferenca > 0 ? <><b>+{diferenca}</b> {t("leads acima da média dos últimos 7 dias")}</> : diferenca < 0 ? <>{t("{n} leads abaixo da média dos últimos 7 dias", { n: Math.abs(diferenca) })}</> : t("Na média dos últimos 7 dias")}
-        </div>
-      </Link>
-
-      {d.campanhas ? (
-        <>
-          <div className="m-sec"><h2>{t("Campanhas")}</h2><Link href="/m/resultados">{t("Últimos 7 dias")} <IcSeta /></Link></div>
-          <Link className="m-cartao-num" href="/m/resultados" style={{ display: "block" }}>
-            {d.campanhas.ativos ? <span className="m-estado-camp"><i />{d.campanhas.ativos === 1 ? t("1 campanha com investimento") : t("{n} campanhas com investimento", { n: d.campanhas.ativos })}</span> : null}
-            <div className="m-nums" style={{ marginTop: 14 }}>
-              <div className="m-num"><strong>{dinheiro(d.campanhas.gasto)}</strong><small>{t("investido")}</small></div>
-              <div className="m-num"><strong>{d.campanhas.leads}</strong><small>{t("leads")}</small></div>
-              <div className="m-num"><strong>{d.campanhas.leads ? dinheiro(d.campanhas.gasto / d.campanhas.leads) : "—"}</strong><small>{t("por lead")}</small></div>
+      <section className="m-folha-baixo">
+        <div className="pega" />
+        <div className="m-sec"><h2>{t("O que aconteceu")}</h2><Link href="/m/resultados?p=hoje">{t("Ver tudo")}</Link></div>
+        {d.aconteceu.length ? d.aconteceu.map((a) => (
+          <Link className="m-mov" href={a.conversa ? `/m/conversas/${encodeURIComponent(a.conversa)}` : "/m/agenda"} key={`${a.tipo}-${a.quando}-${a.nome}`}>
+            <div className="ic">{a.tipo === "marcou" ? <IcCalendario tamanho={15} /> : <IcPessoa tamanho={15} />}</div>
+            <div className="m">
+              <b>{a.tipo === "marcou" ? t("{nome} marcou", { nome: a.nome || t("Cliente") }) : t("Lead novo: {nome}", { nome: a.nome || t("sem nome") })}</b>
+              <span>{[a.tipo === "marcou" ? a.servico : null, a.tipo === "marcou" ? (a.doAgente ? t("pelo agente") : t("à mão")) : a.deAnuncio ? t("de anúncio") : null, hhmm(a.quando)].filter(Boolean).join(" · ")}</span>
             </div>
-            <div aria-hidden="true" className="m-barras">{d.campanhas.gastoPorDia.map((v, i) => <div className={i === 6 ? "on" : ""} key={i} style={{ height: `${Math.max(8, (v / maxGasto) * 100)}%` }} />)}</div>
-            <div aria-hidden="true" className="m-dias-b">{dias7.map((n, i) => <span key={i} style={{ textTransform: "capitalize" }}>{n}</span>)}</div>
-            {d.campanhas.anuncios.length ? (
-              <div className="m-anuncios">
-                {d.campanhas.anuncios.map((a) => (
-                  <div className="m-anuncio" key={a.nome}>
-                    <div className="topo-a"><b>{a.nome}</b><span>{a.leads === 1 ? t("1 lead") : t("{n} leads", { n: a.leads })}</span></div>
-                    <div className="m-progresso"><i style={{ width: `${Math.round((a.leads / Math.max(1, d!.campanhas!.leads)) * 100)}%` }} /></div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            <div className="m-rodape">{d.campanhas.agendaram ? <><b>{d.campanhas.agendaram === 1 ? t("1 agendou") : t("{n} agendaram", { n: d.campanhas.agendaram })}</b> {t("vindos de anúncio")} · {dinheiro(d.campanhas.valorAgendado)}</> : t("Nenhum agendamento vindo de anúncio nestes 7 dias")}</div>
+            {a.tipo === "marcou" && a.valor ? <div className="v">+{dinheiro(a.valor)}</div> : null}
           </Link>
-        </>
-      ) : null}
-
-      {diferencaDias(agora, agora, c.fuso) === 0 ? null : null}
+        )) : <p className="m-folha-vazio">{t("Nada de novo nas últimas 24 horas.")}</p>}
+      </section>
     </main>
   );
 }
