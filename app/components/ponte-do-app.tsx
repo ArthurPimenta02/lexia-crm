@@ -31,9 +31,21 @@ type Capacitor = {
   Plugins?: { PushNotifications?: PushPlugin };
 };
 
-/** Só caminhos do próprio painel: um aviso nunca abre um site de fora. */
+/**
+ * Para onde vai um toque num aviso. Só telas do próprio painel: um aviso nunca
+ * abre um site de fora. Os avisos antigos apontam para o painel do computador
+ * (/app/...); dentro do app vão para as telas do iPhone (/m/...).
+ */
 export function destinoDoAviso(url: unknown): string | null {
-  return typeof url === "string" && /^\/app(\/|\?|$)/.test(url) ? url : null;
+  if (typeof url !== "string" || url.includes("//") || url.includes("\\")) return null;
+  if (/^\/m(\/|\?|$)/.test(url)) return url;
+  if (!/^\/app(\/|\?|$)/.test(url)) return null;
+  const [caminho, busca = ""] = url.split("?");
+  const conversa = new URLSearchParams(busca).get("conversa");
+  if (caminho === "/app/conversas" && conversa) return `/m/conversas/${encodeURIComponent(conversa)}`;
+  if (caminho.startsWith("/app/agenda")) return "/m/agenda";
+  if (caminho.startsWith("/app/conversas")) return "/m/conversas";
+  return "/m";
 }
 
 export function PonteDoApp() {

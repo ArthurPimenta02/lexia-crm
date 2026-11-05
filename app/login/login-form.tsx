@@ -7,12 +7,13 @@ import { useIdioma } from "@/app/components/idioma";
 
 const initialState: LoginState = {};
 
-export function LoginForm() {
+export function LoginForm({ destino = null }: { destino?: string | null }) {
   const { t } = useIdioma();
   const [state, action, pending] = useActionState(loginAction, initialState);
 
   return (
     <form action={action} className="flex w-full flex-col gap-4">
+      {destino ? <input name="destino" type="hidden" value={destino} /> : null}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-muted-foreground" htmlFor="email">
           {t("E-mail")}

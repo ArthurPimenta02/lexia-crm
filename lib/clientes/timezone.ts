@@ -21,6 +21,7 @@
 const clientTimezones: Record<string, string> = {
   detail_by_cordeiro: "Europe/Lisbon",
   miranda_skin_experts: "America/New_York",
+  claudia_leite_spa: "America/New_York",
 };
 
 /** O fuso de quem ainda não está no mapa. */

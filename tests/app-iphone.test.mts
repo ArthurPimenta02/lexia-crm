@@ -131,12 +131,16 @@ test("'todos os clientes' é só para a Lexia; tipos inventados recusam", async 
   assert.equal((await preferencias.PUT(pedido("PUT", { ligado: true, tipo: "todos_os_clientes" }))).status, 200);
 });
 
-test("um aviso só abre telas do painel", () => {
-  assert.equal(destinoDoAviso("/app/agenda"), "/app/agenda");
-  assert.equal(destinoDoAviso("/app/conversas?conversa=whatsapp%3A1"), "/app/conversas?conversa=whatsapp%3A1");
+test("um aviso só abre telas do painel, e no app vai para as telas do iPhone", () => {
+  assert.equal(destinoDoAviso("/app/agenda"), "/m/agenda");
+  assert.equal(destinoDoAviso("/app/conversas?conversa=whatsapp%3A1"), "/m/conversas/whatsapp%3A1");
+  assert.equal(destinoDoAviso("/m/conversas/whatsapp%3A1"), "/m/conversas/whatsapp%3A1");
+  assert.equal(destinoDoAviso("/app"), "/m");
   assert.equal(destinoDoAviso("https://mal.example/app"), null);
   assert.equal(destinoDoAviso("//mal.example"), null);
+  assert.equal(destinoDoAviso("/app//mal.example"), null);
   assert.equal(destinoDoAviso("/apparently"), null);
+  assert.equal(destinoDoAviso("/mal"), null);
   assert.equal(destinoDoAviso(42), null);
 });
 
