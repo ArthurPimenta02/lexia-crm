@@ -7,6 +7,7 @@ import {
   isClientRole,
   type LexiaUserRole,
 } from "@/lib/auth/profile";
+import { destinoSeguro } from "@/lib/movel/destino";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,7 +64,8 @@ export async function loginAction(
     return { error: t("Usuário sem perfil vinculado na Lexia.") };
   }
 
-  const redirectPath = getRedirectPath(profile.role);
+  // Vindo do app do iPhone (/m): volta para lá. Só caminhos /m são aceites.
+  const redirectPath = destinoSeguro(formData.get("destino")) ?? getRedirectPath(profile.role);
 
   if (!redirectPath) {
     await supabase.auth.signOut();

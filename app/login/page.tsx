@@ -6,9 +6,20 @@ import { SeletorIdioma } from "@/app/components/seletor-idioma";
 import { SeletorTema } from "@/app/components/seletor-tema";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
+import { destinoSeguro } from "@/lib/movel/destino";
 
-export default async function LoginPage() {
-  const [{ profile }, t] = await Promise.all([getLoggedInUserProfile(), getT()]);
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ destino?: string }>;
+}) {
+  const [{ profile }, t, params] = await Promise.all([getLoggedInUserProfile(), getT(), searchParams]);
+  const destino = destinoSeguro(params.destino);
+
+  // Vindo do app do iPhone: quem já tem sessão volta direto para o app.
+  if (profile && destino) {
+    redirect(destino);
+  }
 
   // Mesmo destino do `getRedirectPath` da acção de login: quem já tem sessão
   // aberta e volta ao /login cai no dashboard, como quem acabou de entrar.
@@ -45,7 +56,7 @@ export default async function LoginPage() {
           <h1 className="mb-8 text-3xl font-semibold tracking-tight text-foreground">
             {t("Entrar")}
           </h1>
-          <LoginForm />
+          <LoginForm destino={destino} />
           <div className="mt-8 flex flex-col gap-2">
             <SeletorTema />
             <SeletorIdioma para="cima" />
