@@ -39,3 +39,4 @@ export const IcInstagram = ({ tamanho = 20 }: P) => <svg {...base(tamanho)} {...
 export const IcMessenger = ({ tamanho = 20 }: P) => <svg {...base(tamanho)} fill="currentColor"><path d="M12 2.8c-5.1 0-9.2 3.8-9.2 8.7 0 2.7 1.3 5.1 3.4 6.7v3.3l3.1-1.7c.9.2 1.8.4 2.7.4 5.1 0 9.2-3.9 9.2-8.7S17.1 2.8 12 2.8zm1 11.7-2.4-2.5-4.6 2.5 5-5.4 2.4 2.5 4.6-2.5z" /></svg>;
 export const IcCanal = ({ canal, tamanho }: { canal: string; tamanho?: number }) =>
   canal === "instagram" ? <IcInstagram tamanho={tamanho} /> : canal === "messenger" ? <IcMessenger tamanho={tamanho} /> : <IcWhatsapp tamanho={tamanho} />;
+export const IcGrade = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><rect height="6.5" rx="2" width="6.5" x="4" y="4" /><rect height="6.5" rx="2" width="6.5" x="13.5" y="4" /><rect height="6.5" rx="2" width="6.5" x="4" y="13.5" /><rect height="6.5" rx="2" width="6.5" x="13.5" y="13.5" /></svg>;

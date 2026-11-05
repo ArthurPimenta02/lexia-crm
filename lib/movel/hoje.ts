@@ -21,7 +21,13 @@ export type Pendencia =
 
 export type Marcacao = { id: string; inicio: string; fim: string; nome: string; servico: string | null; executor: string | null; valor: number | null; pendenteSinal: boolean; conversa: string | null };
 
+/** Uma linha de "O que aconteceu": marcação nova ou lead novo nas últimas 24 h. */
+export type Acontecimento =
+  | { tipo: "marcou"; quando: string; nome: string; servico: string | null; doAgente: boolean; valor: number | null; conversa: string | null }
+  | { tipo: "lead"; quando: string; nome: string; deAnuncio: boolean; conversa: string | null };
+
 export type DadosHoje = {
+  aconteceu: Acontecimento[];
   agenda: Marcacao[];
   amanha: number;
   campanhas: null | {
@@ -74,7 +80,9 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
   const ontem = limitesDoDia(somarDias(hoje, -1), fuso);
   const desde48h = new Date(agora.getTime() - 48 * 3600_000).toISOString();
 
-  const [agendaSemana, naPausa, contactos7, criadosOntem, custos, anunciosAtivos] = await Promise.all([
+  const desde24h = new Date(agora.getTime() - 24 * 3600_000).toISOString();
+
+  const [agendaSemana, naPausa, contactos7, criadosOntem, custos, anunciosAtivos, marcados24, leads24] = await Promise.all([
     base.from("lexia_agendamentos").select("id, inicio, fim, titulo, nome_cliente, telefone_digitos, servico, executor, valor_previsto, estado, dados, dia_inteiro")
       .eq("cliente_slug", clienteSlug).gte("inicio", dSemana.inicio).lt("inicio", limitesDoDia(somarDias(semana[6], 1), fuso).fim).neq("estado", "cancelado").order("inicio", { ascending: true }).limit(500),
     base.from("lexia_mensagens").select("identificador_conversa, criado_em").eq("cliente_slug", clienteSlug).eq("origem", "recebida_na_pausa").gte("criado_em", desde48h).order("criado_em", { ascending: true }).limit(500),
@@ -82,6 +90,8 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
     base.from("lexia_agendamentos").select("valor_previsto, telefone_digitos, criado_no_google").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").gte("criado_no_google", sete.inicio).lt("criado_no_google", sete.fim).limit(2000),
     base.from("lexia_campanha_custos").select("dia, gasto, moeda, campanha_id").eq("cliente_slug", clienteSlug).gte("dia", somarDias(hoje, -7)).lte("dia", somarDias(hoje, -1)).limit(2000),
     base.from("lexia_anuncios").select("anuncio_externo_id, nome, estado").eq("cliente_slug", clienteSlug).eq("plataforma", "meta").limit(500),
+    base.from("lexia_agendamentos").select("criado_no_google, nome_cliente, titulo, servico, origem, valor_previsto, telefone_digitos").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").eq("dia_inteiro", false).gte("criado_no_google", desde24h).order("criado_no_google", { ascending: false }).limit(8),
+    base.from("lexia_contactos").select("criado_em, nome, origem_tipo, identificador_conversa").eq("cliente_slug", clienteSlug).gte("criado_em", desde24h).order("criado_em", { ascending: false }).limit(8),
   ]);
 
   // ---------------- precisa de si: à espera
@@ -176,7 +186,28 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
     };
   }
 
+  // ---------------- o que aconteceu (24 h)
+  const aconteceu: Acontecimento[] = [
+    ...((marcados24.data ?? []) as { criado_no_google: string; nome_cliente: string | null; titulo: string | null; servico: string | null; origem: string | null; valor_previsto: number | null; telefone_digitos: string | null }[]).map((m) => ({
+      conversa: m.telefone_digitos ? `whatsapp:${m.telefone_digitos}` : null,
+      doAgente: m.origem === "agente",
+      nome: (m.nome_cliente || m.titulo || "").trim(),
+      quando: m.criado_no_google,
+      servico: m.servico,
+      tipo: "marcou" as const,
+      valor: m.valor_previsto === null ? null : Number(m.valor_previsto),
+    })),
+    ...((leads24.data ?? []) as { criado_em: string; nome: string | null; origem_tipo: string | null; identificador_conversa: string | null }[]).map((l) => ({
+      conversa: l.identificador_conversa,
+      deAnuncio: Boolean(l.origem_tipo && l.origem_tipo !== "organico"),
+      nome: (l.nome || "").trim(),
+      quando: l.criado_em,
+      tipo: "lead" as const,
+    })),
+  ].sort((a, b) => (a.quando < b.quando ? 1 : -1)).slice(0, 6);
+
   return {
+    aconteceu,
     agenda,
     amanha,
     campanhas,

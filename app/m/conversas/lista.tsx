@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { IcBusca, IcCanal } from "../_c/icones";
+import { IcBusca } from "../_c/icones";
 
 export type ItemLista = {
   canal: string;
@@ -48,23 +48,24 @@ export function ListaConversas({ erro, itens, textos }: { erro: string | null; i
         ))}
       </div>
       {erro ? <div className="m-vazio">{erro}</div> : visiveis.length === 0 ? <div className="m-vazio">{textos.nenhuma}</div> : (
-        <div className="m-caixa">
+        <div className="m-lista-conv">
           {visiveis.map((i) => (
             <Link className="m-conv" href={`/m/conversas/${encodeURIComponent(i.conversa)}`} key={i.conversa} prefetch={false}>
               <div className="m-av" style={{ background: i.cor }}>
                 {i.iniciais}
-                <i className={`canal ${i.canal}`}><IcCanal canal={i.canal} tamanho={10} /></i>
+                <i className={`canal ${i.canal}`} />
               </div>
               <div className="m-meio">
                 <b>{i.nome}</b>
                 <span>
-                  {i.previaDe === "agente" ? <span style={{ color: "var(--m-acento)" }}>{textos.agenteDiz} </span> : i.previaDe === "equipe" ? <span>{textos.voce} </span> : null}
+                  {i.estado === "espera" && i.espera ? <span className="m-tempo">{i.espera} · </span> : null}
+                  {i.previaDe === "agente" ? <span className="m-de-agente">{textos.agenteDiz} </span> : i.previaDe === "equipe" ? <span>{textos.voce} </span> : null}
                   {i.previa}
                 </span>
               </div>
               <div className="dir">
                 <span className="h">{i.quando}</span>
-                {i.estado === "espera" ? <span className="m-etq esp">{i.espera}</span> : i.estado === "comigo" ? <span className="m-etq eq">{textos.comigo}</span> : <span className="m-etq ag">{textos.agente}</span>}
+                <span aria-label={i.estado === "espera" ? textos.espera : i.estado === "comigo" ? textos.comigo : textos.agente} className={`m-estado ${i.estado}`} />
               </div>
             </Link>
           ))}

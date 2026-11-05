@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { contextoMovel } from "@/lib/movel/contexto";
+import { COOKIE_MODO_MOVEL, modoValido } from "@/lib/movel/modo";
 
 import { AbasMovel } from "./_c/abas";
+import { BarraDeEstado } from "./_c/modo";
 import "./m.css";
 
 export const metadata: Metadata = { title: "Lexia" };
@@ -21,18 +24,22 @@ export default async function LayoutMovel({ children }: { children: React.ReactN
     redirect("/login?destino=/m");
   }
 
+  const modo = modoValido((await cookies()).get(COOKIE_MODO_MOVEL)?.value);
+
   return (
-    <div className="m-app" lang={c.idioma}>
+    <div className="m-app" data-modo={modo} lang={c.idioma}>
       {children}
       <AbasMovel
         rotulos={{
-          agenda: c.t("Agenda"),
-          busca: c.t("Procurar"),
           conversas: c.t("Conversas"),
           hoje: c.t("Hoje"),
+          marcar: c.t("Marcar"),
+          mais: c.t("Mais"),
+          menu: c.t("Menu"),
           resultados: c.t("Resultados"),
         }}
       />
+      <BarraDeEstado />
       <PonteDoApp />
       <GestoVoltar />
     </div>

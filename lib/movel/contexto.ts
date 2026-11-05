@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
@@ -31,6 +32,8 @@ export type ContextoMovel = {
   fuso: string;
   idioma: Idioma;
   locale: string;
+  /** Meta do mês (agendamentos), escolhida nos Ajustes; 0 = sem meta. */
+  meta: { conta: "todos" | "agente"; mes: number };
   nomeUsuario: string;
   t: FuncaoT;
   userId: string;
@@ -38,15 +41,23 @@ export type ContextoMovel = {
 
 export type ClienteDisponivel = { nome: string; slug: string };
 
-export const clientesAtivos = cache(async (): Promise<ClienteDisponivel[]> => {
-  const { data } = await createAdminClient()
-    .from("lexia_clientes")
-    .select("slug, nome, status")
-    .eq("status", "ativo")
-    .order("nome", { ascending: true });
+// A lista das empresas ativas muda raramente: guarda-se 5 minutos, para cada
+// toque no app não ter de a pedir à base.
+const lerClientesAtivos = unstable_cache(
+  async (): Promise<ClienteDisponivel[]> => {
+    const { data, error } = await createAdminClient()
+      .from("lexia_clientes")
+      .select("slug, nome, status")
+      .eq("status", "ativo")
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((c) => ({ nome: c.nome || c.slug, slug: c.slug }));
+  },
+  ["m-clientes-ativos-v1"],
+  { revalidate: 300 },
+);
 
-  return (data ?? []).map((c) => ({ nome: c.nome || c.slug, slug: c.slug }));
-});
+export const clientesAtivos = cache(lerClientesAtivos);
 
 function nomeDoEmail(email: string | undefined | null) {
   const antes = String(email ?? "").split("@")[0] ?? "";
@@ -82,13 +93,9 @@ export const contextoMovel = cache(async (): Promise<ContextoMovel | null> => {
     return null;
   }
 
-  const { data: cliente } = await createAdminClient()
-    .from("lexia_clientes")
-    .select("nome, status")
-    .eq("slug", clienteSlug)
-    .maybeSingle();
+  const cliente = (await clientesAtivos()).find((x) => x.slug === clienteSlug);
 
-  if (!cliente || cliente.status !== "ativo") {
+  if (!cliente) {
     return null;
   }
 
@@ -105,6 +112,10 @@ export const contextoMovel = cache(async (): Promise<ContextoMovel | null> => {
     fuso: getClientTimezone(clienteSlug),
     idioma,
     locale: LOCALE_DO_IDIOMA[idioma],
+    meta: {
+      conta: meta.meta_conta === "agente" ? "agente" : "todos",
+      mes: Number.isInteger(meta.meta_mes) && (meta.meta_mes as number) > 0 ? (meta.meta_mes as number) : 0,
+    },
     nomeUsuario,
     t,
     userId: user.id,

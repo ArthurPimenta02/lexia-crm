@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+import { resultadosRapido } from "@/lib/movel/cache";
 import { contextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda } from "@/lib/movel/formato";
-import { dadosResultados, intervaloDe, type DadosResultados } from "@/lib/movel/resultados";
+import { intervaloDe, type DadosResultados } from "@/lib/movel/resultados";
 
-import { IcCalendario, IcConversa, IcEuro, IcPessoa } from "../_c/icones";
+import { Curva } from "../_c/curva";
+import { IcSeta } from "../_c/icones";
 import { Personalizado } from "./personalizado";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +24,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
   const intervalo = intervaloDe(params.p, params.de, params.ate, hoje);
   let d: DadosResultados | null = null;
   try {
-    d = await dadosResultados(c.clienteSlug, c.fuso, intervalo);
+    d = await resultadosRapido(c.clienteSlug, c.fuso, intervalo);
   } catch {
     d = null;
   }
@@ -32,22 +34,20 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
   const chips = [
     ["hoje", t("Hoje")],
     ["ontem", t("Ontem")],
-    ["semana", t("Esta semana")],
-    ["mes", t("Este mês")],
+    ["semana", t("Semana")],
+    ["mes", t("Mês")],
   ] as const;
 
   return (
     <main className="m-pagina">
-      <div className="m-titulo"><h1>{t("Resultados")}</h1></div>
-      <div className="m-chips" style={{ marginTop: 0 }}>
-        {chips.map(([k, r]) => <Link className={`m-chip${intervalo.chave === k ? " on" : ""}`} href={`/m/resultados?p=${k}`} key={k} replace>{r}</Link>)}
+      <div className="m-titulo"><h1>{t("Resultados")}</h1><span className="m-periodo">{rotuloPeriodo}</span></div>
+      <div className="m-chips">
+        {chips.map(([k, r]) => <Link className={`m-chip${intervalo.chave === k ? " on" : ""}`} href={`/m/resultados?p=${k}`} key={k} replace scroll={false}>{r}</Link>)}
         <Personalizado activo={intervalo.chave === "personalizado"} ate={intervalo.ate} de={intervalo.de} hoje={hoje} textos={{ aplicar: t("Ver resultados"), ate: t("Até"), de: t("De"), personalizado: t("Personalizado") }} />
       </div>
-      <p className="m-discreto" style={{ justifyContent: "flex-start", margin: "-4px 4px 12px" }}>{rotuloPeriodo}</p>
 
       {!d ? <div className="m-vazio">{t("Não foi possível carregar os resultados.")}</div> : (() => {
         const v = variacao(d.atual.agendamentos, d.anterior.agendamentos);
-        const max = Math.max(1, ...d.leadsPorDia.map((x) => x.n));
         const funil = [
           { n: d.atual.conversas, r: t("conversas") },
           { n: d.atual.leads, r: t("leads novos") },
@@ -55,44 +55,41 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
           { n: d.atual.vieram, r: t("já vieram") },
         ];
         const topo = Math.max(1, ...funil.map((f) => f.n));
-        const taxa = d.atual.conversas ? Math.round((d.atual.doAgente / d.atual.conversas) * 100) : null;
+        const rotulos = d.dias <= 7
+          ? d.leadsPorDia.map((x) => new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${x.dia}T12:00:00Z`)).replace(".", ""))
+          : [0, 0.25, 0.5, 0.75, 1].map((f) => curto(d!.leadsPorDia[Math.round(f * (d!.leadsPorDia.length - 1))].dia));
         return (
           <>
-            <section className="m-destaque">
-              <div className="rot" style={{ marginTop: 0 }}>{t("Agendamentos")}</div>
-              <div className="valor">{d.atual.agendamentos}</div>
-              <div className="sub">{t("{a} pelo agente · {m} à mão", { a: d.atual.doAgente, m: d.atual.aMao })}</div>
-              <div className="sub" style={{ marginTop: 6 }}>
-                {v === null ? t("Sem período anterior para comparar") : <><b style={{ color: v < 0 ? "#ff8a80" : undefined }}>{v > 0 ? `+${v}%` : `${v}%`}</b> {t("em relação ao período anterior")}</>}
-                {d.atual.cancelados ? ` · ${d.atual.cancelados === 1 ? t("1 cancelado") : t("{n} cancelados", { n: d.atual.cancelados })}` : ""}
-              </div>
-            </section>
-            <div className="m-bento-2">
-              <div className="m-mini"><div className="ico" style={{ background: "var(--m-acento-claro)", color: "var(--m-acento)" }}><IcPessoa /></div><strong>{d.atual.leads}</strong><small>{t("leads novos")}</small><em>{t("{n} de anúncio", { n: d.atual.leadsAnuncio })}</em></div>
-              <div className="m-mini"><div className="ico" style={{ background: "var(--m-suave)" }}><IcConversa /></div><strong>{d.atual.conversas}</strong><small>{t("conversas")}</small><em>{t("{n} antes", { n: d.anterior.conversas })}</em></div>
-              <div className="m-mini"><div className="ico" style={{ background: "var(--m-azul-claro)", color: "var(--m-azul)" }}><IcCalendario /></div><strong>{taxa === null ? "—" : `${taxa}%`}</strong><small>{t("conversas que o agente agendou")}</small><em>{t("{n} agendamentos", { n: d.atual.doAgente })}</em></div>
-              <div className="m-mini"><div className="ico" style={{ background: "var(--m-laranja-claro)", color: "var(--m-laranja)" }}><IcEuro /></div><strong>{d.atual.leadsAnuncio && d.gasto ? dinheiro(d.gasto / d.atual.leadsAnuncio) : "—"}</strong><small>{t("custo por lead")}</small><em>{t("{valor} investidos", { valor: dinheiro(d.gasto) })}</em></div>
-            </div>
+            <div className="m-rot">{t("Agendamentos")}</div>
+            <div className="m-grande">{d.atual.agendamentos} <span>· {t("{n} pelo agente", { n: d.atual.doAgente })}</span></div>
 
             {d.dias > 1 ? (
               <>
-                <div className="m-sec"><h2>{t("Leads por dia")}</h2></div>
-                <div className="m-cartao-num">
-                  <div aria-hidden="true" className="m-barras" style={{ gap: d.dias > 14 ? 3 : 7, height: 90, marginTop: 0 }}>{d.leadsPorDia.map((x, i) => <div className={i === d!.leadsPorDia.length - 1 ? "on" : ""} key={x.dia} style={{ height: `${Math.max(6, (x.n / max) * 100)}%` }} />)}</div>
-                  {d.dias <= 7 ? <div aria-hidden="true" className="m-dias-b">{d.leadsPorDia.map((x) => <span key={x.dia} style={{ textTransform: "capitalize" }}>{new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${x.dia}T12:00:00Z`)).replace(".", "")}</span>)}</div> : <div className="m-rodape">{t("Mais leads num dia: {n}", { n: max })}</div>}
-                </div>
+                <Curva bolha={(n) => (n === 1 ? t("1 lead") : t("{n} leads", { n }))} valores={d.leadsPorDia.map((x) => x.n)} />
+                <div aria-hidden="true" className="m-eixo">{rotulos.map((r, i) => <span key={i}>{r}</span>)}</div>
               </>
-            ) : null}
+            ) : <div style={{ height: 16 }} />}
+
+            <div className="m-duas">
+              <div className="m-vc"><small>{t("Leads novos")}</small><strong>{d.atual.leads}</strong><em>{t("{n} de anúncio", { n: d.atual.leadsAnuncio })}</em></div>
+              <div className="m-vc"><small>{t("Custo por lead")}</small><strong>{d.atual.leads && d.gasto ? dinheiro(d.gasto / d.atual.leads) : "—"}</strong><em>{t("{valor} investidos", { valor: dinheiro(d.gasto) })}</em></div>
+            </div>
+            <Link className="m-faixa-l" href="/m/campanhas">
+              <span>{v === null ? t("Sem período anterior para comparar") : <><b>{v > 0 ? `+${v}%` : `${v}%`}</b>{t("em relação ao período anterior")}</>}</span>
+              <IcSeta tamanho={16} />
+            </Link>
 
             <div className="m-sec"><h2>{t("Do contato ao agendamento")}</h2></div>
             <div className="m-funil">
               {funil.map((f) => <div className="f" key={f.r}><div className="bar" style={{ width: `${Math.max(16, (f.n / topo) * 72)}%` }}>{f.n}</div><span>{f.r}</span></div>)}
             </div>
-            {d.atual.valor ? <p className="m-discreto">{t("Valor dos agendamentos com preço: {valor}", { valor: dinheiro(d.atual.valor) })}</p> : null}
+            <p className="m-discreto">
+              {[t("{n} à mão", { n: d.atual.aMao }), d.atual.cancelados ? (d.atual.cancelados === 1 ? t("1 cancelado") : t("{n} cancelados", { n: d.atual.cancelados })) : null, d.atual.valor ? t("Valor dos agendamentos com preço: {valor}", { valor: dinheiro(d.atual.valor) }) : null].filter(Boolean).join(" · ")}
+            </p>
 
             {d.anuncios.length ? (
               <>
-                <div className="m-sec"><h2>{t("Anúncios")}</h2></div>
+                <div className="m-sec"><h2>{t("Anúncios")}</h2><Link href="/m/campanhas">{t("Campanhas")}</Link></div>
                 <div className="m-cartao-num">
                   <div className="m-anuncios" style={{ marginTop: 0 }}>
                     {d.anuncios.map((a) => (
