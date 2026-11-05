@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { IcBusca } from "../_c/icones";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export type ItemLista = {
   canal: string;
@@ -47,7 +48,7 @@ export function ListaConversas({ erro, itens, textos }: { erro: string | null; i
           </button>
         ))}
       </div>
-      {erro ? <div className="m-vazio">{erro}</div> : visiveis.length === 0 ? <div className="m-vazio">{textos.nenhuma}</div> : (
+      {erro ? <div className="m-vazio">{erro}</div> : visiveis.length === 0 ? <VazioMascote>{textos.nenhuma}</VazioMascote> : (
         <div className="m-lista-conv">
           {visiveis.map((i) => (
             <Link className="m-conv" href={`/m/conversas/${encodeURIComponent(i.conversa)}`} key={i.conversa} prefetch={false}>

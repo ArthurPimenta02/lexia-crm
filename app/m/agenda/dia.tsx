@@ -6,6 +6,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { IcCalendario, IcCheck, IcConversa, IcMais, IcTelefone } from "../_c/icones";
 import { marcarMovel } from "./acoes";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 type Evento = {
   conversa: string | null;
@@ -50,7 +51,7 @@ export function DiaAgenda(props: {
   return (
     <>
       <div style={{ marginTop: 14 }}>
-        {ativos.length === 0 ? <div className="m-vazio">{t.nenhum}</div> : ativos.map((e, i) => {
+        {ativos.length === 0 ? <VazioMascote>{t.nenhum}</VazioMascote> : ativos.map((e, i) => {
           const linhaAgora = !props.agrupar && props.eHoje && e.hora > horaAgora && (i === 0 || ativos[i - 1].hora <= horaAgora);
           const novoDia = props.agrupar && (i === 0 || ativos[i - 1].dia !== e.dia);
           return (

@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { IcBusca } from "../_c/icones";
 import { BotaoVoltar } from "../_c/voltar";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function ClientesMovel({ searchParams }: { searchParams: Pr
       </form>
 
       {error ? <div className="m-vazio">{t("Não foi possível carregar os clientes.")}</div> : !data?.length ? (
-        <div className="m-vazio">{q ? t("Ninguém encontrado com “{q}”.", { q }) : t("Ainda não há clientes.")}</div>
+        <VazioMascote>{q ? t("Ninguém encontrado com “{q}”.", { q }) : t("Ainda não há clientes.")}</VazioMascote>
       ) : (
         <div className="m-lista-conv">
           {data.map((p) => {

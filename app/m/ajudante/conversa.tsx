@@ -8,6 +8,7 @@ import { blocosDe, partesDe, useAjudante } from "@/app/components/ajudante/usar-
 
 import { IcEnviar, IcMais, IcVoltar } from "../_c/icones";
 import { useTecladoDoChat } from "../_c/teclado";
+import { AvatarMascote } from "@/app/components/mascote";
 
 type Textos = Record<"titulo" | "sub" | "pergunte" | "enviar" | "voltar" | "nova" | "conversas" | "semConversas" | "vazio" | "desligado" | "erro" | "aPensar" | "mensagemPara" | "cliente" | "enviada" | "enviando" | "falhou" | "verConversa", string>;
 
@@ -37,7 +38,7 @@ export function ConversaAjudante({ sugestoes, tela, textos: x }: { sugestoes: st
     <div className="m-chat" ref={raiz} style={{ zIndex: 55 }}>
       <header className="m-chat-cab">
         <button aria-label={x.voltar} className="m-redondo" onClick={() => (window.history.length > 1 ? router.back() : router.replace("/m"))} type="button"><IcVoltar /></button>
-        <div className="m-av" style={{ background: "var(--m-jade)", color: "var(--m-no-jade)" }}>✦</div>
+        <AvatarMascote tamanho={38} />
         <div className="m-meio"><b>{x.titulo}</b><span>{x.sub}</span></div>
         <button className="m-pill" onClick={() => setLista((v) => !v)} type="button">{x.conversas}</button>
         <button aria-label={x.nova} className="m-redondo" onClick={() => { a.nova(); setLista(false); }} type="button"><IcMais /></button>

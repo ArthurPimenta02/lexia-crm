@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { LexiaBrand } from "@/app/components/lexia-brand";
+import { Mascote } from "@/app/components/mascote";
 import { LoginForm } from "@/app/login/login-form";
 import { SeletorIdioma } from "@/app/components/seletor-idioma";
 import { SeletorTema } from "@/app/components/seletor-tema";
@@ -40,9 +41,12 @@ export default async function LoginPage({
       */}
       <section className="hidden min-h-dvh flex-col justify-between overflow-hidden bg-[#050505] px-10 py-10 lg:flex">
         <LexiaBrand />
-        <p className="max-w-xl text-5xl font-semibold tracking-tight text-white">
+        <div>
+          <Mascote className="mb-8" pose="ola" tamanho={200} />
+          <p className="max-w-xl text-5xl font-semibold tracking-tight text-white">
           {t("Atendimento com IA, medido nos mínimos detalhes.")}
         </p>
+        </div>
         <p className="text-xs font-medium tracking-[0.28em] text-white/40 uppercase">
           Lexia AI
         </p>
@@ -50,8 +54,9 @@ export default async function LoginPage({
 
       <section className="flex min-h-dvh items-center justify-center px-6 py-10">
         <div className="w-full max-w-sm">
-          <div className="mb-8 lg:hidden">
+          <div className="mb-8 flex items-end justify-between lg:hidden">
             <LexiaBrand tone="light" />
+            <Mascote pose="ola" tamanho={84} />
           </div>
           <h1 className="mb-8 text-3xl font-semibold tracking-tight text-foreground">
             {t("Entrar")}

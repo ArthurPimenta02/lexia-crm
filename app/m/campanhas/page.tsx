@@ -11,6 +11,7 @@ import { limitesDoDia, somarDias } from "@/lib/movel/hoje";
 import { Curva } from "../_c/curva";
 import { BotaoVoltar } from "../_c/voltar";
 import { Personalizado } from "../resultados/personalizado";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function CampanhasMovel({ searchParams }: { searchParams: P
       </div>
 
       {!d ? <div className="m-vazio">{t("Não foi possível carregar as campanhas.")}</div> : !d.temDados ? (
-        <div className="m-vazio">{t("Ainda não há dados de anúncios desta empresa.")}</div>
+        <VazioMascote>{t("Ainda não há dados de anúncios desta empresa.")}</VazioMascote>
       ) : (
         <>
           <div className="m-rot">{t("Investido")}</div>

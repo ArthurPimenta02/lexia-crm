@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { IcMais, IcRobo } from "../_c/icones";
 import { BotaoVoltar } from "../_c/voltar";
 import { respostasDe } from "./bolhas";
+import { VazioMascote } from "@/app/m/_c/vazio";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +76,7 @@ export default async function ListaTestes() {
 
       <div className="m-sec"><h2>{t("Conversas de teste")}</h2>{lista.length ? <span>{lista.length}</span> : null}</div>
       {error ? <div className="m-vazio">{t("Não foi possível carregar.")}</div> : !lista.length ? (
-        <div className="m-vazio">{t("Ainda não há conversas de teste. Comece uma nova.")}</div>
+        <VazioMascote>{t("Ainda não há conversas de teste. Comece uma nova.")}</VazioMascote>
       ) : (
         <div className="m-lista-conv">
           {lista.map((x) => (

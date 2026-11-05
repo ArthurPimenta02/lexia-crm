@@ -7,6 +7,7 @@ import { chaveDoDia } from "@/lib/movel/formato";
 import type { DadosMais } from "@/lib/movel/mais";
 
 import { IcCheck } from "../_c/icones";
+import { AvatarMascote, Mascote } from "@/app/components/mascote";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function MaisMovel() {
     <main className="m-pagina">
       <div className="m-titulo"><h1>{t("Mais")}</h1></div>
 
-      <Link className="m-tile destaque m-tile-largo" href="/m/ajudante?tela=/m/mais"><span className="emo">✦</span><b>{t("Analista Lexia")}</b><small>{t("Pergunte qualquer coisa sobre o seu negócio")}</small></Link>
+      <Link className="m-tile destaque m-tile-largo" href="/m/ajudante?tela=/m/mais"><span className="emo"><AvatarMascote tamanho={34} /></span><b>{t("Analista Lexia")}</b><small>{t("Pergunte qualquer coisa sobre o seu negócio")}</small></Link>
       {grandes.length ? (
         <div className="m-g2">
           {grandes.map((g) => <Link className={`m-tile${g.destaque ? " destaque" : ""}`} href={g.href} key={g.href}><span className="emo">{g.emo}</span>{g.r}</Link>)}
@@ -72,7 +73,7 @@ export default async function MaisMovel() {
             <>
               <div className="m-meta"><i style={{ width: `${pct}%` }} /></div>
               <div className="m-meta-l">
-                <span>{feitos >= c.meta.mes ? t("Meta batida 🎉") : t("{p}% · faltam {n}", { n: c.meta.mes - feitos, p: pct })}</span>
+                <span className={feitos >= c.meta.mes ? "m-meta-feliz" : undefined}>{feitos >= c.meta.mes ? <><Mascote pairar={false} pose="feliz" tamanho={34} />{t("Meta batida 🎉")}</> : t("{p}% · faltam {n}", { n: c.meta.mes - feitos, p: pct })}</span>
                 <span>{t("até {dia}", { dia: ultimo })}</span>
               </div>
             </>
