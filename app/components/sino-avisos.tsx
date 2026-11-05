@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdioma } from "@/app/components/idioma";
 
 import type { Aviso, AvisosResultado, TipoDeAviso } from "@/lib/avisos/read";
+import { AvatarMascote } from "@/app/components/mascote";
 
 /**
  * O sino.
@@ -164,14 +165,16 @@ function LinhaDoAviso({ aviso, onIr }: { aviso: Aviso; onIr: () => void }) {
   const Icone = ICONE[aviso.tipo];
   const miolo = (
     <>
-      <span
-        className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-          aviso.lido
-            ? "bg-muted text-muted-foreground"
-            : "bg-primary/10 text-primary"
-        }`}
-      >
-        <Icone aria-hidden="true" className="h-3.5 w-3.5" />
+      {/* O beija-flor em todos os avisos; o ícone pequeno no canto diz o tipo. */}
+      <span className={`relative mt-0.5 shrink-0 ${aviso.lido ? "opacity-60" : ""}`}>
+        <AvatarMascote tamanho={30} />
+        <span
+          className={`absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full ring-2 ring-surface ${
+            aviso.lido ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"
+          }`}
+        >
+          <Icone aria-hidden="true" className="h-2.5 w-2.5" />
+        </span>
       </span>
 
       <span className="min-w-0 flex-1">

@@ -4,9 +4,9 @@ import { contextoMovel } from "@/lib/movel/contexto";
 import { quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { IcCalendario, IcConversa, IcSino } from "../_c/icones";
 import { BotaoVoltar } from "../_c/voltar";
 import { VazioMascote } from "@/app/m/_c/vazio";
+import { AvatarMascote } from "@/app/components/mascote";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +41,10 @@ export default async function AvisosMovel() {
         <div className="m-lista-conv">
           {data.map((a) => (
             <Link className="m-conv" href={destino(String(a.url ?? ""))} key={a.id} prefetch={false}>
-              <div className="m-av" style={{ background: a.tipo === "a_espera" ? "var(--m-laranja-claro)" : "var(--m-acento-claro)", color: a.tipo === "a_espera" ? "var(--m-laranja)" : "var(--m-acento)" }}>
-                {a.tipo === "a_espera" ? <IcConversa tamanho={16} /> : String(a.tipo).startsWith("agendamento") ? <IcCalendario tamanho={16} /> : <IcSino tamanho={16} />}
+              {/* O beija-flor em todos os avisos; a bolinha diz o tipo (laranja = alguém à espera). */}
+              <div className="m-av" style={{ background: "transparent" }}>
+                <AvatarMascote tamanho={40} />
+                <span className="canal" style={{ background: a.tipo === "a_espera" ? "var(--m-laranja)" : "var(--m-acento)" }} />
               </div>
               <div className="m-meio"><b>{a.titulo}</b><span>{a.corpo}</span></div>
               <div className="dir"><span className="h">{a.criado_em ? quandoCurto(a.criado_em, agora, c.fuso, c.locale, t("Ontem")) : ""}</span></div>
