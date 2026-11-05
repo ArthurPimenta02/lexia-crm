@@ -6,6 +6,9 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "na agenda hoje": "na agenda hoje",
+    "Agendamentos marcados": "Marcações feitas",
+    "Vendo: {empresa}": "A ver: {empresa}",
     "Pedir o código ao abrir": "Pedir o código ao abrir",
     "Pedir Face ID ao abrir": "Pedir Face ID ao abrir",
     "ninguém abre o app sem você": "ninguém abre a app sem si",
@@ -69,6 +72,9 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} à mão",
   },
   es: {
+    "na agenda hoje": "en la agenda hoy",
+    "Agendamentos marcados": "Citas agendadas",
+    "Vendo: {empresa}": "Viendo: {empresa}",
     "Pedir o código ao abrir": "Pedir el código al abrir",
     "Pedir Face ID ao abrir": "Pedir Face ID al abrir",
     "ninguém abre o app sem você": "nadie abre la app sin ti",
@@ -132,6 +138,9 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} a mano",
   },
   en: {
+    "na agenda hoje": "on today's schedule",
+    "Agendamentos marcados": "Appointments booked",
+    "Vendo: {empresa}": "Viewing: {empresa}",
     "Pedir o código ao abrir": "Ask for passcode on open",
     "Pedir Face ID ao abrir": "Ask for Face ID on open",
     "ninguém abre o app sem você": "no one opens the app without you",

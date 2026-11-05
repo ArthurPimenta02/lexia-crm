@@ -53,8 +53,10 @@ export default async function HojeMovel() {
   return (
     <main className="m-pagina m-com-folha">
       {topo}
+      {/* Só a Lexia (admin) vê dados de várias empresas: diz de qual é esta tela. */}
+      {c.admin ? <Link className="m-vendo" href="/m/ajustes">{t("Vendo: {empresa}", { empresa: c.clienteNome })}</Link> : null}
 
-      <div className="m-dia-num"><b>{d.agenda.length}</b><span>{d.agenda.length === 1 ? t("agendamento hoje") : t("agendamentos hoje")}</span></div>
+      <div className="m-dia-num"><b>{d.agenda.length}</b><span>{t("na agenda hoje")}</span></div>
       <div aria-hidden="true" className="m-dia-barra">{riscas.length ? riscas.map((f, i) => <i className={f ? "f" : ""} key={i} />) : <i />}</div>
       <div className="m-dia-leg">
         {d.agenda.length ? <span>{feitos === 1 ? t("1 feito") : t("{n} feitos", { n: feitos })}</span> : null}
