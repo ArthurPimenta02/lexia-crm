@@ -1,4 +1,4 @@
-import { contextoMovel } from "@/lib/movel/contexto";
+import { contextoDaEmpresa } from "@/lib/movel/empresa-do-pedido";
 import { tipoDaMidia } from "@/lib/movel/midia";
 import { chamarPlataforma, ErroPlataforma } from "@/lib/movel/plataforma";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
@@ -12,10 +12,10 @@ export const maxDuration = 120;
  * pode vir de um caminho da própria empresa no bucket.
  */
 export async function POST(request: Request) {
-  const c = await contextoMovel();
-  if (!c) return Response.json({ erro: "Sessão inválida." }, { status: 401 });
-
   const corpo = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  // A empresa vem da sessão; só a Lexia pode indicar outra (a da página do painel).
+  const c = await contextoDaEmpresa(corpo.cliente);
+  if (!c) return Response.json({ erro: "Sessão inválida." }, { status: 401 });
   const conversa = String(corpo.conversa ?? "");
   const texto = typeof corpo.texto === "string" ? corpo.texto.trim() : "";
   const midia = corpo.midia && typeof corpo.midia === "object" ? (corpo.midia as Record<string, unknown>) : null;

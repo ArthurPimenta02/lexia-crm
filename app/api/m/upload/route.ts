@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { MIDIA_BUCKET } from "@/lib/conversations/message-display";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { contextoDaEmpresa } from "@/lib/movel/empresa-do-pedido";
 import { caminhoDoOriginal, TAMANHO_MAXIMO } from "@/lib/movel/midia";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,9 +14,10 @@ export const dynamic = "force-dynamic";
  * decidido aqui, dentro da pasta da empresa da sessão.
  */
 export async function POST(request: Request) {
-  const c = await contextoMovel();
-  if (!c) return Response.json({ erro: "Sessão inválida." }, { status: 401 });
   const corpo = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  // A empresa vem da sessão; só a Lexia pode indicar outra (a da página do painel).
+  const c = await contextoDaEmpresa(corpo.cliente);
+  if (!c) return Response.json({ erro: "Sessão inválida." }, { status: 401 });
   const conversa = String(corpo.conversa ?? "");
   const mime = String(corpo.mime ?? "").toLowerCase();
   const tamanho = Number(corpo.tamanho ?? 0);
