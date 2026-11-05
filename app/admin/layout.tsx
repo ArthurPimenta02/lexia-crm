@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
+import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { getT } from "@/lib/i18n/servidor";
@@ -47,6 +48,7 @@ export default async function AdminLayout({
 
       <ScrollToTop alvoId="conteudo" />
       <PonteDoApp />
+      <GestoVoltar />
 
       <main
         className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"

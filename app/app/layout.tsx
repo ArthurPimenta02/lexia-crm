@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppSidebar } from "@/app/components/app-sidebar";
+import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { ecraPermitido } from "@/lib/auth/ecras";
@@ -65,6 +66,7 @@ export default async function ClientAppLayout({
 
       <ScrollToTop alvoId="conteudo" />
       <PonteDoApp />
+      <GestoVoltar />
 
       <main
         className="relative min-w-0 flex-1 overflow-x-hidden overflow-y-auto"

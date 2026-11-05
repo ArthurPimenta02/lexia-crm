@@ -139,3 +139,12 @@ test("um aviso só abre telas do painel", () => {
   assert.equal(destinoDoAviso("/apparently"), null);
   assert.equal(destinoDoAviso(42), null);
 });
+
+test("gesto de voltar: só da borda, para a direita e com distância", async () => {
+  const { decideVoltar } = await import("@/app/components/gesto-voltar");
+  assert.equal(decideVoltar(10, 90, 10), true);
+  assert.equal(decideVoltar(60, 90, 10), false, "não começou na borda");
+  assert.equal(decideVoltar(10, 40, 5), false, "curto demais");
+  assert.equal(decideVoltar(10, 90, 80), false, "foi mais para baixo do que para o lado");
+  assert.equal(decideVoltar(10, -90, 0), false, "para a esquerda");
+});
