@@ -15,7 +15,7 @@ import { IcBarras, IcCasa, IcConversa, IcGrade, IcMais } from "./icones";
 type Rotulos = { conversas: string; hoje: string; marcar: string; mais: string; menu: string; resultados: string };
 
 // Telas que vivem dentro de "Mais": a aba Mais fica acesa nelas.
-const DO_MAIS = ["/m/mais", "/m/campanhas", "/m/clientes", "/m/agenda", "/m/busca"];
+const DO_MAIS = ["/m/mais", "/m/campanhas", "/m/clientes", "/m/agenda", "/m/busca", "/m/testes"];
 
 export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
   const caminho = usePathname();
@@ -43,7 +43,7 @@ export function AbasMovel({ rotulos }: { rotulos: Rotulos }) {
   }, []);
 
   // O chat, a área de testes e os ajustes ocupam a tela inteira, como no WhatsApp.
-  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/ajustes") || caminho.startsWith("/m/testes")) return null;
+  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/ajustes") || /^\/m\/testes\/.+/.test(caminho)) return null;
 
   const aba = (href: string, icone: React.ReactNode, rotulo: string, activa: boolean, emblema = 0) => (
     <Link aria-current={activa ? "page" : undefined} className={`m-aba${activa ? " on" : ""}`} href={href} key={href}>

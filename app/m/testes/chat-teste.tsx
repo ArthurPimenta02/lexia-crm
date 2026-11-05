@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { IcEnviar, IcMais, IcRobo, IcVoltar } from "../_c/icones";
-import { enviarTeste, lerConversaTeste, novaConversaTeste } from "./actions";
+import { enviarTeste, lerConversaTeste } from "./actions";
 import { bolhasDe, SEM_SESSAO, type ExecucaoTeste } from "./bolhas";
 
 type Textos = Record<
@@ -47,7 +47,6 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
   const [texto, setTexto] = useState("");
   const [workflow, setWorkflow] = useState(workflows[0]?.id ?? "");
   const [aviso, setAviso] = useState<string | null>(null);
-  const [abrindo, setAbrindo] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const msgs = useRef<HTMLDivElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
@@ -124,6 +123,7 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
     try {
       const r = await enviarTeste(sessaoRef.current, p.texto, workflow);
       if (!r.dados) throw new Error(traduzErro(r.erro));
+      if (!sessaoRef.current) window.history.replaceState(null, "", `/m/testes/${encodeURIComponent(r.dados.sessao)}`);
       sessaoRef.current = r.dados.sessao;
       setSessao(r.dados.sessao);
       setPendentes((ps) => ps.map((x) => (x.id === p.id ? { ...x, desde: Date.now(), estado: "aguardando", runId: r.dados.runId } : x)));
@@ -151,27 +151,18 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
     }
   };
 
-  const nova = async () => {
-    if (abrindo) return;
-    setAbrindo(true);
-    try {
-      const r = await novaConversaTeste();
-      if (!r.dados) { mostrarAviso(traduzErro(r.erro)); return; }
-      sessaoRef.current = r.dados.sessao;
-      setSessao(r.dados.sessao);
-      setLista([]);
-      setPendentes([]);
-      mostrarAviso(textos.novaFeita);
-    } catch {
-      mostrarAviso(textos.erroEnvio);
-    } finally {
-      setAbrindo(false);
+  // "+" no topo: abre uma conversa de teste nova (a sessão nasce na 1.ª mensagem).
+  const nova = () => {
+    if (!sessaoRef.current && !lista.length && !pendentes.length) {
+      campo.current?.focus();
+      return;
     }
+    router.push("/m/testes/nova");
   };
 
   const voltar = () => {
     if (window.history.length > 1) router.back();
-    else router.push("/m");
+    else router.replace("/m/testes");
   };
 
   // ------------------------------------------------------------ desenho
@@ -216,7 +207,7 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
             <span>{textos.subtitulo}</span>
           )}
         </div>
-        <button aria-label={textos.nova} className="m-redondo" disabled={abrindo} onClick={() => void nova()} type="button"><IcMais /></button>
+        <button aria-label={textos.nova} className="m-redondo" onClick={nova} type="button"><IcMais /></button>
       </header>
 
       <div className="m-msgs" onScroll={(e) => { const el = e.currentTarget; perto.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140; }} ref={msgs}>
@@ -247,6 +238,7 @@ export function ChatTeste({ execucoes, fuso, hoje, locale, sessao: sessaoInicial
           enterKeyHint="send"
           onChange={(e) => { setTexto(e.target.value); e.currentTarget.style.height = ""; e.currentTarget.style.height = `${Math.min(140, e.currentTarget.scrollHeight)}px`; }}
           onFocus={() => window.setTimeout(() => descer(true), 250)}
+          autoFocus={!sessao}
           placeholder={textos.mensagem}
           ref={campo}
           rows={1}

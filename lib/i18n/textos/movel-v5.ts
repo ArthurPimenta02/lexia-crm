@@ -6,6 +6,8 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.",
+    "Ainda não há conversas de teste. Comece uma nova.": "Ainda não há conversas de teste. Comece uma nova.",
     "Meta do mês": "Meta do mês",
     "só os do agente": "só as do agente",
     "Contar": "Contar",
@@ -62,6 +64,8 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} à mão",
   },
   es: {
+    "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Habla con el agente como si fueras un cliente. No se envía nada a clientes reales.",
+    "Ainda não há conversas de teste. Comece uma nova.": "Todavía no hay conversaciones de prueba. Empieza una nueva.",
     "Meta do mês": "Meta del mes",
     "só os do agente": "solo las del agente",
     "Contar": "Contar",
@@ -118,6 +122,8 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} a mano",
   },
   en: {
+    "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Talk to the agent as if you were a customer. Nothing is sent to real customers.",
+    "Ainda não há conversas de teste. Comece uma nova.": "No test conversations yet. Start a new one.",
     "Meta do mês": "Monthly goal",
     "só os do agente": "only the agent's",
     "Contar": "Count",
