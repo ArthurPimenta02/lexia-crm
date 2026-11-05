@@ -9,6 +9,7 @@ import { COOKIE_MODO_MOVEL, modoValido } from "@/lib/movel/modo";
 
 import { AbasMovel } from "./_c/abas";
 import { BarraDeEstado } from "./_c/modo";
+import { TecladoGlobal } from "./_c/teclado";
 import "./m.css";
 
 export const metadata: Metadata = { title: "Lexia" };
@@ -40,6 +41,7 @@ export default async function LayoutMovel({ children }: { children: React.ReactN
         }}
       />
       <BarraDeEstado />
+      <TecladoGlobal />
       <PonteDoApp />
       <GestoVoltar />
     </div>

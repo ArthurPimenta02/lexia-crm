@@ -28,7 +28,7 @@ export default async function MaisMovel() {
   const pequenos = [
     pode("/app/clientes") ? { emo: "👥", href: "/m/clientes", r: t("Clientes") } : null,
     pode("/app/agenda") ? { emo: "📅", href: "/m/agenda", r: t("Agenda") } : null,
-    { emo: "🔎", href: "/m/busca", r: t("Procurar") },
+    { emo: "🔔", href: "/m/avisos", r: t("Avisos") },
     { emo: "⚙️", href: "/m/ajustes", r: t("Ajustes") },
   ].filter(Boolean) as { emo: string; href: string; r: string }[];
 

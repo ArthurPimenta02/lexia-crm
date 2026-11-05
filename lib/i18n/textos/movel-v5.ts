@@ -6,6 +6,11 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Pedir o código ao abrir": "Pedir o código ao abrir",
+    "Pedir Face ID ao abrir": "Pedir Face ID ao abrir",
+    "ninguém abre o app sem você": "ninguém abre a app sem si",
+    "Pedir Touch ID ao abrir": "Pedir Touch ID ao abrir",
+    "Ainda não houve avisos.": "Ainda não houve avisos.",
     "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.",
     "Ainda não há conversas de teste. Comece uma nova.": "Ainda não há conversas de teste. Comece uma nova.",
     "Meta do mês": "Meta do mês",
@@ -64,6 +69,11 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} à mão",
   },
   es: {
+    "Pedir o código ao abrir": "Pedir el código al abrir",
+    "Pedir Face ID ao abrir": "Pedir Face ID al abrir",
+    "ninguém abre o app sem você": "nadie abre la app sin ti",
+    "Pedir Touch ID ao abrir": "Pedir Touch ID al abrir",
+    "Ainda não houve avisos.": "Todavía no hubo avisos.",
     "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Habla con el agente como si fueras un cliente. No se envía nada a clientes reales.",
     "Ainda não há conversas de teste. Comece uma nova.": "Todavía no hay conversaciones de prueba. Empieza una nueva.",
     "Meta do mês": "Meta del mes",
@@ -122,6 +132,11 @@ const textos: TextosDaArea = {
     "{n} à mão": "{n} a mano",
   },
   en: {
+    "Pedir o código ao abrir": "Ask for passcode on open",
+    "Pedir Face ID ao abrir": "Ask for Face ID on open",
+    "ninguém abre o app sem você": "no one opens the app without you",
+    "Pedir Touch ID ao abrir": "Ask for Touch ID on open",
+    "Ainda não houve avisos.": "No notifications yet.",
     "Fale com o agente como se fosse um cliente. Nada é enviado a clientes reais.": "Talk to the agent as if you were a customer. Nothing is sent to real customers.",
     "Ainda não há conversas de teste. Comece uma nova.": "No test conversations yet. Start a new one.",
     "Meta do mês": "Monthly goal",

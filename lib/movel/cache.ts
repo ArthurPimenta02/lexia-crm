@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { listarConversas } from "./conversas";
 import { dadosHoje } from "./hoje";
 import { dadosMais } from "./mais";
 import { dadosResultados, type Intervalo } from "./resultados";
@@ -28,4 +29,11 @@ export const maisRapido = unstable_cache(
   async (clienteSlug: string, fuso: string) => dadosMais(clienteSlug, fuso, new Date()),
   ["m-mais-v1"],
   { revalidate: 60 },
+);
+
+// A lista de conversas: 10 s (o chat em si atualiza-se sozinho a cada 3 s).
+export const conversasRapido = unstable_cache(
+  async (clienteSlug: string) => listarConversas(clienteSlug, new Date()),
+  ["m-conversas-v1"],
+  { revalidate: 10 },
 );

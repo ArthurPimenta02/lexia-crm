@@ -7,6 +7,7 @@ import type { DisplayConversationMessage } from "@/lib/conversations/message-dis
 import { createClient } from "@/lib/supabase/client";
 
 import { IcCamara, IcCanal, IcDocumento, IcEnviar, IcGaleria, IcMais, IcMic, IcPausa, IcPessoa, IcPlay, IcRobo, IcTelefone, IcVoltar } from "../../_c/icones";
+import { useTecladoDoChat } from "../../_c/teclado";
 
 type Estado = "espera" | "comigo" | "agente";
 type Inicial = {
@@ -158,20 +159,10 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
   // iPhone o teclado não muda o tamanho da página, empurra-a para cima; aqui o
   // chat acompanha a área visível (visualViewport) em vez de deixar a página
   // subir. Com o plugin de teclado da casca em modo "native" isto não mexe.
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const el = raiz.current;
-    if (!vv || !el) return;
-    const ajustar = () => {
-      el.style.height = `${vv.height}px`;
-      el.style.transform = `translateY(${vv.offsetTop}px)`;
-      if (perto.current) lista.current?.scrollTo({ top: lista.current.scrollHeight });
-    };
-    ajustar();
-    vv.addEventListener("resize", ajustar);
-    vv.addEventListener("scroll", ajustar);
-    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); };
+  const aoMudarTeclado = useCallback(() => {
+    if (perto.current) lista.current?.scrollTo({ top: lista.current.scrollHeight });
   }, []);
+  useTecladoDoChat(raiz, aoMudarTeclado);
   const foraDaJanela = inicial.canal !== "whatsapp" && inicial.ultimaRecebida && Date.now() - Date.parse(inicial.ultimaRecebida) > 24 * 3600_000;
 
   const descer = useCallback((suave = false) => {
