@@ -25,9 +25,11 @@ export default async function HojeMovel() {
 
   const hora = Number(partesNoFuso(agora, c.fuso).hora.slice(0, 2));
   const saudacao = hora < 12 ? t("Bom dia") : hora < 19 ? t("Boa tarde") : t("Boa noite");
-  const dataLonga = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "long", timeZone: c.fuso, weekday: "long" }).format(agora);
+  const dataBruta = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: c.fuso, weekday: "long" }).format(agora);
+  const dataLonga = dataBruta.charAt(0).toUpperCase() + dataBruta.slice(1);
   const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? "EUR");
   const hojeChave = chaveDoDia(agora, c.fuso);
+  const semNome = (canal: string) => (canal === "instagram" ? t("Cliente do Instagram") : canal === "messenger" ? t("Cliente do Messenger") : t("Cliente"));
 
   if (!d) {
     return <main className="m-pagina"><div className="m-vazio">{t("Não foi possível carregar a tela Hoje.")}</div></main>;
@@ -48,7 +50,7 @@ export default async function HojeMovel() {
     <main className="m-pagina">
       <div className="m-topo">
         <Link aria-label={t("Ajustes")} className="m-avatar" href="/m/ajustes">{iniciais(c.nomeUsuario || c.clienteNome)}</Link>
-        <div className="m-ola"><small style={{ textTransform: "capitalize" }}>{dataLonga}</small><b>{c.nomeUsuario ? `${saudacao}, ${c.nomeUsuario}` : saudacao}</b></div>
+        <div className="m-ola"><small>{dataLonga}</small><b>{c.nomeUsuario ? `${saudacao}, ${c.nomeUsuario}` : saudacao}</b></div>
         <Link aria-label={t("Procurar")} className="m-redondo" href="/m/busca"><IcBusca /></Link>
         <Link aria-label={t("Conversas")} className="m-redondo" href="/m/conversas">{d.pendencias.some((p) => p.tipo === "espera") ? <span className="m-ponto" /> : null}<IcSino /></Link>
       </div>
@@ -84,7 +86,7 @@ export default async function HojeMovel() {
               p.tipo === "espera" ? (
                 <Link className="m-linha" href={`/m/conversas/${encodeURIComponent(p.conversa)}`} key={`e-${p.conversa}`}>
                   <div className={`m-quad ${p.canal === "instagram" ? "ig" : p.canal === "messenger" ? "ms" : "wa"}`}><IcCanal canal={p.canal} tamanho={22} /></div>
-                  <div className="m-meio"><b>{p.nome}</b><span><span className="m-espera">{duracaoCurta(p.desde, agora)}</span>{p.previa ? ` · ${p.previa}` : ""}</span></div>
+                  <div className="m-meio"><b>{p.nome || semNome(p.canal)}</b><span><span className="m-espera">{duracaoCurta(p.desde, agora)}</span>{p.previa ? ` · ${p.previa}` : ""}</span></div>
                   <span className="m-pilula">{t("Responder")}</span>
                 </Link>
               ) : (
@@ -139,7 +141,7 @@ export default async function HojeMovel() {
         <>
           <div className="m-sec"><h2>{t("Campanhas")}</h2><Link href="/m/resultados">{t("Últimos 7 dias")} <IcSeta /></Link></div>
           <Link className="m-cartao-num" href="/m/resultados" style={{ display: "block" }}>
-            {d.campanhas.ativos ? <span className="m-estado-camp"><i />{d.campanhas.ativos === 1 ? t("1 anúncio ativo") : t("{n} anúncios ativos", { n: d.campanhas.ativos })}</span> : null}
+            {d.campanhas.ativos ? <span className="m-estado-camp"><i />{d.campanhas.ativos === 1 ? t("1 campanha com investimento") : t("{n} campanhas com investimento", { n: d.campanhas.ativos })}</span> : null}
             <div className="m-nums" style={{ marginTop: 14 }}>
               <div className="m-num"><strong>{dinheiro(d.campanhas.gasto)}</strong><small>{t("investido")}</small></div>
               <div className="m-num"><strong>{d.campanhas.leads}</strong><small>{t("leads")}</small></div>

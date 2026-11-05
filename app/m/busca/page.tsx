@@ -48,7 +48,7 @@ export default async function BuscaMovel({ searchParams }: { searchParams: Promi
     try { const j = JSON.parse(texto); if (j && typeof j === "object") s = String(j.texto ?? ""); } catch { /* texto simples */ }
     s = s.replace(/\s+/g, " ");
     const i = s.toLowerCase().indexOf(q.toLowerCase());
-    return i > 30 ? `…${s.slice(i - 25, i + 70)}` : s.slice(0, 95);
+    return i > 14 ? `…${s.slice(i - 10, i + 80)}` : s.slice(0, 95);
   };
 
   return (

@@ -302,7 +302,7 @@
 .m-linha-t .hh { width: 44px; font-size: 13px; color: var(--m-texto2); padding-top: 2px; font-family: var(--m-numeros); flex: none; }
 .m-linha-t .sl { flex: 1; border-top: 1px solid var(--m-linha); padding-top: 6px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .m-evento { border-radius: 16px; padding: 10px 12px; display: flex; gap: 10px; align-items: center; background: var(--m-acento-claro); width: 100%; text-align: left; }
-.m-evento b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-evento b { color: var(--m-texto); display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-evento span { display: block; font-size: 13px; color: var(--m-texto2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .m-evento .barra { width: 4px; align-self: stretch; border-radius: 2px; background: var(--m-acento); flex: none; }
 .m-evento.c1 { background: var(--m-azul-claro); } .m-evento.c1 .barra { background: var(--m-azul); }
@@ -350,3 +350,16 @@
 
 /* avisos curtos (toast) */
 .m-toast { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 10px); background: var(--m-invertido); color: var(--m-no-invertido); padding: 12px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; z-index: 80; max-width: calc(100vw - 32px); }
+
+/* agenda: mês em grade */
+.m-mes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; background: var(--m-cartao); border-radius: 22px; padding: 10px; margin-bottom: 6px; }
+.m-mes .cab { text-align: center; font-size: 12px; color: var(--m-texto2); font-weight: 600; padding: 2px 0 6px; text-transform: uppercase; }
+.m-mes .dia { min-height: 48px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.m-mes .dia b { font-size: 16px; font-weight: 600; font-family: var(--m-numeros); }
+.m-mes .dia .n { min-width: 18px; height: 16px; padding: 0 5px; border-radius: 8px; background: var(--m-acento-claro); color: var(--m-acento); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.m-mes .dia .n.vazio { background: transparent; }
+.m-mes .dia.fora { opacity: 0.35; }
+.m-mes .dia.hoje b { color: var(--m-acento); }
+.m-mes .dia.on { background: var(--m-invertido); }
+.m-mes .dia.on b { color: var(--m-no-invertido); }
+.m-mes .dia.on .n { background: var(--m-acento); color: var(--m-no-acento); }

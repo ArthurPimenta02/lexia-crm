@@ -80,7 +80,7 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
     base.from("lexia_mensagens").select("identificador_conversa, criado_em").eq("cliente_slug", clienteSlug).eq("origem", "recebida_na_pausa").gte("criado_em", desde48h).order("criado_em", { ascending: true }).limit(500),
     base.from("lexia_contactos").select("criado_em, origem_tipo, origem_source_id, origem_titulo, telefone_digitos").eq("cliente_slug", clienteSlug).gte("criado_em", sete.inicio).lt("criado_em", sete.fim).limit(5000),
     base.from("lexia_agendamentos").select("valor_previsto, telefone_digitos, criado_no_google").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").gte("criado_no_google", sete.inicio).lt("criado_no_google", sete.fim).limit(2000),
-    base.from("lexia_campanha_custos").select("dia, gasto, moeda").eq("cliente_slug", clienteSlug).gte("dia", somarDias(hoje, -7)).lte("dia", somarDias(hoje, -1)).limit(2000),
+    base.from("lexia_campanha_custos").select("dia, gasto, moeda, campanha_id").eq("cliente_slug", clienteSlug).gte("dia", somarDias(hoje, -7)).lte("dia", somarDias(hoje, -1)).limit(2000),
     base.from("lexia_anuncios").select("anuncio_externo_id, nome, estado").eq("cliente_slug", clienteSlug).eq("plataforma", "meta").limit(500),
   ]);
 
@@ -110,7 +110,7 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
       let texto = previa.get(conversa) ?? "";
       try { const j = JSON.parse(texto); if (j && typeof j === "object") texto = String(j.texto ?? ""); } catch { /* texto simples */ }
       pendencias.push({
-        canal: canalDe(conversa), conversa, desde: episodio[0].criado_em, nome: (ficha?.nome || "").trim() || telefoneLegivel(tel) || "Cliente",
+        canal: canalDe(conversa), conversa, desde: episodio[0].criado_em, nome: (ficha?.nome || "").trim() || telefoneLegivel(tel) || "",
         previa: texto.replace(/\s+/g, " ").slice(0, 120), tipo: "espera",
       });
     }
@@ -153,7 +153,7 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
   };
 
   // ---------------- campanhas (7 dias)
-  const custosLinhas = (custos.data ?? []) as { dia: string; gasto: number; moeda: string }[];
+  const custosLinhas = (custos.data ?? []) as { dia: string; gasto: number; moeda: string; campanha_id: string }[];
   let campanhas: DadosHoje["campanhas"] = null;
   const deAnuncio = (contactos7.data ?? []).filter((c) => c.origem_tipo && c.origem_tipo !== "organico");
   if (custosLinhas.length || deAnuncio.length) {
@@ -168,7 +168,7 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
     campanhas = {
       agendaram: agendaramDeAnuncio.length,
       anuncios: [...porAnuncio.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([nome, leads]) => ({ leads, nome })),
-      ativos: (anunciosAtivos.data ?? []).filter((a) => a.estado === "ACTIVE").length,
+      ativos: new Set(custosLinhas.filter((x) => Number(x.gasto) > 0).map((x) => x.campanha_id)).size,
       gasto: custosLinhas.reduce((a, c) => a + Number(c.gasto || 0), 0),
       gastoPorDia: dias7.map((d) => custosLinhas.filter((c) => c.dia === d).reduce((a, c) => a + Number(c.gasto || 0), 0)),
       leads: deAnuncio.length,

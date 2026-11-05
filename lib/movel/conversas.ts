@@ -153,7 +153,7 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
         conversa,
         esperaDesde,
         estado,
-        nome: (ficha?.nome || "").trim() || telefoneLegivel(tel) || "Cliente",
+        nome: (ficha?.nome || "").trim() || telefoneLegivel(tel) || "",
         previa: previaDe(ultima),
         previaDe: quemEscreveu(ultima.direccao, ultima.origem),
         quando: ultima.criado_em ?? "",
@@ -202,7 +202,7 @@ export async function lerConversa(clienteSlug: string, conversa: string, desde?:
     conversa,
     estado: estadoDe(registos.slice(-40), travas.locks ?? []).estado,
     mensagens,
-    nome: (ficha.data?.nome || "").trim() || telefoneLegivel(tel) || "Cliente",
+    nome: (ficha.data?.nome || "").trim() || telefoneLegivel(tel) || "",
     telefone: tel,
     ultimaRecebida,
   };

@@ -9,6 +9,8 @@ import { marcarMovel } from "./acoes";
 
 type Evento = {
   conversa: string | null;
+  dia: string;
+  rotuloDia: string;
   cor: string;
   estado: string;
   executor: string | null;
@@ -34,7 +36,7 @@ type Textos = Record<
 const semAcentos = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
 export function DiaAgenda(props: {
-  abrirMarcar: boolean; horaAgora: string; contactos: Contacto[]; dia: string; eHoje: boolean; eventos: Evento[]; podeMarcar: boolean; servicos: Servico[]; textos: Textos;
+  abrirMarcar: boolean; agrupar: boolean; horaAgora: string; contactos: Contacto[]; dia: string; eHoje: boolean; eventos: Evento[]; podeMarcar: boolean; servicos: Servico[]; textos: Textos;
 }) {
   const { textos: t } = props;
   const router = useRouter();
@@ -49,9 +51,11 @@ export function DiaAgenda(props: {
     <>
       <div style={{ marginTop: 14 }}>
         {ativos.length === 0 ? <div className="m-vazio">{t.nenhum}</div> : ativos.map((e, i) => {
-          const linhaAgora = props.eHoje && e.hora > horaAgora && (i === 0 || ativos[i - 1].hora <= horaAgora);
+          const linhaAgora = !props.agrupar && props.eHoje && e.hora > horaAgora && (i === 0 || ativos[i - 1].hora <= horaAgora);
+          const novoDia = props.agrupar && (i === 0 || ativos[i - 1].dia !== e.dia);
           return (
             <div key={e.id}>
+              {novoDia ? <div className="m-sec" style={{ margin: i === 0 ? "4px 2px 8px" : "18px 2px 8px" }}><h2 style={{ fontSize: 17 }}>{e.rotuloDia}</h2></div> : null}
               {linhaAgora ? <div aria-hidden="true" style={{ alignItems: "center", display: "flex", gap: 6, margin: "2px 0 6px 54px" }}><i style={{ background: "var(--m-vermelho)", borderRadius: "50%", height: 9, width: 9 }} /><span style={{ background: "var(--m-vermelho)", flex: 1, height: 2 }} /></div> : null}
               <div className="m-linha-t">
                 <div className="hh">{e.hora}</div>

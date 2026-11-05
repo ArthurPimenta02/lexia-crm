@@ -51,7 +51,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
             <section className="m-destaque">
               <div className="rot" style={{ marginTop: 0 }}>{t("Valor agendado")}</div>
               <div className="valor">{dinheiro(d.atual.valor)}</div>
-              <div className="sub">{v === null ? t("Sem período anterior para comparar") : <><b>{v > 0 ? `+${v}%` : `${v}%`}</b> {rotuloAnterior}</>}</div>
+              <div className="sub">{v === null ? t("Sem período anterior para comparar") : <><b style={{ color: v < 0 ? "#ff8a80" : undefined }}>{v > 0 ? `+${v}%` : `${v}%`}</b> {rotuloAnterior}</>}</div>
             </section>
             <div className="m-bento-2">
               <div className="m-mini"><div className="ico" style={{ background: "var(--m-acento-claro)", color: "var(--m-acento)" }}><IcPessoa /></div><strong>{d.atual.leads}</strong><small>{t("leads novos")}</small><em>{t("{n} de anúncio", { n: d.atual.leadsAnuncio })}</em></div>
@@ -65,6 +65,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
                 <div className="m-sec"><h2>{t("Leads por dia")}</h2></div>
                 <div className="m-cartao-num">
                   <div aria-hidden="true" className="m-barras" style={{ gap: periodo === 30 ? 3 : 7, height: 90, marginTop: 0 }}>{d.leadsPorDia.map((x, i) => <div className={i === d!.leadsPorDia.length - 1 ? "on" : ""} key={x.dia} style={{ height: `${Math.max(6, (x.n / max) * 100)}%` }} />)}</div>
+                  {periodo === 7 ? <div aria-hidden="true" className="m-dias-b">{d.leadsPorDia.map((x) => <span key={x.dia} style={{ textTransform: "capitalize" }}>{new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${x.dia}T12:00:00Z`)).replace(".", "")}</span>)}</div> : <div className="m-rodape">{t("Mais leads num dia: {n}", { n: max })}</div>}
                 </div>
               </>
             ) : null}
