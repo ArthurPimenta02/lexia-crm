@@ -35,6 +35,8 @@ export type ContextoMovel = {
   /** Meta do mês (agendamentos), escolhida nos Ajustes; 0 = sem meta. */
   meta: { conta: "todos" | "agente"; mes: number };
   nomeUsuario: string;
+  /** E-mail do login (para a tela de excluir a conta). */
+  email: string | null;
   t: FuncaoT;
   userId: string;
 };
@@ -117,6 +119,7 @@ export const contextoMovel = cache(async (): Promise<ContextoMovel | null> => {
       mes: Number.isInteger(meta.meta_mes) && (meta.meta_mes as number) > 0 ? (meta.meta_mes as number) : 0,
     },
     nomeUsuario,
+    email: user.email ?? null,
     t,
     userId: user.id,
   };

@@ -315,7 +315,7 @@
 .m-folha h3 { font-size: 22px; margin: 0 4px 4px; }
 .m-folha p.d { color: var(--m-texto2); font-size: 14px; margin: 0 4px 14px; }
 .m-opcao { display: flex; align-items: center; gap: 12px; background: var(--m-cartao); min-height: 60px; padding: 8px 14px; width: 100%; text-align: left; }
-.m-opcao + .m-opcao { border-top: 1px solid var(--m-linha); }
+.m-opcao + .m-opcao, .m-caixa > * + form > .m-opcao { border-top: 1px solid var(--m-linha); }
 .m-opcao .ic { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; background: var(--m-suave); }
 .m-opcao b { font-size: 16px; font-weight: 600; display: block; }
 .m-opcao span { font-size: 13px; color: var(--m-texto2); }

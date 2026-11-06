@@ -5,7 +5,9 @@ import { NOME_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { COOKIE_MODO_MOVEL, modoValido } from "@/lib/movel/modo";
 import { cookies } from "next/headers";
 
-import { IcEmpresa, IcGlobo, IcSair } from "../_c/icones";
+import Link from "next/link";
+
+import { IcDocumento, IcEmpresa, IcGlobo, IcPessoa, IcSair, IcSeta } from "../_c/icones";
 import { Aparencia } from "./aparencia";
 import { FaceId } from "./face-id";
 import { Meta } from "./meta";
@@ -78,9 +80,14 @@ export default async function AjustesMovel() {
       <div className="m-caixa">
         <FaceId textos={{ codigo: t("Pedir o código ao abrir"), faceid: t("Pedir Face ID ao abrir"), sub: t("ninguém abre o app sem você"), touchid: t("Pedir Touch ID ao abrir") }} />
         <div className="m-opcao"><div className="ic"><IcGlobo /></div><div><b>{t("Idioma")}</b></div><span className="m-valor-dir">{NOME_DO_IDIOMA[c.idioma]} · {t("igual ao iPhone")}</span></div>
+        <a className="m-opcao" href="https://uselexia.app/privacy-policy"><div className="ic"><IcDocumento /></div><div style={{ flex: 1 }}><b>{t("Política de privacidade")}</b></div><IcSeta /></a>
         <form action={sairDoApp}>
           <button className="m-opcao" style={{ color: "var(--m-vermelho)" }} type="submit"><div className="ic" style={{ color: "var(--m-vermelho)" }}><IcSair /></div><div><b>{t("Sair")}</b></div></button>
         </form>
+      </div>
+
+      <div className="m-caixa" style={{ marginTop: 16 }}>
+        <Link className="m-opcao" href="/m/ajustes/excluir" style={{ color: "var(--m-vermelho)" }}><div className="ic" style={{ color: "var(--m-vermelho)" }}><IcPessoa /></div><div style={{ flex: 1 }}><b>{t("Excluir minha conta")}</b></div><IcSeta /></Link>
       </div>
     </main>
   );
