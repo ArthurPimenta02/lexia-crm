@@ -1,4 +1,6 @@
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import Link from "next/link";
+
+import { CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { getT } from "@/lib/i18n/servidor";
 
 export default async function AdminSettingsPage() {
@@ -6,9 +8,22 @@ export default async function AdminSettingsPage() {
 
   return (
     <section className="flex w-full max-w-5xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Configurações")} />
-      <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground">
-        {t("Ainda não há nada para configurar aqui.")}
+      <CabecalhoTela resto={t("Configurações")} sobretitulo={t("Admin Lexia")} />
+      <div className="ds-bloco">
+        <VazioTela
+          acao={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link className="ds-botao ds-botao-primario ds-botao-p" href="/admin/conexoes">
+                {t("Conexões")}
+              </Link>
+              <Link className="ds-botao ds-botao-secundario ds-botao-p" href="/admin/bloqueios">
+                {t("Contatos bloqueados")}
+              </Link>
+            </div>
+          }
+          texto={t("As chaves de cada agente ficam em Conexões, e quem o agente não atende fica em Contatos bloqueados.")}
+          titulo={t("Ainda não há nada para configurar aqui.")}
+        />
       </div>
     </section>
   );

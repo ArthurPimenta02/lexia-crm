@@ -8,14 +8,15 @@ import {
 } from "@/app/app/handoffs/actions";
 import { AgentLocksSection } from "@/app/components/agent-locks-section";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import {
   HandoffCard,
   HandoffEmptyState,
   HandoffSectionHeader,
   SimulatedHandoffCard,
-  handoffGridClass,
+  handoffAberto,
+  handoffListClass,
 } from "@/app/components/handoff-cards";
+import { CabecalhoTela, FiltroTrilho } from "@/app/components/tela";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -109,7 +110,26 @@ const statusActions: { label: string; status: HandoffStatus }[] = [
 const deleteButtonClass =
   "ds-botao ds-botao-perigo ds-botao-p w-full disabled:cursor-not-allowed sm:w-auto";
 
-export default async function ClientHandoffsPage() {
+/** O filtro da lista de pedidos. Abre nos abertos, que é o que pede ação. */
+const filtros = [
+  { chave: "abertos", label: "Abertos" },
+  { chave: "resolvido", label: "Resolvidos" },
+  { chave: "perdido", label: "Perdidos" },
+  { chave: "todos", label: "Todos" },
+] as const;
+type Filtro = (typeof filtros)[number]["chave"];
+
+function passaNoFiltro(status: string | null, filtro: Filtro) {
+  if (filtro === "todos") return true;
+  if (filtro === "abertos") return handoffAberto(status);
+  return status === filtro;
+}
+
+export default async function ClientHandoffsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string | string[] }>;
+}) {
   const { profile, user } = await getLoggedInUserProfile();
 
   if (!user || !profile) {
@@ -160,32 +180,60 @@ export default async function ClientHandoffsPage() {
 
   const handoffs = (handoffsData ?? []) as Handoff[];
   const simulatedHandoffs = (simulatedData ?? []) as SimulatedHandoff[];
+  const pedido = (await searchParams).status;
+  const filtro: Filtro =
+    filtros.find((f) => f.chave === (Array.isArray(pedido) ? pedido[0] : pedido))?.chave ??
+    "abertos";
+  const contagem = (f: Filtro) =>
+    handoffs.filter((handoff) => passaNoFiltro(handoff.status, f)).length;
+  const abertos = contagem("abertos");
+  const visiveis = handoffs.filter((handoff) => passaNoFiltro(handoff.status, filtro));
 
   return (
-    <section className="flex w-full min-w-0 max-w-7xl flex-col gap-8">
+    <section className="flex w-full min-w-0 max-w-6xl flex-col gap-8">
       <AtualizacaoAutomatica segundos={15} sinal={sinalDaTela.bind(null, "handoffs", null)} />
-      <PaginaCabecalho titulo={t("Handoffs")} />
-
-      {profile.status === "ativo" ? (
-        <Suspense fallback={null}>
-          <AgentLocksSection
-            clienteSlug={profile.cliente_slug}
-            conversationsPath="/app/conversas"
+      <CabecalhoTela
+        acoes={
+          handoffs.length === 0 ? undefined : <FiltroTrilho
+            opcoes={filtros.map((f) => ({
+              ativo: f.chave === filtro,
+              href: f.chave === "abertos" ? "/app/handoffs" : `/app/handoffs?status=${f.chave}`,
+              label: t(f.label),
+              quantidade: contagem(f.chave),
+            }))}
+            rotulo={t("Situação")}
           />
-        </Suspense>
-      ) : null}
+        }
+        destaque={
+          abertos === 0
+            ? undefined
+            : abertos === 1
+              ? t("1 pessoa")
+              : t("{n} pessoas", { n: abertos })
+        }
+        resto={
+          abertos === 0
+            ? t("Nenhum pedido de atendimento aberto.")
+            : abertos === 1
+              ? t("pediu para falar com alguém.")
+              : t("pediram para falar com alguém.")
+        }
+        sobretitulo={t("Handoffs · quando o agente chama a equipe")}
+      />
 
-      <section className="flex w-full min-w-0 flex-col gap-4">
+      {/* Sem pedidos abertos, as conversas pausadas sobem para o topo. */}
+      <section
+        className={`flex w-full min-w-0 flex-col gap-4 ${abertos === 0 ? "order-2" : ""}`}
+      >
         <HandoffSectionHeader
-          count={handoffs.length}
           dica={t(
             "Pedidos em que o agente encaminhou a conversa para acompanhamento da equipe.",
           )}
           title={t("Pedidos de atendimento")}
         />
-        {handoffs.length > 0 ? (
-          <div className={handoffGridClass}>
-            {handoffs.map((handoff) => (
+        {visiveis.length > 0 ? (
+          <div className={handoffListClass}>
+            {visiveis.map((handoff) => (
               <HandoffCard
                 actions={statusActions.map((item) => ({
                   ...item,
@@ -208,14 +256,28 @@ export default async function ClientHandoffsPage() {
             ))}
           </div>
         ) : (
-          <HandoffEmptyState>
-            {t("Ainda não há pedidos de atendimento humano.")}
+          <HandoffEmptyState
+            texto={t("Quando o agente passar uma conversa para a equipe, ela aparece aqui.")}
+          >
+            {handoffs.length === 0
+              ? t("Ainda não há pedidos de atendimento humano.")
+              : t("Nenhum pedido nesta situação.")}
           </HandoffEmptyState>
         )}
       </section>
 
-      <details className="group w-full min-w-0">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground transition hover:border-border-strong [&::-webkit-details-marker]:hidden">
+      {profile.status === "ativo" ? (
+        <Suspense fallback={null}>
+          <AgentLocksSection
+            clienteSlug={profile.cliente_slug}
+            conversationsPath="/app/conversas"
+          />
+        </Suspense>
+      ) : null}
+
+
+      <details className="group order-3 w-full min-w-0">
+        <summary className="ds-bloco flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-muted-foreground transition hover:text-foreground [&::-webkit-details-marker]:hidden">
           <span>
             {t("Pedidos simulados em testes ({n})", {
               n: simulatedHandoffs.length,
@@ -230,7 +292,7 @@ export default async function ClientHandoffsPage() {
         </summary>
         <div className="mt-4 flex flex-col gap-4">
           {simulatedHandoffs.length > 0 ? (
-            <div className={handoffGridClass}>
+            <div className={handoffListClass}>
               {simulatedHandoffs.map((handoff) => (
                 <SimulatedHandoffCard
                   criadoEm={handoff.criado_em}

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import { AlertTriangle, CircleSlash, Coins, MessageSquareReply } from "lucide-react";
+
+import { CartaoMetrica } from "@/app/components/cartoes";
+import { AvatarCanal, CabecalhoTela, GradeMetricas, VazioTela } from "@/app/components/tela";
 import { Fluxo, OQueFez } from "@/app/admin/turnos/fluxo";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
@@ -53,18 +56,17 @@ export type ControleVistaProps = {
 function Estado({ ultima, nome, t }: { ultima: string | null; nome: string; t: FuncaoT }) {
   const ativo = ativoHa(ultima);
   return (
-    <span className="flex items-center gap-1.5">
-      <span aria-hidden className={`size-1.5 rounded-full ${ativo ? "bg-positive" : "bg-border-strong"}`} />
-      <span className="text-foreground">{nome}</span>
-      <span>{ultima ? haQuanto(ultima, undefined, t) : t("sem atividade")}</span>
+    <span className={`ds-selo ds-selo-ponto ${ativo ? "ds-selo-verde" : "ds-selo-neutro"}`}>
+      <span className="font-semibold">{nome}</span>
+      <span className="font-normal opacity-80">{ultima ? haQuanto(ultima, undefined, t) : t("sem atividade")}</span>
     </span>
   );
 }
 
 function CabecaColuna({ children, extra }: { children: ReactNode; extra?: ReactNode }) {
   return (
-    <div className="flex min-h-12 items-center gap-2 border-b border-border px-4">
-      <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{children}</h2>
+    <div className="flex min-h-14 items-center gap-2 border-b border-[var(--ds-linha)] px-4">
+      <h2 className="min-w-0 flex-1 truncate text-[0.9375rem] font-semibold text-foreground">{children}</h2>
       {extra}
     </div>
   );
@@ -108,47 +110,71 @@ export async function ControleVista({
   const conversaAtual = resumos.find((r) => r.id === conversaId);
   const custo24 = recentes.reduce((s, x) => s + Number(x.custo_usd ?? 0), 0);
   const respondidas24 = recentes.filter((x) => x.estado === "respondido").length;
+  const erros24 = recentes.filter((x) => x.estado === "erro").length;
   const custoConversa = daConversa.reduce((s, x) => s + Number(x.custo_usd ?? 0), 0);
   const n8n = turno?.modo === "sombra" ? textos(turno.resumo?.n8n_respondeu) : [];
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-5">
-      <PaginaCabecalho
+      <CabecalhoTela
         acoes={
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-2">
             <Estado nome={t("Produção")} t={t} ultima={ultimaProducao} />
             <Estado nome={t("Sombra")} t={t} ultima={ultimaSombra} />
           </div>
         }
-        titulo={t("Controle do agente")}
+        destaque={
+          erros24 > 0
+            ? erros24 === 1
+              ? t("1 erro")
+              : t("{n} erros", { n: erros24 })
+            : conversas24.size === 1
+              ? t("1 conversa")
+              : t("{n} conversas", { n: conversas24.size })
+        }
+        resto={erros24 > 0 ? t("nas últimas 24 h.") : t("nas últimas 24 h, sem erros.")}
+        sobretitulo={t("Controle do agente")}
       />
 
-      <GrupoMetricas
-        itens={[
-          { label: t("Conversas (24 h)"), valor: conversas24.size },
-          { label: t("Respostas (24 h)"), valor: respondidas24 },
-          {
-            dica: t("Mensagens que o agente decidiu não responder: contato bloqueado, conversa pausada, Samuel já respondeu, follow-up fora do horário."),
-            label: t("Não respondeu (24 h)"),
-            valor: recentes.filter((x) => x.estado === "parado").length,
-          },
-          { label: t("Erros (24 h)"), valor: recentes.filter((x) => x.estado === "erro").length },
-          {
-            dica: t("Custo de IA das últimas 24 h. Modelos sem preço na tabela não entram."),
-            label: t("Custo de IA (24 h)"),
-            valor: custo(custo24),
-          },
-          {
-            dica: t("Custo de IA dividido pelas respostas enviadas nas últimas 24 h. Inclui o que não gerou resposta (follow-ups avaliados, mensagens juntadas)."),
-            label: t("Custo por resposta"),
-            valor: respondidas24 ? custo(custo24 / respondidas24) : "—",
-          },
-        ]}
-      />
+      <GradeMetricas>
+        <CartaoMetrica
+          cor="var(--ds-acao)"
+          icone={<MessageSquareReply aria-hidden="true" className="h-4 w-4" />}
+          nota={t("em {n} conversas", { n: conversas24.size })}
+          rotulo={t("Respostas (24 h)")}
+          valor={String(respondidas24)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-info)"
+          dica={t("Mensagens que o agente decidiu não responder: contato bloqueado, conversa pausada, Samuel já respondeu, follow-up fora do horário.")}
+          icone={<CircleSlash aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Não respondeu (24 h)")}
+          valor={String(recentes.filter((x) => x.estado === "parado").length)}
+        />
+        <CartaoMetrica
+          cor={erros24 > 0 ? "var(--ds-perigo)" : "var(--ds-destaque)"}
+          href={erros24 > 0 && so !== "problemas" ? href({ so: "problemas" }) : undefined}
+          icone={<AlertTriangle aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Erros (24 h)")}
+          valor={String(erros24)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-ouro)"
+          dica={t("Custo de IA das últimas 24 h. Modelos sem preço na tabela não entram.")}
+          icone={<Coins aria-hidden="true" className="h-4 w-4" />}
+          nota={
+            respondidas24
+              ? t("{valor} por resposta", { valor: custo(custo24 / respondidas24) })
+              : undefined
+          }
+          rotulo={t("Custo de IA (24 h)")}
+          valor={custo(custo24)}
+        />
+      </GradeMetricas>
 
       {filtros}
 
-      <div className="@container min-w-0 overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,19,26,0.04)]">
+      <div className="ds-bloco @container min-w-0 overflow-hidden">
       <div className="grid min-w-0 @min-[720px]:grid-cols-[220px_minmax(0,1fr)] @min-[1040px]:grid-cols-[236px_minmax(0,1fr)_minmax(0,1.05fr)]">
         {/* Conversas */}
         <div className="flex min-w-0 flex-col">
@@ -156,9 +182,9 @@ export async function ControleVista({
             {t("Conversas")}
           </CabecaColuna>
           {resumos.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">{t("Nenhuma conversa com estes filtros.")}</p>
+            <VazioTela titulo={t("Nenhuma conversa com estes filtros.")} />
           ) : (
-            <ul className="max-h-[72vh] overflow-y-auto py-1">
+            <ul className="max-h-[72vh] overflow-y-auto py-1.5">
               {resumos.map((r) => {
                 const ativa = r.id === conversaId;
                 const ultimaFala =
@@ -167,21 +193,22 @@ export async function ControleVista({
                   <li key={r.id}>
                     <Link
                       aria-current={ativa ? "true" : undefined}
-                      className={`mx-1.5 block rounded-xl px-3 py-2.5 transition-colors duration-150 ${
-                        ativa ? "bg-primary-soft" : "hover:bg-muted"
-                      }`}
+                      className="tela-linha mx-1.5 items-start px-2.5"
                       href={href({ conversa: r.id })}
                       scroll={false}
                     >
+                      <AvatarCanal canal={r.ultimo.canal} nome={nomeDe(r.id)} tamanho={32} />
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{nomeDe(r.id)}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{nomeDe(r.id)}</span>
                         <span className="shrink-0 text-[11px] text-muted-foreground tabular-nums">
                           {haQuanto(r.ultimo.criado_em, undefined, t)}
                         </span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        {r.erros ? <span aria-label={t("com erro")} className="size-1.5 rounded-full bg-danger" /> : null}
+                        {r.erros ? <span aria-label={t("com erro")} className="size-1.5 shrink-0 rounded-full bg-[var(--ds-perigo)]" /> : null}
                         <span className="min-w-0 truncate">{ultimaFala}</span>
+                      </div>
                       </div>
                     </Link>
                   </li>
@@ -192,7 +219,7 @@ export async function ControleVista({
         </div>
 
         {/* A conversa */}
-        <div className="flex min-w-0 flex-col border-t border-border @min-[720px]:border-t-0 @min-[720px]:border-l">
+        <div className="flex min-w-0 flex-col border-t border-[var(--ds-linha)] @min-[720px]:border-t-0 @min-[720px]:border-l">
           <CabecaColuna
             extra={
               conversaAtual ? (
@@ -209,7 +236,7 @@ export async function ControleVista({
             {conversaId ? nomeDe(conversaId) : t("Conversa")}
           </CabecaColuna>
           <div className="flex max-h-[72vh] flex-col gap-5 overflow-y-auto bg-background/60 px-4 py-5">
-            {daConversa.length === 0 ? <p className="text-sm text-muted-foreground">{t("Escolha uma conversa.")}</p> : null}
+            {daConversa.length === 0 ? <VazioTela titulo={t("Escolha uma conversa.")} /> : null}
             {daConversa.map((tn) => {
               const ativo = tn.id === turnoId;
               const enviados = textos(tn.mensagens);
@@ -286,7 +313,7 @@ export async function ControleVista({
             {t("Como a Carol chegou a esta resposta")}
           </CabecaColuna>
           {!turno ? (
-            <p className="px-4 py-6 text-sm text-muted-foreground">{t("Clique em uma resposta da Carol.")}</p>
+            <VazioTela pose="piscadinha" titulo={t("Clique em uma resposta da Carol.")} />
           ) : (
             <div className="flex max-h-[72vh] flex-col gap-6 overflow-y-auto px-5 py-5">
               {fluxo ? (

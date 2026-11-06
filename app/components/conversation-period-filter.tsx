@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Form from "next/form";
 import { Check } from "lucide-react";
 
@@ -8,9 +7,9 @@ import {
   getDateInputValue,
   getInclusiveRangeEnd,
 } from "@/lib/dashboard/date-range";
+import type { EstadoConversas } from "@/app/components/conversation-filter-bar";
 import {
   type ConversationDateRange,
-  conversationPeriodOptions,
   type ConversationPeriod,
 } from "@/lib/conversations/date-range";
 import { getT } from "@/lib/i18n/servidor";
@@ -44,152 +43,63 @@ export function appendConversationPeriodParams(
   }
 }
 
-function buildPeriodHref({
-  basePath,
-  channel,
-  clientSlug,
-  currentPeriod,
-  period,
-  searchQuery,
-  timezone,
+/** As datas do período "Personalizada", logo abaixo da barra de períodos. */
+export async function ConversationCustomPeriodForm({
+  estado,
 }: {
-  basePath: string;
-  channel: string;
-  clientSlug?: string;
-  currentPeriod: ConversationPeriodState;
-  period: ConversationPeriod;
-  searchQuery?: string;
-  timezone: string;
-}) {
-  const params = new URLSearchParams();
-
-  if (clientSlug) {
-    params.set("cliente", clientSlug);
-  }
-
-  if (channel) {
-    params.set("canal", channel);
-  }
-
-  if (searchQuery) {
-    params.set("busca", searchQuery);
-  }
-
-  params.set("fuso", timezone);
-  params.set("periodo", period);
-
-  if (period === "personalizado") {
-    params.set("inicio", currentPeriod.start);
-    params.set("fim", currentPeriod.end);
-  }
-
-  return `${basePath}?${params.toString()}`;
-}
-
-export async function ConversationPeriodFilter({
-  basePath,
-  channel,
-  clientSlug,
-  period,
-  rangeLabel,
-  searchQuery = "",
-  timezone,
-}: {
-  basePath: string;
-  channel: string;
-  clientSlug?: string;
-  period: ConversationPeriodState;
-  rangeLabel: string;
-  searchQuery?: string;
-  timezone: string;
+  estado: EstadoConversas;
 }) {
   const t = await getT();
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-muted-foreground">
-          {t("Período")}
-        </p>
-        <p className="text-xs text-muted-foreground">{t(rangeLabel)}</p>
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {conversationPeriodOptions.map((option) => {
-          const isActive = option.key === period.key;
-
-          return (
-            <Link
-              aria-current={isActive ? "page" : undefined}
-              className={`inline-flex min-h-8 items-center rounded-full border px-2.5 py-1 text-xs font-semibold transition ${
-                isActive
-                  ? "border-foreground bg-primary text-primary-foreground"
-                  : "border-border bg-surface text-muted-foreground hover:border-border-strong hover:bg-surface-muted"
-              }`}
-              href={buildPeriodHref({
-                basePath,
-                channel,
-                clientSlug,
-                currentPeriod: period,
-                period: option.key,
-                searchQuery,
-                timezone,
-              })}
-              key={option.key}
-            >
-              {t(option.label)}
-            </Link>
-          );
-        })}
-      </div>
-
-      {period.key === "personalizado" ? (
-        <Form
-          action={basePath}
-          className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-end gap-1.5"
-          replace
-          scroll={false}
-        >
-          <input name="periodo" type="hidden" value="personalizado" />
-          <input name="fuso" type="hidden" value={timezone} />
-          {clientSlug ? (
-            <input name="cliente" type="hidden" value={clientSlug} />
-          ) : null}
-          {channel ? (
-            <input name="canal" type="hidden" value={channel} />
-          ) : null}
-          {searchQuery ? (
-            <input name="busca" type="hidden" value={searchQuery} />
-          ) : null}
-
-          <label className="min-w-0">
-            <span className="sr-only">{t("Início")}</span>
-            <input
-              className="ds-campo h-8 min-w-0 px-2 text-xs"
-              defaultValue={period.start}
-              name="inicio"
-              type="date"
-            />
-          </label>
-          <label className="min-w-0">
-            <span className="sr-only">{t("Fim")}</span>
-            <input
-              className="ds-campo h-8 min-w-0 px-2 text-xs"
-              defaultValue={period.end}
-              name="fim"
-              type="date"
-            />
-          </label>
-          <FormSubmitButton
-            aria-label={t("Aplicar período")}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition hover:opacity-90"
-            pendingLabel=""
-            title={t("Aplicar período")}
-          >
-            <Check aria-hidden="true" className="h-4 w-4" />
-          </FormSubmitButton>
-        </Form>
+    <Form
+      action={estado.basePath}
+      className="flex min-w-0 flex-wrap items-center gap-1.5"
+      replace
+      scroll={false}
+    >
+      <input name="periodo" type="hidden" value="personalizado" />
+      <input name="fuso" type="hidden" value={estado.fuso} />
+      {estado.cliente ? (
+        <input name="cliente" type="hidden" value={estado.cliente} />
       ) : null}
-    </div>
+      {estado.canal ? (
+        <input name="canal" type="hidden" value={estado.canal} />
+      ) : null}
+      {estado.busca ? (
+        <input name="busca" type="hidden" value={estado.busca} />
+      ) : null}
+      {estado.situacao ? (
+        <input name="situacao" type="hidden" value={estado.situacao} />
+      ) : null}
+
+      <label className="min-w-0">
+        <span className="sr-only">{t("Início")}</span>
+        <input
+          className="ds-campo h-8 w-auto min-w-0 px-2 text-xs"
+          defaultValue={estado.periodo.start}
+          name="inicio"
+          type="date"
+        />
+      </label>
+      <label className="min-w-0">
+        <span className="sr-only">{t("Fim")}</span>
+        <input
+          className="ds-campo h-8 w-auto min-w-0 px-2 text-xs"
+          defaultValue={estado.periodo.end}
+          name="fim"
+          type="date"
+        />
+      </label>
+      <FormSubmitButton
+        aria-label={t("Aplicar período")}
+        className="ds-botao ds-botao-primario ds-botao-p"
+        pendingLabel="..."
+        title={t("Aplicar período")}
+      >
+        <Check aria-hidden="true" className="h-3.5 w-3.5" />
+        {t("Aplicar")}
+      </FormSubmitButton>
+    </Form>
   );
 }

@@ -21,10 +21,22 @@ import {
   type AdminTestSession,
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
+import {
+  Loader2,
+  MessageSquare,
+  Plus,
+  SendHorizontal,
+  Trash2,
+} from "lucide-react";
+
 import { useIdioma } from "@/app/components/idioma";
+import { AvatarMascote } from "@/app/components/mascote";
+import { AvisoLinha, VazioTela } from "@/app/components/tela";
 
 type AdminTestChatProps = {
   clienteSlug: string;
+  /** Nome do cliente, para o topo do chat. */
+  nomeCliente: string;
   sessions: AdminTestSession[];
   executions: AdminTestExecution[];
   selectedSessionId: string | null;
@@ -133,6 +145,7 @@ function buildChatMessages(executions: AdminTestExecution[]) {
 
 export function AdminTestChat({
   clienteSlug,
+  nomeCliente,
   sessions,
   executions,
   selectedSessionId,
@@ -171,7 +184,9 @@ export function AdminTestChat({
   );
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end" });
+    // Rola só a caixa do chat, não a página inteira.
+    const caixa = messagesEndRef.current?.parentElement;
+    if (caixa) caixa.scrollTop = caixa.scrollHeight;
   }, [chatMessages.length, pendingText]);
 
   function sessionHref(sessionId: string) {
@@ -187,7 +202,9 @@ export function AdminTestChat({
       const result = await createAdminTestSession(clienteSlug);
 
       if (result.error || !result.data) {
-        setError(result.error ?? t("Não foi possível criar a sessão de teste."));
+        setError(
+          result.error ?? t("Não foi possível criar a sessão de teste."),
+        );
         return;
       }
 
@@ -276,7 +293,9 @@ export function AdminTestChat({
         setPendingText(null);
         setLastPendingRun({ sessionId, runId, text });
         setNotice(
-          t("Mensagem enviada, mas ainda não houve resposta gravada pelo workflow."),
+          t(
+            "Mensagem enviada, mas ainda não houve resposta gravada pelo workflow.",
+          ),
         );
         setLocalExecutions((current) => [
           ...current,
@@ -359,123 +378,160 @@ export function AdminTestChat({
   }
 
   return (
-    <div className="grid h-[calc(100vh-250px)] min-h-[540px] gap-5 lg:grid-cols-[280px_1fr]">
-      <aside className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">{t("Sessões")}</h2>
+    <div className="grid min-w-0 gap-4 lg:h-[calc(100dvh-300px)] lg:min-h-[540px] lg:grid-cols-[300px_1fr]">
+      <aside className="ds-bloco flex min-h-0 flex-col overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
+          <h2 className="ds-titulo-3 text-foreground">{t("Sessões")}</h2>
           <button
             className="ds-botao ds-botao-primario ds-botao-p"
             disabled={isCreating}
             onClick={handleCreateSession}
             type="button"
           >
-            {isCreating ? t("Criando...") : t("Nova")}
+            <Plus aria-hidden="true" className="h-3.5 w-3.5" />
+            {isCreating ? t("Criando...") : t("Nova conversa")}
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2">
+        <div className="tela-lista flex max-h-64 min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2 lg:max-h-none">
           {visibleSessions.length > 0 ? (
-            visibleSessions.map((session) => (
-              <div
-                className={`rounded-lg p-2 text-sm transition ${
-                  selectedSessionId === session.session_id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
-                key={session.id}
-              >
-                <Link
-                  className="block"
-                  href={sessionHref(session.session_id)}
-                  onClick={() => {
-                    setLocalExecutions([]);
-                    setPendingText(null);
-                    setLastPendingRun(null);
-                    setNotice(null);
-                    setError(null);
-                  }}
+            visibleSessions.map((session) => {
+              const selecionada = selectedSessionId === session.session_id;
+              return (
+                <div
+                  aria-selected={selecionada}
+                  className="tela-linha group"
+                  key={session.id}
                 >
-                  <span className="block font-medium">
-                    {/* "Nova sessão" é o nome que o próprio painel grava ao criar. */}
-                    {session.nome && session.nome !== "Nova sessão" ? session.nome : t("Nova sessão")}
-                  </span>
-                  <span className="block truncate text-xs opacity-70">
-                    {session.session_id}
-                  </span>
-                </Link>
-                <button
-                  className={`mt-2 text-xs font-medium underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 ${
-                    selectedSessionId === session.session_id
-                      ? "text-primary-foreground/80"
-                      : "text-danger"
-                  }`}
-                  disabled={isCreating}
-                  onClick={() => handleDeleteSession(session.session_id)}
-                  type="button"
-                >
-                  {t("Excluir")}
-                </button>
-              </div>
-            ))
+                  <Link
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                    href={sessionHref(session.session_id)}
+                    onClick={() => {
+                      setLocalExecutions([]);
+                      setPendingText(null);
+                      setLastPendingRun(null);
+                      setNotice(null);
+                      setError(null);
+                    }}
+                  >
+                    <span
+                      className="ds-chip-icone"
+                      style={{
+                        ["--chip" as string]: selecionada
+                          ? "var(--ds-acao)"
+                          : "var(--ds-texto-3)",
+                      }}
+                    >
+                      <MessageSquare
+                        aria-hidden="true"
+                        className="h-3.5 w-3.5"
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-foreground">
+                        {/* "Nova sessão" é o nome que o próprio painel grava ao criar. */}
+                        {session.nome && session.nome !== "Nova sessão"
+                          ? session.nome
+                          : t("Nova sessão")}
+                      </span>
+                      <span
+                        className="block truncate font-mono text-[0.6875rem] text-muted-foreground"
+                        title={session.session_id}
+                      >
+                        {session.session_id}
+                      </span>
+                    </span>
+                  </Link>
+                  <button
+                    aria-label={t("Excluir")}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-danger-soft hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-visible:opacity-100"
+                    disabled={isCreating}
+                    onClick={() => handleDeleteSession(session.session_id)}
+                    title={t("Excluir")}
+                    type="button"
+                  >
+                    <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })
           ) : (
-            <p className="px-3 py-6 text-sm text-muted-foreground">
-              {t("Nenhuma sessão criada ainda.")}
-            </p>
+            <VazioTela
+              texto={t(
+                "Comece uma conversa e escreva como se fosse um cliente.",
+              )}
+              titulo={t("Nenhuma sessão criada ainda.")}
+            />
           )}
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface">
-        <div className="border-b border-border px-5 py-4">
-          {/*
-            O slug do cliente já está no selector por cima desta caixa.
-            Repeti-lo em "Cliente selecionado: ..." não acrescentava nada.
-          */}
-          <h2 className="font-semibold">{t("Chat de teste")}</h2>
-          <div className="mt-4 flex max-w-xl flex-col gap-2">
+      <section
+        className={`ds-bloco h-[72dvh] min-h-[480px] flex-col overflow-hidden lg:flex lg:h-auto lg:min-h-0 ${
+          visibleSessions.length > 0 ? "flex" : "hidden"
+        }`}
+      >
+        {/*
+          O cliente já está na barra por cima desta caixa; aqui fica o agente
+          e a escolha do workflow.
+        */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 sm:px-5">
+          <AvatarMascote tamanho={36} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.9375rem] font-semibold text-foreground">
+              {nomeCliente}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {selectedWorkflow
+                ? t("Workflow selecionado: {nome} ({tipo})", {
+                    nome: selectedWorkflow.nome ?? "Workflow",
+                    tipo: selectedWorkflow.tipo ?? t("sem tipo"),
+                  })
+                : t("Agente em modo teste")}
+            </p>
+          </div>
+          <span className="ds-selo ds-selo-verde ds-selo-ponto">
+            {t("Não envia nada a clientes")}
+          </span>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="shrink-0 text-xs font-medium text-muted-foreground"
               htmlFor="admin-workflow"
             >
               {t("Workflow de teste")}
             </label>
             <select
-              className="ds-campo disabled:bg-muted"
+              className="ds-campo h-9 min-w-0 flex-1 py-0 text-sm disabled:bg-muted sm:w-56 sm:flex-none"
               disabled={workflows.length <= 1}
               id="admin-workflow"
               onChange={(event) => setSelectedWorkflowId(event.target.value)}
               value={selectedWorkflowId}
             >
               {workflows.length === 0 ? (
-                <option value="">{t("Nenhum workflow ativo configurado")}</option>
+                <option value="">
+                  {t("Nenhum workflow ativo configurado")}
+                </option>
               ) : workflows.length > 1 ? (
                 <option value="">{t("Selecione um workflow")}</option>
               ) : null}
               {workflows.map((workflow) => (
                 <option key={workflow.id} value={workflow.id}>
-                  {workflow.nome ?? "Workflow"} ({workflow.tipo ?? t("sem tipo")})
+                  {workflow.nome ?? "Workflow"} (
+                  {workflow.tipo ?? t("sem tipo")})
                 </option>
               ))}
             </select>
-            {selectedWorkflow ? (
-              <p className="text-xs text-muted-foreground">
-                {t("Workflow selecionado: {nome} ({tipo})", {
-                  nome: selectedWorkflow.nome ?? "Workflow",
-                  tipo: selectedWorkflow.tipo ?? t("sem tipo"),
-                })}
-              </p>
-            ) : null}
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-background/60 px-4 py-5 sm:px-5">
           {chatMessages.length > 0 ? (
             chatMessages.map((chatMessage) => (
               <div
-                className={`max-w-[78%] rounded-lg px-4 py-3 text-sm leading-6 ${
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap shadow-[0_1px_1px_rgb(0_0_0/0.04)] sm:max-w-[72%] ${
                   chatMessage.role === "admin"
-                    ? "ml-auto bg-primary text-primary-foreground"
-                    : "mr-auto bg-muted text-foreground"
+                    ? "ml-auto rounded-br-md bg-surface text-foreground ring-1 ring-border"
+                    : "mr-auto rounded-bl-md bg-[var(--ds-acao)] text-[var(--ds-acao-texto)]"
                 }`}
                 key={chatMessage.id}
               >
@@ -483,19 +539,32 @@ export function AdminTestChat({
               </div>
             ))
           ) : (
-            <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-              {selectedSessionId
-                ? t("Nenhuma mensagem nesta sessão ainda.")
-                : t("Crie ou selecione uma sessão para começar.")}
+            <div className="flex flex-1 items-center justify-center">
+              {selectedSessionId ? (
+                <VazioTela
+                  texto={t(
+                    "Escreva abaixo como se fosse um cliente. Nada sai para clientes de verdade.",
+                  )}
+                  titulo={t("Nenhuma mensagem nesta sessão ainda.")}
+                />
+              ) : (
+                <p className="px-4 text-center text-sm text-muted-foreground">
+                  {t("Crie ou selecione uma sessão para começar.")}
+                </p>
+              )}
             </div>
           )}
 
           {pendingText ? (
             <>
-              <div className="ml-auto max-w-[78%] rounded-lg bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground">
+              <div className="ml-auto max-w-[88%] rounded-2xl rounded-br-md bg-surface px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap text-foreground ring-1 ring-border sm:max-w-[72%]">
                 {pendingText}
               </div>
-              <div className="mr-auto max-w-[78%] rounded-lg bg-muted px-4 py-3 text-sm leading-6 text-muted-foreground">
+              <div className="mr-auto flex max-w-[88%] items-center gap-2 rounded-2xl rounded-bl-md bg-[var(--ds-acao-fundo)] px-3.5 py-2.5 text-sm leading-6 text-muted-foreground sm:max-w-[72%]">
+                <Loader2
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5 animate-spin"
+                />
                 {t("Aguardando resposta do agente...")}
               </div>
             </>
@@ -504,32 +573,39 @@ export function AdminTestChat({
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="shrink-0 border-t border-border p-4">
+        <div className="shrink-0 border-t border-border bg-surface p-3 sm:p-4">
           {error ? (
-            <p className="mb-3 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
-
-          {notice ? (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-warning">
-              <p>{notice}</p>
-              {lastPendingRun ? (
-                <button
-                  className="ds-botao ds-botao-secundario ds-botao-p"
-                  disabled={isChecking}
-                  onClick={handleCheckAgain}
-                  type="button"
-                >
-                  {isChecking ? t("Verificando...") : t("Verificar novamente")}
-                </button>
-              ) : null}
+            <div className="mb-3">
+              <AvisoLinha tom="perigo">{error}</AvisoLinha>
             </div>
           ) : null}
 
-          <form className="flex gap-3" onSubmit={handleSendMessage}>
+          {notice ? (
+            <div className="mb-3">
+              <AvisoLinha
+                acao={
+                  lastPendingRun ? (
+                    <button
+                      className="underline-offset-2 hover:underline disabled:opacity-60"
+                      disabled={isChecking}
+                      onClick={handleCheckAgain}
+                      type="button"
+                    >
+                      {isChecking
+                        ? t("Verificando...")
+                        : t("Verificar novamente")}
+                    </button>
+                  ) : undefined
+                }
+              >
+                {notice}
+              </AvisoLinha>
+            </div>
+          ) : null}
+
+          <form className="flex gap-2" onSubmit={handleSendMessage}>
             <input
-              className="ds-campo flex-1 disabled:bg-muted"
+              className="ds-campo min-w-0 flex-1 disabled:bg-muted"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -541,7 +617,8 @@ export function AdminTestChat({
               value={message}
             />
             <button
-              className="ds-botao ds-botao-primario"
+              aria-label={t("Enviar")}
+              className="ds-botao ds-botao-primario shrink-0"
               disabled={
                 !selectedSessionId ||
                 !selectedWorkflowId ||
@@ -551,7 +628,10 @@ export function AdminTestChat({
               }
               type="submit"
             >
-              {isSending ? t("Enviando...") : t("Enviar")}
+              <SendHorizontal aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">
+                {isSending ? t("Enviando...") : t("Enviar")}
+              </span>
             </button>
           </form>
         </div>

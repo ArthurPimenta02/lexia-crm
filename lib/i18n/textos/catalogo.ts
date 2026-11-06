@@ -365,6 +365,101 @@ const textos: TextosDaArea = {
       '"{servico}" registado: {n} produto descontado do stock.',
     '"{servico}" registrado: {n} produtos descontados do estoque.':
       '"{servico}" registado: {n} produtos descontados do stock.',
+    // ---- Redesenho de 06/11/2026 (campanhas, serviços, produtos)
+    "Cada contato novo custou {valor} neste período.":
+      "Cada contacto novo custou {valor} neste período.",
+    "{valor} investidos neste período.":
+      "{valor} investidos neste período.",
+    "{valor} por contato":
+      "{valor} por contacto",
+    "Passe o mouse sobre o gráfico para ver o gasto de cada dia.":
+      "Passe o rato sobre o gráfico para ver o gasto de cada dia.",
+    "Nenhum serviço para mostrar.":
+      "Nenhum serviço para mostrar.",
+    "O agente conhece {n} e o preço dele.":
+      "O agente conhece {n} e o preço dele.",
+    "O agente conhece {n} e os preços de cada um.":
+      "O agente conhece {n} e os preços de cada um.",
+    "1 serviço":
+      "1 serviço",
+    "{n} serviços":
+      "{n} serviços",
+    "Serviços · o que o agente oferece":
+      "Serviços · o que o agente oferece",
+    "Catálogo só para consulta: os preços mudam na base do agente.":
+      "Catálogo só para consulta: os preços mudam na base do agente.",
+    "Recarregue a página daqui a pouco. Se continuar, avise a equipe Lexia.":
+      "Recarregue a página daqui a pouco. Se continuar, avise a equipa Lexia.",
+    "O catálogo de serviços não respondeu.":
+      "O catálogo de serviços não respondeu.",
+    "de {n} serviços":
+      "de {n} serviços",
+    "Sem produtos associados":
+      "Sem produtos associados",
+    "Preço diferente":
+      "Preço diferente",
+    "Sem duração":
+      "Sem duração",
+    "Preço sob avaliação":
+      "Preço sob avaliação",
+    "Sem preço":
+      "Sem preço",
+    "a partir de":
+      "a partir de",
+    "Ver aviso":
+      "Ver aviso",
+    "Detalhes e edição":
+      "Detalhes e edição",
+    "Há produtos sem preço nesta receita.":
+      "Há produtos sem preço nesta receita.",
+    "Acabou":
+      "Acabou",
+    "Acaba em {n} dia":
+      "Acaba em {n} dia",
+    "Acaba em {n} dias":
+      "Acaba em {n} dias",
+    "Em dia":
+      "Em dia",
+    "Ainda não há produtos.":
+      "Ainda não há produtos.",
+    "{n} precisa de reposição.":
+      "{n} precisa de reposição.",
+    "{n} precisam de reposição.":
+      "{n} precisam de reposição.",
+    "1 produto":
+      "1 produto",
+    "{n} produtos":
+      "{n} produtos",
+    "{n} no estoque, nenhum acabando.":
+      "{n} em stock, nenhum a acabar.",
+    "Produtos · estoque":
+      "Produtos · stock",
+    "O que acaba primeiro aparece primeiro.":
+      "O que acaba primeiro aparece primeiro.",
+    "Quantidade em estoque vezes o custo da última compra, só nos produtos que têm compra registrada.":
+      "Quantidade em stock vezes o custo da última compra, só nos produtos que têm compra registada.",
+    "Produtos que acabaram ou que, no ritmo de consumo atual, acabam em até {n} dias.":
+      "Produtos que acabaram ou que, ao ritmo de consumo actual, acabam em até {n} dias.",
+    "de {n} produtos":
+      "de {n} produtos",
+    "Precisam de reposição":
+      "Precisam de reposição",
+    "Sem compra registrada o produto não tem preço, e os serviços que o usam ficam sem custo e sem margem.":
+      "Sem compra registada o produto não tem preço, e os serviços que o usam ficam sem custo e sem margem.",
+    "Sem compra registrada":
+      "Sem compra registada",
+    "Adicione o primeiro no cartão abaixo. Depois diga quanto cada serviço gasta dele.":
+      "Adicione o primeiro no cartão abaixo. Depois diga quanto cada serviço gasta dele.",
+    "Comece pelo primeiro produto":
+      "Comece pelo primeiro produto",
+    "Compras, ajustes e serviços":
+      "Compras, ajustes e serviços",
+    "Sem compra registrada, este produto não tem preço.":
+      "Sem compra registada, este produto não tem preço.",
+    "Adicionar produto":
+      "Adicionar produto",
+    "Nenhum gasto salvo ainda.":
+      "Nenhum gasto guardado ainda.",
   },
 
   es: {
@@ -715,6 +810,101 @@ const textos: TextosDaArea = {
       '"{servico}" registrado: {n} producto descontado del inventario.',
     '"{servico}" registrado: {n} produtos descontados do estoque.':
       '"{servico}" registrado: {n} productos descontados del inventario.',
+    // ---- Redesenho de 06/11/2026 (campanhas, serviços, produtos)
+    "Cada contato novo custou {valor} neste período.":
+      "Cada contacto nuevo costó {valor} en este periodo.",
+    "{valor} investidos neste período.":
+      "{valor} invertidos en este periodo.",
+    "{valor} por contato":
+      "{valor} por contacto",
+    "Passe o mouse sobre o gráfico para ver o gasto de cada dia.":
+      "Pasa el ratón sobre el gráfico para ver el gasto de cada día.",
+    "Nenhum serviço para mostrar.":
+      "No hay servicios para mostrar.",
+    "O agente conhece {n} e o preço dele.":
+      "El agente conoce {n} y su precio.",
+    "O agente conhece {n} e os preços de cada um.":
+      "El agente conoce {n} y el precio de cada uno.",
+    "1 serviço":
+      "1 servicio",
+    "{n} serviços":
+      "{n} servicios",
+    "Serviços · o que o agente oferece":
+      "Servicios · lo que ofrece el agente",
+    "Catálogo só para consulta: os preços mudam na base do agente.":
+      "Catálogo solo de consulta: los precios se cambian en la base del agente.",
+    "Recarregue a página daqui a pouco. Se continuar, avise a equipe Lexia.":
+      "Recarga la página en un momento. Si sigue igual, avisa al equipo de Lexia.",
+    "O catálogo de serviços não respondeu.":
+      "El catálogo de servicios no respondió.",
+    "de {n} serviços":
+      "de {n} servicios",
+    "Sem produtos associados":
+      "Sin productos asociados",
+    "Preço diferente":
+      "Precio distinto",
+    "Sem duração":
+      "Sin duración",
+    "Preço sob avaliação":
+      "Precio tras evaluación",
+    "Sem preço":
+      "Sin precio",
+    "a partir de":
+      "desde",
+    "Ver aviso":
+      "Ver aviso",
+    "Detalhes e edição":
+      "Detalles y edición",
+    "Há produtos sem preço nesta receita.":
+      "Hay productos sin precio en esta receta.",
+    "Acabou":
+      "Agotado",
+    "Acaba em {n} dia":
+      "Se acaba en {n} día",
+    "Acaba em {n} dias":
+      "Se acaba en {n} días",
+    "Em dia":
+      "Al día",
+    "Ainda não há produtos.":
+      "Todavía no hay productos.",
+    "{n} precisa de reposição.":
+      "{n} necesita reposición.",
+    "{n} precisam de reposição.":
+      "{n} necesitan reposición.",
+    "1 produto":
+      "1 producto",
+    "{n} produtos":
+      "{n} productos",
+    "{n} no estoque, nenhum acabando.":
+      "{n} en stock, ninguno por acabarse.",
+    "Produtos · estoque":
+      "Productos · stock",
+    "O que acaba primeiro aparece primeiro.":
+      "Lo que se acaba antes aparece primero.",
+    "Quantidade em estoque vezes o custo da última compra, só nos produtos que têm compra registrada.":
+      "Cantidad en stock por el costo de la última compra, solo en los productos con compra registrada.",
+    "Produtos que acabaram ou que, no ritmo de consumo atual, acabam em até {n} dias.":
+      "Productos agotados o que, al ritmo de consumo actual, se acaban en {n} días o menos.",
+    "de {n} produtos":
+      "de {n} productos",
+    "Precisam de reposição":
+      "Necesitan reposición",
+    "Sem compra registrada o produto não tem preço, e os serviços que o usam ficam sem custo e sem margem.":
+      "Sin compra registrada el producto no tiene precio, y los servicios que lo usan quedan sin costo ni margen.",
+    "Sem compra registrada":
+      "Sin compra registrada",
+    "Adicione o primeiro no cartão abaixo. Depois diga quanto cada serviço gasta dele.":
+      "Agrega el primero en la tarjeta de abajo. Luego indica cuánto usa cada servicio.",
+    "Comece pelo primeiro produto":
+      "Empieza por el primer producto",
+    "Compras, ajustes e serviços":
+      "Compras, ajustes y servicios",
+    "Sem compra registrada, este produto não tem preço.":
+      "Sin compra registrada, este producto no tiene precio.",
+    "Adicionar produto":
+      "Agregar producto",
+    "Nenhum gasto salvo ainda.":
+      "Todavía no hay gasto guardado.",
   },
 
   en: {
@@ -1064,6 +1254,101 @@ const textos: TextosDaArea = {
       '"{servico}" recorded: {n} product deducted from stock.',
     '"{servico}" registrado: {n} produtos descontados do estoque.':
       '"{servico}" recorded: {n} products deducted from stock.',
+    // ---- Redesenho de 06/11/2026 (campanhas, serviços, produtos)
+    "Cada contato novo custou {valor} neste período.":
+      "Each new contact cost {valor} in this period.",
+    "{valor} investidos neste período.":
+      "{valor} spent in this period.",
+    "{valor} por contato":
+      "{valor} per contact",
+    "Passe o mouse sobre o gráfico para ver o gasto de cada dia.":
+      "Hover over the chart to see each day's spend.",
+    "Nenhum serviço para mostrar.":
+      "No services to show.",
+    "O agente conhece {n} e o preço dele.":
+      "The agent knows {n} and its price.",
+    "O agente conhece {n} e os preços de cada um.":
+      "The agent knows {n} and the price of each one.",
+    "1 serviço":
+      "1 service",
+    "{n} serviços":
+      "{n} services",
+    "Serviços · o que o agente oferece":
+      "Services · what the agent offers",
+    "Catálogo só para consulta: os preços mudam na base do agente.":
+      "Read-only catalog: prices are changed in the agent's database.",
+    "Recarregue a página daqui a pouco. Se continuar, avise a equipe Lexia.":
+      "Reload the page in a moment. If it keeps happening, let the Lexia team know.",
+    "O catálogo de serviços não respondeu.":
+      "The services catalog didn't respond.",
+    "de {n} serviços":
+      "of {n} services",
+    "Sem produtos associados":
+      "No linked products",
+    "Preço diferente":
+      "Price mismatch",
+    "Sem duração":
+      "No duration",
+    "Preço sob avaliação":
+      "Price after assessment",
+    "Sem preço":
+      "No price",
+    "a partir de":
+      "from",
+    "Ver aviso":
+      "See warning",
+    "Detalhes e edição":
+      "Details and editing",
+    "Há produtos sem preço nesta receita.":
+      "Some products in this recipe have no price.",
+    "Acabou":
+      "Out of stock",
+    "Acaba em {n} dia":
+      "Runs out in {n} day",
+    "Acaba em {n} dias":
+      "Runs out in {n} days",
+    "Em dia":
+      "On track",
+    "Ainda não há produtos.":
+      "No products yet.",
+    "{n} precisa de reposição.":
+      "{n} needs restocking.",
+    "{n} precisam de reposição.":
+      "{n} need restocking.",
+    "1 produto":
+      "1 product",
+    "{n} produtos":
+      "{n} products",
+    "{n} no estoque, nenhum acabando.":
+      "{n} in stock, none running out.",
+    "Produtos · estoque":
+      "Products · stock",
+    "O que acaba primeiro aparece primeiro.":
+      "What runs out first shows first.",
+    "Quantidade em estoque vezes o custo da última compra, só nos produtos que têm compra registrada.":
+      "Quantity in stock times the cost of the last purchase, only for products with a recorded purchase.",
+    "Produtos que acabaram ou que, no ritmo de consumo atual, acabam em até {n} dias.":
+      "Products that ran out or that, at the current rate, run out within {n} days.",
+    "de {n} produtos":
+      "of {n} products",
+    "Precisam de reposição":
+      "Need restocking",
+    "Sem compra registrada o produto não tem preço, e os serviços que o usam ficam sem custo e sem margem.":
+      "Without a recorded purchase the product has no price, so the services that use it have no cost or margin.",
+    "Sem compra registrada":
+      "No purchase recorded",
+    "Adicione o primeiro no cartão abaixo. Depois diga quanto cada serviço gasta dele.":
+      "Add the first one in the card below. Then say how much each service uses.",
+    "Comece pelo primeiro produto":
+      "Start with your first product",
+    "Compras, ajustes e serviços":
+      "Purchases, adjustments and services",
+    "Sem compra registrada, este produto não tem preço.":
+      "With no purchase recorded, this product has no price.",
+    "Adicionar produto":
+      "Add product",
+    "Nenhum gasto salvo ainda.":
+      "No spend saved yet.",
   },
 };
 

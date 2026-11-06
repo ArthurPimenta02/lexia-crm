@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { CampaignsPanel } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
 import {
@@ -74,14 +74,12 @@ export default async function AdminCampanhasPage({
     clientes[0] ??
     null;
 
-  const cabecalho = <PaginaCabecalho titulo={t("Campanhas")} />;
-
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        {cabecalho}
-        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground">
-          {t("Nenhum cliente ativo disponível.")}
+        <CabecalhoTela resto={t("Campanhas")} />
+        <div className="ds-bloco">
+          <VazioTela titulo={t("Nenhum cliente ativo disponível.")} />
         </div>
       </div>
     );
@@ -132,31 +130,28 @@ export default async function AdminCampanhasPage({
   const selectorDeCliente = (
     <Form
       action="/admin/campanhas"
-      className="flex min-w-0 flex-wrap items-end gap-2"
+      className="flex min-w-0 flex-wrap items-center gap-2"
       replace
       scroll={false}
     >
-      <label
-        className="flex min-w-0 flex-col gap-2 text-sm font-semibold text-foreground"
-        htmlFor="cliente"
-      >
+      <label className="sr-only" htmlFor="cliente">
         {t("Cliente")}
-        <select
-          className="ds-campo min-w-0 font-normal tracking-normal normal-case sm:min-w-56"
-          defaultValue={clienteSlug}
-          id="cliente"
-          name="cliente"
-        >
-          {clientes.map((cliente) => (
-            <option key={cliente.id} value={cliente.slug}>
-              {cliente.nome ?? cliente.slug}
-              {nomesSemConta.has(cliente.slug)
-                ? ` ${t("(sem conta ligada)")}`
-                : ""}
-            </option>
-          ))}
-        </select>
       </label>
+      <select
+        className="ds-campo w-auto min-w-0 sm:min-w-56"
+        defaultValue={clienteSlug}
+        id="cliente"
+        name="cliente"
+      >
+        {clientes.map((cliente) => (
+          <option key={cliente.id} value={cliente.slug}>
+            {cliente.nome ?? cliente.slug}
+            {nomesSemConta.has(cliente.slug)
+              ? ` ${t("(sem conta ligada)")}`
+              : ""}
+          </option>
+        ))}
+      </select>
       <input name="periodo" type="hidden" value={range.key} />
       {range.key === "personalizado" ? (
         <>
@@ -165,7 +160,7 @@ export default async function AdminCampanhasPage({
         </>
       ) : null}
       <FormSubmitButton
-        className="ds-botao ds-botao-primario shrink-0"
+        className="ds-botao ds-botao-secundario shrink-0"
         pendingLabel="..."
       >
         {t("Selecionar")}
@@ -175,7 +170,7 @@ export default async function AdminCampanhasPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho
+      <CampaignsPanel
         acoes={
           <CampaignsRefreshButton
             action={atualizarCampanhasAdminAction}
@@ -183,10 +178,6 @@ export default async function AdminCampanhasPage({
             clienteSlug={clienteSlug}
           />
         }
-        titulo={t("Campanhas")}
-      />
-
-      <CampaignsPanel
         basePath="/admin/campanhas"
         fim={fim}
         inicio={inicio}
@@ -195,6 +186,7 @@ export default async function AdminCampanhasPage({
         parametrosFixos={{ cliente: clienteSlug }}
         periodKey={range.key}
         rangeLabel={range.label}
+        sobretitulo={`${clienteSelecionado.nome ?? clienteSlug} · ${t("Campanhas")}`}
         timezone={timezone}
         vazioMensagem={
           temContaLigada

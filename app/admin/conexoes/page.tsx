@@ -1,9 +1,7 @@
-import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { ConexaoForm } from "@/app/admin/conexoes/conexao-form";
-import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { AvisoLinha, CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
@@ -68,52 +66,57 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
 
   const tipos = tiposDoAmbito(global ? "global" : "cliente");
 
+  const configurados = tipos.filter((d) => {
+    const l = linhas.find((x) => x.tipo === d.tipo);
+    return l ? Object.keys(l.campos ?? {}).length + Object.keys(l.finais ?? {}).length > 0 : false;
+  }).length;
+  const nomeSelecionado = global
+    ? t("Lexia (vale para todos os clientes)")
+    : clientes.find((c) => c.slug === selecionado)?.nome || selecionado;
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo={t("Conexões")} />
+      <CabecalhoTela
+        destaque={
+          selecionado && !faltaMigration
+            ? t("{n} de {total}", { n: configurados, total: tipos.length })
+            : undefined
+        }
+        resto={
+          selecionado && !faltaMigration ? t("conexões configuradas.") : t("Conexões")
+        }
+        sobretitulo={selecionado ? `${t("Conexões")} · ${nomeSelecionado}` : t("Admin Lexia")}
+      />
 
-      <Form
-        action="/admin/conexoes"
-        className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-surface p-5"
-        replace
-        scroll={false}
-      >
-        <label className="flex min-w-[260px] flex-col gap-2 text-sm font-medium text-muted-foreground">
-          {t("De quem são as conexões")}
-          <select
-            className="ds-campo"
-            defaultValue={selecionado}
-            name="cliente"
-          >
-            <option value="">{t("Escolha…")}</option>
-            <option value={GLOBAL}>{t("Lexia (vale para todos os clientes)")}</option>
-            {clientes.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.nome || c.slug}
-              </option>
-            ))}
-          </select>
-        </label>
-        <FormSubmitButton
-          className="ds-botao ds-botao-primario"
-          pendingLabel={t("Aguarde...")}
-        >
-          {t("Abrir")}
-        </FormSubmitButton>
-      </Form>
+      <div className="flex min-w-0">
+        <FiltroTrilho
+          opcoes={[
+            { slug: GLOBAL, nome: t("Lexia (todos)") },
+            ...clientes.map((c) => ({ slug: c.slug, nome: c.nome || c.slug })),
+          ].map((c) => ({
+            ativo: c.slug === selecionado,
+            href: `/admin/conexoes?cliente=${encodeURIComponent(c.slug)}`,
+            label: c.nome,
+          }))}
+          rotulo={t("De quem são as conexões")}
+        />
+      </div>
 
       {!selecionado ? (
-        <p className="text-sm text-muted-foreground">
-          {t("Escolha um cliente para ver e salvar as conexões dele.")}
-        </p>
+        <div className="ds-bloco">
+          <VazioTela
+            texto={t("Escolha um cliente para ver e salvar as conexões dele.")}
+            titulo={t("Escolha um cliente")}
+          />
+        </div>
       ) : faltaMigration ? (
-        <p className="text-sm text-muted-foreground">
+        <AvisoLinha>
           {t(
             "A tabela de conexões ainda não existe. Falta rodar a migration da Fase 19 no Supabase central.",
           )}
-        </p>
+        </AvisoLinha>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {tipos.map((definicao) => {
             const linha = linhas.find((l) => l.tipo === definicao.tipo);
             return (

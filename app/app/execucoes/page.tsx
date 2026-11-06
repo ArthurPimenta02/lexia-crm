@@ -1,10 +1,22 @@
 import Link from "next/link";
-import Form from "next/form";
 import { redirect } from "next/navigation";
 
-import { ExpandableText } from "@/app/components/expandable-text";
-import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import {
+  Activity,
+  AlertTriangle,
+  Check,
+  MessageSquare,
+  Plus,
+} from "lucide-react";
+
+import { ListaExecucoes } from "@/app/app/execucoes/lista-execucoes";
+import { CartaoMetrica } from "@/app/components/cartoes";
+import {
+  CabecalhoTela,
+  FiltroTrilho,
+  GradeMetricas,
+  VazioTela,
+} from "@/app/components/tela";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -33,17 +45,6 @@ type TestExecution = {
   erro: string | null;
 };
 
-const routeFilters = [
-  { label: "Todas", value: "" },
-  { label: "indefinido", value: "indefinido" },
-  { label: "detailing", value: "detailing" },
-  { label: "venda_veiculo", value: "venda_veiculo" },
-  { label: "venda_fotos_indefinido", value: "venda_fotos_indefinido" },
-  { label: "venda_fotos", value: "venda_fotos" },
-  { label: "handoff_detailing", value: "handoff_detailing" },
-  { label: "handoff_venda", value: "handoff_venda" },
-];
-const routeValues = routeFilters.map((item) => item.value).filter(Boolean);
 const stateFilters = ["todas", "sucesso", "erro"];
 
 function getSearchValue(value: string | string[] | undefined) {
@@ -117,29 +118,6 @@ function getAgentResponseText(execution: TestExecution) {
   return stringifyMessage(source) || fallback.join("\n\n");
 }
 
-function Badge({
-  children,
-  tone = "neutral",
-}: {
-  children: React.ReactNode;
-  tone?: "green" | "neutral" | "red";
-}) {
-  /*
-   * Igual ao ecrã do admin: a cor fica reservada para correu bem ou rebentou.
-   */
-  const classes = {
-    green: "ds-selo-verde",
-    neutral: "ds-selo-neutro",
-    red: "ds-selo-perigo",
-  };
-
-  return (
-    <span className={`ds-selo max-w-full ${classes[tone]}`}>
-      <span className="truncate">{children}</span>
-    </span>
-  );
-}
-
 export default async function ClientExecutionsPage({
   searchParams,
 }: ClientExecutionsPageProps) {
@@ -163,7 +141,6 @@ export default async function ClientExecutionsPage({
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const params = await searchParams;
   const requestedRota = getSearchValue(params.rota);
-  const selectedRota = routeValues.includes(requestedRota) ? requestedRota : "";
   const requestedEstado = getSearchValue(params.estado);
   const selectedEstado = stateFilters.includes(requestedEstado)
     ? requestedEstado
@@ -171,7 +148,9 @@ export default async function ClientExecutionsPage({
 
   const timeZone = getClientTimezone(profile.cliente_slug);
   const supabase = await createClient();
-  let query = supabase
+  // Busca tudo e filtra a rota aqui: assim a barra de rotas mostra as rotas
+  // que existem de verdade (a lista fixa antiga já não batia com os dados).
+  const { data, error } = await supabase
     .from("lexia_testes_execucoes")
     .select(
       "id, session_id, run_id, teste_id, criado_em, origem, rota, mensagem_teste, resposta_obtida, mensagens, erro",
@@ -179,17 +158,26 @@ export default async function ClientExecutionsPage({
     .eq("cliente_slug", profile.cliente_slug)
     .order("criado_em", { ascending: false });
 
-  if (selectedRota) {
-    query = query.eq("rota", selectedRota);
-  }
-
-  const { data, error } = await query;
-
   if (error) {
     throw new Error(t("Não foi possível buscar as execuções de teste."));
   }
 
-  const executions = ((data ?? []) as TestExecution[]).filter((execution) => {
+  const semFiltro = (data ?? []) as TestExecution[];
+  const contagemRotas = new Map<string, number>();
+  for (const execution of semFiltro) {
+    if (execution.rota) {
+      contagemRotas.set(
+        execution.rota,
+        (contagemRotas.get(execution.rota) ?? 0) + 1,
+      );
+    }
+  }
+  const rotas = [...contagemRotas.entries()].sort((a, b) => b[1] - a[1]);
+  const selectedRota = contagemRotas.has(requestedRota) ? requestedRota : "";
+  const todas = selectedRota
+    ? semFiltro.filter((execution) => execution.rota === selectedRota)
+    : semFiltro;
+  const executions = todas.filter((execution) => {
     if (selectedEstado === "erro") {
       return hasError(execution);
     }
@@ -200,214 +188,213 @@ export default async function ClientExecutionsPage({
 
     return true;
   });
-  const summaryCards = [
-    { title: t("Execuções"), value: executions.length },
-    {
-      title: t("Sucesso"),
-      value: executions.filter((item) => !hasError(item)).length,
-    },
-    { title: t("Erro"), value: executions.filter(hasError).length },
-  ];
+
+  // Números do topo: sempre sobre a rota escolhida, sem o filtro de estado.
+  const totalErro = todas.filter(hasError).length;
+  const totalSucesso = todas.length - totalErro;
+  const sessoes = new Set(
+    todas.map((execution) => execution.session_id).filter(Boolean),
+  ).size;
+  const diaDe = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date(iso));
+  const hoje = diaDe(new Date().toISOString());
+  const deHoje = todas.filter(
+    (execution) => execution.criado_em && diaDe(execution.criado_em) === hoje,
+  );
+  const hojeErro = deHoje.filter(hasError).length;
+  const numero = new Intl.NumberFormat(locale);
+  const formatoData = new Intl.DateTimeFormat(locale, {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone,
+  });
+
+  const href = (mudar: { estado?: string; rota?: string }) => {
+    const p = new URLSearchParams();
+    const rota = mudar.rota ?? selectedRota;
+    const estado = mudar.estado ?? selectedEstado;
+    if (rota) p.set("rota", rota);
+    if (estado && estado !== "todas") p.set("estado", estado);
+    const qs = p.toString();
+    return qs ? `/app/execucoes?${qs}` : "/app/execucoes";
+  };
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho
+      <CabecalhoTela
         acoes={
-          <Link
-            className="ds-botao ds-botao-primario"
-            href="/app/area-testes"
-          >
+          <Link className="ds-botao ds-botao-primario" href="/app/area-testes">
+            <Plus aria-hidden="true" className="h-4 w-4" />
             {t("Executar novo teste")}
           </Link>
         }
-        titulo={t("Execuções")}
+        destaque={
+          deHoje.length === 0
+            ? undefined
+            : deHoje.length === 1
+              ? t("1 execução hoje")
+              : t("{n} execuções hoje", { n: numero.format(deHoje.length) })
+        }
+        resto={
+          deHoje.length === 0
+            ? t("Nenhuma execução hoje.")
+            : hojeErro === 0
+              ? t("nenhuma com erro.")
+              : t("{n} com erro.", { n: numero.format(hojeErro) })
+        }
+        sobretitulo={t("Execuções")}
+        subtitulo={t("{n} no total", { n: numero.format(todas.length) })}
       />
 
-      <GrupoMetricas
-        itens={summaryCards.map((card) => ({
-          label: card.title,
-          valor: card.value,
-        }))}
-      />
-
-      <Form
-        action="/app/execucoes"
-        className="rounded-2xl border border-border bg-surface p-5"
-        replace
-        scroll={false}
-      >
-        <div className="grid gap-4 md:grid-cols-[1fr_220px_auto_auto]">
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-medium text-muted-foreground"
-              htmlFor="rota"
-            >
-              {t("Rota")}
-            </label>
-            <select
-              className="ds-campo"
-              defaultValue={selectedRota}
-              id="rota"
-              name="rota"
-            >
-              {routeFilters.map((route) => (
-                <option key={route.label} value={route.value}>
-                  {route.value ? route.label : t(route.label)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-medium text-muted-foreground"
-              htmlFor="estado"
-            >
-              {t("Estado")}
-            </label>
-            <select
-              className="ds-campo"
-              defaultValue={selectedEstado}
-              id="estado"
-              name="estado"
-            >
-              <option value="todas">{t("Todas")}</option>
-              <option value="sucesso">{t("Sucesso")}</option>
-              <option value="erro">{t("Erro")}</option>
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <FormSubmitButton
-              className="ds-botao ds-botao-primario"
-              pendingLabel={t("Filtrando...")}
-            >
-              {t("Filtrar")}
-            </FormSubmitButton>
-          </div>
-
-          <div className="flex items-end">
-            <Link
-              className="ds-botao ds-botao-secundario"
-              href="/app/execucoes"
-            >
-              {t("Limpar")}
-            </Link>
-          </div>
+      <GradeMetricas colunas={totalErro > 0 ? 4 : 3}>
+        <CartaoMetrica
+          cor="var(--ds-info)"
+          icone={<Activity aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Execuções")}
+          valor={numero.format(todas.length)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-acao)"
+          icone={<Check aria-hidden="true" className="h-4 w-4" />}
+          nota={
+            todas.length > 0
+              ? t("{p} do total", {
+                  p: new Intl.NumberFormat(locale, { style: "percent" }).format(
+                    totalSucesso / todas.length,
+                  ),
+                })
+              : undefined
+          }
+          rotulo={t("Sucesso")}
+          valor={numero.format(totalSucesso)}
+        />
+        {totalErro > 0 ? (
+          <CartaoMetrica
+            cor="var(--ds-perigo)"
+            href={href({ estado: "erro" })}
+            icone={<AlertTriangle aria-hidden="true" className="h-4 w-4" />}
+            rotulo={t("Com erro")}
+            valor={numero.format(totalErro)}
+          />
+        ) : null}
+        {/* Com 3 cartões, o último ocupa a linha inteira no celular. */}
+        <div className={totalErro > 0 ? "" : "col-span-2 xl:col-span-1"}>
+          <CartaoMetrica
+            cor="var(--ds-ouro)"
+            icone={<MessageSquare aria-hidden="true" className="h-4 w-4" />}
+            rotulo={t("Conversas de teste")}
+            valor={numero.format(sessoes)}
+          />
         </div>
-      </Form>
+      </GradeMetricas>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center">
+        <div className="max-w-full shrink-0">
+          <FiltroTrilho
+            opcoes={[
+              {
+                ativo: selectedEstado === "todas",
+                href: href({ estado: "todas" }),
+                label: t("Todas"),
+                quantidade: todas.length,
+              },
+              {
+                ativo: selectedEstado === "sucesso",
+                href: href({ estado: "sucesso" }),
+                label: t("Sucesso"),
+                quantidade: totalSucesso,
+              },
+              {
+                ativo: selectedEstado === "erro",
+                href: href({ estado: "erro" }),
+                label: t("Erro"),
+                quantidade: totalErro,
+              },
+            ]}
+            rotulo={t("Estado")}
+          />
+        </div>
+        {rotas.length > 1 ? (
+          <div className="min-w-0">
+            <FiltroTrilho
+              opcoes={[
+                {
+                  ativo: !selectedRota,
+                  href: href({ rota: "" }),
+                  label: t("Todas as rotas"),
+                },
+                ...rotas.map(([rota, quantidade]) => ({
+                  ativo: selectedRota === rota,
+                  href: href({ rota }),
+                  label: formatLabel(rota, rota),
+                  quantidade,
+                })),
+              ]}
+              rotulo={t("Rota")}
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <div className="ds-bloco overflow-hidden">
         {executions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-[980px] table-fixed border-collapse text-left text-sm">
-              <thead className="bg-surface-muted text-muted-foreground">
-                <tr>
-                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    {t("Data")}
-                  </th>
-                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    {t("Rota")}
-                  </th>
-                  <th className="w-[130px] border-b border-border px-3 py-3 font-medium">
-                    {t("Origem")}
-                  </th>
-                  <th className="w-[240px] border-b border-border px-3 py-3 font-medium">
-                    {t("Mensagem enviada")}
-                  </th>
-                  <th className="w-[280px] border-b border-border px-3 py-3 font-medium">
-                    {t("Resposta obtida")}
-                  </th>
-                  <th className="w-[120px] border-b border-border px-3 py-3 font-medium">
-                    {t("Estado")}
-                  </th>
-                  <th className="w-[170px] border-b border-border px-3 py-3 font-medium">
-                    {t("Sessão")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {executions.map((execution) => (
-                  <tr className="border-b border-border" key={execution.id}>
-                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
-                      {execution.criado_em
-                        ? new Intl.DateTimeFormat(locale, {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                            timeZone,
-                          }).format(new Date(execution.criado_em))
-                        : t("Sem data")}
-                    </td>
-                    <td className="px-3 py-4 align-top">
-                      <Badge>{execution.rota ?? t("Sem rota")}</Badge>
-                    </td>
-                    <td className="px-3 py-4 align-top">
-                      <Badge>{formatLabel(execution.origem, t("Sem valor"))}</Badge>
-                    </td>
-                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
-                      <ExpandableText
-                        emptyText={t("Sem mensagem")}
-                        maxLength={110}
-                        text={execution.mensagem_teste}
-                      />
-                    </td>
-                    <td className="break-words px-3 py-4 align-top text-muted-foreground">
-                      <ExpandableText
-                        emptyText={t("Sem resposta")}
-                        maxLength={130}
-                        text={getAgentResponseText(execution)}
-                      />
-                    </td>
-                    <td className="px-3 py-4 align-top">
-                      <div className="flex flex-col gap-2">
-                        <Badge tone={hasError(execution) ? "red" : "green"}>
-                          {hasError(execution) ? t("Erro") : t("Sucesso")}
-                        </Badge>
-                        {hasError(execution) ? (
-                          <div className="text-xs text-muted-foreground">
-                            <ExpandableText
-                              emptyText={t("Sem erro")}
-                              maxLength={70}
-                              text={execution.erro}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    </td>
-                    {/* Ver a nota em /admin/execucoes: cortar a uma linha. */}
-                    <td className="px-3 py-4 align-top font-mono text-xs text-muted-foreground">
-                      <p
-                        className="truncate"
-                        title={execution.session_id ?? ""}
-                      >
-                        {execution.session_id ?? t("Sem session_id")}
-                      </p>
-                      {execution.run_id ? (
-                        <p
-                          className="mt-1.5 truncate text-muted-foreground/60"
-                          title={execution.run_id}
-                        >
-                          run: {execution.run_id}
-                        </p>
-                      ) : null}
-                      {execution.teste_id ? (
-                        <p
-                          className="mt-1.5 truncate text-muted-foreground/60"
-                          title={execution.teste_id}
-                        >
-                          {t("teste: {id}", { id: execution.teste_id })}
-                        </p>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ListaExecucoes
+            itens={executions.map((execution) => ({
+              data: execution.criado_em
+                ? formatoData.format(new Date(execution.criado_em))
+                : t("Sem data"),
+              erro: hasError(execution) ? execution.erro : null,
+              id: execution.id,
+              ids: [
+                {
+                  rotulo: t("Sessão"),
+                  valor: execution.session_id ?? t("Sem session_id"),
+                },
+                ...(execution.run_id
+                  ? [{ rotulo: "run", valor: execution.run_id }]
+                  : []),
+                ...(execution.teste_id
+                  ? [{ rotulo: "teste", valor: execution.teste_id }]
+                  : []),
+              ],
+              mensagem: execution.mensagem_teste?.trim() || t("Sem mensagem"),
+              resposta:
+                getAgentResponseText(execution).trim() || t("Sem resposta"),
+              selos: [
+                execution.rota
+                  ? formatLabel(execution.rota, "")
+                  : t("Sem rota"),
+                formatLabel(execution.origem, t("Sem valor")),
+              ],
+            }))}
+            rotulos={{
+              erro: t("Erro"),
+              mensagem: t("Mensagem enviada"),
+              resposta: t("Resposta obtida"),
+              sucesso: t("Sucesso"),
+            }}
+          />
+        ) : selectedEstado === "erro" ? (
+          <VazioTela
+            pose="feliz"
+            texto={t(
+              "Todas as execuções terminaram bem. Se algo falhar, aparece aqui primeiro.",
+            )}
+            titulo={t("Nenhum erro")}
+          />
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            {t("Ainda não há execuções registradas.")}
-          </div>
+          <VazioTela
+            acao={
+              <Link
+                className="ds-botao ds-botao-primario ds-botao-p"
+                href="/app/area-testes"
+              >
+                {t("Executar novo teste")}
+              </Link>
+            }
+            texto={t("Cada mensagem enviada na Área de testes aparece aqui.")}
+            titulo={t("Ainda não há execuções registradas.")}
+          />
         )}
       </div>
     </section>

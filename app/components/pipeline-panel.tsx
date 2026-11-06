@@ -1,12 +1,13 @@
 "use client";
 
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { BotaoExportar } from "@/app/components/botao-exportar";
-import { ChannelIcon } from "@/app/components/channel-brand";
 import { useIdioma } from "@/app/components/idioma";
 import { Dica } from "@/app/components/painel-ui";
+import { AvatarCanal, CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { colunasDoPipeline } from "@/lib/exportar/colunas";
 import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { ETAPAS, type Etapa } from "@/lib/pipeline/etapas";
@@ -144,6 +145,34 @@ function rotuloDoResultado(rotulo: string, t: FuncaoT) {
   }
 }
 
+/** A cor do selo da etiqueta da IA: o que pede ação fica laranja. */
+function corDoResultado(rotulo: string) {
+  switch (rotulo) {
+    case "Falou em marcar":
+    case "Interessado":
+      return "ds-selo-alerta";
+    case "Pós-venda":
+      return "ds-selo-verde";
+    case "Passou para a equipa":
+      return "ds-selo-ouro";
+    default:
+      return "ds-selo-neutro";
+  }
+}
+
+/** Há quanto tempo foi a última mensagem, em dias de calendário. */
+function haQuanto(cartao: CartaoPipeline, t: FuncaoT) {
+  if (!cartao.ultimaMensagemEm) {
+    return null;
+  }
+
+  return cartao.dias === 0
+    ? t("hoje")
+    : cartao.dias === 1
+      ? t("ontem")
+      : t("há {n} dias", { n: cartao.dias });
+}
+
 function Cartao({
   cartao,
   timeZone,
@@ -175,30 +204,39 @@ function Cartao({
    * telefone, porque é por ele que a conversa se encontra no WhatsApp.
    */
   const titulo =
-    cartao.marcacaoNome ?? cartao.nome ?? cartao.telefone ?? t("Sem nome");
+    // `||` e não `??`: há contatos do Instagram com nome vazio (""), e o
+    // cartão aparecia sem título nenhum.
+    cartao.marcacaoNome || cartao.nome || cartao.telefone || t("Sem nome");
   const alcunha = cartao.marcacaoNome && cartao.nome ? cartao.nome : null;
   const segundaLinha =
     [alcunha, titulo === cartao.telefone ? null : cartao.telefone]
       .filter(Boolean)
       .join(" · ") || null;
 
+  const quando = haQuanto(cartao, t);
+
   return (
     <Link
-      className="flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-surface p-3 transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+      className="flex min-w-0 shrink-0 flex-col gap-2 rounded-[14px] border border-border bg-surface p-3 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_18px_-6px_rgb(0_0_0/0.14)]"
       href={`/app/conversas?conversa=${encodeURIComponent(cartao.identificadorConversa)}`}
     >
-      <div className="flex min-w-0 items-start gap-2">
-        <ChannelIcon channel={cartao.canal} size="sm" />
+      <div className="flex min-w-0 items-center gap-2.5">
+        <AvatarCanal canal={cartao.canal} nome={titulo} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">
             {titulo}
           </p>
           {segundaLinha ? (
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-[11px] text-muted-foreground">
               {segundaLinha}
             </p>
           ) : null}
         </div>
+        {quando ? (
+          <span className="shrink-0 self-start text-[11px] text-muted-foreground">
+            {quando}
+          </span>
+        ) : null}
       </div>
 
       {marcacao ? (
@@ -215,7 +253,7 @@ function Cartao({
           <span
             className={`ds-selo shrink-0 ${
               cartao.marcacaoOrigem === "agente"
-                ? "ds-selo-escuro"
+                ? "ds-selo-verde"
                 : "ds-selo-neutro"
             }`}
           >
@@ -224,7 +262,7 @@ function Cartao({
         </div>
       ) : null}
 
-      <p className="text-xs leading-snug text-muted-foreground">
+      <p className="text-[0.8125rem] leading-snug text-muted-foreground">
         {porqueDoCartao(cartao, t)}
       </p>
 
@@ -244,11 +282,11 @@ function Cartao({
           </span>
         ) : null}
         {cartao.resultado ? (
-          <span className="ds-selo ds-selo-neutro">
+          <span className={`ds-selo ${corDoResultado(cartao.resultado)}`}>
             {rotuloDoResultado(cartao.resultado, t)}
           </span>
         ) : null}
-        <span className="text-[11px] text-muted-foreground/70 tabular-nums">
+        <span className="ml-auto text-[11px] text-muted-foreground/70 tabular-nums">
           {cartao.mensagens === 1
             ? t("1 mensagem")
             : t("{n} mensagens", { n: cartao.mensagens })}
@@ -273,8 +311,8 @@ function Coluna({
     // A altura é travada aqui e não herdada do layout: o `<main>` já rola, e
     // sem um tecto a coluna crescia com os seus 780 cartões e levava o título
     // consigo para fora do ecrã.
-    <section className="flex max-h-[70dvh] w-72 shrink-0 flex-col rounded-2xl border border-border bg-surface-muted/60">
-      <header className="flex shrink-0 items-center gap-2 px-3 pt-3 pb-2">
+    <section className="flex max-h-[72dvh] w-[17.5rem] shrink-0 snap-start flex-col rounded-[18px] bg-[color-mix(in_oklab,var(--ds-texto)_3.5%,transparent)]">
+      <header className="flex shrink-0 items-center gap-2 px-3.5 pt-3.5 pb-2.5">
         <span
           aria-hidden="true"
           className={`h-2 w-2 shrink-0 rounded-full ${corDaEtapa[etapa]}`}
@@ -282,7 +320,7 @@ function Coluna({
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
           {rotuloDaEtapa(etapa, t)}
         </h2>
-        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground tabular-nums">
+        <span className="shrink-0 text-[0.8125rem] font-medium text-muted-foreground tabular-nums">
           {cartoes.length}
         </span>
         <Dica texto={descricaoDaEtapa(etapa, t)} />
@@ -290,7 +328,7 @@ function Coluna({
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {cartoes.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+          <p className="rounded-[14px] border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
             {t("Nada aqui.")}
           </p>
         ) : (
@@ -340,6 +378,11 @@ export function PipelinePanel({
   }, [busca, cartoes, mostrarPerdidos]);
 
   const perdidos = cartoes.filter((cartao) => cartao.etapa === "perdido").length;
+  // O título conta o quadro todo, não a busca: é o resumo do dia.
+  const semResposta = cartoes.filter((cartao) => cartao.porResponder).length;
+  const emAndamento = cartoes.filter(
+    (cartao) => cartao.etapa === "a_decorrer",
+  ).length;
 
   // Exactamente o que está no quadro, pela ordem do quadro: com a procura
   // aplicada, e com os perdidos só se estiverem abertos. Achatar as colunas
@@ -348,16 +391,45 @@ export function PipelinePanel({
   const paraExportar = colunas.flatMap(({ cartoes: daColuna }) => daColuna);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      <CabecalhoTela
+        acoes={
+          <BotaoExportar
+            assunto="pipeline"
+            colunas={colunasDoPipeline(timeZone)}
+            linhas={paraExportar}
+          />
+        }
+        destaque={
+          semResposta === 0
+            ? undefined
+            : semResposta === 1
+              ? t("1 pessoa")
+              : t("{n} pessoas", { n: semResposta })
+        }
+        resto={
+          semResposta === 0
+            ? t("Ninguém sem resposta, {n} em andamento.", { n: emAndamento })
+            : t("sem resposta e {n} em andamento.", { n: emAndamento })
+        }
+        sobretitulo={t("Pipeline · atualiza sozinho")}
+      />
+
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          aria-label={t("Buscar por nome ou telefone")}
-          className="ds-campo min-w-0 flex-1 sm:max-w-xs"
-          onChange={(evento) => setBusca(evento.target.value)}
-          placeholder={t("Buscar por nome ou telefone")}
-          type="search"
-          value={busca}
-        />
+        <label className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            aria-label={t("Buscar por nome ou telefone")}
+            className="ds-campo w-full pl-9"
+            onChange={(evento) => setBusca(evento.target.value)}
+            placeholder={t("Buscar por nome ou telefone")}
+            type="search"
+            value={busca}
+          />
+        </label>
 
         <button
           aria-pressed={mostrarPerdidos}
@@ -371,20 +443,25 @@ export function PipelinePanel({
             ? t("Ocultar perdidos")
             : t("Ver perdidos ({n})", { n: perdidos })}
         </button>
-
-        <BotaoExportar
-          assunto="pipeline"
-          colunas={colunasDoPipeline(timeZone)}
-          linhas={paraExportar}
-        />
       </div>
+
+      {cartoes.length === 0 ? (
+        <div className="ds-bloco">
+          <VazioTela
+            texto={t(
+              "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.",
+            )}
+            titulo={t("Ainda não há ninguém no pipeline")}
+          />
+        </div>
+      ) : null}
 
       {/*
         As margens negativas deixam o quadro rolar de borda a borda do ecrã.
         Dentro do contentor do layout, que tem padding, a última coluna ficava
         a meio e parecia que o quadro acabava ali.
       */}
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
+      <div className="-mx-4 flex snap-x items-start gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 sm:-mx-8 sm:scroll-px-8 sm:px-8 lg:-mx-10 lg:scroll-px-10 lg:px-10">
         {colunas.map(({ cartoes: daColuna, etapa }) => (
           <Coluna
             cartoes={daColuna}

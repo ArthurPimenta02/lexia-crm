@@ -2,8 +2,8 @@ import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
+import { CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
@@ -30,6 +30,7 @@ type AdminCliente = {
 
 type AdminServicosPageProps = {
   searchParams: Promise<{
+    categoria?: string | string[];
     cliente?: string | string[];
     escalao?: string | string[];
   }>;
@@ -82,14 +83,12 @@ export default async function AdminServicosPage({
     clientes[0] ??
     null;
 
-  const cabecalho = <PaginaCabecalho titulo={t("Serviços")} />;
-
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        {cabecalho}
-        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          {t("Nenhum cliente ativo disponível.")}
+        <CabecalhoTela resto={t("Serviços")} />
+        <div className="ds-bloco">
+          <VazioTela titulo={t("Nenhum cliente ativo disponível.")} />
         </div>
       </div>
     );
@@ -116,17 +115,15 @@ export default async function AdminServicosPage({
   const selectorDeCliente = (
     <Form
       action="/admin/servicos"
-      className="flex flex-wrap items-end gap-2"
+      className="flex min-w-0 flex-wrap items-center gap-2"
       replace
       scroll={false}
     >
-      <label
-        className="flex flex-col gap-2 text-sm font-semibold text-foreground"
-        htmlFor="cliente"
-      >
+      <label className="sr-only" htmlFor="cliente">
         {t("Cliente")}
-        <select
-          className="ds-campo h-10 min-w-56 font-normal tracking-normal normal-case"
+      </label>
+      <select
+          className="ds-campo w-auto min-w-0 sm:min-w-56"
           defaultValue={clienteSlug}
           id="cliente"
           name="cliente"
@@ -140,10 +137,9 @@ export default async function AdminServicosPage({
             </option>
           ))}
         </select>
-      </label>
       <input name="escalao" type="hidden" value={painel.escalaoActivo} />
       <FormSubmitButton
-        className="ds-botao ds-botao-primario h-10"
+        className="ds-botao ds-botao-secundario"
         pendingLabel="..."
       >
         {t("Selecionar")}
@@ -153,10 +149,6 @@ export default async function AdminServicosPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        {cabecalho}
-      </div>
-
       <ServicosPanel
         action={gravarServicoAdminAction}
         actionExcluir={excluirServicoAdminAction}
@@ -164,12 +156,14 @@ export default async function AdminServicosPage({
         actionReceita={definirReceitaAdminAction}
         actionRepor={reporServicoAdminAction}
         basePath="/admin/servicos"
+        categoria={lerParametro(params.categoria) || undefined}
         clienteSlug={clienteSlug}
         leading={selectorDeCliente}
         locale={locale}
         painel={painel}
         parametrosFixos={{ cliente: clienteSlug }}
         podeEditar={!painel.somenteLeitura}
+        sobretitulo={`${clienteSelecionado.nome ?? clienteSlug} · ${t("Serviços")}`}
         t={t}
       />
     </div>

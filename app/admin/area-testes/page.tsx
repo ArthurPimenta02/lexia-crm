@@ -1,13 +1,10 @@
-import Form from "next/form";
-
 import { AdminTestChat } from "@/app/admin/area-testes/admin-test-chat";
 import {
   type AdminTestExecution,
   type AdminTestSession,
   type AdminTestWorkflow,
 } from "@/app/admin/area-testes/actions";
-import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
@@ -100,51 +97,51 @@ export default async function AdminTestAreaPage({
     throw new Error(t("Não foi possível buscar as mensagens da sessão."));
   }
 
+  const nomeSelecionado = selectedClient
+    ? (selectedClient.nome ?? selectedClient.slug)
+    : null;
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo={t("Área de testes")} />
+      <CabecalhoTela
+        destaque={nomeSelecionado ?? undefined}
+        resto={
+          nomeSelecionado
+            ? t("no simulador. Nada sai para clientes.")
+            : t("Escolha o cliente para testar o agente.")
+        }
+        sobretitulo={t("Área de testes")}
+        subtitulo={
+          selectedClient
+            ? sessions.length === 1
+              ? t("1 conversa de teste")
+              : t("{n} conversas de teste", { n: sessions.length })
+            : undefined
+        }
+      />
 
-      <Form
-        action="/admin/area-testes"
-        className="flex flex-wrap items-end gap-3"
-        replace
-        scroll={false}
-      >
-        <div className="flex min-w-72 flex-col gap-2">
-          <label className="text-sm font-medium text-muted-foreground" htmlFor="cliente">
-            {t("Cliente")}
-          </label>
-          <select
-            className="ds-campo"
-            defaultValue={selectedClient?.slug ?? ""}
-            id="cliente"
-            name="cliente"
-          >
-            <option value="">{t("Selecione um cliente")}</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.slug}>
-                {client.nome ?? client.slug} ({client.slug})
-              </option>
-            ))}
-          </select>
-        </div>
-        <FormSubmitButton
-          className="ds-botao ds-botao-primario"
-          pendingLabel={t("Selecionando...")}
-        >
-          {t("Selecionar")}
-        </FormSubmitButton>
-      </Form>
+      <FiltroTrilho
+        opcoes={clients.map((client) => ({
+          ativo: client.slug === selectedClient?.slug,
+          href: `/admin/area-testes?cliente=${encodeURIComponent(client.slug)}`,
+          label: client.nome ?? client.slug,
+        }))}
+        rotulo={t("Cliente")}
+      />
 
       {!selectedClient ? (
-        <div className="rounded-2xl border border-border bg-surface px-4 py-10 text-center text-sm text-muted-foreground">
-          {t("Selecione um cliente para iniciar o teste.")}
+        <div className="ds-bloco">
+          <VazioTela
+            texto={t("Escolha um cliente na barra acima.")}
+            titulo={t("Selecione um cliente para iniciar o teste.")}
+          />
         </div>
       ) : (
         <AdminTestChat
           clienteSlug={selectedClient.slug}
           executions={(executionsData ?? []) as AdminTestExecution[]}
           key={`${selectedClient.slug}:${selectedSessionId ?? "sem-sessao"}`}
+          nomeCliente={nomeSelecionado ?? selectedClient.slug}
           selectedSessionId={selectedSessionId}
           sessions={sessions}
           workflows={workflows}

@@ -670,3 +670,47 @@
 .mascote-fab-corte { position: absolute; }
 .mascote-fab-corte img { position: absolute; display: block; }
 @media (prefers-reduced-motion: reduce) { .mascote-pairar, .mascote-fab { animation: none; } }
+
+/* ── Telas redesenhadas (06/11): peças de app/components/tela.tsx ─────── */
+:root {
+  --av-1-fundo: #dcefe6; --av-1-texto: #0b5a43;
+  --av-2-fundo: #e5ecff; --av-2-texto: #2b4fb8;
+  --av-3-fundo: #fdebdc; --av-3-texto: #a24b12;
+  --av-4-fundo: #efe7ff; --av-4-texto: #6b3fcf;
+  --av-5-fundo: #fff1d6; --av-5-texto: #8a5a0f;
+  --av-6-fundo: #fbe4ea; --av-6-texto: #a8324f;
+}
+:root[data-tema="escuro"] {
+  --av-1-fundo: #173a2d; --av-1-texto: #8de8c4;
+  --av-2-fundo: #1a2647; --av-2-texto: #9db8ff;
+  --av-3-fundo: #3a2414; --av-3-texto: #f8b07a;
+  --av-4-fundo: #2a1f45; --av-4-texto: #c6abff;
+  --av-5-fundo: #33280f; --av-5-texto: #f2c766;
+  --av-6-fundo: #3a1a24; --av-6-texto: #f59ab1;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-tema="sistema"] {
+    --av-1-fundo: #173a2d; --av-1-texto: #8de8c4;
+    --av-2-fundo: #1a2647; --av-2-texto: #9db8ff;
+    --av-3-fundo: #3a2414; --av-3-texto: #f8b07a;
+    --av-4-fundo: #2a1f45; --av-4-texto: #c6abff;
+    --av-5-fundo: #33280f; --av-5-texto: #f2c766;
+    --av-6-fundo: #3a1a24; --av-6-texto: #f59ab1;
+  }
+}
+@layer components {
+.tela-avatar { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 9999px; font-weight: 600; line-height: 1; letter-spacing: 0; }
+.tela-avatar-canal { position: absolute; right: -3px; bottom: -3px; display: inline-flex; border-radius: 9999px; box-shadow: 0 0 0 2px var(--ds-superficie); }
+.tela-aviso { border-radius: 14px; padding: 0.625rem 0.875rem; font-size: 0.8125rem; font-weight: 500; }
+.tela-aviso-alerta { background: var(--ds-alerta-fundo); color: var(--ds-alerta); }
+.tela-aviso-perigo { background: var(--ds-perigo-fundo); color: var(--ds-perigo); }
+.tela-aviso-info { background: var(--ds-info-fundo); color: var(--ds-info); }
+.tela-aviso summary::-webkit-details-marker { display: none; }
+.tela-aviso a { color: inherit; text-decoration: none; }
+/* Lista agrupada: linhas com divisória que começa depois do avatar */
+.tela-lista > * { position: relative; }
+.tela-lista > * + *::before { content: ""; position: absolute; left: 3.75rem; right: 0.75rem; top: 0; border-top: 1px solid var(--ds-linha); }
+.tela-linha { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 12px; transition: background-color 0.15s; }
+@media (hover: hover) { .tela-linha:hover { background: color-mix(in oklab, var(--ds-texto) 3.5%, transparent); } }
+.tela-linha[aria-current="true"], .tela-linha[aria-selected="true"] { background: var(--ds-acao-fundo); }
+}

@@ -2,8 +2,8 @@ import Form from "next/form";
 import { redirect } from "next/navigation";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
+import { CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { getT } from "@/lib/i18n/servidor";
@@ -65,17 +65,15 @@ export default async function AdminProdutosPage({
 
   const clientes = (clientesData ?? []) as AdminCliente[];
 
-  const cabecalho = <PaginaCabecalho titulo={t("Produtos")} />;
-
   const clienteSelecionado =
     clientes.find((cliente) => cliente.slug === pedido) ?? clientes[0] ?? null;
 
   if (!clienteSelecionado) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        {cabecalho}
-        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          {t("Nenhum cliente ativo disponível.")}
+        <CabecalhoTela resto={t("Produtos")} />
+        <div className="ds-bloco">
+          <VazioTela titulo={t("Nenhum cliente ativo disponível.")} />
         </div>
       </div>
     );
@@ -97,45 +95,38 @@ export default async function AdminProdutosPage({
   const moeda = getServicosConfig(clienteSlug)?.moeda ?? "EUR";
 
   const selectorDeCliente = (
-    <div className="rounded-2xl border border-border bg-surface/90 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <Form
-        action="/admin/produtos"
-        className="flex flex-wrap items-end gap-2"
-        replace
-        scroll={false}
+    <Form
+      action="/admin/produtos"
+      className="flex min-w-0 flex-wrap items-center gap-2"
+      replace
+      scroll={false}
+    >
+      <label className="sr-only" htmlFor="cliente">
+        {t("Cliente")}
+      </label>
+      <select
+        className="ds-campo w-auto min-w-0 sm:min-w-56"
+        defaultValue={clienteSlug}
+        id="cliente"
+        name="cliente"
       >
-        <label
-          className="flex flex-col gap-2 text-sm font-semibold text-foreground"
-          htmlFor="cliente"
-        >
-          {t("Cliente")}
-          <select
-            className="ds-campo min-w-56 font-normal tracking-normal normal-case"
-            defaultValue={clienteSlug}
-            id="cliente"
-            name="cliente"
-          >
-            {clientes.map((cliente) => (
-              <option key={cliente.id} value={cliente.slug}>
-                {cliente.nome ?? cliente.slug}
-              </option>
-            ))}
-          </select>
-        </label>
-        <FormSubmitButton
-          className="ds-botao ds-botao-primario"
-          pendingLabel="..."
-        >
-          {t("Selecionar")}
-        </FormSubmitButton>
-      </Form>
-    </div>
+        {clientes.map((cliente) => (
+          <option key={cliente.id} value={cliente.slug}>
+            {cliente.nome ?? cliente.slug}
+          </option>
+        ))}
+      </select>
+      <FormSubmitButton
+        className="ds-botao ds-botao-secundario"
+        pendingLabel="..."
+      >
+        {t("Selecionar")}
+      </FormSubmitButton>
+    </Form>
   );
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      {cabecalho}
-
       <ProdutosPanel
         actionAjuste={registarAjusteAdminAction}
         actionCompra={registarCompraAdminAction}
@@ -151,6 +142,7 @@ export default async function AdminProdutosPage({
         produtos={produtos}
         servicos={servicos}
         servicosPorProduto={servicosPorProduto}
+        sobretitulo={`${clienteSelecionado.nome ?? clienteSlug} · ${t("Produtos")}`}
         timeZone={getClientTimezone(clienteSlug)}
       />
     </div>

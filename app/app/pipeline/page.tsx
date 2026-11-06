@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { PipelinePanel } from "@/app/components/pipeline-panel";
+import { AvisoLinha, CabecalhoTela } from "@/app/components/tela";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
@@ -36,12 +36,11 @@ export default async function PipelinePage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <PaginaCabecalho titulo={t("Pipeline")} />
-
       {erro ? (
-        <p className="rounded-2xl border border-border bg-surface px-4 py-6 text-sm text-muted-foreground">
-          {t(erro)}
-        </p>
+        <>
+          <CabecalhoTela resto={t("Pipeline")} />
+          <AvisoLinha tom="perigo">{t(erro)}</AvisoLinha>
+        </>
       ) : (
         <PipelinePanel
           cartoes={cartoes}

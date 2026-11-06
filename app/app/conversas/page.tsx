@@ -1,37 +1,36 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Fragment, Suspense } from "react";
+import { Suspense } from "react";
 
 import { saveClientConversationFeedback } from "@/app/app/conversas/actions";
-import {
-  ChannelBadge,
-  ChannelIcon,
-  getChannelLabel,
-} from "@/app/components/channel-brand";
 import { ConversationAgentStatus } from "@/app/components/conversation-agent-status";
-import { ConversationFeedbackAction } from "@/app/components/conversation-feedback-action";
-import { ConversationFilterBar } from "@/app/components/conversation-filter-bar";
 import {
-  ConversationDaySeparator,
-  ConversationMessageBubble,
-} from "@/app/components/conversation-message-bubble";
+  BuscaConversas,
+  FiltrosConversas,
+  hrefConversas,
+  type EstadoConversas,
+} from "@/app/components/conversation-filter-bar";
+import { getConversationPeriodState } from "@/app/components/conversation-period-filter";
 import {
-  appendConversationPeriodParams,
-  type ConversationPeriodState,
-  getConversationPeriodState,
-} from "@/app/components/conversation-period-filter";
+  AreaConversas,
+  CabecalhoConversa,
+  FichaConversa,
+  HistoricoConversa,
+  ListaConversas,
+  previaComAutor,
+  quandoCurto,
+  situacaoDaConversa,
+  TopoLista,
+} from "@/app/components/conversation-workspace";
 import { CaixaDeEnvio } from "@/app/components/caixa-de-envio";
-import { ScrollToBottomPanel } from "@/app/components/scroll-to-bottom-panel";
-import { getSelectedTimezone } from "@/lib/clientes/timezone";
+import { AvisoLinha, CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
+import { getSelectedTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getSearchValue } from "@/lib/dashboard/date-range";
 import { getConversationDateRange } from "@/lib/conversations/date-range";
 import { resolveConversationSelection } from "@/lib/conversations/select-conversation";
 import {
-  getConversationDayKey,
   getConversationMessagePreview,
-  isSentConversationMessage,
   prepareConversationMessages,
   type ConversationMessageRecord,
   type DisplayConversationMessage,
@@ -40,7 +39,6 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { assinarMidias } from "@/lib/conversations/media-urls";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
-import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
@@ -54,6 +52,7 @@ type ConversationsPageProps = {
     fuso?: string | string[];
     inicio?: string | string[];
     periodo?: string | string[];
+    situacao?: string | string[];
   }>;
 };
 
@@ -117,69 +116,6 @@ function getDateTimeValue(value: string | null | undefined) {
   const time = new Date(value).getTime();
 
   return Number.isNaN(time) ? 0 : time;
-}
-
-function getFilterHref(
-  channel: string,
-  timezone: string,
-  period: ConversationPeriodState,
-  searchQuery: string,
-) {
-  const params = new URLSearchParams();
-
-  params.set("fuso", timezone);
-  appendConversationPeriodParams(params, period);
-
-  if (channel) {
-    params.set("canal", channel);
-  }
-
-  if (searchQuery) {
-    params.set("busca", searchQuery);
-  }
-
-  return `/app/conversas?${params.toString()}`;
-}
-
-function getConversationHref(
-  conversationId: string,
-  channel: string,
-  timezone: string,
-  period: ConversationPeriodState,
-  searchQuery: string,
-) {
-  const params = new URLSearchParams();
-
-  params.set("fuso", timezone);
-  appendConversationPeriodParams(params, period);
-
-  if (channel) {
-    params.set("canal", channel);
-  }
-
-  if (searchQuery) {
-    params.set("busca", searchQuery);
-  }
-
-  params.set("conversa", conversationId);
-
-  return `/app/conversas?${params.toString()}`;
-}
-
-function getConversationCountText(
-  count: number,
-  searchQuery: string,
-  t: FuncaoT,
-) {
-  if (searchQuery) {
-    return count === 1
-      ? t("{n} resultado", { n: count })
-      : t("{n} resultados", { n: count });
-  }
-
-  return count === 1
-    ? t("{n} conversa", { n: count })
-    : t("{n} conversas", { n: count });
 }
 
 /** Data e hora no idioma de quem vê, no fuso escolhido na barra. */
@@ -421,355 +357,228 @@ export default async function ClientConversationsPage({
   const lastSelectedMessageId =
     displayMessages[displayMessages.length - 1]?.displayId ?? "sem-mensagens";
 
+  const situacaoPedida = getSearchValue(params.situacao) === "esperando" ? "esperando" : "";
+  const estado: EstadoConversas = {
+    basePath: "/app/conversas",
+    busca: searchQuery,
+    canal: selectedChannel,
+    conversa: null,
+    fuso: selectedTimezone.value,
+    periodo: periodState,
+    situacao: situacaoPedida,
+  };
+  const timeZone = selectedTimezone.timeZone;
+  // A situação vem da última mensagem do período, a mesma regra do dashboard.
+  const situacaoDe = (identificador: string) =>
+    situacaoDaConversa(summaries.get(identificador)?.lastMessage);
+  const esperando = sortedContacts.filter(
+    (contact) => situacaoDe(contact.identificador_conversa) === "esperando",
+  ).length;
+  const contatosVisiveis = situacaoPedida
+    ? sortedContacts.filter(
+        (contact) =>
+          situacaoDe(contact.identificador_conversa) === "esperando" ||
+          contact.identificador_conversa === requestedConversation,
+      )
+    : sortedContacts;
+  const itens = contatosVisiveis.map((contact) => {
+    const isSelected =
+      selectedContact?.identificador_conversa === contact.identificador_conversa;
+    const summary = isSelected
+      ? (selectedSummary ?? summaries.get(contact.identificador_conversa))
+      : summaries.get(contact.identificador_conversa);
+    const ultima = summary?.lastMessage;
+    const previa = ultima
+      ? ultima.content || t(getConversationMessagePreview(ultima))
+      : t("Abrir histórico completo");
+
+    return {
+      canal: contact.canal,
+      foraDoPeriodo:
+        selection.requestedIsOutsidePeriod &&
+        contact.identificador_conversa === requestedConversation,
+      href: hrefConversas(estado, { conversa: contact.identificador_conversa }),
+      id: contact.id,
+      nome: contact.nome || contact.telefone || t("Sem nome"),
+      previa: previaComAutor(situacaoDaConversa(ultima), previa, t),
+      quando: quandoCurto(getContactLastActivity(contact, summaries), timeZone, locale, t("Sem data")),
+      selecionado: isSelected,
+      semNome: !contact.nome && !contact.telefone,
+      situacao: situacaoDe(contact.identificador_conversa),
+    };
+  });
+  const nomeSelecionado = selectedContact
+    ? selectedContact.nome || selectedContact.telefone || t("Sem nome")
+    : "";
+
   return (
-    <section className="flex w-full min-w-0 flex-col gap-2 lg:h-[calc(100dvh-4rem)] lg:min-h-[600px]">
+    <section className="flex w-full min-w-0 flex-col gap-4 lg:h-[calc(100dvh-4rem)] lg:min-h-[640px]">
       <AtualizacaoAutomatica segundos={5} sinal={sinalDaTela.bind(null, "conversas", null)} />
-      <h1 className="sr-only">{t("Conversas")}</h1>
 
-      <ConversationFilterBar
-        basePath="/app/conversas"
-        channel={selectedChannel}
-        conversationId={selectedContact?.identificador_conversa}
-        period={periodState}
-        rangeLabel={range.label}
-        searchQuery={searchQuery}
-        timezone={selectedTimezone.value}
-      />
+      <div className={isChatOpenOnMobile ? "max-lg:hidden" : ""}>
+        <CabecalhoTela
+          acoes={<FiltrosConversas estado={estado} />}
+          destaque={
+            esperando === 0
+              ? undefined
+              : esperando === 1
+                ? t("1 conversa")
+                : t("{n} conversas", { n: esperando })
+          }
+          resto={esperando === 0 ? t("Ninguém esperando resposta.") : t("esperando resposta.")}
+          sobretitulo={t("Conversas")}
+          subtitulo={`${searchQuery ? t("Busca em todo o período") : t(range.label)} · ${getTimezoneLabel(timeZone)}`}
+        />
+      </div>
 
-      <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside
-          className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface/90 shadow-sm backdrop-blur ${
-            isChatOpenOnMobile ? "max-lg:hidden" : ""
-          }`}
-        >
-          <div className="border-b border-border bg-surface/95 px-3 py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-foreground">
-                  {t("Conversas")}
-                </h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {getConversationCountText(sortedContacts.length, searchQuery, t)}
-                </p>
-              </div>
-              <span className="text-[11px] text-muted-foreground/60">
-                {t("Mais recentes")}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto bg-surface-muted p-2">
-            {sortedContacts.length > 0 ? (
-              sortedContacts.map((contact) => {
-                const isSelected =
-                  selectedContact?.identificador_conversa ===
-                  contact.identificador_conversa;
-                const summary = isSelected
-                  ? (selectedSummary ??
-                    summaries.get(contact.identificador_conversa))
-                  : summaries.get(contact.identificador_conversa);
-                const lastActivity = getContactLastActivity(contact, summaries);
-                const isOutsidePeriod =
-                  selection.requestedIsOutsidePeriod &&
-                  contact.identificador_conversa === requestedConversation;
-
-                return (
-                  <Link
-                    className={`rounded-[14px] border px-3 py-2.5 transition ${
-                      isSelected
-                        ? "border-foreground bg-primary text-primary-foreground shadow-lg"
-                        : "border-transparent bg-surface text-foreground shadow-sm hover:border-border hover:shadow-md"
-                    }`}
-                    href={getConversationHref(
-                      contact.identificador_conversa,
-                      selectedChannel,
-                      selectedTimezone.value,
-                      periodState,
-                      searchQuery,
-                    )}
-                    key={contact.id}
-                    /*
-                     * Escolher uma conversa não é mudar de página, é mudar o
-                     * que está ao lado — e a lista tem de ficar onde estava.
-                     *
-                     * Por omissão o Next põe a nova página no topo, e quando a
-                     * janela não rola — aqui não rola, o layout é `h-dvh` —
-                     * fá-lo com um `scrollIntoView`, que rola todos os
-                     * contentores que rolem até o topo ficar à vista. O
-                     * contentor que rola nesta lista é ela própria, por isso
-                     * clicar na décima conversa saltava de volta à primeira.
-                     */
-                    scroll={false}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 gap-2">
-                        <ChannelIcon channel={contact.canal} />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">
-                            {contact.nome || contact.telefone || t("Sem nome")}
-                          </p>
-                          {isOutsidePeriod ? (
-                            <p
-                              className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                isSelected ? "text-primary-foreground" : "text-warning"
-                              }`}
-                            >
-                              {t("Fora do período")}
-                            </p>
-                          ) : null}
-                          {/*
-                            Como no cabeçalho: sem nome, o título já é o
-                            próprio número — ou o PSID do Instagram e do
-                            Messenger — e a linha de baixo repetia-o.
-                          */}
-                          {contact.nome ? (
-                            <p
-                              className={`mt-0.5 truncate text-[11px] ${
-                                isSelected
-                                  ? "text-primary-foreground/85"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              {contact.telefone ?? t("Sem telefone")}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                      <ChannelBadge channel={contact.canal} />
-                    </div>
-
-                    <p
-                      className={`mt-1.5 line-clamp-1 text-xs ${
-                        isSelected
-                          ? "text-primary-foreground/85"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {summary
-                        ? summary.lastMessage?.content ||
-                          t(getConversationMessagePreview(summary.lastMessage))
-                        : t("Abrir histórico completo")}
-                    </p>
-
-                    <div
-                      className={`mt-2 flex items-center justify-between gap-3 text-[11px] ${
-                        isSelected
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      <span>
-                        {summary
-                          ? summary.messageCount === 1
-                            ? t("{n} mensagem", { n: summary.messageCount })
-                            : t("{n} mensagens", { n: summary.messageCount })
-                          : t("Histórico disponível")}
-                      </span>
-                      <span className="shrink-0">
-                        {formatarData(
-                          lastActivity,
-                          selectedTimezone.timeZone,
-                          locale,
-                          t("Sem data"),
-                        )}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })
-            ) : (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                {searchQuery
-                  ? t("Nenhuma conversa encontrada para “{busca}”.", {
-                      busca: searchQuery,
-                    })
-                  : t("Não há conversas com mensagens neste período.")}
-              </div>
-            )}
-          </div>
-        </aside>
-
-        <section
-          className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm ${
-            isChatOpenOnMobile
-              ? "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:h-dvh max-lg:rounded-none max-lg:border-0"
-              : "max-lg:hidden"
-          }`}
-        >
-          {selectedContact ? (
+      <AreaConversas
+        chat={
+          selectedContact ? (
             <>
-              <div className="shrink-0 border-b border-border bg-surface/95 px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 lg:px-4 lg:py-2.5">
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div className="flex min-w-0 items-center gap-2 lg:gap-3">
-                    <Link
-                      aria-label={t("Voltar para a lista de conversas")}
-                      className="-ml-1 flex h-9 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted lg:hidden"
-                      href={getFilterHref(
-                        selectedChannel,
-                        selectedTimezone.value,
-                        periodState,
-                        searchQuery,
-                      )}
-                    >
-                      <svg
-                        aria-hidden="true"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          d="M12.5 4.5L7 10l5.5 5.5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="1.8"
-                        />
-                      </svg>
-                    </Link>
-                    {/*
-                      O canal diz-se uma vez só, no ícone.
-
-                      Estavam aqui três: o ícone, uma etiqueta "WhatsApp" ao
-                      lado do nome e outra vez no subtítulo, a seguir ao
-                      telefone. Desde que o ícone passou a ser o desenho
-                      oficial da marca, lê-se de relance e as outras duas não
-                      acrescentavam nada — só empurravam o nome da pessoa, que
-                      é o que interessa neste cabeçalho, para o meio da linha.
-
-                      O nome do canal fica em `sr-only` porque o glifo é
-                      `aria-hidden`: sem isto, quem usa leitor de ecrã deixava
-                      de saber por onde a conversa entrou.
-                    */}
-                    <ChannelIcon channel={selectedContact.canal} size="lg" />
-                    <span className="sr-only">
-                      {t(getChannelLabel(selectedContact.canal))}
-                    </span>
-                    <div className="min-w-0">
-                      <h2 className="truncate text-[15px] leading-tight font-semibold text-foreground">
-                        {selectedContact.nome ||
-                          selectedContact.telefone ||
-                          t("Conversa")}
-                      </h2>
-                      {/*
-                        O telefone só aparece por baixo de um nome. Sem nome, o
-                        título já é o próprio número — ou o PSID do Instagram —
-                        e repeti-lo aqui dava a mesma cadeia de dezasseis
-                        dígitos duas vezes, uma por cima da outra.
-                      */}
-                      {selectedContact.nome ? (
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground max-sm:hidden">
-                          {selectedContact.telefone ?? t("Sem telefone")}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1.5 md:items-end">
-                    <div className="text-xs text-muted-foreground max-lg:hidden">
-                      {formatarData(
-                        selectedSummary?.lastActivityAt ??
-                          selectedContact.atualizado_em,
-                        selectedTimezone.timeZone,
-                        locale,
-                        t("Sem data"),
-                      )}
-                    </div>
-                    <Suspense fallback={null}>
-                      <ConversationAgentStatus
-                        clienteSlug={profile.cliente_slug}
-                        contactLabel={
-                          selectedContact.nome ||
-                          selectedContact.telefone ||
-                          undefined
-                        }
-                        identificadorConversa={
-                          selectedContact.identificador_conversa
-                        }
-                      />
-                    </Suspense>
-                  </div>
-                </div>
-              </div>
+              <CabecalhoConversa
+                acoes={
+                  <Suspense fallback={null}>
+                    <ConversationAgentStatus
+                      clienteSlug={profile.cliente_slug}
+                      contactLabel={selectedContact.nome || selectedContact.telefone || undefined}
+                      identificadorConversa={selectedContact.identificador_conversa}
+                    />
+                  </Suspense>
+                }
+                canal={selectedContact.canal}
+                nome={nomeSelecionado}
+                semNome={!selectedContact.nome && !selectedContact.telefone}
+                subtitulo={
+                  selectedContact.nome && selectedContact.telefone
+                    ? selectedContact.telefone
+                    : null
+                }
+                voltarHref={hrefConversas(estado)}
+              />
 
               {selection.requestedIsOutsidePeriod ? (
-                <p className="shrink-0 border-b border-warning/20 bg-warning-soft px-3 py-1.5 text-[11px] text-warning lg:px-4">
-                  {t(
-                    "Esta conversa está fora do período filtrado ({periodo}), mas o histórico completo está aqui.",
-                    { periodo: t(range.label) },
-                  )}
-                </p>
+                <div className="shrink-0 border-b border-border px-3 py-2 lg:px-4">
+                  <AvisoLinha tom="info">
+                    {t(
+                      "Esta conversa está fora do período filtrado ({periodo}), mas o histórico completo está aqui.",
+                      { periodo: t(range.label) },
+                    )}
+                  </AvisoLinha>
+                </div>
               ) : null}
 
-              <ScrollToBottomPanel
-                className="lexia-chat-wallpaper flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2.5 py-2.5 sm:px-4 sm:py-3"
-                scrollKey={`${selectedContact.identificador_conversa}:${displayMessages.length}:${lastSelectedMessageId}`}
-              >
-                {displayMessages.length > 0 ? (
-                  displayMessages.map((message, messageIndex) => {
-                    const dayKey = getConversationDayKey(
-                      message.criado_em,
-                      selectedTimezone.timeZone,
-                    );
-                    const previousMessage = displayMessages[messageIndex - 1];
-                    const previousDayKey = previousMessage
-                      ? getConversationDayKey(
-                          previousMessage.criado_em,
-                          selectedTimezone.timeZone,
-                        )
-                      : null;
-                    const showFeedback =
-                      isSentConversationMessage(message) &&
-                      message.partIndex === message.partCount - 1;
-
-                    return (
-                      <Fragment key={message.displayId}>
-                        {dayKey !== previousDayKey ? (
-                          <ConversationDaySeparator
-                            label={formatarData(
-                              message.criado_em,
-                              selectedTimezone.timeZone,
-                              locale,
-                              t("Sem data"),
-                              {
-                                day: "2-digit",
-                                month: "long",
-                                year: "numeric",
-                              },
-                            )}
-                          />
-                        ) : null}
-                        <ConversationMessageBubble
-                          feedback={
-                            showFeedback ? (
-                              <ConversationFeedbackAction
-                                appearance="dark"
-                                messageId={message.sourceMessageId}
-                                onSave={saveClientConversationFeedback}
-                              />
-                            ) : null
-                          }
-                          message={message}
-                          timeZone={selectedTimezone.timeZone}
-                        />
-                      </Fragment>
-                    );
+              <HistoricoConversa
+                formatarDia={(data) =>
+                  formatarData(data, timeZone, locale, t("Sem data"), {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
                   })
-                ) : (
-                  <div className="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-                    {t("Esta conversa ainda não tem mensagens registradas.")}
-                  </div>
-                )}
-              </ScrollToBottomPanel>
+                }
+                mensagens={displayMessages}
+                onSave={saveClientConversationFeedback}
+                scrollKey={`${selectedContact.identificador_conversa}:${displayMessages.length}:${lastSelectedMessageId}`}
+                timeZone={timeZone}
+              />
               <CaixaDeEnvio key={selectedContact.identificador_conversa} conversa={selectedContact.identificador_conversa} />
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center px-4 py-10 text-center text-sm text-muted-foreground">
-              {selection.requestedIsMissing
-                ? t("Não encontramos esta conversa. Escolha uma da lista.")
-                : t("Selecione uma conversa para ver as mensagens.")}
+            <div className="flex flex-1 items-center justify-center">
+              <VazioTela
+                pose="ola"
+                texto={
+                  selection.requestedIsMissing
+                    ? t("Não encontramos esta conversa. Escolha uma da lista.")
+                    : undefined
+                }
+                titulo={t("Selecione uma conversa para ver as mensagens.")}
+              />
             </div>
-          )}
-        </section>
-      </div>
+          )
+        }
+        conversaAberta={isChatOpenOnMobile}
+        ficha={
+          selectedContact ? (
+            <FichaConversa
+              canal={selectedContact.canal}
+              linhas={[
+                ...(selectedContact.telefone
+                  ? [{ rotulo: t("Telefone"), valor: selectedContact.telefone }]
+                  : []),
+                {
+                  rotulo: t("Primeiro contato"),
+                  valor: formatarData(selectedContact.criado_em, timeZone, locale, t("Sem data"), {
+                    dateStyle: "medium",
+                  }),
+                },
+                {
+                  rotulo: t("Última atividade"),
+                  valor: formatarData(
+                    selectedSummary?.lastActivityAt ?? selectedContact.atualizado_em,
+                    timeZone,
+                    locale,
+                    t("Sem data"),
+                  ),
+                },
+                {
+                  rotulo: t("Histórico"),
+                  valor:
+                    (selectedSummary?.messageCount ?? 0) === 1
+                      ? t("{n} mensagem", { n: 1 })
+                      : t("{n} mensagens", { n: selectedSummary?.messageCount ?? 0 }),
+                },
+              ]}
+              situacao={situacaoDe(selectedContact.identificador_conversa)}
+            />
+          ) : null
+        }
+        lista={
+          <>
+            <TopoLista>
+              <BuscaConversas estado={estado} />
+              <FiltroTrilho
+                opcoes={[
+                  {
+                    ativo: !situacaoPedida,
+                    href: hrefConversas(estado, { situacao: "" }),
+                    label: t("Todas"),
+                    quantidade: sortedContacts.length,
+                  },
+                  {
+                    ativo: situacaoPedida === "esperando",
+                    href: hrefConversas(estado, { situacao: "esperando" }),
+                    label: t("Esperando"),
+                    quantidade: esperando,
+                  },
+                ]}
+                rotulo={t("Situação")}
+              />
+            </TopoLista>
+            <ListaConversas
+              itens={itens}
+              vazio={
+                <VazioTela
+                  pose="ola"
+                  texto={
+                    searchQuery
+                      ? t("Confira o nome ou tente pelo número.")
+                      : situacaoPedida
+                        ? t("Todas as conversas deste período já foram respondidas.")
+                        : t("Troque o período no topo para ver conversas mais antigas.")
+                  }
+                  titulo={
+                    searchQuery
+                      ? t("Nenhuma conversa encontrada para “{busca}”.", { busca: searchQuery })
+                      : situacaoPedida
+                        ? t("Ninguém esperando resposta.")
+                        : t("Não há conversas com mensagens neste período.")
+                  }
+                />
+              }
+            />
+          </>
+        }
+      />
     </section>
   );
 }

@@ -8,7 +8,6 @@ import {
   registarCompraAction,
   reporProdutoAction,
 } from "@/app/app/produtos/actions";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ProdutosPanel } from "@/app/components/produtos-panel";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -45,7 +44,6 @@ export default async function ProdutosPage() {
     redirect("/app");
   }
 
-  const t = await getT();
   const [produtos, servicos, excluidos] = await Promise.all([
     getProdutos(profile.cliente_slug),
     getServicosSimples(profile.cliente_slug),
@@ -64,8 +62,6 @@ export default async function ProdutosPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Produtos")} />
-
       <ProdutosPanel
         actionAjuste={registarAjusteAction}
         actionCompra={registarCompraAction}

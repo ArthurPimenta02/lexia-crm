@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus, Search, X } from "lucide-react";
 import Link from "next/link";
 import {
   Fragment,
@@ -16,6 +17,12 @@ import { buildAppConversationHref } from "@/app/components/feedback-conversation
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { useIdioma } from "@/app/components/idioma";
 import { SeccaoTitulo } from "@/app/components/painel-ui";
+import {
+  AvatarCanal,
+  AvisoLinha,
+  CabecalhoTela,
+  VazioTela,
+} from "@/app/components/tela";
 import {
   canaisDeAquisicao,
   canalQuePedeNota,
@@ -80,8 +87,6 @@ const botaoPrimario = "ds-botao ds-botao-primario";
 
 const botaoDiscreto = "ds-botao ds-botao-secundario ds-botao-p";
 
-const cartao =
-  "rounded-2xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
 
 /** A moeda é a do cliente; só o formato segue o idioma de quem está a ver. */
 function formatMoeda(valor: number, moeda: string, locale: string) {
@@ -1331,52 +1336,63 @@ function LinhaDoCliente({
   return (
     <button
       aria-expanded={aberto}
-      className={`grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left transition hover:bg-surface-muted sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] ${
-        aberto ? "bg-surface-muted" : ""
+      className={`grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-2.5 text-left transition hover:bg-[color-mix(in_oklab,var(--ds-texto)_2.5%,transparent)] sm:grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(5.5rem,auto)] sm:px-5 ${
+        aberto ? "bg-[color-mix(in_oklab,var(--ds-texto)_3.5%,transparent)]" : ""
       }`}
       onClick={aoAlternar}
       type="button"
     >
-      <span className="min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">
-            {cliente.nome}
+      <span className="flex min-w-0 items-center gap-3">
+        <AvatarCanal canal={cliente.canal} nome={cliente.nome} tamanho={34} />
+        <span className="min-w-0">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {cliente.nome}
+            </span>
+            {marcada ? (
+              <span className="ds-selo ds-selo-alerta shrink-0">
+                {t("duplicado")}
+              </span>
+            ) : null}
+            {cliente.juntos.length > 0 ? (
+              <span className="ds-selo ds-selo-neutro shrink-0">
+                {t("+{n} junto", { n: cliente.juntos.length })}
+              </span>
+            ) : null}
           </span>
-          {marcada ? (
-            <span className="ds-selo ds-selo-alerta shrink-0">
-              {t("duplicado")}
-            </span>
-          ) : null}
-          {cliente.juntos.length > 0 ? (
-            <span className="ds-selo ds-selo-neutro shrink-0">
-              {t("+{n} junto", { n: cliente.juntos.length })}
-            </span>
-          ) : null}
-        </span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground sm:hidden">
-          {cliente.telefone} ·{" "}
-          {formatarDia(cliente.mensagemUltima, timeZone, locale)}
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground tabular-nums sm:hidden">
+            {cliente.telefone} ·{" "}
+            {formatarDia(cliente.mensagemUltima, timeZone, locale)}
+          </span>
         </span>
       </span>
 
-      <span className="hidden truncate text-xs text-muted-foreground sm:block">
+      <span className="hidden truncate text-[0.8125rem] text-muted-foreground tabular-nums sm:block">
         {cliente.telefone}
       </span>
 
-      <span className="hidden text-xs text-muted-foreground sm:block">
+      <span className="hidden text-[0.8125rem] text-muted-foreground sm:block">
         {dias === null
           ? "—"
-          : dias === 1
-            ? t("há 1 dia")
-            : t("há {n} dias", { n: dias })}
+          : dias === 0
+            ? t("hoje")
+            : dias === 1
+              ? t("há 1 dia")
+              : t("há {n} dias", { n: dias })}
       </span>
 
-      <span className="hidden text-xs text-muted-foreground sm:block">
+      <span className="hidden text-[0.8125rem] text-muted-foreground tabular-nums sm:block">
         {t("{n} msg", { n: cliente.mensagens })}
       </span>
 
       <span className="flex shrink-0 items-center justify-end gap-2">
-        <span className="text-sm font-semibold text-foreground">
+        <span
+          className={`text-sm tabular-nums ${
+            cliente.totalGasto === null || cliente.totalGasto === 0
+              ? "text-muted-foreground"
+              : "font-semibold text-foreground"
+          }`}
+        >
           {cliente.totalGasto === null
             ? "—"
             : formatMoeda(cliente.totalGasto, moeda, locale)}
@@ -1765,142 +1781,183 @@ export function ClientesPanel({
     },
   ];
 
+  const parados = chips.find((chip) => chip.id === "parados")?.contagem ?? 0;
+  const deForaTotal = deFora.semTelefoneReal + deFora.semNome;
+
+  const botaoNovo = podeEditar ? (
+    <button
+      aria-expanded={aCriar}
+      className="ds-botao ds-botao-primario"
+      onClick={() => setACriar((anterior) => !anterior)}
+      type="button"
+    >
+      {aCriar ? (
+        <X aria-hidden="true" className="h-4 w-4" />
+      ) : (
+        <Plus aria-hidden="true" className="h-4 w-4" />
+      )}
+      {aCriar ? t("Fechar") : t("Novo cliente")}
+    </button>
+  ) : null;
+
   return (
     <>
-      {podeEditar ? (
-        <div className={cartao}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SeccaoTitulo>{t("Novo cliente")}</SeccaoTitulo>
-            <button
-              className={botaoDiscreto}
-              onClick={() => setACriar((anterior) => !anterior)}
-              type="button"
-            >
-              {aCriar ? t("Fechar") : t("Criar cliente")}
-            </button>
-          </div>
+      <CabecalhoTela
+        acoes={
+          <>
+            {/*
+              O botão exporta `filtrados` — o que a busca e o filtro deixaram —
+              e não a lista toda. A contagem fica escrita ao lado da busca.
+            */}
+            <BotaoExportar
+              assunto="clientes"
+              colunas={colunasDeClientes(moeda, mostrarViatura, timeZone)}
+              linhas={filtrados}
+            />
+            {botaoNovo}
+          </>
+        }
+        destaque={
+          clientes.length === 1
+            ? t("1 cliente")
+            : t("{n} clientes", { n: clientes.length })
+        }
+        resto={
+          parados > 0
+            ? t("e {n} sem falar há mais de {dias} dias.", {
+                dias: diasParaParado,
+                n: parados,
+              })
+            : t("e todos falaram nos últimos {dias} dias.", {
+                dias: diasParaParado,
+              })
+        }
+        sobretitulo={t("Clientes")}
+      />
 
-          {aCriar ? (
-            <>
-              <p className="mt-3 text-xs text-muted-foreground">
-                {t(
-                  "Fica no WhatsApp. É o único canal onde o número é também o identificador da conversa, por isso o contato se liga à conversa real assim que a pessoa escrever.",
-                )}
-              </p>
-              <div className="mt-3">
-                <CriarClienteForm
-                  action={actionCriar}
-                  executores={executores}
-                  moeda={moeda}
-                  mostrarViatura={mostrarViatura}
-                  servicos={servicos}
-                />
-              </div>
-            </>
+      {podeEditar && aCriar ? (
+        <div className="ds-bloco p-5">
+          <SeccaoTitulo>{t("Novo cliente")}</SeccaoTitulo>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t(
+              "Fica no WhatsApp. É o único canal onde o número é também o identificador da conversa, por isso o contato se liga à conversa real assim que a pessoa escrever.",
+            )}
+          </p>
+          <div className="mt-3">
+            <CriarClienteForm
+              action={actionCriar}
+              executores={executores}
+              moeda={moeda}
+              mostrarViatura={mostrarViatura}
+              servicos={servicos}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {(duplicados.size > 0 && filtro !== "duplicados") || !historicoLigado ? (
+        <div className="flex flex-col gap-2">
+          {duplicados.size > 0 && filtro !== "duplicados" ? (
+            <AvisoLinha
+              acao={
+                <button
+                  className="underline-offset-4 hover:underline"
+                  onClick={(evento) => {
+                    // O aviso abre e fecha ao clicar; o botão só filtra.
+                    evento.preventDefault();
+                    mudarFiltro("duplicados");
+                  }}
+                  type="button"
+                >
+                  {t("Ver só esses")} →
+                </button>
+              }
+              detalhe={t(
+                "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.",
+              )}
+            >
+              {t("{n} contatos aparecem duas vezes com o mesmo número.", {
+                n: duplicados.size,
+              })}
+            </AvisoLinha>
+          ) : null}
+
+          {!historicoLigado ? (
+            <AvisoLinha
+              detalhe={t(
+                "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.",
+              )}
+            >
+              {t("Os valores gastos não aparecem: o histórico de agendamentos não está ligado.")}
+            </AvisoLinha>
           ) : null}
         </div>
       ) : null}
 
-      {duplicados.size > 0 && filtro !== "duplicados" ? (
-        <button
-          className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-soft px-4 py-3 text-left text-xs text-warning transition hover:brightness-95"
-          onClick={() => mudarFiltro("duplicados")}
-          type="button"
-        >
-          <span>
-            {comNos(
-              t(
-                "{contatos} compartilham o número com outro. São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos.",
-              ),
-              {
-                contatos: (
-                  <span className="font-semibold">
-                    {t("{n} contatos", { n: duplicados.size })}
-                  </span>
-                ),
-              },
-            )}
-          </span>
-          <span className="font-semibold underline">{t("Ver só esses")}</span>
-        </button>
-      ) : null}
-
-      <div className={cartao}>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <label
-            className={`${labelClass} min-w-64 flex-1`}
-            htmlFor="procurar-cliente"
-          >
-            {t("Buscar por nome ou número")}
-            <input
-              className={`${inputClass} w-full`}
-              id="procurar-cliente"
-              onChange={(evento) => {
-                setProcura(evento.target.value);
-                setPagina(0);
-              }}
-              placeholder={t("ex.: Martim, ou 912345678")}
-              type="search"
-              value={procura}
-            />
-          </label>
-          <p className="text-xs text-muted-foreground">
-            {t("{n} de {total} clientes", {
-              n: filtrados.length,
-              total: clientes.length,
-            })}
-          </p>
-          {/*
-            Ao lado da contagem de propósito. O botão exporta `filtrados` — o
-            que a procura e os chips deixaram — e não os 939 todos, e é essa
-            contagem que está escrita aqui ao lado. Sem o número à vista, quem
-            filtrou e exportou não sabia o que ia no ficheiro.
-          */}
-          <BotaoExportar
-            assunto="clientes"
-            colunas={colunasDeClientes(moeda, mostrarViatura, timeZone)}
-            linhas={filtrados}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <label className="relative min-w-0 flex-1" htmlFor="procurar-cliente">
+          <span className="sr-only">{t("Buscar por nome ou número")}</span>
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground"
           />
-        </div>
+          <input
+            className="ds-campo w-full pl-9"
+            id="procurar-cliente"
+            onChange={(evento) => {
+              setProcura(evento.target.value);
+              setPagina(0);
+            }}
+            placeholder={t("Buscar por nome ou número")}
+            type="search"
+            value={procura}
+          />
+        </label>
 
-        <div className="ds-trilho mt-3 max-w-full flex-wrap">
+        <div className="ds-trilho max-w-full shrink-0 overflow-x-auto">
           {chips.map((chip) => (
             <button
               aria-pressed={filtro === chip.id}
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
               key={chip.id}
               onClick={() => mudarFiltro(chip.id)}
               type="button"
             >
-              {chip.rotulo} ({chip.contagem})
+              {chip.rotulo}
+              <span className="text-muted-foreground/70 tabular-nums">
+                {chip.contagem}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
-      {!historicoLigado ? (
-        <p className="rounded-xl bg-warning-soft px-3 py-2 text-xs text-warning">
-          {t(
-            "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.",
-          )}
-        </p>
-      ) : null}
-
       {filtrados.length === 0 ? (
-        <div className={cartao}>
-          <p className="text-sm text-muted-foreground">
-            {clientes.length === 0
-              ? t("Ainda não há clientes com nome e número de telefone.")
-              : t("Nenhum cliente corresponde a essa busca.")}
-          </p>
+        <div className="ds-bloco">
+          {clientes.length === 0 ? (
+            <VazioTela
+              acao={botaoNovo}
+              texto={t(
+                "Cada pessoa que conversar com o agente e der nome e número aparece aqui.",
+              )}
+              titulo={t("Ainda não há clientes com nome e número de telefone.")}
+            />
+          ) : (
+            <VazioTela
+              pose="piscadinha"
+              texto={t("Tente outro nome ou número, ou escolha Todos no filtro.")}
+              titulo={t("Nenhum cliente corresponde a essa busca.")}
+            />
+          )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_auto] gap-x-4 border-b border-border bg-surface-muted px-4 py-2 text-[11px] font-semibold text-muted-foreground sm:grid">
-            <span>{t("Nome")}</span>
+        <div className="ds-bloco overflow-hidden">
+          <div className="hidden grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(5.5rem,auto)] gap-x-4 border-b border-border px-5 py-2.5 text-[11px] font-medium tracking-[0.08em] text-muted-foreground uppercase sm:grid">
+            <span>{t("Cliente")}</span>
             <span>{t("Telefone")}</span>
             <span>{t("Última mensagem")}</span>
             <span>{t("Mensagens")}</span>
-            <span className="text-right">{t("Gasto")}</span>
+            <span className="pr-6 text-right">{t("Gasto")}</span>
           </div>
 
           <ul>
@@ -1943,69 +2000,81 @@ export function ClientesPanel({
             ))}
           </ul>
 
-          {paginas > 1 ? (
-            <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-muted px-4 py-2.5">
-              <button
-                className={botaoDiscreto}
-                disabled={paginaActual === 0}
-                onClick={() => setPagina(paginaActual - 1)}
-                type="button"
-              >
-                {t("Anterior")}
-              </button>
-              <span className="text-xs text-muted-foreground">
-                {t("Página {n} de {total}", {
-                  n: paginaActual + 1,
-                  total: paginas,
-                })}
+          <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5 sm:px-5">
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {t("{n} de {total} clientes", {
+                n: filtrados.length,
+                total: clientes.length,
+              })}
+            </span>
+            {paginas > 1 ? (
+              <span className="flex items-center gap-2">
+                <button
+                  className={botaoDiscreto}
+                  disabled={paginaActual === 0}
+                  onClick={() => setPagina(paginaActual - 1)}
+                  type="button"
+                >
+                  {t("Anterior")}
+                </button>
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  {t("Página {n} de {total}", {
+                    n: paginaActual + 1,
+                    total: paginas,
+                  })}
+                </span>
+                <button
+                  className={botaoDiscreto}
+                  disabled={paginaActual >= paginas - 1}
+                  onClick={() => setPagina(paginaActual + 1)}
+                  type="button"
+                >
+                  {t("Próxima")}
+                </button>
               </span>
-              <button
-                className={botaoDiscreto}
-                disabled={paginaActual >= paginas - 1}
-                onClick={() => setPagina(paginaActual + 1)}
-                type="button"
-              >
-                {t("Próxima")}
-              </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       )}
 
-      {deFora.semTelefoneReal + deFora.semNome > 0 ? (
-        <div className={cartao}>
-          <SeccaoTitulo>{t("Contatos que não entram na lista")}</SeccaoTitulo>
-          <ul className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-            {deFora.semTelefoneReal > 0 ? (
-              <li>
-                {comNos(
-                  t(
-                    "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.",
-                  ),
-                  {
-                    n: (
-                      <span className="font-semibold">
-                        {deFora.semTelefoneReal}
-                      </span>
+      {deForaTotal > 0 ? (
+        <AvisoLinha
+          detalhe={
+            <ul className="flex list-disc flex-col gap-1.5 pl-4">
+              {deFora.semTelefoneReal > 0 ? (
+                <li>
+                  {comNos(
+                    t(
+                      "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.",
                     ),
-                  },
-                )}
-              </li>
-            ) : null}
-            {deFora.semNome > 0 ? (
-              <li>
-                {comNos(
-                  t(
-                    "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.",
-                  ),
-                  {
-                    n: <span className="font-semibold">{deFora.semNome}</span>,
-                  },
-                )}
-              </li>
-            ) : null}
-          </ul>
-        </div>
+                    {
+                      n: (
+                        <span className="font-semibold">
+                          {deFora.semTelefoneReal}
+                        </span>
+                      ),
+                    },
+                  )}
+                </li>
+              ) : null}
+              {deFora.semNome > 0 ? (
+                <li>
+                  {comNos(
+                    t(
+                      "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.",
+                    ),
+                    {
+                      n: <span className="font-semibold">{deFora.semNome}</span>,
+                    },
+                  )}
+                </li>
+              ) : null}
+            </ul>
+          }
+          tom="info"
+        >
+          {t("{n} contatos não entram na lista. Ver por quê.", { n: deForaTotal })}
+        </AvisoLinha>
       ) : null}
     </>
   );

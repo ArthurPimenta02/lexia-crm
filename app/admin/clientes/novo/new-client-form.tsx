@@ -21,10 +21,12 @@ export function NewClientForm() {
 
   return (
     <form action={formAction} className="grid gap-6">
+      <section className="ds-bloco grid gap-4 p-5">
+      <h2 className="ds-titulo-3 text-foreground">{t("Dados do cliente")}</h2>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="nome"
           >
             {t("Nome")}
@@ -34,7 +36,7 @@ export function NewClientForm() {
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="slug"
           >
             Slug
@@ -50,7 +52,7 @@ export function NewClientForm() {
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="status"
           >
             {t("Status")}
@@ -67,14 +69,14 @@ export function NewClientForm() {
           </select>
         </div>
 
-        <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-3 text-sm font-medium text-muted-foreground">
+        <label className="flex h-10 cursor-pointer items-center gap-3 self-end rounded-[11px] px-3.5 text-sm font-medium text-foreground shadow-[inset_0_0_0_1px_var(--ds-linha-forte)]">
           <input className="h-4 w-4 accent-primary" name="modo_teste" type="checkbox" />
           {t("Modo teste ativo")}
         </label>
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="cor_principal"
           >
             {t("Cor principal")}
@@ -87,17 +89,21 @@ export function NewClientForm() {
           />
         </div>
       </div>
+      </section>
 
-      <div className="border-t border-border pt-5">
-        <label className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+      <section className="ds-bloco grid gap-1 p-5">
+        <label className="flex cursor-pointer items-center gap-3">
           <input className="h-4 w-4 accent-primary" name="criar_workflow" type="checkbox" />
-          {t("Criar workflow inicial")}
+          <span className="ds-titulo-3 text-foreground">{t("Criar workflow inicial")}</span>
         </label>
+        <p className="pl-7 text-sm text-muted-foreground">
+          {t("Opcional. Marque e preencha para já ligar o cliente ao n8n.")}
+        </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_nome"
             >
               {t("Nome do workflow")}
@@ -107,7 +113,7 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_tipo"
             >
               {t("Tipo")}
@@ -117,7 +123,7 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="webhook_url"
             >
               {t("Webhook URL")}
@@ -132,7 +138,7 @@ export function NewClientForm() {
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_status"
             >
               {t("Status")}
@@ -149,10 +155,10 @@ export function NewClientForm() {
             </select>
           </div>
         </div>
-      </div>
+      </section>
 
       {state.message ? (
-        <p className="rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <p className="tela-aviso tela-aviso-perigo" role="alert">
           {state.message}
         </p>
       ) : null}

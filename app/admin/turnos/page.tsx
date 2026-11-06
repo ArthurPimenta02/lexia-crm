@@ -1,8 +1,6 @@
-import Form from "next/form";
 import { redirect } from "next/navigation";
 
-import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { AvisoLinha, CabecalhoTela, FiltroTrilho } from "@/app/components/tela";
 import { ControleVista } from "@/app/admin/turnos/vista";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -59,7 +57,7 @@ export default async function ControlePage({ searchParams }: Props) {
 
   const [{ data, error }, { data: clientesData }, { data: ultProd }, { data: ultSombra }] = await Promise.all([
     lista,
-    admin.from("lexia_clientes").select("slug").order("slug"),
+    admin.from("lexia_clientes").select("slug, nome").order("nome"),
     ultimoDe("producao"),
     ultimoDe("sombra"),
   ]);
@@ -68,10 +66,10 @@ export default async function ControlePage({ searchParams }: Props) {
     if (error.code === "42P01" || error.code === "PGRST205") {
       return (
         <section className="flex flex-col gap-6">
-          <PaginaCabecalho titulo={t("Controle do agente")} />
-          <p className="text-sm text-muted-foreground">
+          <CabecalhoTela resto={t("Controle do agente")} />
+          <AvisoLinha>
             {t("A tabela de turnos ainda não existe. Falta rodar a migration da Fase 18 no Supabase central.")}
-          </p>
+          </AvisoLinha>
         </section>
       );
     }
@@ -80,6 +78,10 @@ export default async function ControlePage({ searchParams }: Props) {
 
   const turnos = (data ?? []) as TurnoNaConversa[];
   const clientes = (clientesData ?? []).map((c) => c.slug as string);
+  const nomeDoCliente: Record<string, string> = {};
+  for (const c of (clientesData ?? []) as { slug: string; nome: string | null }[]) {
+    nomeDoCliente[c.slug] = c.nome || c.slug;
+  }
   const desde = inicioUltimas24h();
   const recentes = turnos.filter((t) => Date.parse(t.criado_em) >= desde);
   const resumos = agruparConversas(turnos, so === "problemas").slice(0, 80);
@@ -113,49 +115,40 @@ export default async function ControlePage({ searchParams }: Props) {
     ? await admin.from("lexia_turnos").select("*").eq("id", turnoId).maybeSingle()
     : { data: null };
 
+  const filtroHref = (mudar: Record<string, string>) => {
+    const q = new URLSearchParams();
+    const base = { cliente, modo, so, ...mudar };
+    for (const [k, v] of Object.entries(base)) if (v) q.set(k, v);
+    const texto = q.toString();
+    return texto ? `/admin/turnos?${texto}` : "/admin/turnos";
+  };
   const filtros = (
-        <Form action="/admin/turnos" className="flex flex-wrap items-end gap-3" replace scroll={false}>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {t("Cliente")}
-            <select
-              className="ds-campo min-w-40"
-              defaultValue={cliente}
-              name="cliente"
-            >
-              <option value="">{t("Todos")}</option>
-              {clientes.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {t("Modo")}
-            <select
-              className="ds-campo min-w-40"
-              defaultValue={modo}
-              name="modo"
-            >
-              <option value="">{t("Todos")}</option>
-              <option value="producao">{t("Produção")}</option>
-              <option value="sombra">{t("Sombra (real, não enviado)")}</option>
-              <option value="teste">{t("Área de testes")}</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1.5 text-xs font-medium text-muted-foreground">
-            {t("Mostrar")}
-            <select
-              className="ds-campo min-w-40"
-              defaultValue={so}
-              name="so"
-            >
-              <option value="">{t("Todas as conversas")}</option>
-              <option value="problemas">{t("Só com erro")}</option>
-            </select>
-          </label>
-          <FormSubmitButton className="ds-botao ds-botao-secundario" pendingLabel={t("Aguarde...")}>{t("Filtrar")}</FormSubmitButton>
-        </Form>
+    <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
+      <FiltroTrilho
+        opcoes={["", ...clientes].map((c) => ({
+          ativo: c === cliente,
+          href: filtroHref({ cliente: c }),
+          label: c ? nomeDoCliente[c] : t("Todos"),
+        }))}
+        rotulo={t("Cliente")}
+      />
+      <FiltroTrilho
+        opcoes={[
+          { label: t("Todos os modos"), valor: "" },
+          { label: t("Produção"), valor: "producao" },
+          { label: t("Sombra"), valor: "sombra" },
+          { label: t("Área de testes"), valor: "teste" },
+        ].map((o) => ({ ativo: o.valor === modo, href: filtroHref({ modo: o.valor }), label: o.label }))}
+        rotulo={t("Modo")}
+      />
+      <FiltroTrilho
+        opcoes={[
+          { label: t("Todas as conversas"), valor: "" },
+          { label: t("Só com erro"), valor: "problemas" },
+        ].map((o) => ({ ativo: o.valor === so, href: filtroHref({ so: o.valor }), label: o.label }))}
+        rotulo={t("Mostrar")}
+      />
+    </div>
   );
 
   return (

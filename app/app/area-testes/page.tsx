@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { PaginaCabecalho } from "@/app/components/painel-ui";
-import { TestChat } from "@/app/app/area-testes/test-chat";
+import { TestChat, type ResumoSessao } from "@/app/app/area-testes/test-chat";
 import {
   type TestFeedback,
   type TestExecution,
@@ -10,7 +9,9 @@ import {
 } from "@/app/app/area-testes/actions";
 import { exigirEcra, temOPainelInteiro } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
-import { getT } from "@/lib/i18n/servidor";
+import { getClientTimezone } from "@/lib/clientes/timezone";
+import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
+import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 
 type ClientTestAreaPageProps = {
@@ -44,6 +45,8 @@ export default async function ClientTestAreaPage({
   const [
     { data: sessionsData, error: sessionsError },
     { data: workflowsData, error: workflowsError },
+    { data: clienteData },
+    { data: contagemData },
   ] = await Promise.all([
     supabase
       .from("lexia_testes_sessoes")
@@ -57,6 +60,18 @@ export default async function ClientTestAreaPage({
       .eq("cliente_slug", profile.cliente_slug)
       .eq("status", "ativo")
       .order("nome"),
+    // Só o nome, para o cabeçalho do chat.
+    supabase
+      .from("lexia_clientes")
+      .select("nome")
+      .eq("slug", profile.cliente_slug)
+      .maybeSingle(),
+    // Leve: só os ids, para contar mensagens e feedbacks de cada conversa.
+    supabase
+      .from("lexia_testes_execucoes")
+      .select("id, session_id, criado_em")
+      .eq("cliente_slug", profile.cliente_slug)
+      .eq("origem", "painel_cliente"),
   ]);
 
   if (sessionsError) {
@@ -106,17 +121,98 @@ export default async function ClientTestAreaPage({
     throw new Error(t("Não foi possível buscar os feedbacks da sessão."));
   }
 
+  // Resumo de cada conversa: quantas mensagens, quantos feedbacks e quando.
+  // Se a contagem falhar, a lista mostra só o nome (não trava a tela).
+  const contagem = (contagemData ?? []) as {
+    id: string;
+    session_id: string;
+    criado_em: string | null;
+  }[];
+  const { data: todosFeedbacksData } = contagem.length
+    ? await supabase
+        .from("lexia_feedbacks")
+        .select("teste_execucao_id")
+        .eq("cliente_slug", profile.cliente_slug)
+        .eq("criado_por", user.id)
+        .not("teste_execucao_id", "is", null)
+    : { data: [] };
+  const sessaoDaExecucao = new Map(
+    contagem.map((linha) => [linha.id, linha.session_id]),
+  );
+  const timeZone = getClientTimezone(profile.cliente_slug);
+  const locale = LOCALE_DO_IDIOMA[await getIdioma()];
+  const formatoHora = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  });
+  const formatoDia = new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "short",
+    timeZone,
+  });
+  const diaDe = (data: Date) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone }).format(data);
+  const hoje = diaDe(new Date());
+  const resumos: Record<string, ResumoSessao> = {};
+  const ultimaData: Record<string, string> = {};
+
+  for (const testSession of sessions) {
+    resumos[testSession.session_id] = {
+      feedbacks: 0,
+      mensagens: 0,
+      quando: null,
+    };
+    if (testSession.criado_em) {
+      ultimaData[testSession.session_id] = testSession.criado_em;
+    }
+  }
+
+  for (const linha of contagem) {
+    const resumo = resumos[linha.session_id];
+    if (!resumo) continue;
+    resumo.mensagens += 1;
+    if (
+      linha.criado_em &&
+      linha.criado_em > (ultimaData[linha.session_id] ?? "")
+    ) {
+      ultimaData[linha.session_id] = linha.criado_em;
+    }
+  }
+
+  for (const feedback of (todosFeedbacksData ?? []) as {
+    teste_execucao_id: string | null;
+  }[]) {
+    const sessaoId = feedback.teste_execucao_id
+      ? sessaoDaExecucao.get(feedback.teste_execucao_id)
+      : undefined;
+    if (sessaoId && resumos[sessaoId]) resumos[sessaoId].feedbacks += 1;
+  }
+
+  for (const [sessaoId, iso] of Object.entries(ultimaData)) {
+    const data = new Date(iso);
+    if (Number.isNaN(data.getTime()) || !resumos[sessaoId]) continue;
+    resumos[sessaoId].quando =
+      diaDe(data) === hoje ? formatoHora.format(data) : formatoDia.format(data);
+  }
+
+  const nomeCliente =
+    (clienteData as { nome?: string | null } | null)?.nome ??
+    profile.cliente_slug;
+
   return (
     <section className="flex w-full max-w-7xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Área de testes")} />
-
       <TestChat
         executions={executions}
         feedbacks={(feedbacksData ?? []) as TestFeedback[]}
         key={selectedSessionId ?? "sem-sessao"}
+        nomeCliente={nomeCliente}
+        resumos={resumos}
         selectedSessionId={selectedSessionId}
         sessions={sessions}
-        semEscolhaDeCanal={!temOPainelInteiro(profile.cliente_slug) && workflows.length === 1}
+        semEscolhaDeCanal={
+          !temOPainelInteiro(profile.cliente_slug) && workflows.length === 1
+        }
         workflows={workflows}
       />
     </section>

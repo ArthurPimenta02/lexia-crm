@@ -2,12 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import {
-  Card,
-  CardTitulo,
-  GrupoMetricas,
-  PaginaCabecalho,
-} from "@/app/components/painel-ui";
+import { ArrowLeft, Coins, ListOrdered, Sparkles, Timer } from "lucide-react";
+
+import { CartaoMetrica } from "@/app/components/cartoes";
+import { Card, CardTitulo } from "@/app/components/painel-ui";
+import { CabecalhoTela, GradeMetricas } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
@@ -33,7 +32,7 @@ type TurnoPageProps = { params: Promise<{ id: string }> };
 
 function Bloco({ children }: { children: ReactNode }) {
   return (
-    <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-muted p-3 font-mono text-xs text-foreground">
+    <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-[12px] bg-[color-mix(in_oklab,var(--ds-texto)_4%,transparent)] p-3 font-mono text-xs text-foreground">
       {children}
     </pre>
   );
@@ -41,7 +40,7 @@ function Bloco({ children }: { children: ReactNode }) {
 
 function Linha({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1 border-t border-border px-5 py-3 text-sm sm:grid-cols-[180px_1fr]">
+    <div className="grid gap-1 border-t border-[var(--ds-linha)] px-5 py-3 text-sm sm:grid-cols-[180px_1fr]">
       <div className="text-muted-foreground">{label}</div>
       <div className="min-w-0 break-words">{children}</div>
     </div>
@@ -53,7 +52,7 @@ function Baloes({ textos }: { textos: string[] }) {
   return (
     <div className="flex flex-col gap-2">
       {textos.map((texto, i) => (
-        <div className="w-fit max-w-full whitespace-pre-wrap rounded-2xl bg-muted px-3 py-2" key={i}>
+        <div className="w-fit max-w-full whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--ds-acao-fundo)] px-3.5 py-2" key={i}>
           {texto}
         </div>
       ))}
@@ -89,48 +88,63 @@ export default async function TurnoPage({ params }: TurnoPageProps) {
   const ia = turno.ia ?? [];
   const ferramentas = turno.ferramentas ?? [];
   const passos = turno.passos ?? [];
+  const quando = new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short", timeZone: fuso }).format(
+    new Date(turno.criado_em),
+  );
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho
+      <CabecalhoTela
         acoes={
           <Link
-            className="text-sm font-medium text-foreground underline-offset-2 hover:underline"
+            className="ds-botao ds-botao-secundario ds-botao-p"
             href={
               turno.identificador_conversa
                 ? `/admin/turnos?conversa=${encodeURIComponent(turno.identificador_conversa)}`
                 : "/admin/turnos"
             }
           >
+            <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
             {turno.identificador_conversa ? t("Outros turnos desta conversa") : t("Voltar aos turnos")}
           </Link>
         }
-        titulo={t("Passo a passo do turno")}
+        destaque={descreverEstado(turno.estado, t)}
+        resto={`· ${quando}`}
+        sobretitulo={`${t("Controle do agente")} · ${t("Passo a passo do turno")}`}
       />
 
-      <GrupoMetricas
-        itens={[
-          { label: t("Resultado"), valor: descreverEstado(turno.estado, t) },
-          {
-            label: t("Quando"),
-            valor: new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short", timeZone: fuso }).format(
-              new Date(turno.criado_em),
-            ),
-          },
-          {
-            dica: t("Do momento em que a mensagem chegou até a resposta ficar pronta, incluindo a espera por mais mensagens do cliente."),
-            label: t("Duração"),
-            valor: duracao(turno.duracao_ms),
-          },
-          {
-            dica: turno.custo_sem_preco?.length
+      <GradeMetricas>
+        <CartaoMetrica
+          cor="var(--ds-acao)"
+          dica={t("Do momento em que a mensagem chegou até a resposta ficar pronta, incluindo a espera por mais mensagens do cliente.")}
+          icone={<Timer aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Duração")}
+          valor={duracao(turno.duracao_ms)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-ouro)"
+          dica={
+            turno.custo_sem_preco?.length
               ? t("Não inclui {modelos}: sem preço na tabela.", { modelos: turno.custo_sem_preco.join(", ") })
-              : t("Custo das chamadas de IA deste turno."),
-            label: t("Custo de IA"),
-            valor: formatarCusto(turno.custo_usd, locale, t),
-          },
-        ]}
-      />
+              : t("Custo das chamadas de IA deste turno.")
+          }
+          icone={<Coins aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Custo de IA")}
+          valor={formatarCusto(turno.custo_usd, locale, t)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-info)"
+          icone={<Sparkles aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("IA e consultas")}
+          valor={String(ia.length + ferramentas.length)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-destaque)"
+          icone={<ListOrdered aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Passos")}
+          valor={String(passos.length)}
+        />
+      </GradeMetricas>
 
       <Card>
         <CardTitulo>{t("A conversa")}</CardTitulo>
