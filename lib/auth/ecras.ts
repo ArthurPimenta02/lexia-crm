@@ -61,8 +61,8 @@ export type EcraDoPainel = (typeof ECRAS_DO_PAINEL)[number];
  */
 const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   braz_insurance: ["/app/area-testes"],
-  // 05/11: a Claudia entra para testar a Carla; o resto do painel abre quando o agente for para produção.
-  claudia_leite_spa: ["/app/area-testes"],
+  // 05/11: a Claudia entra para testar a Carla (e ver os feedbacks que deu); o resto abre quando o agente for para produção.
+  claudia_leite_spa: ["/app/area-testes", "/app/feedbacks"],
 };
 
 /** Verdadeiro quando o cliente não tem restrição nenhuma configurada. */
