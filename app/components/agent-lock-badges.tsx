@@ -42,10 +42,10 @@ function lockLabel(lock: AgentLock, t: FuncaoT) {
  * fica à espera de alguém. Essa leva o tom de aviso; as outras expiram e por
  * isso são neutras.
  */
-const lockDots: Record<AgentLock["kind"], string> = {
-  pausa_eterna: "bg-warning",
-  pausa_manual: "bg-muted-foreground",
-  status: "bg-muted-foreground",
+const lockSelos: Record<AgentLock["kind"], string> = {
+  pausa_eterna: "ds-selo-ouro",
+  pausa_manual: "ds-selo-neutro",
+  status: "ds-selo-neutro",
 };
 
 export function formatLockRemaining(ttlSeconds: number | null, t: FuncaoT) {
@@ -78,8 +78,7 @@ export async function AgentActiveBadge() {
   const t = await getT();
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-      <span className="bg-positive h-1.5 w-1.5 rounded-full" />
+    <span className="ds-selo ds-selo-verde ds-selo-ponto">
       {t("Agente ativo")}
     </span>
   );
@@ -100,13 +99,10 @@ export async function AgentLockBadges({
     >
       {locks.map((lock) => (
         <span
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
+          className={`ds-selo ds-selo-ponto h-auto min-h-[1.375rem] max-w-full py-0.5 whitespace-normal ${lockSelos[lock.kind]}`}
           key={lock.kind}
         >
-          <span
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${lockDots[lock.kind]}`}
-          />
-          <span>
+          <span className="min-w-0">
             {lockLabel(lock, t)}
             <span className="font-normal opacity-75">
               {" · "}

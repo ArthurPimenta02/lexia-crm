@@ -24,10 +24,10 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
   return (
-    <form action={formAction} className="mt-5 grid gap-4">
+    <form action={formAction} className="grid gap-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-muted-foreground" htmlFor="email">
+          <label className="text-[0.8125rem] font-medium text-foreground" htmlFor="email">
             {t("E-mail")}
           </label>
           <input
@@ -41,7 +41,7 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="password"
           >
             {t("Senha temporária")}
@@ -57,7 +57,7 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-muted-foreground" htmlFor="role">
+          <label className="text-[0.8125rem] font-medium text-foreground" htmlFor="role">
             {t("Role")}
           </label>
           <select
@@ -72,7 +72,7 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-muted-foreground" htmlFor="status">
+          <label className="text-[0.8125rem] font-medium text-foreground" htmlFor="status">
             {t("Status")}
           </label>
           <select
@@ -89,11 +89,12 @@ export function ClientUserForm({ clienteSlug }: ClientUserFormProps) {
 
       {state.message ? (
         <p
-          className={`rounded-lg border px-3 py-2 text-sm ${
+          className={`tela-aviso ${
             state.type === "success"
-              ? "border-positive/20 bg-positive-soft text-positive"
-              : "border-danger/20 bg-danger-soft text-danger"
+              ? "bg-[var(--ds-acao-fundo)] text-[var(--ds-acao-forte)]"
+              : "tela-aviso-perigo"
           }`}
+          role="status"
         >
           {state.message}
         </p>

@@ -25,10 +25,10 @@ export function BloqueioForm({ clienteSlug }: { clienteSlug: string }) {
     <form
       action={formAction}
       autoComplete="off"
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
+      className="ds-bloco flex flex-col gap-4 p-5"
     >
       <div>
-        <h2 className="text-sm font-semibold text-foreground">{t("Bloquear um contato")}</h2>
+        <h2 className="ds-titulo-3 text-foreground">{t("Bloquear um contato")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {t(
             "WhatsApp: cole o número com o código do país. Instagram e Messenger: mais fácil pelo botão \"Bloquear contato\" dentro da conversa.",
@@ -54,7 +54,7 @@ export function BloqueioForm({ clienteSlug }: { clienteSlug: string }) {
           {pendente ? t("Salvando...") : t("Bloquear")}
         </button>
         {estado.message ? (
-          <span className={`text-sm ${estado.type === "error" ? "text-danger" : "text-positive"}`}>
+          <span className={`text-sm font-medium ${estado.type === "error" ? "text-[var(--ds-perigo)]" : "text-[var(--ds-acao-forte)]"}`} role="status">
             {estado.message}
           </span>
         ) : null}

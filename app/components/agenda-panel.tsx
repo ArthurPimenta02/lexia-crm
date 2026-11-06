@@ -1,6 +1,18 @@
 "use client";
 
-import { ExternalLink, MapPin, Phone, X } from "lucide-react";
+import {
+  Bot,
+  CalendarCheck,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  MapPin,
+  Phone,
+  Plus,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -9,7 +21,14 @@ import {
   type MarcarAction,
 } from "@/app/components/agenda-marcar";
 import { BotaoExportar } from "@/app/components/botao-exportar";
+import { CartaoMetrica } from "@/app/components/cartoes";
 import { useIdioma } from "@/app/components/idioma";
+import {
+  CabecalhoTela,
+  FiltroTrilho,
+  GradeMetricas,
+  VazioTela,
+} from "@/app/components/tela";
 import type {
   AgendaResultado,
   DiaAgenda,
@@ -322,7 +341,7 @@ function Evento({
         </p>
         <span
           className={`ds-selo shrink-0 ${
-            doAgente ? "ds-selo-escuro" : "ds-selo-neutro"
+            doAgente ? "ds-selo-verde" : "ds-selo-neutro"
           }`}
         >
           {doAgente ? t("Agente") : t("Manual")}
@@ -420,7 +439,7 @@ function Botao({
     <Link
       aria-current={activo ? "page" : undefined}
       aria-label={titulo}
-      className={`ds-botao min-w-10 ${
+      className={`ds-botao ds-botao-p min-w-9 ${
         activo ? "ds-botao-primario" : "ds-botao-secundario"
       }`}
       href={href}
@@ -743,7 +762,7 @@ function PainelDoEvento({
           <div className="min-w-0 flex-1">
             <span
               className={`ds-selo ${
-                doAgente ? "ds-selo-escuro" : "ds-selo-neutro"
+                doAgente ? "ds-selo-verde" : "ds-selo-neutro"
               }`}
             >
               {doAgente ? t("Agendado pelo agente") : t("Agendado manualmente")}
@@ -961,91 +980,474 @@ function GrelhaMes({
   );
 }
 
-function GrelhaSemana({
+/** Quantos pixels vale uma hora na semana desenhada por hora. */
+const HORA_PX = 52;
+
+/** Minutos desde a meia-noite, no fuso do cliente. */
+function minutosNoFuso(iso: string, timeZone: string) {
+  const partes = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    timeZone,
+  }).formatToParts(new Date(iso));
+  const hora = Number(partes.find((p) => p.type === "hour")?.value ?? 0);
+  const minuto = Number(partes.find((p) => p.type === "minute")?.value ?? 0);
+
+  return hora * 60 + minuto;
+}
+
+const horaCurta = (iso: string, timeZone: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(iso));
+
+type Bloco = {
+  evento: EventoAgenda;
+  faixa: number;
+  faixas: number;
+  fim: number;
+  inicio: number;
+};
+
+/**
+ * Põe os eventos de um dia na coluna. Dois atendimentos à mesma hora ficam
+ * lado a lado (cada um numa faixa), em vez de um tapar o outro.
+ */
+/** Oito horas ou mais: vai para a faixa do topo em vez de ocupar a coluna. */
+const LONGO_MIN = 8 * 60;
+
+const duracaoEmMinutos = (evento: EventoAgenda) =>
+  evento.fim
+    ? (new Date(evento.fim).getTime() - new Date(evento.inicio).getTime()) / 60_000
+    : 60;
+
+/**
+ * Fica na faixa do topo: o dia inteiro e os trabalhos longos (no Detail um
+ * carro pode ficar o dia todo, ou vários dias). Dentro das colunas eles
+ * tapavam a semana inteira e espremiam os outros atendimentos.
+ */
+const vaiParaOTopo = (evento: EventoAgenda) =>
+  evento.diaInteiro || duracaoEmMinutos(evento) >= LONGO_MIN;
+
+function arrumarDia(eventos: EventoAgenda[], timeZone: string): Bloco[] {
+  const blocos: Bloco[] = eventos
+    .filter((evento) => !vaiParaOTopo(evento))
+    .map((evento) => {
+      const inicio = minutosNoFuso(evento.inicio, timeZone);
+      // Sem hora de fim, conta como uma hora: é o que o Google mostra.
+      const duracao = Math.max(15, duracaoEmMinutos(evento));
+
+      return {
+        evento,
+        faixa: 0,
+        faixas: 1,
+        fim: Math.min(24 * 60, inicio + duracao),
+        inicio,
+      };
+    })
+    .sort((a, b) => a.inicio - b.inicio || b.fim - a.fim);
+
+  let grupo: Bloco[] = [];
+  let fimDoGrupo = -1;
+  const finsDasFaixas: number[] = [];
+
+  const fecharGrupo = () => {
+    const faixas = Math.max(1, ...grupo.map((bloco) => bloco.faixa + 1));
+    grupo.forEach((bloco) => {
+      bloco.faixas = faixas;
+    });
+    grupo = [];
+    finsDasFaixas.length = 0;
+  };
+
+  for (const bloco of blocos) {
+    if (grupo.length > 0 && bloco.inicio >= fimDoGrupo) {
+      fecharGrupo();
+    }
+
+    let faixa = finsDasFaixas.findIndex((fim) => fim <= bloco.inicio);
+
+    if (faixa === -1) {
+      faixa = finsDasFaixas.length;
+      finsDasFaixas.push(bloco.fim);
+    } else {
+      finsDasFaixas[faixa] = bloco.fim;
+    }
+
+    bloco.faixa = faixa;
+    grupo.push(bloco);
+    fimDoGrupo = Math.max(fimDoGrupo, bloco.fim);
+  }
+
+  if (grupo.length > 0) {
+    fecharGrupo();
+  }
+
+  return blocos;
+}
+
+/**
+ * A hora de agora, só no navegador. No servidor fica `null`: assim a linha
+ * vermelha e o "próximo" não fazem o React reclamar de hidratação.
+ */
+function useAgora() {
+  const [agora, setAgora] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const marcar = () => setAgora(new Date());
+    const primeiro = window.setTimeout(marcar, 0);
+    const relogio = window.setInterval(marcar, 60_000);
+
+    return () => {
+      window.clearTimeout(primeiro);
+      window.clearInterval(relogio);
+    };
+  }, []);
+
+  return agora;
+}
+
+const corDoEvento = (doAgente: boolean) =>
+  doAgente
+    ? "border-l-[var(--ds-acao)] bg-[var(--ds-acao-fundo)]"
+    : "border-l-[var(--ds-texto-3)] bg-[color-mix(in_oklab,var(--ds-texto)_5%,var(--ds-superficie))]";
+
+/**
+ * A semana desenhada por hora, como no Google: uma coluna por dia e cada
+ * atendimento no sítio da sua hora. Verde quando foi o agente, cinza quando
+ * foi à mão. Só a partir do `lg:`; no celular a semana vira lista por dia.
+ */
+function SemanaPorHora({
+  abrirDia,
+  abrirEvento,
+  agenda,
+  agora,
+  executorEscolhido,
+  timeZone,
+}: {
+  abrirDia: (chave: string) => void;
+  abrirEvento: (id: string) => void;
+  agenda: AgendaResultado;
+  agora: Date | null;
+  executorEscolhido: string;
+  timeZone: string;
+}) {
+  const { locale, t } = useIdioma();
+
+  const porDia = agenda.dias.map((dia) => ({
+    blocos: arrumarDia(dia.eventos, timeZone),
+    dia,
+    diaInteiro: dia.eventos.filter(vaiParaOTopo),
+  }));
+
+  const todos = porDia.flatMap(({ blocos }) => blocos);
+  // A grelha vai das 8h às 19h, e cresce se houver atendimento fora disso.
+  const primeiraHora = Math.min(
+    8,
+    ...todos.map((bloco) => Math.floor(bloco.inicio / 60)),
+  );
+  const ultimaHora = Math.min(
+    24,
+    Math.max(19, ...todos.map((bloco) => Math.ceil(bloco.fim / 60))),
+  );
+  const horasNaGrelha = Array.from(
+    { length: ultimaHora - primeiraHora },
+    (_, i) => primeiraHora + i,
+  );
+  const altura = horasNaGrelha.length * HORA_PX;
+  const temDiaInteiro = porDia.some(({ diaInteiro }) => diaInteiro.length > 0);
+
+  const minutoAgora = agora ? minutosNoFuso(agora.toISOString(), timeZone) : null;
+  const topoAgora =
+    minutoAgora !== null &&
+    minutoAgora >= primeiraHora * 60 &&
+    minutoAgora <= ultimaHora * 60
+      ? ((minutoAgora - primeiraHora * 60) / 60) * HORA_PX
+      : null;
+
+  const colunas = "grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))]";
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[56rem]">
+        <div className={`${colunas} border-b border-border`}>
+          <div />
+          {agenda.dias.map((dia) => (
+            <button
+              className="flex min-w-0 items-baseline gap-2 border-l border-border px-3 py-3 text-left transition hover:bg-muted/40"
+              key={dia.chave}
+              onClick={() => abrirDia(dia.chave)}
+              title={resumoDoDia(dia, t)}
+              type="button"
+            >
+              <span className="text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase">
+                {diaDaSemana(dia.chave, locale).slice(0, 3)}
+              </span>
+              <span
+                className={`text-lg leading-none font-semibold tracking-tight tabular-nums ${
+                  dia.hoje
+                    ? "rounded-lg bg-primary px-1.5 py-0.5 text-primary-foreground"
+                    : "text-foreground"
+                }`}
+              >
+                {Number(dia.chave.slice(8))}
+              </span>
+              {dia.eventos.length > 0 ? (
+                <span className="ml-auto text-[11px] text-muted-foreground tabular-nums">
+                  {dia.eventos.length}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
+        {temDiaInteiro ? (
+          <div className={`${colunas} border-b border-border`}>
+            <p className="px-1 py-1.5 text-right text-[10px] leading-tight text-muted-foreground">
+              {t("Dia inteiro")}
+            </p>
+            {porDia.map(({ dia, diaInteiro }) => (
+              <div
+                className="flex min-w-0 flex-col gap-1 border-l border-border p-1"
+                key={dia.chave}
+              >
+                {diaInteiro.map((evento) => (
+                  <button
+                    className={`truncate rounded-md border-l-[3px] px-1.5 py-1 text-left text-[11px] font-medium text-foreground ${corDoEvento(
+                      evento.origem === "agente",
+                    )}`}
+                    key={evento.id}
+                    onClick={() => abrirEvento(evento.id)}
+                    type="button"
+                  >
+                    {evento.diaInteiro ? null : (
+                      <span className="font-semibold tabular-nums">
+                        {horaCurta(evento.inicio, timeZone, locale)}{" "}
+                      </span>
+                    )}
+                    {tituloDoEvento(evento, t)}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className={colunas} style={{ height: altura }}>
+          <div className="relative">
+            {horasNaGrelha.map((hora, i) => (
+              <span
+                className="absolute right-2 text-[11px] text-muted-foreground tabular-nums"
+                key={hora}
+                style={{ top: i * HORA_PX + 2 }}
+              >
+                {hora}h
+              </span>
+            ))}
+          </div>
+
+          {porDia.map(({ blocos, dia }) => (
+            <div
+              className={`relative border-l border-border ${
+                dia.hoje
+                  ? "bg-[color-mix(in_oklab,var(--ds-acao)_4%,transparent)]"
+                  : ""
+              }`}
+              key={dia.chave}
+              style={{
+                backgroundImage:
+                  "linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
+                backgroundSize: `100% ${HORA_PX}px`,
+              }}
+            >
+              {blocos.map(({ evento, faixa, faixas, fim, inicio }) => {
+                const topo = ((inicio - primeiraHora * 60) / 60) * HORA_PX;
+                const alto = Math.max(22, ((fim - inicio) / 60) * HORA_PX - 3);
+                const doAgente = evento.origem === "agente";
+                const titulo = tituloDoEvento(evento, t);
+                const hora = horaCurta(evento.inicio, timeZone, locale);
+                const detalhe = [
+                  hora,
+                  evento.servico,
+                  executorEscolhido === "" && evento.executor
+                    ? nomeExecutor(evento.executor)
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+
+                return (
+                  <button
+                    className={`absolute flex flex-col justify-start overflow-hidden rounded-lg border-l-[3px] px-2 py-1 text-left leading-tight transition hover:z-10 hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)] ${corDoEvento(
+                      doAgente,
+                    )}`}
+                    key={evento.id}
+                    onClick={() => abrirEvento(evento.id)}
+                    style={{
+                      height: alto,
+                      left: `calc(${(faixa / faixas) * 100}% + 3px)`,
+                      top: topo + 1,
+                      width: `calc(${100 / faixas}% - 6px)`,
+                    }}
+                    title={`${titulo} · ${detalhe}`}
+                    type="button"
+                  >
+                    {alto < 34 ? (
+                      <span className="block truncate text-[11px] text-foreground">
+                        <span className="font-semibold tabular-nums">{hora}</span>{" "}
+                        {titulo}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="block truncate text-xs font-semibold text-foreground">
+                          {titulo}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                          {detalhe}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                );
+              })}
+
+              {dia.hoje && topoAgora !== null ? (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-0 left-0 z-20 border-t-2 border-danger"
+                  style={{ top: topoAgora }}
+                >
+                  <span className="absolute -top-[5px] -left-[5px] h-2 w-2 rounded-full bg-danger" />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A semana no celular: um bloco por dia, de cima para baixo, com a hora à
+ * esquerda. Os dias livres ficam numa linha só, para não empurrar o resto.
+ */
+function SemanaEmLista({
   abrirDia,
   abrirEvento,
   agenda,
   executorEscolhido,
-  moeda,
   timeZone,
 }: {
   abrirDia: (chave: string) => void;
   abrirEvento: (id: string) => void;
   agenda: AgendaResultado;
   executorEscolhido: string;
-  moeda: string | null;
   timeZone: string;
 }) {
   const { locale, t } = useIdioma();
 
   return (
-    // Ao telemóvel empilha; a partir do `sm:` é um quadro que rola para o
-    // lado, e aí as margens negativas deixam-no ir de borda a borda do ecrã.
-    //
-    // O `sm:items-start` é o que impede as colunas de crescerem todas até à
-    // altura da mais cheia: sem ele, um dia com quatro marcações deixava os
-    // outros seis como caixas de 600px quase vazias.
-    <div className="flex flex-col gap-2 sm:-mx-8 sm:flex-row sm:items-start sm:gap-3 sm:overflow-x-auto sm:px-8 sm:pb-2 lg:-mx-10 lg:px-10">
+    <div className="flex flex-col gap-2.5">
       {agenda.dias.map((dia) => {
         const vazio = dia.eventos.length === 0;
 
         return (
-          <section
-            className={`flex min-w-0 flex-col rounded-2xl border sm:max-h-[70dvh] sm:w-56 sm:shrink-0 ${
-              dia.hoje
-                ? "border-foreground bg-surface"
-                : "border-border bg-surface-muted/60"
-            }`}
-            key={dia.chave}
-          >
+          <section className="ds-bloco overflow-hidden" key={dia.chave}>
             <button
-              className="flex w-full shrink-0 items-baseline gap-2 rounded-2xl px-3 pt-3 pb-2 text-left transition hover:bg-muted/40"
+              className="flex w-full items-center gap-3 px-4 py-3 text-left"
               onClick={() => abrirDia(dia.chave)}
               type="button"
             >
-              <h2 className="text-sm font-semibold text-foreground capitalize">
-                {diaDaSemana(dia.chave, locale)}
-              </h2>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {diaDoMes(dia.chave, locale)}
-              </p>
-
-              {vazio ? (
-                // Ao telemóvel um dia livre é uma linha e não um cartão: numa
-                // semana calma, sete caixas a dizer "Livre" enchiam o ecrã de
-                // nada e empurravam para baixo os dias que têm trabalho.
-                <span className="ml-auto text-[11px] text-muted-foreground/70 sm:hidden">
-                  {t("Livre")}
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-semibold tabular-nums ${
+                  dia.hoje
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                }`}
+              >
+                {Number(dia.chave.slice(8))}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-foreground capitalize">
+                  {diaDaSemana(dia.chave, locale)}
+                  {dia.hoje ? (
+                    <span className="ml-2 text-xs font-medium text-accent normal-case">
+                      {t("Hoje")}
+                    </span>
+                  ) : null}
                 </span>
-              ) : (
-                <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground tabular-nums">
-                  {dia.eventos.length}
-                </span>
-              )}
+              </span>
+              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                {vazio
+                  ? t("Livre")
+                  : dia.eventos.length === 1
+                    ? t("1 atendimento")
+                    : t("{n} atendimentos", { n: dia.eventos.length })}
+              </span>
             </button>
 
-            <div
-              className={`min-h-0 flex-1 flex-col gap-2 px-2 pb-2 sm:flex sm:overflow-y-auto ${
-                vazio ? "hidden" : "flex"
-              }`}
-            >
-              {vazio ? (
-                <p className="rounded-xl border border-dashed border-border px-2 py-6 text-center text-xs text-muted-foreground">
-                  {t("Livre")}
-                </p>
-              ) : (
-                dia.eventos.map((evento) => (
-                  <Evento
-                    abrirEvento={abrirEvento}
-                    evento={evento}
-                    key={evento.id}
-                    moeda={moeda}
-                    mostrarExecutor={executorEscolhido === ""}
-                    timeZone={timeZone}
-                  />
-                ))
-              )}
-            </div>
+            {vazio ? null : (
+              <ul className="border-t border-border">
+                {dia.eventos.map((evento) => {
+                  const doAgente = evento.origem === "agente";
+                  const detalhe = [
+                    evento.servico,
+                    executorEscolhido === "" && evento.executor
+                      ? nomeExecutor(evento.executor)
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+
+                  return (
+                    <li
+                      className="border-b border-border/60 last:border-b-0"
+                      key={evento.id}
+                    >
+                      <button
+                        className="flex w-full items-stretch gap-3 px-4 py-2.5 text-left transition hover:bg-muted/40"
+                        onClick={() => abrirEvento(evento.id)}
+                        type="button"
+                      >
+                        <span className="w-11 shrink-0 pt-0.5 text-xs font-semibold text-foreground tabular-nums">
+                          {evento.diaInteiro
+                            ? t("Dia inteiro")
+                            : horaCurta(evento.inicio, timeZone, locale)}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className={`w-[3px] shrink-0 rounded-full ${
+                            doAgente ? "bg-primary" : "bg-muted-foreground/40"
+                          }`}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {tituloDoEvento(evento, t)}
+                          </span>
+                          {detalhe ? (
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {detalhe}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span
+                          className={`ds-selo shrink-0 self-center ${
+                            doAgente ? "ds-selo-verde" : "ds-selo-neutro"
+                          }`}
+                        >
+                          {doAgente ? t("Agente") : t("Manual")}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         );
       })}
@@ -1070,6 +1472,7 @@ export function AgendaPanel({
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
   const [eventoAberto, setEventoAberto] = useState<string | null>(null);
   const [aMarcarDoTopo, setAMarcarDoTopo] = useState(false);
+  const agora = useAgora();
 
   const ligacao = ({
     dia,
@@ -1117,16 +1520,178 @@ export function AgendaPanel({
     .flatMap((candidato) => candidato.eventos)
     .find((candidato) => candidato.id === eventoAberto);
 
+  /*
+   * Os números dos cartões saem todos do que a tela já carregou (`agenda`):
+   * nenhuma consulta nova. "Hoje" só aparece quando hoje está no período à
+   * vista, porque é o único caso em que os dados de hoje estão na mão.
+   */
+  const diasDoPeriodo = agenda.dias.filter((candidato) => !candidato.foraDoPeriodo);
+  const hoje = diasDoPeriodo.find((candidato) => candidato.hoje) ?? null;
+  const proximoHoje =
+    hoje && agora
+      ? (hoje.eventos.find(
+          (candidato) =>
+            !candidato.diaInteiro && new Date(candidato.inicio) > agora,
+        ) ?? null)
+      : null;
+  const maisCheio = diasDoPeriodo.reduce<DiaAgenda | null>(
+    (melhor, candidato) =>
+      candidato.eventos.length > (melhor?.eventos.length ?? 0) ? candidato : melhor,
+    null,
+  );
+  const diasLivres = diasDoPeriodo.filter(
+    (candidato) => candidato.eventos.length === 0,
+  ).length;
+  const manuais = agenda.total - agenda.marcadosPeloAgente;
+
+  const exportar = (
+    // Exporta o período que está no ecrã — a semana ou o mês, com o filtro de
+    // executor já aplicado, porque é isso que `agenda.dias` traz.
+    <BotaoExportar
+      assunto="agenda"
+      colunas={colunasDaAgenda(moeda, timeZone)}
+      linhas={agenda.dias.flatMap((candidato) => candidato.eventos)}
+    />
+  );
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+    <div className="flex flex-col gap-5">
+      <CabecalhoTela
+        acoes={
+          <>
+            {/*
+              A troca de vista leva o dia de referência consigo: quem está em
+              outubro e carrega em "Semana" quer a semana em que está, não a
+              semana do dia 1.
+            */}
+            <FiltroTrilho
+              opcoes={[
+                {
+                  ativo: agenda.vista === "semana",
+                  href: ligacao({ dia: agenda.diaDeReferencia, vista: "semana" }),
+                  label: t("Semana"),
+                },
+                {
+                  ativo: agenda.vista === "mes",
+                  href: ligacao({ dia: agenda.diaDeReferencia, vista: "mes" }),
+                  label: t("Mês"),
+                },
+              ]}
+              rotulo={t("Vista")}
+            />
+            {exportar}
+            {/*
+              Marcar fica aqui em cima e não só dentro do painel do dia: quem
+              chega à agenda a querer marcar tinha de adivinhar que o caminho
+              era abrir um dia primeiro.
+            */}
+            {marcar ? (
+              <button
+                className="ds-botao ds-botao-primario"
+                onClick={() => setAMarcarDoTopo(true)}
+                type="button"
+              >
+                <Plus aria-hidden="true" className="h-4 w-4" />
+                {t("Agendar atendimento")}
+              </button>
+            ) : null}
+          </>
+        }
+        destaque={
+          agenda.total === 0
+            ? undefined
+            : agenda.total === 1
+              ? t("1 atendimento")
+              : t("{n} atendimentos", { n: agenda.total })
+        }
+        resto={
+          agenda.total === 0
+            ? agenda.vista === "mes"
+              ? t("Nada agendado neste mês.")
+              : t("Nada agendado nesta semana.")
+            : agenda.vista === "mes"
+              ? t("neste mês, {agente} pelo agente.", {
+                  agente: agenda.marcadosPeloAgente,
+                })
+              : t("nesta semana, {agente} pelo agente.", {
+                  agente: agenda.marcadosPeloAgente,
+                })
+        }
+        sobretitulo={t("Agenda")}
+      />
+
+      {agenda.total > 0 || hoje ? (
+        <GradeMetricas colunas={hoje ? 4 : 3}>
+          {hoje ? (
+            <CartaoMetrica
+              icone={<CalendarClock aria-hidden="true" className="h-4 w-4" />}
+              nota={
+                proximoHoje
+                  ? t("Próximo: {nome} às {hora}", {
+                      hora: horaCurta(proximoHoje.inicio, timeZone, locale),
+                      nome: tituloDoEvento(proximoHoje, t),
+                    })
+                  : agora && hoje.eventos.length > 0
+                    ? t("Nada mais por hoje.")
+                    : hoje.eventos.length === 0
+                      ? t("Dia livre.")
+                      : undefined
+              }
+              rotulo={t("Hoje")}
+              valor={String(hoje.eventos.length)}
+            />
+          ) : null}
+          <CartaoMetrica
+            cor="var(--ds-info)"
+            icone={<Bot aria-hidden="true" className="h-4 w-4" />}
+            nota={
+              manuais === 1
+                ? t("1 marcado à mão.")
+                : t("{n} marcados à mão.", { n: manuais })
+            }
+            rotulo={t("Pelo agente")}
+            unidade={t("de {total}", { total: agenda.total })}
+            valor={String(agenda.marcadosPeloAgente)}
+          />
+          <CartaoMetrica
+            cor="var(--ds-ouro)"
+            icone={<TrendingUp aria-hidden="true" className="h-4 w-4" />}
+            nota={
+              maisCheio
+                ? `${diaDoMes(maisCheio.chave, locale)} · ${
+                    maisCheio.eventos.length === 1
+                      ? t("1 atendimento")
+                      : t("{n} atendimentos", { n: maisCheio.eventos.length })
+                  }`
+                : undefined
+            }
+            rotulo={t("Dia mais cheio")}
+            valor={
+              maisCheio
+                ? diaDaSemana(maisCheio.chave, locale).replace(/^./, (letra) =>
+                    letra.toUpperCase(),
+                  )
+                : "--"
+            }
+          />
+          <CartaoMetrica
+            cor="var(--ds-alerta)"
+            icone={<CalendarCheck aria-hidden="true" className="h-4 w-4" />}
+            nota={t("Sem nada agendado.")}
+            rotulo={t("Dias livres")}
+            valor={String(diasLivres)}
+          />
+        </GradeMetricas>
+      ) : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2">
           <Botao href={ligacao({ dia: agenda.anterior })} titulo={t("Anterior")}>
-            ←
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
           </Botao>
           <Botao href={ligacao({})}>{t("Hoje")}</Botao>
           <Botao href={ligacao({ dia: agenda.proximo })} titulo={t("Próximo")}>
-            →
+            <ChevronRight aria-hidden="true" className="h-4 w-4" />
           </Botao>
 
           <p className="ml-1 min-w-0 flex-1 truncate text-sm font-semibold text-foreground first-letter:uppercase">
@@ -1135,125 +1700,90 @@ export function AgendaPanel({
         </div>
 
         {/*
-          A troca de vista leva o dia de referência consigo: quem está em
-          outubro e carrega em "Semana" quer a semana em que está, não a
-          semana do dia 1.
+          O filtro só aparece quando há mais do que uma pessoa no período. Na
+          Miranda é sempre o Samuel, e um filtro com uma opção só é um botão
+          que não faz nada.
         */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Botao
-            activo={agenda.vista === "semana"}
-            href={ligacao({ dia: agenda.diaDeReferencia, vista: "semana" })}
-          >
-            {t("Semana")}
-          </Botao>
-          <Botao
-            activo={agenda.vista === "mes"}
-            href={ligacao({ dia: agenda.diaDeReferencia, vista: "mes" })}
-          >
-            {t("Mês")}
-          </Botao>
-
-          {/*
-            Exporta o período que está no ecrã — a semana ou o mês, com o
-            filtro de executor já aplicado, porque é isso que `agenda.dias`
-            traz. Quem quer o mês inteiro carrega em "Mês" primeiro, que é a
-            mesma conta que já faz com os olhos.
-          */}
-          <BotaoExportar
-            assunto="agenda"
-            colunas={colunasDaAgenda(moeda, timeZone)}
-            linhas={agenda.dias.flatMap((candidato) => candidato.eventos)}
+        {agenda.executores.length > 1 ? (
+          <FiltroTrilho
+            opcoes={[
+              {
+                ativo: executorEscolhido === "",
+                href: ligacao({ dia: agenda.inicio, executor: "" }),
+                label: t("Todos"),
+              },
+              ...agenda.executores.map((executor) => ({
+                ativo: executorEscolhido === executor,
+                href: ligacao({ dia: agenda.inicio, executor }),
+                label: nomeExecutor(executor),
+              })),
+            ]}
+            rotulo={t("Quem faz")}
           />
-
-          {/*
-            Marcar fica aqui em cima e não só dentro do painel do dia: quem
-            chega à agenda a querer marcar tinha de adivinhar que o caminho
-            era abrir um dia primeiro.
-          */}
-          {marcar ? (
-            <button
-              className="ds-botao ds-botao-primario"
-              onClick={() => setAMarcarDoTopo(true)}
-              type="button"
-            >
-              {t("Agendar atendimento")}
-            </button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
-      {/*
-        O filtro só aparece quando há mais do que uma pessoa no período. Na
-        Miranda é sempre o Samuel, e um filtro com uma opção só é um botão
-        que não faz nada.
-      */}
-      {agenda.executores.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Botao
-            activo={executorEscolhido === ""}
-            href={ligacao({ dia: agenda.inicio, executor: "" })}
-          >
-            {t("Todos")}
-          </Botao>
-          {agenda.executores.map((executor) => (
-            <Botao
-              activo={executorEscolhido === executor}
-              href={ligacao({ dia: agenda.inicio, executor })}
-              key={executor}
-            >
-              {nomeExecutor(executor)}
-            </Botao>
-          ))}
+      {agenda.total === 0 && agenda.vista === "semana" ? (
+        <div className="ds-bloco">
+          <VazioTela
+            acao={
+              marcar ? (
+                <button
+                  className="ds-botao ds-botao-primario"
+                  onClick={() => setAMarcarDoTopo(true)}
+                  type="button"
+                >
+                  <Plus aria-hidden="true" className="h-4 w-4" />
+                  {t("Agendar atendimento")}
+                </button>
+              ) : undefined
+            }
+            texto={t(
+              "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.",
+            )}
+            titulo={t("Semana livre")}
+          />
         </div>
-      ) : null}
-
-      <p className="text-sm text-muted-foreground">
-        {agenda.total === 0
-          ? agenda.vista === "mes"
-            ? t("Nada agendado neste mês.")
-            : t("Nada agendado nesta semana.")
-          : agenda.total === 1
-            ? t("1 agendamento, {agente} pelo agente.", {
-                agente: agenda.marcadosPeloAgente,
-              })
-            : t("{n} agendamentos, {agente} pelo agente.", {
-                agente: agenda.marcadosPeloAgente,
-                n: agenda.total,
-              })}
-      </p>
-
-      {agenda.vista === "mes" ? (
-        <GrelhaMes
-          abrirDia={setDiaAberto}
-          agenda={agenda}
-          timeZone={timeZone}
-        />
+      ) : agenda.vista === "mes" ? (
+        <GrelhaMes abrirDia={setDiaAberto} agenda={agenda} timeZone={timeZone} />
       ) : (
-        <GrelhaSemana
-          abrirDia={setDiaAberto}
-          abrirEvento={setEventoAberto}
-          agenda={agenda}
-          executorEscolhido={executorEscolhido}
-          moeda={moeda}
-          timeZone={timeZone}
-        />
+        <>
+          <div className="ds-bloco hidden overflow-hidden lg:block">
+            <SemanaPorHora
+              abrirDia={setDiaAberto}
+              abrirEvento={setEventoAberto}
+              agenda={agenda}
+              agora={agora}
+              executorEscolhido={executorEscolhido}
+              timeZone={timeZone}
+            />
+          </div>
+          <div className="lg:hidden">
+            <SemanaEmLista
+              abrirDia={setDiaAberto}
+              abrirEvento={setEventoAberto}
+              agenda={agenda}
+              executorEscolhido={executorEscolhido}
+              timeZone={timeZone}
+            />
+          </div>
+        </>
       )}
 
-      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 rounded-full bg-primary"
-          />
+          <span className="ds-selo ds-selo-verde">{t("Agente")}</span>
           {t("Agendado pelo agente")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 rounded-full border border-muted-foreground/60"
-          />
+          <span className="ds-selo ds-selo-neutro">{t("Manual")}</span>
           {t("Agendado manualmente")}
         </span>
+        {agenda.vista === "semana" && hoje ? (
+          <span className="hidden lg:inline">
+            {t("A linha vermelha é a hora atual.")}
+          </span>
+        ) : null}
         <span>{t("Clique em um dia, ou em um atendimento, para ver os detalhes.")}</span>
       </p>
 

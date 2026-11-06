@@ -7,7 +7,6 @@ import {
   registarExecucaoAction,
   reporServicoAction,
 } from "@/app/app/servicos/actions";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { ServicosPanel } from "@/app/components/servicos-panel";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -46,6 +45,7 @@ export default async function ServicosPage({
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
   const parametros = await searchParams;
   const escalaoPedido = parametros.escalao;
+  const categoriaPedida = parametros.categoria;
   const painel = await getPainelServicos({
     clienteSlug: profile.cliente_slug,
     escalao: Array.isArray(escalaoPedido) ? escalaoPedido[0] : escalaoPedido,
@@ -53,8 +53,6 @@ export default async function ServicosPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Serviços")} />
-
       <ServicosPanel
         action={gravarServicoAction}
         actionExcluir={excluirServicoAction}
@@ -62,6 +60,9 @@ export default async function ServicosPage({
         actionReceita={definirReceitaAction}
         actionRepor={reporServicoAction}
         basePath="/app/servicos"
+        categoria={
+          Array.isArray(categoriaPedida) ? categoriaPedida[0] : categoriaPedida
+        }
         locale={locale}
         painel={painel}
         podeEditar={profile.role === "cliente_admin" && !painel.somenteLeitura}

@@ -1,10 +1,19 @@
 import type { ReactNode } from "react";
 
-import { ExpandableText } from "@/app/components/expandable-text";
+import { ChevronDown, FlaskConical } from "lucide-react";
+
+import { nomeParaAvatar } from "@/app/components/conversation-workspace";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { Dica } from "@/app/components/painel-ui";
+import { AvatarCanal, VazioTela } from "@/app/components/tela";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
+
+/**
+ * As peças da tela de Handoffs (redesenho de 06/11/2026): cada pedido é uma
+ * linha com o rosto da pessoa e o selo da situação; o resumo e as ações
+ * abrem ao tocar na linha.
+ */
 
 export type HandoffStatusValue =
   "pendente" | "em_atendimento" | "resolvido" | "perdido";
@@ -21,26 +30,19 @@ export type HandoffStatusAction = {
  */
 const statusMeta: Record<string, { chip: string; label: string }> = {
   em_atendimento: { chip: "ds-selo-alerta", label: "Em atendimento" },
-  pendente: { chip: "ds-selo-perigo", label: "Pendente" },
+  pendente: { chip: "ds-selo-perigo ds-selo-ponto", label: "Pendente" },
   perdido: { chip: "ds-selo-neutro", label: "Perdido" },
   resolvido: { chip: "ds-selo-verde", label: "Resolvido" },
 };
 
 const priorityMeta: Record<string, { chip: string; label: string }> = {
   alta: { chip: "ds-selo-perigo", label: "Prioridade alta" },
-  baixa: { chip: "ds-selo-neutro", label: "Prioridade baixa" },
-  normal: { chip: "ds-selo-neutro", label: "Prioridade normal" },
   urgente: { chip: "ds-selo-perigo ds-selo-ponto", label: "Urgente" },
 };
 
-function Chip({
-  className,
-  children,
-}: {
-  children: ReactNode;
-  className: string;
-}) {
-  return <span className={`ds-selo ${className}`}>{children}</span>;
+/** Um handoff está aberto enquanto ninguém o resolveu nem o deu por perdido. */
+export function handoffAberto(status: string | null | undefined) {
+  return status !== "resolvido" && status !== "perdido";
 }
 
 /** Data e hora curtas no idioma de quem vê, no fuso do cliente. */
@@ -61,26 +63,18 @@ function formatarDataHora(
   }).format(new Date(date));
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
+function Campo({ children, label }: { children: ReactNode; label: string }) {
   return (
     <div className="min-w-0">
-      <p className="text-[11px] font-semibold text-muted-foreground/60">
-        {label}
-      </p>
-      <div className="mt-1 text-sm leading-6 break-words text-muted-foreground">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="mt-1 text-sm leading-6 break-words whitespace-pre-wrap text-foreground">
         {children}
       </div>
     </div>
   );
 }
 
-/**
- * O título de uma secção de handoffs.
- *
- * A explicação de cada secção era um parágrafo por baixo do título — três
- * linhas em telemóvel antes do primeiro cartão. Agora vive no `?`: quem já
- * sabe o que a secção é vê só o título e a contagem.
- */
+/** O título de uma secção de handoffs, com a contagem e a explicação no `?`. */
 export function HandoffSectionHeader({
   count,
   dica,
@@ -95,7 +89,7 @@ export function HandoffSectionHeader({
 }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-      <h2 className="min-w-0 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+      <h2 className="ds-titulo-3 min-w-0 text-foreground">
         {title}
         {sufixo ? (
           <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -104,27 +98,37 @@ export function HandoffSectionHeader({
         ) : null}
       </h2>
       {typeof count === "number" ? (
-        <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground tabular-nums">
-          {count}
-        </span>
+        <span className="ds-selo ds-selo-neutro tabular-nums">{count}</span>
       ) : null}
       {dica ? <Dica texto={dica} /> : null}
     </div>
   );
 }
 
-export function HandoffEmptyState({ children }: { children: ReactNode }) {
+/** Bloco vazio com o beija-flor. */
+export function HandoffEmptyState({
+  children,
+  texto,
+}: {
+  children: ReactNode;
+  texto?: ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-dashed border-border-strong bg-surface/60 px-4 py-8 text-center text-sm text-muted-foreground">
-      {children}
+    <div className="ds-bloco">
+      <VazioTela pose="feliz" texto={texto} titulo={children} />
     </div>
   );
 }
 
-export const handoffCardClass =
-  "flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-5";
+export const handoffCardClass = "ds-bloco flex min-w-0 flex-col gap-3 p-4";
 
 export const handoffGridClass = "grid gap-3 md:grid-cols-2 2xl:grid-cols-3";
+
+/** A lista agrupada onde vivem as linhas dos pedidos. */
+export const handoffListClass = "ds-bloco tela-lista p-1.5";
+
+const resumoLinha =
+  "tela-linha cursor-pointer list-none [&::-webkit-details-marker]:hidden";
 
 export async function HandoffCard({
   actions,
@@ -154,7 +158,7 @@ export async function HandoffCard({
 }) {
   const t = await getT();
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
-  const knownStatus = statusMeta[status ?? ""];
+  const knownStatus = statusMeta[status ?? "pendente"];
   const statusInfo = knownStatus
     ? { chip: knownStatus.chip, label: t(knownStatus.label) }
     : {
@@ -162,66 +166,67 @@ export async function HandoffCard({
         label: status?.replaceAll("_", " ") ?? t("Sem status"),
       };
   const priorityInfo = priorityMeta[prioridade ?? ""] ?? null;
+  const titulo = nome || telefone || t("Sem nome");
 
   return (
-    <article className={handoffCardClass}>
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold text-foreground">
-            {nome ?? t("Sem nome")}
-          </h3>
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">
-            {telefone ?? t("Sem telefone")}
-            {clientLabel ? ` · ${clientLabel}` : ""}
+    <details className="group">
+      <summary className={resumoLinha}>
+        <AvatarCanal nome={nome || telefone ? nomeParaAvatar(titulo) : "?"} tamanho={40} />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="min-w-0 truncate text-sm font-semibold text-foreground">{titulo}</p>
+            <span className={`ds-selo ${statusInfo.chip}`}>{statusInfo.label}</span>
+            {priorityInfo ? (
+              <span className={`ds-selo ${priorityInfo.chip}`}>{t(priorityInfo.label)}</span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 line-clamp-2 text-[0.8125rem] text-muted-foreground sm:line-clamp-1">
+            {motivo?.trim() || t("Sem motivo")}
           </p>
         </div>
-        <p className="shrink-0 text-xs text-muted-foreground">
-          {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
-        </p>
-      </header>
+        <div className="flex shrink-0 flex-col items-end gap-1 self-start pt-0.5">
+          <span className="text-[11px] tabular-nums text-muted-foreground">
+            {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180"
+          />
+        </div>
+      </summary>
 
-      <div className="flex flex-wrap gap-1.5">
-        <Chip className={statusInfo.chip}>{statusInfo.label}</Chip>
-        {priorityInfo ? (
-          <Chip className={priorityInfo.chip}>{t(priorityInfo.label)}</Chip>
-        ) : null}
-        {origem ? (
-          <Chip className="ds-selo-neutro">
-            {origem.replaceAll("_", " ")}
-          </Chip>
-        ) : null}
+      <div className="flex flex-col gap-4 px-3 pt-1 pb-4 sm:pl-[3.75rem]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo label={t("Motivo")}>{motivo?.trim() || t("Sem motivo")}</Campo>
+          <Campo label={t("Resumo")}>{resumo?.trim() || t("Sem resumo")}</Campo>
+          <Campo label={t("Contato")}>
+            {telefone ?? t("Sem telefone")}
+            {clientLabel ? ` · ${clientLabel}` : ""}
+            {origem ? ` · ${origem.replaceAll("_", " ")}` : ""}
+          </Campo>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {actions.map((item) => {
+            const isCurrent = status === item.status;
+
+            return (
+              <form action={item.action} key={item.status}>
+                <FormSubmitButton
+                  aria-pressed={isCurrent}
+                  className={`ds-botao ds-botao-p disabled:cursor-default ${
+                    isCurrent ? "ds-botao-primario" : "ds-botao-secundario"
+                  }`}
+                  disabled={isCurrent}
+                  pendingLabel={t("Salvando...")}
+                >
+                  {t(item.label)}
+                </FormSubmitButton>
+              </form>
+            );
+          })}
+        </div>
       </div>
-
-      <Field label={t("Motivo")}>
-        <ExpandableText emptyText={t("Sem motivo")} maxLength={140} text={motivo} />
-      </Field>
-      <Field label={t("Resumo")}>
-        <ExpandableText emptyText={t("Sem resumo")} maxLength={160} text={resumo} />
-      </Field>
-
-      <div className="mt-auto grid grid-cols-[1.4fr_1fr_1fr] gap-2 border-t border-border pt-4">
-        {actions.map((item) => {
-          const isCurrent = status === item.status;
-
-          return (
-            <form action={item.action} key={item.status}>
-              <FormSubmitButton
-                aria-pressed={isCurrent}
-                className={`h-10 w-full rounded-full border px-1 text-xs font-semibold transition disabled:cursor-default ${
-                  isCurrent
-                    ? "border-foreground bg-primary text-primary-foreground"
-                    : "border-border bg-surface text-muted-foreground hover:border-foreground"
-                }`}
-                disabled={isCurrent}
-                pendingLabel={t("Salvando...")}
-              >
-                {t(item.label)}
-              </FormSubmitButton>
-            </form>
-          );
-        })}
-      </div>
-    </article>
+    </details>
   );
 }
 
@@ -245,31 +250,34 @@ export async function SimulatedHandoffCard({
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   return (
-    <article className={handoffCardClass}>
-      <header className="flex items-center justify-between gap-3">
-        <Chip className="ds-selo-neutro">
-          {t("Simulado")}
-          {clientLabel ? ` · ${clientLabel}` : ""}
-        </Chip>
-        <p className="shrink-0 text-xs text-muted-foreground">
-          {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
-        </p>
-      </header>
-      <Field label={t("Mensagem do cliente")}>
-        <ExpandableText
-          emptyText={t("Sem mensagem")}
-          maxLength={130}
-          text={mensagem}
+    <details className="group">
+      <summary className={resumoLinha}>
+        <span className="ds-chip-icone" style={{ ["--chip" as string]: "var(--ds-info)" }}>
+          <FlaskConical aria-hidden="true" className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground">
+            {mensagem?.trim() || t("Sem mensagem")}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {t("Simulado")}
+            {clientLabel ? ` · ${clientLabel}` : ""}
+            {" · "}
+            {formatarDataHora(criadoEm, timeZone, locale, t("Sem data"))}
+          </p>
+        </div>
+        <ChevronDown
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
         />
-      </Field>
-      <Field label={t("Resposta do agente")}>
-        <ExpandableText
-          emptyText={t("Sem resposta")}
-          maxLength={150}
-          text={resposta}
-        />
-      </Field>
-      <div className="mt-auto border-t border-border pt-4">{deleteButton}</div>
-    </article>
+      </summary>
+      <div className="flex flex-col gap-4 px-3 pt-1 pb-4 sm:pl-[3.75rem]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Campo label={t("Mensagem do cliente")}>{mensagem?.trim() || t("Sem mensagem")}</Campo>
+          <Campo label={t("Resposta do agente")}>{resposta?.trim() || t("Sem resposta")}</Campo>
+        </div>
+        <div>{deleteButton}</div>
+      </div>
+    </details>
   );
 }

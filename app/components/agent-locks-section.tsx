@@ -2,13 +2,14 @@ import Link from "next/link";
 
 import { AgentLockBadges } from "@/app/components/agent-lock-badges";
 import { AgentPauseControls } from "@/app/components/agent-pause-controls";
-import { ChannelIcon, getChannelLabel } from "@/app/components/channel-brand";
+import { getChannelLabel } from "@/app/components/channel-brand";
 import {
   HandoffEmptyState,
   HandoffSectionHeader,
-  handoffCardClass,
-  handoffGridClass,
+  handoffListClass,
 } from "@/app/components/handoff-cards";
+import { nomeParaAvatar } from "@/app/components/conversation-workspace";
+import { AvatarCanal } from "@/app/components/tela";
 import { getT } from "@/lib/i18n/servidor";
 import { listAgentLocks, type AgentLock } from "@/lib/redis/agent-locks";
 import { createClient } from "@/lib/supabase/server";
@@ -163,7 +164,7 @@ export async function AgentLocksSection({
           {t(error)} {t("Tente novamente em instantes.")}
         </HandoffEmptyState>
       ) : groups.length > 0 ? (
-        <div className={handoffGridClass}>
+        <div className={handoffListClass}>
           {groups.map((group) => {
             const contact = contacts.get(group.identificadorConversa);
             const canal = contact?.canal ?? group.canal;
@@ -174,31 +175,33 @@ export async function AgentLocksSection({
               group.locks.some((lock) => lock.kind !== "status");
 
             return (
-              <article
-                className={handoffCardClass}
+              <div
+                className="tela-linha flex-wrap items-start sm:flex-nowrap sm:items-center"
                 key={group.identificadorConversa}
               >
-                <header className="flex items-center gap-3">
-                  <ChannelIcon channel={canal} />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-base font-semibold text-foreground">
-                      {name}
-                    </h3>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {contact?.telefone ?? group.identificadorConversa} ·{" "}
-                      {getChannelLabel(canal)}
-                    </p>
+                <AvatarCanal
+                  canal={canal}
+                  nome={contact?.nome || contact?.telefone ? nomeParaAvatar(name) : "?"}
+                  tamanho={40}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {name}
+                  </p>
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="truncate text-xs text-muted-foreground">
+                      {t(getChannelLabel(canal))}
+                      {contact?.telefone && contact.nome ? ` · ${contact.telefone}` : ""}
+                    </span>
+                    <AgentLockBadges locks={group.locks} />
                   </div>
-                </header>
+                </div>
 
-                <AgentLockBadges locks={group.locks} />
-
-                <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex w-full shrink-0 items-center gap-2 pl-[3.25rem] sm:w-auto sm:pl-0">
                   {canAct ? (
                     <AgentPauseControls
                       clienteSlug={clienteSlug}
                       contactLabel={contact?.nome ?? undefined}
-                      fullWidth
                       hasEternalPause={group.locks.some(
                         (lock) => lock.kind === "pausa_eterna",
                       )}
@@ -206,6 +209,7 @@ export async function AgentLocksSection({
                         (lock) => lock.kind === "pausa_manual",
                       )}
                       identificadorConversa={group.identificadorConversa}
+                      retomarDiscreto
                     />
                   ) : (
                     <span className="text-xs text-muted-foreground">
@@ -214,7 +218,7 @@ export async function AgentLocksSection({
                   )}
                   {contact ? (
                     <Link
-                      className="ds-botao ds-botao-secundario ds-botao-p w-full sm:w-auto"
+                      className="ds-botao ds-botao-fantasma ds-botao-p"
                       href={getConversationHref(
                         conversationsPath,
                         clienteSlug,
@@ -226,7 +230,7 @@ export async function AgentLocksSection({
                     </Link>
                   ) : null}
                 </div>
-              </article>
+              </div>
             );
           })}
         </div>

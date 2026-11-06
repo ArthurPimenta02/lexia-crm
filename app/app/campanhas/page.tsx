@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 
 import { CampaignsPanel } from "@/app/components/campaigns-panel";
 import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
@@ -88,17 +87,13 @@ export default async function CampanhasPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho
+      <CampaignsPanel
         acoes={
           <CampaignsRefreshButton
             action={atualizarCampanhasAction}
             atualizadoEm={atualizadoEm}
           />
         }
-        titulo={t("Campanhas")}
-      />
-
-      <CampaignsPanel
         basePath="/app/campanhas"
         fim={fim}
         inicio={inicio}

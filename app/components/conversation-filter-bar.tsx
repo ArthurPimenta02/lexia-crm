@@ -1,290 +1,187 @@
 import Form from "next/form";
 import Link from "next/link";
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { Globe, Search, X } from "lucide-react";
 
-import {
-  ChannelFilterLink,
-  getChannelLabel,
-} from "@/app/components/channel-brand";
+import { ChannelIcon } from "@/app/components/channel-brand";
 import {
   appendConversationPeriodParams,
-  ConversationPeriodFilter,
+  ConversationCustomPeriodForm,
   type ConversationPeriodState,
 } from "@/app/components/conversation-period-filter";
-import { TimezoneSwitcher } from "@/app/components/conversation-timezone";
-import { getSelectedTimezone } from "@/lib/clientes/timezone";
-import { conversationPeriodOptions } from "@/lib/conversations/date-range";
+import { FiltroTrilho } from "@/app/components/tela";
+import { getSelectedTimezone, timezoneOptions } from "@/lib/clientes/timezone";
+import {
+  conversationPeriodOptions,
+  type ConversationPeriod,
+} from "@/lib/conversations/date-range";
 import { getT } from "@/lib/i18n/servidor";
 
-const channelFilters = [
-  { label: "Todas", value: "" },
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "Messenger", value: "messenger" },
-  { label: "Instagram", value: "instagram" },
-];
+/**
+ * Os filtros da tela de Conversas (redesenho de 06/11/2026).
+ *
+ * Tudo fica no endereço: canal, período, fuso, busca, situação e a conversa
+ * aberta. `hrefConversas` monta o endereço a partir do estado atual e troca
+ * só o que se pede, para nenhum filtro apagar os outros.
+ */
+export type SituacaoFiltro = "" | "esperando";
 
-type ConversationFilterBarProps = {
+export type EstadoConversas = {
   basePath: string;
-  channel: string;
-  clientSlug?: string;
-  conversationId?: string | null;
-  leading?: ReactNode;
-  period: ConversationPeriodState;
-  rangeLabel: string;
-  searchQuery: string;
-  timezone: string;
+  busca: string;
+  canal: string;
+  cliente?: string;
+  conversa?: string | null;
+  fuso: string;
+  periodo: ConversationPeriodState;
+  situacao: SituacaoFiltro;
 };
 
-function buildHref({
-  basePath,
-  channel,
-  clientSlug,
-  conversationId,
-  period,
-  searchQuery,
-  timezone,
-}: Omit<ConversationFilterBarProps, "leading" | "rangeLabel">) {
+export function hrefConversas(
+  estado: EstadoConversas,
+  mudar: Partial<Omit<EstadoConversas, "basePath">> = {},
+) {
+  const e = { ...estado, ...mudar };
   const params = new URLSearchParams();
 
-  if (clientSlug) {
-    params.set("cliente", clientSlug);
-  }
+  if (e.cliente) params.set("cliente", e.cliente);
+  if (e.canal) params.set("canal", e.canal);
+  if (e.busca) params.set("busca", e.busca);
+  if (e.situacao) params.set("situacao", e.situacao);
+  params.set("fuso", e.fuso);
+  appendConversationPeriodParams(params, e.periodo);
+  if (e.conversa) params.set("conversa", e.conversa);
 
-  if (channel) {
-    params.set("canal", channel);
-  }
-
-  if (searchQuery) {
-    params.set("busca", searchQuery);
-  }
-
-  if (conversationId) {
-    params.set("conversa", conversationId);
-  }
-
-  params.set("fuso", timezone);
-  appendConversationPeriodParams(params, period);
-
-  return `${basePath}?${params.toString()}`;
+  return `${e.basePath}?${params.toString()}`;
 }
 
-function FilterHiddenFields({
-  channel,
-  clientSlug,
-  period,
-  timezone,
-}: Pick<
-  ConversationFilterBarProps,
-  "channel" | "clientSlug" | "period" | "timezone"
->) {
+/** Os campos escondidos que os formulários levam para não perder filtros. */
+function CamposEscondidos({ estado }: { estado: EstadoConversas }) {
   return (
     <>
-      {clientSlug ? (
-        <input name="cliente" type="hidden" value={clientSlug} />
-      ) : null}
-      {channel ? <input name="canal" type="hidden" value={channel} /> : null}
-      <input name="fuso" type="hidden" value={timezone} />
-      <input name="periodo" type="hidden" value={period.key} />
-      {period.key === "personalizado" ? (
+      {estado.cliente ? <input name="cliente" type="hidden" value={estado.cliente} /> : null}
+      {estado.canal ? <input name="canal" type="hidden" value={estado.canal} /> : null}
+      {estado.situacao ? <input name="situacao" type="hidden" value={estado.situacao} /> : null}
+      <input name="fuso" type="hidden" value={estado.fuso} />
+      <input name="periodo" type="hidden" value={estado.periodo.key} />
+      {estado.periodo.key === "personalizado" ? (
         <>
-          <input name="inicio" type="hidden" value={period.start} />
-          <input name="fim" type="hidden" value={period.end} />
+          <input name="inicio" type="hidden" value={estado.periodo.start} />
+          <input name="fim" type="hidden" value={estado.periodo.end} />
         </>
       ) : null}
     </>
   );
 }
 
-export async function ConversationFilterBar({
-  basePath,
-  channel,
-  clientSlug,
-  conversationId,
-  leading,
-  period,
-  rangeLabel,
-  searchQuery,
-  timezone,
-}: ConversationFilterBarProps) {
+const canais = ["", "whatsapp", "instagram", "messenger"] as const;
+const nomesCanal: Record<string, string> = {
+  instagram: "Instagram",
+  messenger: "Messenger",
+  whatsapp: "WhatsApp",
+};
+
+/**
+ * Os filtros que ficam no topo da tela: canal, período e fuso, todos em
+ * barra de opções. O período "Personalizada" abre as datas logo abaixo.
+ */
+export async function FiltrosConversas({ estado }: { estado: EstadoConversas }) {
   const t = await getT();
-  const selectedTimezone = getSelectedTimezone(timezone);
-  const periodLabel =
-    conversationPeriodOptions.find((option) => option.key === period.key)
-      ?.label ?? rangeLabel;
-  /*
-   * A contagem é de filtros *alterados*, por isso cada parcela compara com o
-   * valor por omissão do ecrã — e o do período é "hoje". Com "mes" aqui, uma
-   * página acabada de abrir anunciava um filtro activo que ninguém escolheu.
-   */
-  const activeFilterCount =
-    Number(Boolean(channel)) +
-    Number(period.key !== "hoje") +
-    Number(timezone !== "brasil");
-  const searchClearHref = buildHref({
-    basePath,
-    channel,
-    clientSlug,
-    conversationId: null,
-    period,
-    searchQuery: "",
-    timezone,
-  });
-  const resetParams = new URLSearchParams();
-
-  if (clientSlug) {
-    resetParams.set("cliente", clientSlug);
-  }
-
-  if (searchQuery) {
-    resetParams.set("busca", searchQuery);
-  }
-
-  const resetHref = resetParams.size
-    ? `${basePath}?${resetParams.toString()}`
-    : basePath;
+  const fusoAtual = getSelectedTimezone(estado.fuso);
 
   return (
-    <div className="relative z-20 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface/95 p-2 shadow-sm">
-      {leading}
-
-      <Form
-        action={basePath}
-        className="relative min-w-56 flex-1 lg:max-w-[340px]"
-        replace
-        scroll={false}
-      >
-        <FilterHiddenFields
-          channel={channel}
-          clientSlug={clientSlug}
-          period={period}
-          timezone={timezone}
+    <div className="flex min-w-0 flex-col items-stretch gap-2 lg:items-end">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
+        <FiltroTrilho
+          opcoes={canais.map((canal) => ({
+            ativo: estado.canal === canal,
+            href: hrefConversas(estado, { canal, conversa: null }),
+            label: canal ? (
+              <>
+                <ChannelIcon channel={canal} size="sm" />
+                <span className="max-sm:sr-only">{nomesCanal[canal]}</span>
+              </>
+            ) : (
+              t("Todos")
+            ),
+          }))}
+          rotulo={t("Canal")}
         />
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60"
-        />
-        <input
-          aria-label={t("Pesquisar conversa por nome ou telefone")}
-          autoComplete="off"
-          className="h-9 w-full rounded-lg border border-border bg-surface-muted pr-16 pl-9 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-border-strong focus:bg-surface"
-          defaultValue={searchQuery}
-          inputMode="search"
-          maxLength={80}
-          name="busca"
-          placeholder={t("Buscar por nome")}
-          type="text"
-        />
-        <div className="absolute top-1/2 right-1 flex -translate-y-1/2 items-center">
-          {searchQuery ? (
-            <Link
-              aria-label={t("Limpar pesquisa")}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/60 transition hover:bg-border hover:text-foreground"
-              href={searchClearHref}
-              title={t("Limpar pesquisa")}
-            >
-              <X aria-hidden="true" className="h-3.5 w-3.5" />
-            </Link>
-          ) : null}
-          <button
-            aria-label={t("Pesquisar")}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-border hover:text-foreground"
-            title={t("Pesquisar")}
-            type="submit"
+        <details className="group relative">
+          <summary
+            aria-label={t("Fuso horário")}
+            className="ds-botao ds-botao-secundario ds-botao-p cursor-pointer list-none [&::-webkit-details-marker]:hidden"
+            title={t("Fuso horário")}
           >
-            <Search aria-hidden="true" className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </Form>
-
-      <p className="ml-auto hidden min-w-0 truncate text-xs text-muted-foreground md:block">
-        {t(getChannelLabel(channel))} ·{" "}
-        {searchQuery ? t("Busca global") : t(periodLabel)}
-        {" · "}
-        {t(selectedTimezone.label)}
-      </p>
-
-      <details className="group relative">
-        <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-muted-foreground transition hover:border-border-strong hover:bg-surface-muted [&::-webkit-details-marker]:hidden">
-          <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
-          <span>{t("Filtros")}</span>
-          {activeFilterCount > 0 ? (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
-              {activeFilterCount}
-            </span>
-          ) : null}
-        </summary>
-
-        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 max-h-[min(70dvh,560px)] w-[min(430px,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                {t("Filtrar conversas")}
-              </p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {t(rangeLabel)}
-              </p>
-            </div>
-            <Link
-              className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
-              href={resetHref}
-            >
-              {t("Limpar filtros")}
-            </Link>
-          </div>
-
-          <div className="mt-4">
-            <p className="text-xs font-semibold text-muted-foreground">
-              {t("Canal")}
+            <Globe aria-hidden="true" className="h-3.5 w-3.5" />
+            {t(fusoAtual.label)}
+          </summary>
+          <div className="ds-bloco absolute top-[calc(100%+0.375rem)] right-0 z-50 flex w-44 flex-col p-1.5 shadow-xl max-lg:left-0 max-lg:right-auto">
+            <p className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold text-muted-foreground">
+              {t("Fuso horário")}
             </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {channelFilters.map((filter) => (
-                <ChannelFilterLink
-                  active={channel === filter.value}
-                  channel={filter.value}
-                  href={buildHref({
-                    basePath,
-                    channel: filter.value,
-                    clientSlug,
-                    conversationId: null,
-                    period,
-                    searchQuery,
-                    timezone,
-                  })}
-                  key={filter.label}
-                />
-              ))}
-            </div>
+            {timezoneOptions.map((fuso) => (
+              <Link
+                aria-current={fuso.value === estado.fuso ? "true" : undefined}
+                className="tela-linha py-2 text-sm text-foreground"
+                href={hrefConversas(estado, { fuso: fuso.value })}
+                key={fuso.value}
+                scroll={false}
+              >
+                {t(fuso.label)}
+              </Link>
+            ))}
           </div>
-
-          <ConversationPeriodFilter
-            basePath={basePath}
-            channel={channel}
-            clientSlug={clientSlug}
-            period={period}
-            rangeLabel={rangeLabel}
-            searchQuery={searchQuery}
-            timezone={timezone}
-          />
-
-          <div className="mt-3 border-t border-border pt-3">
-            <TimezoneSwitcher
-              activeValue={timezone}
-              buildHref={(nextTimezone) =>
-                buildHref({
-                  basePath,
-                  channel,
-                  clientSlug,
-                  conversationId,
-                  period,
-                  searchQuery,
-                  timezone: nextTimezone,
-                })
-              }
-            />
-          </div>
-        </div>
-      </details>
+        </details>
+        <FiltroTrilho
+          opcoes={conversationPeriodOptions.map((opcao) => ({
+            ativo: estado.periodo.key === opcao.key,
+            href: hrefConversas(estado, {
+              periodo: { ...estado.periodo, key: opcao.key as ConversationPeriod },
+            }),
+            label: t(opcao.label),
+          }))}
+          rotulo={t("Período")}
+        />
+      </div>
+      {estado.periodo.key === "personalizado" ? (
+        <ConversationCustomPeriodForm estado={estado} />
+      ) : null}
     </div>
+  );
+}
+
+/** A busca por nome ou telefone, no topo da lista. Procura em todo o período. */
+export async function BuscaConversas({ estado }: { estado: EstadoConversas }) {
+  const t = await getT();
+
+  return (
+    <Form action={estado.basePath} className="relative min-w-0" replace scroll={false}>
+      <CamposEscondidos estado={estado} />
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground/60"
+      />
+      <input
+        aria-label={t("Pesquisar conversa por nome ou telefone")}
+        autoComplete="off"
+        className="ds-campo h-9 w-full pr-9 pl-9"
+        defaultValue={estado.busca}
+        inputMode="search"
+        maxLength={80}
+        name="busca"
+        placeholder={t("Buscar por nome ou número")}
+        type="text"
+      />
+      {estado.busca ? (
+        <Link
+          aria-label={t("Limpar pesquisa")}
+          className="absolute top-1/2 right-1.5 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/70 transition hover:bg-muted hover:text-foreground"
+          href={hrefConversas(estado, { busca: "", conversa: null })}
+          title={t("Limpar pesquisa")}
+        >
+          <X aria-hidden="true" className="h-3.5 w-3.5" />
+        </Link>
+      ) : null}
+    </Form>
   );
 }

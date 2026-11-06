@@ -43,7 +43,7 @@ export function ClientSettingsForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="nome"
           >
             {t("Nome")}
@@ -59,7 +59,7 @@ export function ClientSettingsForm({
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="status"
           >
             {t("Status")}
@@ -76,7 +76,7 @@ export function ClientSettingsForm({
           </select>
         </div>
 
-        <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-3 text-sm font-medium text-muted-foreground">
+        <label className="flex h-10 cursor-pointer items-center gap-3 self-end rounded-[11px] px-3.5 text-sm font-medium text-foreground shadow-[inset_0_0_0_1px_var(--ds-linha-forte)]">
           <input
             className="h-4 w-4 accent-primary"
             defaultChecked={initialValues.modo_teste}
@@ -88,7 +88,7 @@ export function ClientSettingsForm({
 
         <div className="flex flex-col gap-2">
           <label
-            className="text-sm font-medium text-muted-foreground"
+            className="text-[0.8125rem] font-medium text-foreground"
             htmlFor="cor_principal"
           >
             {t("Cor principal")}
@@ -103,12 +103,12 @@ export function ClientSettingsForm({
         </div>
       </div>
 
-      <div className="border-t border-border pt-5">
-        <h3 className="font-semibold text-foreground">{t("Workflow")}</h3>
+      <div className="border-t border-[var(--ds-linha)] pt-5">
+        <h3 className="ds-titulo-3 text-foreground">{t("Workflow")}</h3>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_nome"
             >
               {t("Nome")}
@@ -123,7 +123,7 @@ export function ClientSettingsForm({
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_tipo"
             >
               {t("Tipo")}
@@ -138,7 +138,7 @@ export function ClientSettingsForm({
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="webhook_url"
             >
               {t("Webhook URL")}
@@ -154,7 +154,7 @@ export function ClientSettingsForm({
 
           <div className="flex flex-col gap-2">
             <label
-              className="text-sm font-medium text-muted-foreground"
+              className="text-[0.8125rem] font-medium text-foreground"
               htmlFor="workflow_status"
             >
               {t("Status")}
@@ -175,11 +175,12 @@ export function ClientSettingsForm({
 
       {state.message ? (
         <p
-          className={`rounded-lg border px-3 py-2 text-sm ${
+          className={`tela-aviso ${
             state.type === "success"
-              ? "border-positive/20 bg-positive-soft text-positive"
-              : "border-danger/20 bg-danger-soft text-danger"
+              ? "bg-[var(--ds-acao-fundo)] text-[var(--ds-acao-forte)]"
+              : "tela-aviso-perigo"
           }`}
+          role="status"
         >
           {state.message}
         </p>

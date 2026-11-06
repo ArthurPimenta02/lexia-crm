@@ -56,7 +56,9 @@ export function CartaoMetrica({
           {valor}
           {unidade && !vazio ? <small>{unidade}</small> : null}
         </p>
-        {faisca && faisca.some((v) => v > 0) ? <Faisca cor={cor} valores={faisca} /> : null}
+        {faisca && faisca.some((v) => v > 0) ? (
+          <span className="hidden shrink-0 sm:block"><Faisca cor={cor} valores={faisca} /></span>
+        ) : null}
       </div>
 
       {nota ? <p className="mt-2 truncate text-xs text-muted-foreground">{nota}</p> : null}

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { ArrowUpRight, Workflow } from "lucide-react";
+
+import { AvisoLinha, CabecalhoTela, VazioTela } from "@/app/components/tela";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
@@ -32,7 +34,7 @@ function InfoItem({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <div className="mt-1 break-words font-medium text-foreground">
         {children}
       </div>
@@ -96,88 +98,136 @@ export default async function ClientSettingsPage() {
 
   const clientData = client as LexiaClient | null;
   const activeWorkflows = (activeWorkflowsData ?? []) as LexiaWorkflow[];
+  const nome = clientData?.nome ?? clientData?.slug ?? clienteSlug ?? null;
 
   return (
     <section className="flex w-full max-w-5xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Configurações")} />
+      <CabecalhoTela
+        acoes={
+          <Link className="ds-botao ds-botao-primario" href="/app/area-testes">
+            {t("Ir para Área de testes")}
+            <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
+        }
+        destaque={nome ?? undefined}
+        resto={
+          !clientData
+            ? t("Configurações")
+            : clientData.modo_teste
+              ? t("em modo teste.")
+              : clientData.status === "ativo"
+                ? t("no ar.")
+                : formatLabel(clientData.status, t)
+        }
+        sobretitulo={t("Configurações")}
+        subtitulo={
+          activeWorkflows.length === 1
+            ? t("1 workflow ativo")
+            : t("{n} workflows ativos", { n: activeWorkflows.length })
+        }
+      />
 
       {clientData?.modo_teste ? (
-        <div className="rounded-lg border border-warning/20 bg-warning-soft p-4 text-sm text-warning">
+        <AvisoLinha acao={<Link href="/app/area-testes">{t("Abrir")}</Link>}>
           {t(
             "O agente está em modo teste. Use a Área de testes para simular conversas antes da produção.",
           )}
-        </div>
+        </AvisoLinha>
       ) : null}
 
-      <section className="rounded-2xl border border-border bg-surface p-5">
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-foreground">{t("Cliente")}</h2>
-          <Link
-            className="ds-botao ds-botao-primario w-fit"
-            href="/app/area-testes"
-          >
-            {t("Ir para Área de testes")}
-          </Link>
-        </div>
+      <section className="ds-bloco p-5">
+        <h2 className="ds-titulo-3 text-foreground">{t("Cliente")}</h2>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <InfoItem label={t("Nome")}>{clientData?.nome ?? t("Sem nome")}</InfoItem>
+        <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-5">
+          <InfoItem label={t("Nome")}>
+            {clientData?.nome ?? t("Sem nome")}
+          </InfoItem>
           <InfoItem label="Slug">
-            {clientData?.slug ?? clienteSlug ?? t("Sem cliente")}
+            <span className="font-mono text-sm">
+              {clientData?.slug ?? clienteSlug ?? t("Sem cliente")}
+            </span>
           </InfoItem>
           <InfoItem label={t("Status")}>
-            {clientData?.status ?? t("Sem status")}
+            {clientData?.status ? (
+              <span
+                className={`ds-selo ds-selo-ponto ${
+                  clientData.status === "ativo"
+                    ? "ds-selo-verde"
+                    : "ds-selo-neutro"
+                }`}
+              >
+                {clientData.status}
+              </span>
+            ) : (
+              t("Sem status")
+            )}
           </InfoItem>
           <InfoItem label={t("Modo teste")}>
-            {clientData?.modo_teste ? t("Ativo") : t("Inativo")}
+            <span
+              className={`ds-selo ${
+                clientData?.modo_teste ? "ds-selo-alerta" : "ds-selo-neutro"
+              }`}
+            >
+              {clientData?.modo_teste ? t("Ativo") : t("Inativo")}
+            </span>
           </InfoItem>
           <InfoItem label={t("Cor principal")}>
             <div className="flex items-center gap-2">
               {clientData?.cor_principal ? (
                 <span
-                  className="h-4 w-4 shrink-0 rounded-full border border-border-strong"
+                  className="h-4 w-4 shrink-0 rounded-full ring-1 ring-border-strong"
                   style={{ backgroundColor: clientData.cor_principal }}
                 />
               ) : null}
-              <span>{clientData?.cor_principal ?? t("Sem cor")}</span>
+              <span className="font-mono text-sm">
+                {clientData?.cor_principal ?? t("Sem cor")}
+              </span>
             </div>
           </InfoItem>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-surface p-5">
-        <h2 className="text-lg font-semibold text-foreground">{t("Workflows ativos")}</h2>
+      <section className="ds-bloco p-2">
+        <h2 className="ds-titulo-3 px-3 pt-3 pb-2 text-foreground">
+          {t("Workflows ativos")}
+        </h2>
         {activeWorkflows.length > 0 ? (
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="tela-lista">
             {activeWorkflows.map((workflow) => (
-              <div
-                className="rounded-lg border border-border p-4"
-                key={workflow.id}
-              >
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <InfoItem label={t("Nome")}>
+              <div className="tela-linha" key={workflow.id}>
+                <span className="ds-chip-icone">
+                  <Workflow aria-hidden="true" className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">
                     {workflow.nome ?? t("Sem nome")}
-                  </InfoItem>
-                  <InfoItem label={t("Tipo")}>
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
                     {workflow.tipo ?? t("Sem tipo")}
-                  </InfoItem>
-                  <InfoItem label={t("Status")}>
-                    {workflow.status ?? t("Sem status")}
-                  </InfoItem>
+                  </p>
                 </div>
+                <span
+                  className={`ds-selo ds-selo-ponto shrink-0 ${
+                    workflow.status === "ativo"
+                      ? "ds-selo-verde"
+                      : "ds-selo-neutro"
+                  }`}
+                >
+                  {workflow.status ?? t("Sem status")}
+                </span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            {t("Nenhum workflow ativo configurado.")}
-          </p>
+          <VazioTela titulo={t("Nenhum workflow ativo configurado.")} />
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-surface p-5">
-        <h2 className="text-lg font-semibold text-foreground">{t("Acesso do usuário")}</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+      <section className="ds-bloco p-5">
+        <h2 className="ds-titulo-3 text-foreground">
+          {t("Acesso do usuário")}
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <InfoItem label={t("Role")}>{formatLabel(profile.role, t)}</InfoItem>
           <InfoItem label={t("Status do vínculo")}>
             {formatLabel(profile.status, t)}

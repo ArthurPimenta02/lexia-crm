@@ -38,7 +38,7 @@ function caminho(valores: number[], max: number, largura: number) {
 }
 
 export function GraficoArea({
-  formatar = (n) => String(n),
+  formatar: formatarRecebido,
   rotulos,
   series,
   vazio,
@@ -78,6 +78,9 @@ export function GraficoArea({
   const xPct = (i: number) => (n > 1 ? (i / (n - 1)) * 100 : 50);
   const yPct = (v: number) => ((ALTURA - (v / max) * (ALTURA - 16) - 4) / ALTURA) * 100;
   const numero = new Intl.NumberFormat(locale);
+  const formatar = formatarRecebido ?? ((n: number) => String(n));
+  // O total da legenda usa o mesmo formato dos valores (ex.: moeda), se houver.
+  const formatarTotal = formatarRecebido ?? ((n: number) => numero.format(n));
 
   // Rótulos do eixo: no máximo ~7, para não se atropelarem no telemóvel.
   const salto = Math.max(1, Math.ceil(n / 7));
@@ -222,7 +225,7 @@ export function GraficoArea({
             />
             {s.nome}
             <span className="ds-numero text-foreground">
-              {numero.format(s.valores.reduce((a, b) => a + b, 0))}
+              {formatarTotal(s.valores.reduce((a, b) => a + b, 0))}
             </span>
           </span>
         ))}

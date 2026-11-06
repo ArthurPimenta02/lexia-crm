@@ -5,7 +5,7 @@ import {
   AgendaPanel,
   type MarcarNaAgenda,
 } from "@/app/components/agenda-panel";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import { AvisoLinha, CabecalhoTela } from "@/app/components/tela";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getAgenda, VISTAS, type Vista } from "@/lib/agenda/read";
 import { exigirEcra } from "@/lib/auth/ecras";
@@ -101,12 +101,11 @@ export default async function AgendaPage({
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <PaginaCabecalho titulo={t("Agenda")} />
-
       {agenda.erro ? (
-        <p className="rounded-2xl border border-border bg-surface px-4 py-6 text-sm text-muted-foreground">
-          {t(agenda.erro)}
-        </p>
+        <>
+          <CabecalhoTela resto={t("Agenda")} />
+          <AvisoLinha tom="perigo">{t(agenda.erro)}</AvisoLinha>
+        </>
       ) : (
         <AgendaPanel
           agenda={agenda}

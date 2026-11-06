@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { GrupoMetricas, PaginaCabecalho } from "@/app/components/painel-ui";
+import { BellRing, CalendarClock, Coins, Send } from "lucide-react";
+
+import { CartaoMetrica } from "@/app/components/cartoes";
+import { AvatarCanal, AvisoLinha, CabecalhoTela, GradeMetricas, VazioTela } from "@/app/components/tela";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
@@ -57,9 +60,9 @@ const CANAL: Record<string, string> = { whatsapp: "WhatsApp", instagram: "Instag
 
 function Seccao({ titulo, extra, children }: { titulo: string; extra?: ReactNode; children: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_1px_2px_rgba(16,19,26,0.04)]">
-      <div className="flex min-h-12 items-center gap-2 border-b border-border px-5">
-        <h2 className="min-w-0 flex-1 text-sm font-semibold text-foreground">{titulo}</h2>
+    <section className="ds-bloco min-w-0 overflow-hidden">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-2 gap-y-1 px-5 pt-4 pb-1">
+        <h2 className="ds-titulo-3 min-w-0 flex-1 text-foreground">{titulo}</h2>
         {extra}
       </div>
       {children}
@@ -68,13 +71,13 @@ function Seccao({ titulo, extra, children }: { titulo: string; extra?: ReactNode
 }
 
 function Vazio({ children }: { children: ReactNode }) {
-  return <p className="px-5 py-6 text-sm text-muted-foreground">{children}</p>;
+  return <p className="px-5 pt-1 pb-4 text-sm text-muted-foreground">{children}</p>;
 }
 
 function Grupo({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <div className="border-b border-border last:border-b-0">
-      <h3 className="px-5 pt-4 pb-1 text-xs font-medium text-muted-foreground">{titulo}</h3>
+    <div className="pb-1">
+      <h3 className="ds-sobretitulo px-5 pt-3 pb-1.5">{titulo}</h3>
       {children}
     </div>
   );
@@ -112,6 +115,7 @@ export async function FollowupsVista({
   const linkConversa = (id: string | null, turno?: string) =>
     id ? `/admin/turnos?conversa=${encodeURIComponent(id)}${turno ? `&turno=${turno}` : ""}` : "/admin/turnos";
 
+  const canalDe = (id: string | null) => id?.match(/^(whatsapp|instagram|messenger):/)?.[1] ?? null;
   const abrir = (id: string) => `/admin/followups?fu=${encodeURIComponent(id)}`;
   const porConversa = new Map([...encerrados, ...marcados].map((f) => [f.identificador ?? "", f.id]));
   const desde24 = agora - 86400_000;
@@ -122,58 +126,74 @@ export async function FollowupsVista({
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-5">
-      <PaginaCabecalho
-        acoes={<span className="text-xs text-muted-foreground">{nomeCliente}</span>}
-        titulo={t("Follow-ups e lembretes")}
+      <CabecalhoTela
+        destaque={
+          marcados.length > 0
+            ? marcados.length === 1
+              ? t("1 follow-up")
+              : t("{n} follow-ups", { n: marcados.length })
+            : undefined
+        }
+        resto={marcados.length > 0 ? t("marcados para sair.") : t("Nenhum follow-up marcado.")}
+        sobretitulo={`${t("Follow-ups e lembretes")} · ${nomeCliente}`}
       />
 
       {!baseLigada || erroBase ? (
-        <p className="rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-foreground">
+        <AvisoLinha>
           {baseLigada
             ? t("Não foi possível ler a base do cliente agora. Os envios continuam acontecendo; só esta tela é que não os mostra.")
             : t("A base deste cliente não está conectada neste ambiente.")}
-        </p>
+        </AvisoLinha>
       ) : null}
 
-      <GrupoMetricas
-        itens={[
-          {
-            dica: t("Conversas em que a Carol volta a escrever se o cliente não responder."),
-            label: t("Follow-ups marcados"),
-            valor: marcados.length,
-          },
-          {
-            label: t("Follow-ups enviados (24 h)"),
-            valor: fuEnviados.filter((x) => Date.parse(x.criado_em) >= desde24).length,
-          },
-          { label: t("Consultas a lembrar"), valor: futuras.length },
-          { label: t("Lembretes enviados (7 dias)"), valor: lemEnviados.length },
-          {
-            dica: t("Custo de IA dos follow-ups e lembretes dos últimos 7 dias (os lembretes não usam IA)."),
-            label: t("Custo (7 dias)"),
-            valor: custo(custo7),
-          },
-        ]}
-      />
+      <GradeMetricas>
+        <CartaoMetrica
+          cor="var(--ds-acao)"
+          icone={<Send aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Follow-ups enviados (24 h)")}
+          valor={String(fuEnviados.filter((x) => Date.parse(x.criado_em) >= desde24).length)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-info)"
+          icone={<CalendarClock aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Consultas a lembrar")}
+          valor={String(futuras.length)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-destaque)"
+          icone={<BellRing aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Lembretes enviados (7 dias)")}
+          valor={String(lemEnviados.length)}
+        />
+        <CartaoMetrica
+          cor="var(--ds-ouro)"
+          dica={t("Custo de IA dos follow-ups e lembretes dos últimos 7 dias (os lembretes não usam IA).")}
+          icone={<Coins aria-hidden="true" className="h-4 w-4" />}
+          rotulo={t("Custo (7 dias)")}
+          valor={custo(custo7)}
+        />
+      </GradeMetricas>
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-2">
         <Seccao
           extra={<span className="text-xs text-muted-foreground">{t("de 15 em 15 min")}</span>}
           titulo={t("Follow-ups")}
         >
           <Grupo titulo={t("Marcados para sair")}>
             {marcados.length === 0 ? (
-              <Vazio>{t("Nenhum follow-up marcado.")}</Vazio>
+              <VazioTela pose="feliz" titulo={t("Nenhum follow-up marcado.")} />
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="tela-lista px-1.5">
                 {marcados.map((f) => (
                   <li key={f.id}>
                     <Link
-                      className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 px-5 py-3 transition-colors duration-150 hover:bg-muted"
+                      className="tela-linha"
                       href={abrir(f.id)}
                       scroll={false}
                     >
-                      <span className="truncate text-sm font-medium text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
+                      <AvatarCanal canal={f.canal} nome={nomeDe(f.identificador, f.nome_contacto)} />
+                      <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5">
+                      <span className="truncate text-sm font-semibold text-foreground">{nomeDe(f.identificador, f.nome_contacto)}</span>
                       <span className="text-right text-sm text-foreground tabular-nums">{data(f.proxima_tentativa_em)}</span>
                       <span className="truncate text-xs text-muted-foreground">
                         {CANAL[f.canal ?? ""] ?? f.canal} · {t("tentativa {n}", { n: f.etapa ?? 1 })}
@@ -184,8 +204,15 @@ export async function FollowupsVista({
                           : ""}
                         {f.motivo_encerramento ? ` · ${motivoLegivel(f.motivo_encerramento, t)}` : ""}
                       </span>
-                      <span className="text-right text-xs text-muted-foreground tabular-nums">
+                      <span
+                        className={`text-right text-xs font-medium tabular-nums ${
+                          f.proxima_tentativa_em && Date.parse(f.proxima_tentativa_em) < agora
+                            ? "text-[var(--ds-alerta)]"
+                            : "text-[var(--ds-acao-forte)]"
+                        }`}
+                      >
                         {emQuanto(f.proxima_tentativa_em, agora, t)}
+                      </span>
                       </span>
                     </Link>
                   </li>
@@ -198,11 +225,11 @@ export async function FollowupsVista({
             {fuEnviados.length === 0 ? (
               <Vazio>{t("Nenhum follow-up enviado pelo agente em código ainda.")}</Vazio>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="tela-lista px-1.5">
                 {fuEnviados.map((x) => (
                   <li key={x.id}>
                     <Link
-                      className="block px-5 py-3 transition-colors duration-150 hover:bg-muted"
+                      className="tela-linha items-start"
                       href={
                         porConversa.get(x.identificador_conversa ?? "")
                           ? abrir(porConversa.get(x.identificador_conversa ?? "")!)
@@ -210,17 +237,20 @@ export async function FollowupsVista({
                       }
                       scroll={false}
                     >
-                      <div className="flex items-baseline gap-3">
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      <AvatarCanal canal={canalDe(x.identificador_conversa)} nome={nomeDe(x.identificador_conversa)} />
+                      <span className="block min-w-0 flex-1">
+                      <span className="flex items-baseline gap-3">
+                        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                           {nomeDe(x.identificador_conversa)}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                           {data(x.criado_em)} · {custo(x.custo_usd)}
                         </span>
-                      </div>
-                      <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                         {Array.isArray(x.mensagens) ? x.mensagens.map(String).join(" ") : ""}
-                      </p>
+                      </span>
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -229,14 +259,14 @@ export async function FollowupsVista({
           </Grupo>
 
           <details className="group" open={Boolean(selecionado && selecionado.status !== "agendado")}>
-            <summary className="cursor-pointer list-none px-5 py-3 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+            <summary className="mx-5 mb-4 mt-1 cursor-pointer list-none rounded-[12px] bg-[color-mix(in_oklab,var(--ds-texto)_3%,transparent)] px-3.5 py-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
               {t("Encerrados nos últimos 7 dias ({n})", { n: encerrados.length })}
             </summary>
-            <ul className="divide-y divide-border border-t border-border">
+            <ul className="tela-lista px-1.5 pb-2">
               {encerrados.map((f) => (
                 <li key={f.id}>
                   <Link
-                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 px-5 py-2.5 text-sm transition-colors duration-150 hover:bg-muted"
+                    className="tela-linha grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 text-sm"
                     href={abrir(f.id)}
                     scroll={false}
                   >
@@ -268,19 +298,21 @@ export async function FollowupsVista({
         >
           <Grupo titulo={t("Próximas consultas")}>
             {consultas.length === 0 ? (
-              <Vazio>{t("Nenhuma consulta marcada pela Carol.")}</Vazio>
+              <VazioTela titulo={t("Nenhuma consulta marcada pela Carol.")} />
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="tela-lista px-1.5">
                 {consultas.map((c) => {
                   const e = estadoDoLembrete(c, agora, t);
                   return (
-                    <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5 px-5 py-3" key={c.id}>
-                      <span className="truncate text-sm font-medium text-foreground">{c.nome_cliente || "—"}</span>
+                    <li className="tela-linha" key={c.id}>
+                      <AvatarCanal nome={c.nome_cliente || "—"} />
+                      <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-0.5">
+                      <span className="truncate text-sm font-semibold text-foreground">{c.nome_cliente || "—"}</span>
                       <span className="text-right text-sm text-foreground tabular-nums">{data(c.inicio)}</span>
                       <span className="truncate text-xs text-muted-foreground">{c.servico}</span>
                       <span
                         className={`text-right text-xs tabular-nums ${
-                          e.tipo === "enviado" ? "text-positive" : e.tipo === "nao_sai" ? "text-warning" : "text-muted-foreground"
+                          e.tipo === "enviado" ? "text-[var(--ds-acao-forte)]" : e.tipo === "nao_sai" ? "text-[var(--ds-alerta)]" : "text-muted-foreground"
                         }`}
                       >
                         {e.tipo === "enviado"
@@ -291,12 +323,13 @@ export async function FollowupsVista({
                               ? t("Lembrete sai na próxima hora")
                               : t("Sem lembrete: {motivo}", { motivo: e.motivo })}
                       </span>
+                      </span>
                     </li>
                   );
                 })}
               </ul>
             )}
-            <p className="px-5 pt-1 pb-4 text-xs text-muted-foreground">
+            <p className="px-5 pt-2 pb-3 text-xs text-muted-foreground">
               {t("Só as consultas marcadas pela Carol. As que o Samuel marca direto na agenda não recebem lembrete (igual ao n8n).")}
             </p>
           </Grupo>
@@ -305,11 +338,13 @@ export async function FollowupsVista({
             {lemEnviados.length === 0 ? (
               <Vazio>{t("Nenhum lembrete enviado pelo agente em código ainda.")}</Vazio>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="tela-lista px-1.5 pb-2">
                 {lemEnviados.map((x) => (
-                  <li className="px-5 py-3" key={x.id}>
+                  <li className="tela-linha items-start" key={x.id}>
+                    <AvatarCanal canal={canalDe(x.identificador_conversa)} nome={nomeDe(x.identificador_conversa)} />
+                    <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-3">
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                         {nomeDe(x.identificador_conversa)}
                       </span>
                       <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{data(x.criado_em)}</span>
@@ -317,6 +352,7 @@ export async function FollowupsVista({
                     <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
                       {Array.isArray(x.mensagens) ? x.mensagens.map(String).join(" ") : ""}
                     </p>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -374,7 +410,7 @@ function DetalheFollowup({
   t: FuncaoT;
 }) {
   const e = explicarFollowup(f, data, agora, t);
-  const cor = e.tom === "aviso" ? "text-warning" : e.tom === "fim" ? "text-muted-foreground" : "text-positive";
+  const cor = e.tom === "aviso" ? "text-[var(--ds-alerta)]" : e.tom === "fim" ? "text-muted-foreground" : "text-[var(--ds-acao-forte)]";
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -384,7 +420,7 @@ function DetalheFollowup({
         <p className={`mt-1 text-[15px] font-medium ${cor}`}>{e.resumo}</p>
       </div>
 
-      <Lista itens={e.alertas} titulo={t("Atenção")} tom="text-warning" />
+      <Lista itens={e.alertas} titulo={t("Atenção")} tom="text-[var(--ds-alerta)]" />
       <Lista itens={e.porque} titulo={f.status === "agendado" ? t("Por que está marcado") : t("Como terminou")} />
       <Lista itens={e.proximos} titulo={t("O que acontece em seguida")} />
 
@@ -397,7 +433,7 @@ function DetalheFollowup({
             {turnos.map((x) => {
               const msgs = Array.isArray(x.mensagens) ? x.mensagens.map(String) : [];
               return (
-                <li className="rounded-xl border border-border px-3.5 py-2.5" key={x.id}>
+                <li className="rounded-[12px] bg-[color-mix(in_oklab,var(--ds-texto)_3%,transparent)] px-3.5 py-2.5" key={x.id}>
                   <p className="text-xs text-muted-foreground tabular-nums">
                     {data(x.criado_em)} · {x.estado === "respondido" ? t("enviado") : t("não enviado")} · {custo(x.custo_usd)}
                   </p>

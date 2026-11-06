@@ -230,6 +230,17 @@ const textos: TextosDaArea = {
     "Anúncio para WhatsApp": "Anúncio para WhatsApp",
     "Anúncio no Instagram": "Anúncio no Instagram",
     "Publicação no Instagram": "Publicação no Instagram",
+    // Redesenho das telas (06/11)
+    "1 cliente": "1 cliente",
+    "{n} clientes": "{n} clientes",
+    "e {n} sem falar há mais de {dias} dias.": "e {n} sem falar há mais de {dias} dias.",
+    "e todos falaram nos últimos {dias} dias.": "e todos falaram nos últimos {dias} dias.",
+    "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abre um deles e usa Juntar.",
+    "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contactos aparecem duas vezes com o mesmo número.",
+    "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Os valores gastos não aparecem: o histórico de marcações não está ligado.",
+    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Cada pessoa que falar com o agente e der nome e número aparece aqui.",
+    "Tente outro nome ou número, ou escolha Todos no filtro.": "Experimenta outro nome ou número, ou escolhe Todos no filtro.",
+    "{n} contatos não entram na lista. Ver por quê.": "{n} contactos não entram na lista. Ver porquê.",
   },
 
   es: {
@@ -463,6 +474,17 @@ const textos: TextosDaArea = {
     "EUA / Canadá": "EE. UU. / Canadá",
     "Cabo Verde": "Cabo Verde",
     Moçambique: "Mozambique",
+    // Redesenho das telas (06/11)
+    "1 cliente": "1 cliente",
+    "{n} clientes": "{n} clientes",
+    "e {n} sem falar há mais de {dias} dias.": "y {n} sin hablar hace más de {dias} días.",
+    "e todos falaram nos últimos {dias} dias.": "y todos hablaron en los últimos {dias} días.",
+    "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "Son la misma persona dos veces, porque Meta entregó el número en dos formatos. Abra uno y use Unir.",
+    "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contactos aparecen dos veces con el mismo número.",
+    "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Los importes gastados no aparecen: el historial de citas no está conectado.",
+    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Cada persona que hable con el agente y dé nombre y número aparece aquí.",
+    "Tente outro nome ou número, ou escolha Todos no filtro.": "Pruebe otro nombre o número, o elija Todos en el filtro.",
+    "{n} contatos não entram na lista. Ver por quê.": "{n} contactos no entran en la lista. Ver por qué.",
   },
 
   en: {
@@ -696,6 +718,17 @@ const textos: TextosDaArea = {
     "EUA / Canadá": "USA / Canada",
     "Cabo Verde": "Cape Verde",
     Moçambique: "Mozambique",
+    // Redesenho das telas (06/11)
+    "1 cliente": "1 customer",
+    "{n} clientes": "{n} customers",
+    "e {n} sem falar há mais de {dias} dias.": "and {n} silent for over {dias} days.",
+    "e todos falaram nos últimos {dias} dias.": "and all of them talked in the last {dias} days.",
+    "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "They are the same person twice, because Meta sent the number in two formats. Open one and use Merge.",
+    "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contacts appear twice with the same number.",
+    "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Amounts spent don't show: the booking history isn't connected.",
+    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Everyone who talks to the agent and gives a name and number shows up here.",
+    "Tente outro nome ou número, ou escolha Todos no filtro.": "Try another name or number, or pick All in the filter.",
+    "{n} contatos não entram na lista. Ver por quê.": "{n} contacts aren't on the list. See why.",
   },
 };
 

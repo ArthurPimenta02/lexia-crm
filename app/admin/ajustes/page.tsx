@@ -1,5 +1,13 @@
-import Form from "next/form";
 import { redirect } from "next/navigation";
+
+import {
+  Building2,
+  ChevronDown,
+  Clock,
+  Pencil,
+  Plus,
+  SlidersHorizontal,
+} from "lucide-react";
 
 import {
   createAgentAdjustment,
@@ -9,8 +17,15 @@ import {
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { ExpandableText } from "@/app/components/expandable-text";
 import { parseFeedbackComentario } from "@/app/components/feedback-conversation-utils";
+import { CartaoMetrica } from "@/app/components/cartoes";
 import { FormSubmitButton } from "@/app/components/form-submit-button";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
+import {
+  AvisoLinha,
+  CabecalhoTela,
+  FiltroTrilho,
+  GradeMetricas,
+  VazioTela,
+} from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getClientTimezone } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
@@ -122,7 +137,6 @@ function AdjustmentForm({
   clients,
   defaultValues,
   t,
-  title,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   clients: AdminClient[];
@@ -137,7 +151,6 @@ function AdjustmentForm({
     origem_feedback_id: string;
   };
   t: FuncaoT;
-  title: string;
 }) {
   /*
    * O `*:min-w-0` não é decoração: sem ele este formulário rebenta o cartão
@@ -151,10 +164,8 @@ function AdjustmentForm({
    */
   return (
     <form action={action} className="grid gap-4 *:min-w-0">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-
       <div className="grid gap-4 *:min-w-0 md:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+        <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
           {t("Cliente")}
           <select
             className="ds-campo"
@@ -171,7 +182,7 @@ function AdjustmentForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+        <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
           {t("Módulo")}
           <select
             className="ds-campo"
@@ -188,7 +199,7 @@ function AdjustmentForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+      <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
         {t("Título")}
         <input
           className="ds-campo"
@@ -198,7 +209,7 @@ function AdjustmentForm({
         />
       </label>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+      <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
         {t("Gatilho")}
         <textarea
           className="ds-campo min-h-24"
@@ -209,7 +220,7 @@ function AdjustmentForm({
         />
       </label>
 
-      <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+      <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
         {t("Comportamento correto")}
         <textarea
           className="ds-campo min-h-28"
@@ -221,7 +232,7 @@ function AdjustmentForm({
       </label>
 
       <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-        <label className="flex flex-col gap-2 text-sm font-medium text-muted-foreground">
+        <label className="flex flex-col gap-2 text-[0.8125rem] font-medium text-foreground">
           {t("Prioridade")}
           <input
             className="ds-campo"
@@ -234,7 +245,7 @@ function AdjustmentForm({
           />
         </label>
 
-        <label className="flex items-end gap-2 text-sm font-medium text-muted-foreground">
+        <label className="flex h-10 cursor-pointer items-center gap-2 self-end text-sm font-medium text-foreground">
           <input
             className="h-4 w-4 rounded border-border-strong accent-primary"
             defaultChecked={defaultValues.activo}
@@ -361,139 +372,176 @@ export default async function AdminAdjustmentsPage({
     origem_feedback_id: feedback?.id ?? "",
   };
 
+  const ativos = adjustments.filter((a) => a.activo).length;
+  const nomeDoCliente = (slug: string) =>
+    clients.find((c) => c.slug === slug)?.nome ?? slug;
+  const filtroHref = (cliente: string, modulo: string) => {
+    const q = new URLSearchParams();
+    if (cliente) q.set("cliente", cliente);
+    if (modulo) q.set("modulo", modulo);
+    const texto = q.toString();
+    return texto ? `/admin/ajustes?${texto}` : "/admin/ajustes";
+  };
+  const abrirNovo = Boolean(feedback) || adjustments.length === 0;
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
-      <PaginaCabecalho titulo={t("Ajustes do agente")} />
+      <CabecalhoTela
+        acoes={
+          <a className="ds-botao ds-botao-primario ds-botao-p" href="#novo-ajuste">
+            <Plus aria-hidden="true" className="h-3.5 w-3.5" />
+            {t("Novo ajuste")}
+          </a>
+        }
+        destaque={
+          ativos > 0
+            ? ativos === 1
+              ? t("1 ajuste ativo")
+              : t("{n} ajustes ativos", { n: ativos })
+            : undefined
+        }
+        resto={ativos > 0 ? t("corrigindo o agente.") : t("Nenhum ajuste ativo.")}
+        sobretitulo={`${t("Ajustes do agente")} · ${
+          selectedClient ? nomeDoCliente(selectedClient) : t("Todos os clientes")
+        }`}
+      />
 
       {statusMessage ? (
-        <div
-          className={`rounded-lg border p-4 text-sm ${
-            status === "erro"
-              ? "border-danger/20 bg-danger-soft text-danger"
-              : "border-positive/20 bg-positive-soft text-positive"
-          }`}
-        >
-          {statusMessage}
-        </div>
+        <AvisoLinha tom={status === "erro" ? "perigo" : "info"}>{statusMessage}</AvisoLinha>
       ) : null}
 
-      <Form
-        action="/admin/ajustes"
-        className="rounded-2xl border border-border bg-surface p-5"
-        replace
-        scroll={false}
-      >
-        {/* Mesmo motivo do formulário de baixo: a opção mais comprida do
-            selector de cliente alargava a coluna para lá do cartão. */}
-        <div className="grid gap-4 *:min-w-0 md:grid-cols-[1fr_220px_auto]">
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-medium text-muted-foreground"
-              htmlFor="cliente"
-            >
-              {t("Cliente")}
-            </label>
-            <select
-              className="ds-campo"
-              defaultValue={selectedClient}
-              id="cliente"
-              name="cliente"
-            >
-              <option value="">{t("Todos")}</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.slug}>
-                  {client.nome ?? client.slug} ({client.slug})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label
-              className="text-sm font-medium text-muted-foreground"
-              htmlFor="modulo"
-            >
-              {t("Módulo")}
-            </label>
-            <select
-              className="ds-campo"
-              defaultValue={selectedModule}
-              id="modulo"
-              name="modulo"
-            >
-              {moduleFilters.map((module) => (
-                <option key={module.label} value={module.value}>
-                  {module.value ? module.label : t("Todos")}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-end">
-            <FormSubmitButton
-              className="ds-botao ds-botao-primario"
-              pendingLabel={t("Filtrando...")}
-            >
-              {t("Filtrar")}
-            </FormSubmitButton>
-          </div>
-        </div>
-      </Form>
-
-      <section className="rounded-2xl border border-border bg-surface p-5">
-        <AdjustmentForm
-          action={createAgentAdjustment}
-          clients={clients}
-          defaultValues={createDefaults}
-          t={t}
-          title={t("Novo ajuste")}
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <FiltroTrilho
+          opcoes={[
+            { slug: "", nome: t("Todos") },
+            ...clients.map((c) => ({ slug: c.slug, nome: c.nome ?? c.slug })),
+          ].map((c) => ({
+            ativo: c.slug === selectedClient,
+            href: filtroHref(c.slug, selectedModule),
+            label: c.nome,
+          }))}
+          rotulo={t("Cliente")}
         />
-      </section>
+        <FiltroTrilho
+          opcoes={moduleFilters.map((m) => ({
+            ativo: m.value === selectedModule,
+            href: filtroHref(selectedClient, m.value),
+            label: m.value ? m.label : t("Todos os módulos"),
+          }))}
+          rotulo={t("Módulo")}
+        />
+      </div>
 
-      <section className="rounded-2xl border border-border bg-surface">
-        <div className="border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            {t("Ajustes registrados")}
-          </h2>
+      {adjustments.length > 0 ? (
+        <GradeMetricas colunas={3}>
+          <CartaoMetrica
+            cor="var(--ds-acao)"
+            icone={<SlidersHorizontal aria-hidden="true" className="h-4 w-4" />}
+            nota={
+              adjustments.length - ativos > 0
+                ? t("{n} inativos", { n: adjustments.length - ativos })
+                : undefined
+            }
+            rotulo={t("Ajustes registrados")}
+            valor={String(adjustments.length)}
+          />
+          <CartaoMetrica
+            cor="var(--ds-info)"
+            icone={<Building2 aria-hidden="true" className="h-4 w-4" />}
+            rotulo={t("Clientes com ajuste")}
+            valor={String(new Set(adjustments.map((a) => a.cliente_slug)).size)}
+          />
+          <CartaoMetrica
+            cor="var(--ds-ouro)"
+            icone={<Clock aria-hidden="true" className="h-4 w-4" />}
+            nota={nomeDoCliente(adjustments[0].cliente_slug)}
+            rotulo={t("Última atualização")}
+            valor={
+              adjustments[0].atualizado_em
+                ? new Intl.DateTimeFormat(locale, {
+                    day: "2-digit",
+                    month: "2-digit",
+                    timeZone: getClientTimezone(adjustments[0].cliente_slug),
+                  }).format(new Date(adjustments[0].atualizado_em))
+                : "--"
+            }
+          />
+        </GradeMetricas>
+      ) : null}
+
+      <details className="ds-bloco group scroll-mt-6" id="novo-ajuste" open={abrirNovo}>
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 [&::-webkit-details-marker]:hidden">
+          <Plus aria-hidden="true" className="h-4 w-4 text-muted-foreground" />
+          <span className="ds-titulo-3 flex-1 text-foreground">{t("Novo ajuste")}</span>
+          {feedback ? (
+            <span className="ds-selo ds-selo-ouro">{t("a partir de um feedback")}</span>
+          ) : null}
+          <ChevronDown
+            aria-hidden="true"
+            className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="px-5 pb-5">
+          <AdjustmentForm
+            action={createAgentAdjustment}
+            clients={clients}
+            defaultValues={createDefaults}
+            t={t}
+          />
+        </div>
+      </details>
+
+      <section className="ds-bloco min-w-0 overflow-hidden">
+        <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+          <h2 className="ds-titulo-3 flex-1 text-foreground">{t("Ajustes registrados")}</h2>
+          <span className="text-sm tabular-nums text-muted-foreground">{adjustments.length}</span>
         </div>
 
         {adjustments.length > 0 ? (
-          <div className="divide-y divide-border">
+          <div className="tela-lista px-1.5 pb-2">
             {adjustments.map((adjustment) => (
-              <article className="px-5 py-5" key={adjustment.id}>
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="ds-selo ds-selo-neutro">
-                        {adjustment.modulo}
-                      </span>
-                      <span
-                        className={`ds-selo ds-selo-ponto ${
-                          adjustment.activo ? "ds-selo-verde" : "ds-selo-neutro"
-                        }`}
-                      >
-                        {adjustment.activo ? t("Ativo") : t("Inativo")}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {t("Prioridade {n}", { n: adjustment.prioridade ?? 0 })}
-                      </span>
+              <article className="tela-linha items-start" key={adjustment.id}>
+                <span
+                  className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${
+                    adjustment.activo
+                      ? "bg-[var(--ds-acao-fundo)] text-[var(--ds-acao-forte)]"
+                      : "bg-[color-mix(in_oklab,var(--ds-texto)_6%,transparent)] text-muted-foreground"
+                  }`}
+                >
+                  <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {adjustment.titulo ?? t("Sem título")}
+                      </h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`ds-selo ds-selo-ponto ${
+                            adjustment.activo ? "ds-selo-verde" : "ds-selo-neutro"
+                          }`}
+                        >
+                          {adjustment.activo ? t("Ativo") : t("Inativo")}
+                        </span>
+                        <span className="ds-selo ds-selo-neutro">{adjustment.modulo}</span>
+                        <span className="ds-selo ds-selo-neutro tabular-nums">
+                          {t("Prioridade {n}", { n: adjustment.prioridade ?? 0 })}
+                        </span>
+                        {!selectedClient ? (
+                          <span className="text-xs text-muted-foreground">
+                            {nomeDoCliente(adjustment.cliente_slug)}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                    <h3 className="mt-3 text-base font-semibold text-foreground">
-                      {adjustment.titulo ?? t("Sem título")}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {adjustment.cliente_slug}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
                     <ConfirmActionButton
                       action={updateAgentAdjustmentStatus.bind(
                         null,
                         adjustment.id,
                         !adjustment.activo,
                       )}
-                      className="ds-botao ds-botao-secundario ds-botao-p"
+                      className="ds-botao ds-botao-secundario ds-botao-p w-fit shrink-0"
                       confirmMessage={
                         adjustment.activo
                           ? t("Desativar este ajuste?")
@@ -503,88 +551,94 @@ export default async function AdminAdjustmentsPage({
                       {adjustment.activo ? t("Desativar") : t("Ativar")}
                     </ConfirmActionButton>
                   </div>
-                </div>
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground/60">
-                      {t("Gatilho")}
-                    </p>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      <ExpandableText
-                        emptyText={t("Sem gatilho")}
-                        text={adjustment.gatilho}
-                      />
+                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                    <div className="rounded-[12px] bg-[color-mix(in_oklab,var(--ds-texto)_3%,transparent)] px-3 py-2.5">
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        {t("Gatilho")}
+                      </p>
+                      <div className="mt-1 text-sm text-foreground">
+                        <ExpandableText
+                          emptyText={t("Sem gatilho")}
+                          text={adjustment.gatilho}
+                        />
+                      </div>
+                    </div>
+                    <div className="rounded-[12px] bg-[var(--ds-acao-fundo)] px-3 py-2.5">
+                      <p className="text-xs font-semibold text-[var(--ds-acao-forte)]">
+                        {t("Comportamento correto")}
+                      </p>
+                      <div className="mt-1 text-sm text-foreground">
+                        <ExpandableText
+                          emptyText={t("Sem comportamento")}
+                          text={adjustment.comportamento_correto}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground/60">
-                      {t("Comportamento correto")}
-                    </p>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      <ExpandableText
-                        emptyText={t("Sem comportamento")}
-                        text={adjustment.comportamento_correto}
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground/60">
-                  <span>
-                    {t("Criado em {data}", {
-                      data: formatDateInTimezone(
-                        adjustment.criado_em,
-                        getClientTimezone(adjustment.cliente_slug),
-                      ),
-                    })}
-                  </span>
-                  <span>
-                    {t("Atualizado em {data}", {
-                      data: formatDateInTimezone(
-                        adjustment.atualizado_em,
-                        getClientTimezone(adjustment.cliente_slug),
-                      ),
-                    })}
-                  </span>
-                  {adjustment.origem_feedback_id ? (
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>
-                      {t("Feedback: {id}", { id: adjustment.origem_feedback_id })}
+                      {t("Criado em {data}", {
+                        data: formatDateInTimezone(
+                          adjustment.criado_em,
+                          getClientTimezone(adjustment.cliente_slug),
+                        ),
+                      })}
                     </span>
-                  ) : null}
-                </div>
-
-                <details className="mt-4 rounded-2xl border border-border bg-surface-muted p-4">
-                  <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-                    {t("Editar ajuste")}
-                  </summary>
-                  <div className="mt-4">
-                    <AdjustmentForm
-                      action={updateAgentAdjustment.bind(null, adjustment.id)}
-                      clients={clients}
-                      defaultValues={{
-                        cliente_slug: adjustment.cliente_slug,
-                        modulo: adjustment.modulo,
-                        titulo: adjustment.titulo ?? "",
-                        gatilho: adjustment.gatilho ?? "",
-                        comportamento_correto:
-                          adjustment.comportamento_correto ?? "",
-                        prioridade: adjustment.prioridade ?? 0,
-                        activo: Boolean(adjustment.activo),
-                        origem_feedback_id: adjustment.origem_feedback_id ?? "",
-                      }}
-                      t={t}
-                      title={t("Editar ajuste")}
-                    />
+                    <span>
+                      {t("Atualizado em {data}", {
+                        data: formatDateInTimezone(
+                          adjustment.atualizado_em,
+                          getClientTimezone(adjustment.cliente_slug),
+                        ),
+                      })}
+                    </span>
+                    {adjustment.origem_feedback_id ? (
+                      <span className="truncate">
+                        {t("Feedback: {id}", { id: adjustment.origem_feedback_id })}
+                      </span>
+                    ) : null}
                   </div>
-                </details>
+
+                  <details className="group/editar mt-2">
+                    <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+                      <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
+                      {t("Editar ajuste")}
+                    </summary>
+                    <div className="mt-3 rounded-[14px] bg-[color-mix(in_oklab,var(--ds-texto)_3%,transparent)] p-4">
+                      <AdjustmentForm
+                        action={updateAgentAdjustment.bind(null, adjustment.id)}
+                        clients={clients}
+                        defaultValues={{
+                          cliente_slug: adjustment.cliente_slug,
+                          modulo: adjustment.modulo,
+                          titulo: adjustment.titulo ?? "",
+                          gatilho: adjustment.gatilho ?? "",
+                          comportamento_correto:
+                            adjustment.comportamento_correto ?? "",
+                          prioridade: adjustment.prioridade ?? 0,
+                          activo: Boolean(adjustment.activo),
+                          origem_feedback_id: adjustment.origem_feedback_id ?? "",
+                        }}
+                        t={t}
+                      />
+                    </div>
+                  </details>
+                </div>
               </article>
             ))}
           </div>
         ) : (
-          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-            {t("Ainda não há ajustes registrados para este cliente.")}
-          </div>
+          <VazioTela
+            acao={
+              <a className="ds-botao ds-botao-primario ds-botao-p" href="#novo-ajuste">
+                {t("Novo ajuste")}
+              </a>
+            }
+            texto={t("Quando o agente errar, registre aqui o que ele deve fazer.")}
+            titulo={t("Ainda não há ajustes registrados para este cliente.")}
+          />
         )}
       </section>
     </section>

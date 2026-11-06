@@ -1533,8 +1533,10 @@ Antes de alterar essas rotinas:
 ## 19. Identidade Visual
 
 - Marca única: Lexia AI para todos os clientes, incluindo Miranda.
-- Paleta base: preto, branco e cinzas neutros.
-- Fundo geral claro para legibilidade; sidebar preta.
+- Paleta Jade (desde 03/11/2026): fundo `#eff5f1`, principal `#075e46`, destaque `#3ee0a6`; modo claro e escuro. Tokens em `app/design-system.css`.
+- Mascote: o beija-flor (`app/components/mascote.tsx`, imagens em `public/mascote/`).
+- Telas (redesenho de 06/11/2026): todas seguem o dashboard. Peças comuns em `app/components/tela.tsx`: `CabecalhoTela` (título com o número que importa em verde), `GradeMetricas` + `CartaoMetrica`, `FiltroTrilho` (filtro único, por link), `AvatarCanal` (iniciais + canal), `AvisoLinha` (aviso numa linha, explicação recolhida) e `VazioTela` (beija-flor). Regra: só mostrar números que existem de verdade; nada de cartão sempre em 0.
+- Conversas aceita `?situacao=esperando` (só as que esperam resposta).
 - Símbolos oficiais em `public/lexia/lexia-symbol-dark.png` e `lexia-symbol-light.png`.
 - Tipografia atual: Geist, embora a identidade original cite Satoshi.
 - Metadata: título `Lexia`, descrição `Plataforma Lexia`.

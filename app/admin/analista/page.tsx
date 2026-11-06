@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PainelAjudante } from "@/app/components/ajudante/painel-ajudante";
+import { CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
@@ -36,9 +37,14 @@ export default async function AdminAnalystPage({
 
   if (clients.length === 0) {
     return (
-      <section className="max-w-3xl">
-        <h1 className="text-3xl font-semibold text-foreground">{t("Analista Lexia")}</h1>
-        <p className="mt-3 text-muted-foreground">{t("Nenhum cliente ativo encontrado.")}</p>
+      <section className="flex w-full flex-col gap-6">
+        <CabecalhoTela resto={t("Analista Lexia")} />
+        <div className="ds-bloco">
+          <VazioTela
+            pose="piscadinha"
+            titulo={t("Nenhum cliente ativo encontrado.")}
+          />
+        </div>
       </section>
     );
   }
@@ -52,14 +58,24 @@ export default async function AdminAnalystPage({
 
   return (
     <div className="flex h-[calc(100dvh-7rem)] flex-col gap-3 lg:h-[calc(100dvh-4rem)]">
-      <form action="/admin/analista" className="flex shrink-0 items-center gap-2">
-        <select className="h-10 rounded-xl border border-border bg-surface px-3 text-sm" defaultValue={selectedClient.slug} name="cliente">
-          {clients.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-        </select>
-        <button className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground" type="submit">{t("Selecionar")}</button>
-      </form>
+      {/* O cliente escolhe-se na barra (o mesmo filtro das outras telas). */}
+      <div className="shrink-0">
+        <FiltroTrilho
+          opcoes={clients.map((c) => ({
+            ativo: c.slug === selectedClient.slug,
+            href: `/admin/analista?cliente=${encodeURIComponent(c.slug)}`,
+            label: c.name,
+          }))}
+          rotulo={t("Cliente")}
+        />
+      </div>
       <div className="min-h-0 flex-1">
-        <PainelAjudante cliente={selectedClient.slug} key={selectedClient.slug} modo="tela" tela="/admin/analista" />
+        <PainelAjudante
+          cliente={selectedClient.slug}
+          key={selectedClient.slug}
+          modo="tela"
+          tela="/admin/analista"
+        />
       </div>
     </div>
   );

@@ -22,6 +22,8 @@ type AgentPauseControlsProps = {
   hasEternalPause: boolean;
   hasManualPause: boolean;
   identificadorConversa: string;
+  /** Nas listas, o "Retomar" fica discreto para não pintar a tela de verde. */
+  retomarDiscreto?: boolean;
 };
 
 /* Rótulos em pt-BR; traduzidos onde se desenham, com `t(...)`. */
@@ -56,6 +58,7 @@ export function AgentPauseControls({
   hasEternalPause,
   hasManualPause,
   identificadorConversa,
+  retomarDiscreto = false,
 }: AgentPauseControlsProps) {
   const router = useRouter();
   const { t } = useIdioma();
@@ -132,7 +135,7 @@ export function AgentPauseControls({
       <div className={`flex flex-col gap-1.5 ${fullWidth ? "w-full sm:w-auto" : ""}`}>
         {canResume ? (
           <button
-            className={`${buttonBase} ds-botao-primario`}
+            className={`${buttonBase} ${retomarDiscreto ? "ds-botao-secundario" : "ds-botao-primario"}`}
             disabled={pending}
             onClick={handleResume}
             type="button"

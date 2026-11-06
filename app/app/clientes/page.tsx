@@ -8,7 +8,6 @@ import {
   separarClientesAction,
 } from "@/app/app/clientes/actions";
 import { ClientesPanel } from "@/app/components/clientes-panel";
-import { PaginaCabecalho } from "@/app/components/painel-ui";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { mostraViatura } from "@/lib/clientes/ficha";
@@ -47,12 +46,9 @@ export default async function ClientesPage() {
   ]);
   const config = getServicosConfig(profile.cliente_slug);
   const moeda = config?.moeda ?? "EUR";
-  const t = await getT();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-      <PaginaCabecalho titulo={t("Clientes")} />
-
       <ClientesPanel
         actionCriar={criarClienteAction}
         actionJuntar={juntarClientesAction}

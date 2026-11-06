@@ -73,7 +73,7 @@ export function FiltroTrilho({
   rotulo: string;
 }) {
   return (
-    <nav aria-label={rotulo} className="ds-trilho max-w-full overflow-x-auto">
+    <nav aria-label={rotulo} className="ds-trilho w-fit max-w-full self-start overflow-x-auto">
       {opcoes.map((o) => (
         <Link
           aria-current={o.ativo ? "page" : undefined}
@@ -106,7 +106,8 @@ function iniciais(nome: string) {
   if (partes.length === 0) return "?";
   return partes
     .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
+    // Array.from pega a letra inteira (emoji e letras estilizadas têm 2 partes).
+    .map((p) => (Array.from(p)[0] ?? "").toUpperCase())
     .join("");
 }
 
@@ -139,7 +140,11 @@ export function AvatarCanal({
     >
       {iniciais(nome)}
       {canal ? (
-        <span className="tela-avatar-canal">
+        // O ícone base tem 20px; encolhe com o avatar (≈40% dele) para não tapar as iniciais.
+        <span
+          className="tela-avatar-canal"
+          style={{ transform: `scale(${Math.min(18, Math.max(12, Math.round(tamanho * 0.4))) / 20})`, transformOrigin: "bottom right" }}
+        >
           <ChannelIcon channel={canal} size="sm" />
         </span>
       ) : null}
@@ -172,11 +177,18 @@ export function AvisoLinha({
     </>
   );
   if (detalhe) {
+    // A ação fica fora do <summary>: clicar nela não abre nem fecha a explicação.
     return (
-      <details className={`tela-aviso tela-aviso-${tom}`}>
-        <summary className="flex cursor-pointer list-none items-center gap-2.5">{conteudo}</summary>
-        <div className="mt-2 pl-6.5 text-[0.8125rem] font-normal leading-relaxed opacity-90">{detalhe}</div>
-      </details>
+      <div className={`tela-aviso tela-aviso-${tom} flex items-start gap-2.5`}>
+        <details className="group min-w-0 flex-1">
+          <summary className="flex cursor-pointer list-none items-center gap-2.5">
+            <Icone aria-hidden="true" className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 flex-1">{children}</span>
+          </summary>
+          <div className="mt-2 pl-6.5 text-[0.8125rem] font-normal leading-relaxed opacity-90">{detalhe}</div>
+        </details>
+        {acao ? <span className="shrink-0 font-semibold">{acao}</span> : null}
+      </div>
     );
   }
   return <div className={`tela-aviso tela-aviso-${tom} flex items-center gap-2.5`}>{conteudo}</div>;

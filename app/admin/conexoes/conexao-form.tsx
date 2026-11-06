@@ -168,12 +168,12 @@ export function ConexaoForm({
     <form
       action={formAction}
       autoComplete="off"
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5"
+      className="ds-bloco flex min-w-0 flex-col gap-4 p-5"
       data-form-type="other"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">{t(definicao.titulo)}</h2>
+          <h2 className="ds-titulo-3 text-foreground">{t(definicao.titulo)}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t(definicao.descricao)}</p>
         </div>
         <span className={`ds-selo ds-selo-ponto ${configurado ? "ds-selo-verde" : "ds-selo-neutro"}`}>
@@ -187,7 +187,7 @@ export function ConexaoForm({
           const final = finais[campo.nome];
           return (
             <div className="flex min-w-0 flex-col gap-1.5" key={campo.nome}>
-              <label className="text-sm font-medium text-muted-foreground" htmlFor={id}>
+              <label className="text-[0.8125rem] font-medium text-foreground" htmlFor={id}>
                 {t(campo.label)}
               </label>
               {campo.segredo && final ? (
@@ -225,7 +225,7 @@ export function ConexaoForm({
           {pendente ? t("Salvando...") : t("Salvar")}
         </button>
         {estado.message ? (
-          <span className={`text-sm ${estado.type === "error" ? "text-danger" : "text-positive"}`}>
+          <span className={`text-sm font-medium ${estado.type === "error" ? "text-[var(--ds-perigo)]" : "text-[var(--ds-acao-forte)]"}`} role="status">
             {estado.message}
           </span>
         ) : atualizadoEm ? (
