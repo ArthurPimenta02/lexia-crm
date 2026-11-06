@@ -36,7 +36,7 @@ let respostas: unknown[] = [];
 const pedidos: Pedido[] = [];
 mock.module("@/lib/analyst/openai", {
   namedExports: {
-    getOpenAIClient: () => ({ responses: { create: async (p: Pedido) => { pedidos.push(structuredClone(p)); return respostas.shift(); } } }),
+    getAjudanteOpenAIClient: () => ({ responses: { create: async (p: Pedido) => { pedidos.push(structuredClone(p)); return respostas.shift(); } } }),
   },
 });
 
