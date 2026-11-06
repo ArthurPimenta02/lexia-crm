@@ -7,6 +7,7 @@ import {
   type DisplayConversationMessage,
 } from "@/lib/conversations/message-display";
 import { getConversationLocks, listAgentLocks, type AgentLock } from "@/lib/redis/agent-locks";
+import { ehContaDemo, travasDemo } from "@/lib/movel/demo";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -49,7 +50,9 @@ export function telefoneDe(conversa: string) {
 export function telefoneLegivel(digitos: string | null) {
   if (!digitos) return null;
   const pais = digitos.startsWith("351") ? 3 : digitos.startsWith("55") || digitos.startsWith("34") ? 2 : 1;
-  const resto = digitos.slice(pais).replace(/(\d{3})(?=\d)/g, "$1 ");
+  const nacional = digitos.slice(pais);
+  // EUA/Canadá: 617 555 0110 (e não 617 555 011 0).
+  const resto = pais === 1 && nacional.length === 10 ? `${nacional.slice(0, 3)} ${nacional.slice(3, 6)} ${nacional.slice(6)}` : nacional.replace(/(\d{3})(?=\d)/g, "$1 ");
   return `+${digitos.slice(0, pais)} ${resto}`.trim();
 }
 
@@ -131,7 +134,7 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
     conversas.length
       ? base.from("lexia_contactos").select("identificador_conversa, nome, telefone").eq("cliente_slug", clienteSlug).in("identificador_conversa", conversas.slice(0, 1000))
       : Promise.resolve({ data: [] as { identificador_conversa: string; nome: string | null; telefone: string | null }[] }),
-    listAgentLocks(clienteSlug).catch(() => ({ locks: [] as AgentLock[] })),
+    (ehContaDemo(clienteSlug) ? travasDemo() : listAgentLocks(clienteSlug)).catch(() => ({ locks: [] as AgentLock[] })),
   ]);
   const nomes = new Map((fichas.data ?? []).map((f) => [f.identificador_conversa, f]));
   const travasPor = new Map<string, AgentLock[]>();
@@ -191,7 +194,7 @@ export async function lerConversa(clienteSlug: string, conversa: string, desde?:
 
   const [ficha, travas] = await Promise.all([
     base.from("lexia_contactos").select("nome, telefone").eq("cliente_slug", clienteSlug).eq("identificador_conversa", conversa).maybeSingle(),
-    getConversationLocks(clienteSlug, conversa).catch(() => ({ locks: [] as AgentLock[] })),
+    (ehContaDemo(clienteSlug) ? travasDemo(conversa) : getConversationLocks(clienteSlug, conversa)).catch(() => ({ locks: [] as AgentLock[] })),
   ]);
   const mensagens = await assinarMidias(prepareConversationMessages(registos), clienteSlug);
   const tel = telefoneDe(conversa) ?? (ficha.data?.telefone ? String(ficha.data.telefone).replace(/\D/g, "") : null);

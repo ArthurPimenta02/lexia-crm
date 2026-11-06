@@ -97,7 +97,7 @@ export default async function HojeMovel() {
               <div className="l1"><span>{i === 0 ? t("Próximo") : t("Depois")}</span>{i === 0 ? <span>{falta}</span> : null}</div>
               <div className="hr">{hhmm(m.inicio)}</div>
               <div className="q">{m.nome || t("Agendamento")}</div>
-              {i === 0 ? <div className="s">{[m.servico, m.executor].filter(Boolean).join(" · ")}</div> : null}
+              {i === 0 ? <div className="s">{[m.servico, m.executor ? m.executor.charAt(0).toUpperCase() + m.executor.slice(1) : null].filter(Boolean).join(" · ")}</div> : null}
             </Link>
           ))}
         </div>

@@ -7,6 +7,7 @@ import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/for
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
+import { ehContaDemo, SERVICOS_DEMO } from "@/lib/movel/demo";
 
 import { IcVoltar } from "../_c/icones";
 import { DiaAgenda } from "./dia";
@@ -45,8 +46,10 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
   } catch {
     dados = null;
   }
-  const podeMarcar = marcarEstaLigado();
-  const [contactos, servicos] = podeMarcar ? await Promise.all([getContactosParaEscolha(c.clienteSlug).catch(() => []), getServicosAgendaveis(c.clienteSlug).catch(() => [])]) : [[], []];
+  // Conta demo: marca só na base da Lexia, com serviços fictícios (lib/movel/demo.ts).
+  const demo = ehContaDemo(c.clienteSlug);
+  const podeMarcar = demo || marcarEstaLigado();
+  const [contactos, servicos] = podeMarcar ? await Promise.all([getContactosParaEscolha(c.clienteSlug).catch(() => []), demo ? Promise.resolve(SERVICOS_DEMO) : getServicosAgendaveis(c.clienteSlug).catch(() => [])]) : [[], []];
   const codigoMoeda = moedaDoCliente(getMoedaDoCliente(c.clienteSlug), c.fuso);
 
   const titulo = new Intl.DateTimeFormat(c.locale, { month: "long", timeZone: "UTC", year: dia.slice(0, 4) === hoje.slice(0, 4) ? undefined : "numeric" }).format(new Date(`${dia}T12:00:00Z`));

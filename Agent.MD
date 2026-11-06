@@ -651,6 +651,18 @@ As políticas não estão no repositório. Portanto:
 - Ações com service role precisam validar role, cliente, ID, sessão e origem no próprio código.
 - Qualquer mudança no Supabase deve ser exportada como migration antes do próximo deploy.
 
+### Conta de demonstração (revisor da Apple)
+
+- Empresa `clinica_teste`, nome "Demo Dev Lexia", login `demo@uselexia.app` (senha só em
+  `~/lexia/plataforma-backups/apple/revisor-demo.txt`, chmod 600; nunca no repositório).
+- Dados fictícios criados por `scripts/demo-revisao-apple.mts` (datas relativas a hoje: correr de novo
+  antes de cada envio para a Apple). Apaga e recria só as conversas e eventos que o próprio script criou.
+- `lib/movel/demo.ts`: nada sai para fora. Responder grava só no histórico; "Assumir/Devolver" ficam num
+  cookie do aparelho (`lexia_demo_assumidas`) no lugar das travas do Redis; marcar pelo app grava só em
+  `lexia_agendamentos` (sem Google), com serviços fictícios.
+- `lib/auth/ecras.ts`: a demo não vê a Área de testes nem as Execuções (nesta empresa a Área de testes
+  fala com a cópia da Carol/Miranda, usada pela Lexia no admin).
+
 ## 9. Variáveis de Ambiente
 
 ### Banco central
