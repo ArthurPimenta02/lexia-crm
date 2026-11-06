@@ -2,7 +2,7 @@ import "server-only";
 
 import type { ResponseFunctionToolCall, ResponseInputItem } from "openai/resources/responses/responses";
 
-import { getOpenAIClient } from "@/lib/analyst/openai";
+import { getAjudanteOpenAIClient } from "@/lib/analyst/openai";
 import { chaveDoDia, partesNoFuso } from "@/lib/movel/formato";
 
 import { FERRAMENTAS, ferramentasOpenAI, type Escopo, type Proposta } from "./ferramentas";
@@ -64,7 +64,7 @@ export async function perguntar(
   aoUsarFerramenta: (e: Evento) => void,
   tela?: string,
 ): Promise<Resultado> {
-  const openai = getOpenAIClient();
+  const openai = getAjudanteOpenAIClient();
   const modelo = modeloDoAjudante();
   const esforco = (process.env.OPENAI_AJUDANTE_ESFORCO?.trim() || "low") as "low" | "medium" | "high";
   const tools = ferramentasOpenAI();
