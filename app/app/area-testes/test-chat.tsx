@@ -31,6 +31,8 @@ type TestChatProps = {
   executions: TestExecution[];
   feedbacks: TestFeedback[];
   selectedSessionId: string | null;
+  /** Conta só de testes com um agente: não mostra a escolha de canal (já vem escolhido). */
+  semEscolhaDeCanal?: boolean;
   workflows: TestWorkflow[];
 };
 
@@ -156,6 +158,7 @@ export function TestChat({
   executions,
   feedbacks,
   selectedSessionId,
+  semEscolhaDeCanal = false,
   workflows,
 }: TestChatProps) {
   const { t } = useIdioma();
@@ -515,6 +518,7 @@ export function TestChat({
             <h2 className="font-semibold text-foreground">
               {t("Simulador de conversa")}
             </h2>
+            {semEscolhaDeCanal ? null : (
             <div className="flex w-full max-w-sm flex-col gap-2">
               <label
                 className="text-sm font-medium text-muted-foreground"
@@ -546,6 +550,7 @@ export function TestChat({
                 </p>
               ) : null}
             </div>
+            )}
           </div>
         </div>
 
