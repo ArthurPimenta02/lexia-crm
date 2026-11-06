@@ -179,3 +179,18 @@ test("resultados: períodos (hoje, ontem, semana, mês, personalizado com limite
   assert.equal(diasDoIntervalo(longo), 92);
   assert.equal(intervaloDe("personalizado", "lixo", "2026-11-01", hoje).chave, "semana");
 });
+
+test("telefone dos EUA sai em 3-3-4 (617 555 0110)", () => {
+  assert.equal(telefoneLegivel("16175550110"), "+1 617 555 0110");
+  assert.equal(telefoneLegivel("351912345678"), "+351 912 345 678");   // o resto continua igual
+});
+
+test("conta demo: hora local de Nova York vira o instante certo (com e sem horário de verão)", async () => {
+  const { instanteNoFuso, ehContaDemo, SERVICOS_DEMO } = await import("@/lib/movel/demo");
+  assert.equal(new Date(instanteNoFuso("2026-11-07", "10:30", "America/New_York")!).toISOString(), "2026-11-07T15:30:00.000Z");
+  assert.equal(new Date(instanteNoFuso("2026-07-07", "10:30", "America/New_York")!).toISOString(), "2026-07-07T14:30:00.000Z");
+  assert.equal(instanteNoFuso("07/11/2026", "10:30", "America/New_York"), null);
+  assert.ok(ehContaDemo("clinica_teste"));
+  assert.ok(!ehContaDemo("detail_by_cordeiro") && !ehContaDemo("miranda_skin_experts") && !ehContaDemo(null));
+  assert.ok(SERVICOS_DEMO.every((s) => s.executores.length > 0));
+});

@@ -1,3 +1,4 @@
+import { ehContaDemo, mudarAssumidaDemo } from "@/lib/movel/demo";
 import { contextoDaEmpresa } from "@/lib/movel/empresa-do-pedido";
 import { chamarPlataforma, ErroPlataforma } from "@/lib/movel/plataforma";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
   const conversa = String(corpo.conversa ?? "");
   const accao = corpo.accao === "assumir" || corpo.accao === "devolver" ? corpo.accao : null;
   if (!isValidConversationId(conversa) || !accao) return Response.json({ erro: c.t("Pedido inválido.") }, { status: 400 });
+  if (ehContaDemo(c.clienteSlug)) {
+    await mudarAssumidaDemo(conversa, accao === "assumir");
+    return Response.json({ ok: true });
+  }
   try {
     await chamarPlataforma(`/conversa/${accao}`, { autor_user_id: c.userId, cliente_slug: c.clienteSlug, conversa }, 20_000);
     return Response.json({ ok: true });

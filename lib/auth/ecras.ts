@@ -63,6 +63,12 @@ const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   braz_insurance: ["/app/area-testes"],
   // 05/11: a Claudia entra para testar a Carla (e ver os feedbacks que deu); o resto abre quando o agente for para produção.
   claudia_leite_spa: ["/app/area-testes", "/app/feedbacks"],
+  // 06/11: conta de demonstração (revisor da Apple). Vê o painel com dados fictícios, menos a Área de
+  // testes e as Execuções: nesta empresa a Área de testes fala com a cópia da Carol (Miranda).
+  clinica_teste: [
+    "/app", "/app/conversas", "/app/agenda", "/app/pipeline", "/app/clientes", "/app/campanhas",
+    "/app/servicos", "/app/produtos", "/app/handoffs", "/app/feedbacks", "/app/analista", "/app/configuracoes",
+  ],
 };
 
 /** Verdadeiro quando o cliente não tem restrição nenhuma configurada. */

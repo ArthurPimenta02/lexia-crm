@@ -1,4 +1,6 @@
+import { ehContaDemo, mudarAssumidaDemo } from "@/lib/movel/demo";
 import { contextoDaEmpresa } from "@/lib/movel/empresa-do-pedido";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { tipoDaMidia } from "@/lib/movel/midia";
 import { chamarPlataforma, ErroPlataforma } from "@/lib/movel/plataforma";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
@@ -32,6 +34,18 @@ export async function POST(request: Request) {
       return Response.json({ erro: c.t("Arquivo inválido.") }, { status: 400 });
     }
     midiaOk = { caminho, mime, tipo: tipoDaMidia(mime) };
+  }
+
+  // Conta demo: não há canal; a mensagem só fica na conversa (mesmo formato do envio real).
+  if (ehContaDemo(c.clienteSlug)) {
+    const base = createAdminClient();
+    const { data: contacto } = await base.from("lexia_contactos").select("id").eq("cliente_slug", c.clienteSlug).eq("identificador_conversa", conversa).is("fundido_em", null).limit(1).maybeSingle();
+    const tipo = midiaOk ? midiaOk.tipo : "texto";
+    const conteudo = midiaOk ? JSON.stringify({ midia: { caminho: midiaOk.caminho, tipo: midiaOk.tipo, mime: midiaOk.mime }, texto }) : texto;
+    const { data, error } = await base.from("lexia_mensagens").insert({ cliente_slug: c.clienteSlug, contacto_id: contacto?.id ?? null, identificador_conversa: conversa, direccao: "enviada", tipo, conteudo, origem: "humano" }).select("id").single();
+    if (error || !data) return Response.json({ erro: c.t("O envio falhou.") }, { status: 500 });
+    await mudarAssumidaDemo(conversa, true);   // como no envio real: quem responde assume a conversa
+    return Response.json({ ok: true, mensagem_id: data.id, tipo, conteudo, pausa_segundos: 0 });
   }
 
   try {
