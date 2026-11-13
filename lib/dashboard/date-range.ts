@@ -1,4 +1,6 @@
-export type DashboardPeriod = "hoje" | "semana" | "mes" | "personalizado";
+// 13/11/2026 (Arthur): o filtro de todas as telas é Hoje · Ontem · Uma semana · Período total · Personalizado.
+// "mes" (Este mês) deixou de aparecer, mas continua a ser lido: links e sessões guardadas não partem.
+export type DashboardPeriod = "hoje" | "ontem" | "semana" | "tudo" | "personalizado" | "mes";
 
 export type DashboardDateRange = {
   end: Date;
@@ -11,10 +13,14 @@ export const dashboardTimeZone = "America/Sao_Paulo";
 
 export const dashboardPeriodOptions = [
   { key: "hoje", label: "Hoje" },
-  { key: "semana", label: "Esta semana" },
-  { key: "mes", label: "Este mês" },
-  { key: "personalizado", label: "Personalizada" },
+  { key: "ontem", label: "Ontem" },
+  { key: "semana", label: "Uma semana" },
+  { key: "tudo", label: "Período total" },
+  { key: "personalizado", label: "Personalizado" },
 ] as const;
+
+/** Onde começa o "Período total": antes disto não há dados na plataforma (o mais antigo é de 05/2025). */
+export const INICIO_DO_PERIODO_TOTAL = { ano: 2025, mes: 1, dia: 1 } as const;
 
 export function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
@@ -144,9 +150,19 @@ export function getDateRange(
   const tomorrowStart = addCalendarDays(todayStart, 1, timeZone);
   const normalizedPeriod = dashboardPeriodOptions.some(
     (option) => option.key === period,
-  )
+  ) || period === "mes"
     ? (period as DashboardPeriod)
     : "hoje";
+
+  if (normalizedPeriod === "ontem") {
+    const start = addCalendarDays(todayStart, -1, timeZone);
+    return { end: todayStart, key: "ontem", label: formatRangeDate(start, timeZone), start };
+  }
+
+  if (normalizedPeriod === "tudo") {
+    const start = getDateInTimeZone(INICIO_DO_PERIODO_TOTAL.ano, INICIO_DO_PERIODO_TOTAL.mes, INICIO_DO_PERIODO_TOTAL.dia, timeZone);
+    return { end: tomorrowStart, key: "tudo", label: "Período total", start };
+  }
 
   if (normalizedPeriod === "personalizado") {
     const start = parseDateInput(customStart, timeZone) ?? todayStart;
@@ -166,18 +182,9 @@ export function getDateRange(
   }
 
   if (normalizedPeriod === "semana") {
-    const weekDay = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      weekday: "short",
-    }).format(todayStart);
-    const weekDayIndex =
-      ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(weekDay);
-    const start = addCalendarDays(
-      todayStart,
-      -(weekDayIndex === -1 ? 0 : weekDayIndex),
-      timeZone,
-    );
-    const end = addCalendarDays(start, 7, timeZone);
+    // "Uma semana" = os últimos 7 dias, hoje incluído.
+    const start = addCalendarDays(todayStart, -6, timeZone);
+    const end = tomorrowStart;
 
     return {
       end,

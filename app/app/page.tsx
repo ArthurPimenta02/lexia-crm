@@ -56,6 +56,7 @@ import {
 import { getClientTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import {
   baldesDoPeriodo,
+  granularidadeDoPeriodo,
   conversasEsperando,
   conversasPorBalde,
   datasPorBalde,
@@ -318,15 +319,18 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
   const nomeCliente =
     (nomeClienteResult.data as { nome?: string | null } | null)?.nome ??
     profile.cliente_slug;
-  const porHora = range.key === "hoje";
+  // 13/11: por hora (hoje/ontem), por dia, ou por mês acima de 92 dias (Período total).
+  const porHora = granularidadeDoPeriodo(range);
   // O gráfico pára em agora: os dias que ainda não chegaram são zeros que
   // achatam a linha e não dizem nada.
   const baldes = baldesDoPeriodo(periodoAteAgora(range), timezone, porHora);
   const formatoBalde = new Intl.DateTimeFormat(
     locale,
-    porHora
-      ? { hour: "2-digit", minute: "2-digit", timeZone: timezone }
-      : { day: "2-digit", month: "short", timeZone: timezone },
+    porHora === "mes"
+      ? { month: "short", timeZone: "UTC", year: "2-digit" }
+      : porHora
+        ? { hour: "2-digit", minute: "2-digit", timeZone: timezone }
+        : { day: "2-digit", month: "short", timeZone: timezone },
   );
   const rotulosBaldes = baldes.map((b) =>
     formatoBalde.format(b.inicio).replace(/\.$/, ""),
@@ -564,7 +568,7 @@ export default async function AppPage({ searchParams }: DashboardPageProps) {
                 ) : null}
               </p>
               <p className="ds-legenda mt-1">
-                {porHora ? t("Por hora, hoje") : t("Por dia, no período")}
+                {porHora === "mes" ? t("Por mês, no período") : porHora ? (range.key === "ontem" ? t("Por hora, ontem") : t("Por hora, hoje")) : t("Por dia, no período")}
               </p>
             </div>
             <span className="ds-selo ds-selo-neutro shrink-0">{t(getTimezoneLabel(timezone))}</span>

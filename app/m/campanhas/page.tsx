@@ -47,10 +47,12 @@ export default async function CampanhasMovel({ searchParams }: { searchParams: P
   const dias = diasDoIntervalo(intervalo);
   const listaDias = Array.from({ length: dias }, (_, i) => somarDias(intervalo.de, i));
   const gastoPorDia = new Map((d?.diario ?? []).map((x) => [x.dia, x.gasto]));
+  // 13/11/2026: o mesmo filtro de todas as telas ("Uma semana" = sem `p`, os últimos 7 dias).
   const chips = [
-    ["sete", t("7 dias"), "/m/campanhas"],
+    ["hoje", t("Hoje"), "/m/campanhas?p=hoje"],
     ["ontem", t("Ontem"), "/m/campanhas?p=ontem"],
-    ["mes", t("Mês"), "/m/campanhas?p=mes"],
+    ["sete", t("Uma semana"), "/m/campanhas"],
+    ["tudo", t("Período total"), "/m/campanhas?p=tudo"],
   ] as const;
   const estado = (bruto: string | null) => { const e = bruto?.toUpperCase() ?? null; return e === "ACTIVE" ? { c: "on", r: t("Ativa") } : e === "PAUSED" ? { c: "", r: t("Pausada") } : { c: "", r: e ? t("Parada") : "" }; };
 
