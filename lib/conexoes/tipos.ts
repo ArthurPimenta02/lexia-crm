@@ -65,6 +65,17 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ],
   },
   {
+    tipo: "meta_lexia",
+    titulo: "Instagram (app da Lexia)",
+    descricao: "Ligado pelo próprio cliente em /conectar (login da Meta no app da Lexia). Não se preenche à mão.",
+    ambito: "cliente",
+    campos: [
+      { nome: "instagram_id", label: "ID da conta do Instagram", segredo: false },
+      { nome: "username", label: "@ da conta", segredo: false },
+      { nome: "access_token", label: "Token (usuário do sistema)", segredo: true },
+    ],
+  },
+  {
     tipo: "meta",
     titulo: "Instagram e Messenger (Meta)",
     descricao: "Responder no Direct do Instagram e no Messenger da página.",
