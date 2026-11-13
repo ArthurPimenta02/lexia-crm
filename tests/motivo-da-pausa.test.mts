@@ -59,9 +59,14 @@ test("os prazos configurados são os que foram medidos nos workflows", async () 
   );
 
   assert.deepEqual(getAgentLocksClientSlugs().sort(), [
+    "claudia_leite_spa",
     "detail_by_cordeiro",
     "miranda_skin_experts",
   ]);
   assert.deepEqual(getStatusTtls("detail_by_cordeiro"), detail);
   assert.deepEqual(getStatusTtls("miranda_skin_experts"), miranda);
+  // Claudia (13/11): intervenção 1 h e handoff 24 h, como na Carla (producao/entrada.ts CONFIG).
+  const claudia = getStatusTtls("claudia_leite_spa");
+  assert.ok(claudia, "a Claudia tem prazos configurados");
+  assert.deepEqual(Object.values(claudia!).sort((a, b) => Number(a) - Number(b)), [3600, 86400]);
 });

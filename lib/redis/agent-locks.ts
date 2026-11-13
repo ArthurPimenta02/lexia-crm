@@ -85,6 +85,20 @@ const clientConfigs: Record<string, AgentLocksClientConfig> = {
     statusTtlHandoff: 86400,
     statusTtlIntervencao: 900,
   },
+  // Claudia Leite Spa (13/11/2026): agente em código (lexia-agente/clientes/claudia). As chaves
+  // são `lexia:claudia_leite_spa:<canal>:v1:<tipo>:<conversa>` (producao/entrada.ts `chave`), a
+  // intervenção da equipe pausa 1 h (CONFIG.ttlIntervencao = 3600) e o handoff 24 h (86400).
+  // Sem pausa eterna. O Redis é o Upstash próprio da Claudia (CLAUDIA_UPSTASH_REDIS_REST_*).
+  // Sem esta entrada o painel não pausava nem mostrava as pausas da Carla (o Detail esteve
+  // meses assim pelo mesmo motivo).
+  claudia_leite_spa: {
+    envPrefix: "CLAUDIA",
+    eternalPauseChannels: [],
+    namespacePrefix: "lexia:claudia_leite_spa:",
+    namespaceSuffix: ":v1",
+    statusTtlHandoff: 86400,
+    statusTtlIntervencao: 3600,
+  },
 };
 
 const allowedChannels = ["whatsapp", "instagram", "messenger"];
