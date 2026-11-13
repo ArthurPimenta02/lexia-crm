@@ -5,16 +5,14 @@ import {
   type DashboardPeriod,
 } from "@/lib/dashboard/date-range";
 
-export type ConversationPeriod = DashboardPeriod | "tudo";
+// 13/11/2026: as conversas usam o mesmo filtro de todas as telas (que já traz "Período total").
+export type ConversationPeriod = DashboardPeriod;
 
 export type ConversationDateRange = Omit<DashboardDateRange, "key"> & {
   key: ConversationPeriod;
 };
 
-export const conversationPeriodOptions = [
-  ...dashboardPeriodOptions,
-  { key: "tudo", label: "Todo o período" },
-] as const;
+export const conversationPeriodOptions = dashboardPeriodOptions;
 
 export function getConversationDateRange(
   period: string,
@@ -22,16 +20,5 @@ export function getConversationDateRange(
   customEnd: string,
   timeZone: string,
 ): ConversationDateRange {
-  if (period !== "tudo") {
-    return getDateRange(period, customStart, customEnd, timeZone);
-  }
-
-  const today = getDateRange("hoje", "", "", timeZone);
-
-  return {
-    end: today.end,
-    key: "tudo",
-    label: "Todo o período",
-    start: new Date(0),
-  };
+  return getDateRange(period, customStart, customEnd, timeZone);
 }

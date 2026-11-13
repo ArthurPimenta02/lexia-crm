@@ -35,8 +35,8 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
   const chips = [
     ["hoje", t("Hoje")],
     ["ontem", t("Ontem")],
-    ["semana", t("Semana")],
-    ["mes", t("Mês")],
+    ["semana", t("Uma semana")],
+    ["tudo", t("Período total")],
   ] as const;
 
   return (

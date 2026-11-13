@@ -26,9 +26,22 @@ function partes(data: Date, timeZone: string) {
   return { dia: `${v("year")}-${v("month")}-${v("day")}`, hora: v("hour") };
 }
 
-/** A chave do balde onde uma data cai: "2026-11-03" ou "2026-11-03T14". */
-export function chaveDoBalde(data: Date, timeZone: string, porHora: boolean) {
+/**
+ * Granularidade do gráfico: `true` = por hora, `false` = por dia, `"mes"` = por mês (13/11/2026, para o
+ * "Período total" e personalizados longos, que por dia passavam do limite de 92 baldes).
+ */
+export type Granularidade = boolean | "mes";
+
+/** A granularidade certa para um período: hora num dia só, mês acima de 92 dias, dia no resto. */
+export function granularidadeDoPeriodo(range: { end: Date; start: Date; key?: string }): Granularidade {
+  if (range.key === "hoje" || range.key === "ontem") return true;
+  return (range.end.getTime() - range.start.getTime()) / 86_400_000 > 92 ? "mes" : false;
+}
+
+/** A chave do balde onde uma data cai: "2026-11-03", "2026-11-03T14" ou "2026-11". */
+export function chaveDoBalde(data: Date, timeZone: string, porHora: Granularidade) {
   const { dia, hora } = partes(data, timeZone);
+  if (porHora === "mes") return dia.slice(0, 7);
   return porHora ? `${dia}T${hora}` : dia;
 }
 
@@ -36,8 +49,22 @@ export function chaveDoBalde(data: Date, timeZone: string, porHora: boolean) {
 export function baldesDoPeriodo(
   range: { end: Date; start: Date },
   timeZone: string,
-  porHora: boolean,
+  porHora: Granularidade,
 ): Balde[] {
+  if (porHora === "mes") {
+    // Um balde por mês, do mês do início ao mês do fim (no máximo 60).
+    const baldes: Balde[] = [];
+    const fim = chaveDoBalde(new Date(range.end.getTime() - 1), timeZone, "mes");
+    let [ano, mes] = chaveDoBalde(range.start, timeZone, "mes").split("-").map(Number);
+    for (let k = 0; k < 60; k++) {
+      const chave = `${ano}-${String(mes).padStart(2, "0")}`;
+      if (chave > fim) break;
+      baldes.push({ chave, inicio: new Date(Date.UTC(ano, mes - 1, 15, 12)) });
+      mes += 1;
+      if (mes > 12) { mes = 1; ano += 1; }
+    }
+    return baldes;
+  }
   const passo = porHora ? 3_600_000 : 86_400_000;
   const vistos = new Set<string>();
   const baldes: Balde[] = [];
@@ -63,7 +90,7 @@ export function conversasPorBalde(
   mensagens: DashboardMessageMetricRow[],
   baldes: Balde[],
   timeZone: string,
-  porHora: boolean,
+  porHora: Granularidade,
 ) {
   const conjuntos = new Map(baldes.map((b) => [b.chave, new Set<string>()]));
   for (const m of mensagens) {
@@ -78,7 +105,7 @@ export function datasPorBalde(
   datas: string[],
   baldes: Balde[],
   timeZone: string,
-  porHora: boolean,
+  porHora: Granularidade,
 ) {
   const contagem = new Map(baldes.map((b) => [b.chave, 0]));
   for (const d of datas) {

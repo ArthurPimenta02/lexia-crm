@@ -25,6 +25,7 @@ import { ChannelIcon } from "@/app/components/channel-brand";
 import { useIdioma } from "@/app/components/idioma";
 import type { AnalystChatMessage } from "@/lib/analyst/types";
 import type { FuncaoT } from "@/lib/i18n/traduzir";
+import { dashboardPeriodOptions } from "@/lib/dashboard/date-range";
 
 type AnalystClientOption = {
   name: string;
@@ -45,12 +46,8 @@ type AnalystSession = {
   titulo: string | null;
 };
 
-const periodOptions = [
-  { key: "hoje", label: "Hoje" },
-  { key: "semana", label: "Esta semana" },
-  { key: "mes", label: "Este mês" },
-  { key: "personalizado", label: "Personalizada" },
-] as const;
+// 13/11/2026: o mesmo filtro de todas as telas.
+const periodOptions = dashboardPeriodOptions;
 
 /*
  * Os canais tinham aqui uma segunda tabela de cores só deles — esmeralda,

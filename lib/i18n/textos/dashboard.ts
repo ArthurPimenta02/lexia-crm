@@ -14,6 +14,10 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Uma semana": "Uma semana",
+    "Período total": "Período total",
+    "Por mês, no período": "Por mês, no período",
+    "Por hora, ontem": "Por hora, ontem",
     "Taxa de agendamento": "Taxa de marcação",
     "{agendamentos} agendamentos em {conversas} conversas": "{agendamentos} marcações em {conversas} conversas",
     "1 workflow": "1 workflow",
@@ -213,6 +217,10 @@ const textos: TextosDaArea = {
       'Em Campanhas, podes puxar o histórico com "Atualizar dados".',
   },
   es: {
+    "Uma semana": "Una semana",
+    "Período total": "Período total",
+    "Por mês, no período": "Por mes, en el período",
+    "Por hora, ontem": "Por hora, ayer",
     "Taxa de agendamento": "Tasa de citas",
     "{agendamentos} agendamentos em {conversas} conversas": "{agendamentos} citas en {conversas} conversaciones",
     "1 workflow": "1 workflow",
@@ -412,6 +420,10 @@ const textos: TextosDaArea = {
       'En Campañas puedes traer el historial con "Actualizar datos".',
   },
   en: {
+    "Uma semana": "One week",
+    "Período total": "All time",
+    "Por mês, no período": "By month, in the period",
+    "Por hora, ontem": "By hour, yesterday",
     "Taxa de agendamento": "Booking rate",
     "{agendamentos} agendamentos em {conversas} conversas": "{agendamentos} bookings from {conversas} conversations",
     "1 workflow": "1 workflow",

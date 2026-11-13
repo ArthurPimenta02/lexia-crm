@@ -13,7 +13,7 @@ import { limitesDoDia, semanaDe, somarDias } from "./hoje";
  * O valor só aparece como nota, quando existe.
  */
 
-export type ChavePeriodo = "hoje" | "ontem" | "semana" | "mes" | "personalizado";
+export type ChavePeriodo = "hoje" | "ontem" | "semana" | "mes" | "personalizado" | "tudo";
 export type Intervalo = { chave: ChavePeriodo; de: string; ate: string };
 
 type Numeros = {
@@ -46,6 +46,9 @@ export function intervaloDe(p: unknown, de: unknown, ate: unknown, hoje: string)
   if (p === "hoje") return { ate: hoje, chave: "hoje", de: hoje };
   if (p === "ontem") return { ate: somarDias(hoje, -1), chave: "ontem", de: somarDias(hoje, -1) };
   if (p === "mes") return { ate: hoje, chave: "mes", de: `${hoje.slice(0, 8)}01` };
+  // 13/11/2026: "Uma semana" = últimos 7 dias; "Período total" desde 01/2025 (antes disso não há dados).
+  if (p === "semana") return { ate: hoje, chave: "semana", de: somarDias(hoje, -6) };
+  if (p === "tudo") return { ate: hoje, chave: "tudo", de: "2025-01-01" };
   if (p === "personalizado" && diaOk(de) && diaOk(ate)) {
     let [a, b] = de <= ate ? [de, ate] : [ate, de];
     if (b > hoje) b = hoje;
