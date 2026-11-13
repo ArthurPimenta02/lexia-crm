@@ -7,6 +7,7 @@ import type { DadosHoje } from "@/lib/movel/hoje";
 
 import { IcBusca, IcCalendario, IcConversa, IcMais, IcPessoa, IcSino } from "./_c/icones";
 import { VazioMascote } from "@/app/m/_c/vazio";
+import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function HojeMovel() {
   const hora = Number(partesNoFuso(agora, c.fuso).hora.slice(0, 2));
   const saudacao = hora < 12 ? t("Bom dia") : hora < 19 ? t("Boa tarde") : t("Boa noite");
   const semNome = (canal: string) => (canal === "instagram" ? t("Cliente do Instagram") : canal === "messenger" ? t("Cliente do Messenger") : t("Cliente"));
-  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? "EUR");
+  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? moedaPadraoDoCliente(c.clienteSlug));
   const hhmm = (iso: string) => partesNoFuso(iso, c.fuso).hora;
 
   const topo = (

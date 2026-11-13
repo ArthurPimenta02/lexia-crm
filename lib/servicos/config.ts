@@ -1,3 +1,4 @@
+import { getClientTimezone } from "@/lib/clientes/timezone";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -154,6 +155,8 @@ export type ServicosAgendaveisConfig = {
   /** A coluna do preço. Pode vir vazia — a Miranda tem 4 serviços sob avaliação. */
   precoColumn: string;
   tabela: string;
+  /** `false` = o painel mostra o catálogo mas não marca (a marcação dele vai para o n8n). */
+  marcarPeloPainel?: boolean;
 };
 
 const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
@@ -209,6 +212,36 @@ const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
     precoColumn: "preco",
     tabela: "servicos_miranda",
   },
+  // Claudia Leite Spa (13/11/2026): 98 serviços na Supabase dela (servicos_claudia, colunas em
+  // lexia-agente/clientes/claudia/cerebro/catalogo.ts). A coluna `profissional` pode ter dois nomes
+  // ("Claudia Leite ou Jessica"). As chaves são as do espelho da agenda (lexia_agendamentos.executor).
+  // Só leitura: as marcações são da Carla (Google direto), o "Marcar" do painel fica desligado.
+  claudia_leite_spa: {
+    activoColumn: "ativo",
+    catalogo: {
+      categoriaColumn: "categoria",
+      descricaoColumn: "descricao",
+      ordemColumn: null,
+      precosVariantesColumn: null,
+      tipoPrecoColumn: "tipo_preco",
+    },
+    envPrefix: "CLAUDIA_LEITE_SPA",
+    executores: {
+      coluna: "profissional",
+      duracaoColumn: "duracao_min",
+      lista: [
+        { chave: "Claudia", nome: "Claudia", valor: "Claudia Leite" },
+        { chave: "Jessica", nome: "Jessica", valor: "Jessica" },
+        { chave: "Suellen", nome: "Suellen", valor: "Suellen" },
+        { chave: "Priscilla", nome: "Priscilla", valor: "Enfermeira Priscilla Souza-RN" },
+      ],
+      modo: "texto",
+    },
+    marcarPeloPainel: false,
+    moeda: "USD",
+    precoColumn: "preco",
+    tabela: "servicos_claudia",
+  },
 };
 
 export function getServicosAgendaveisConfig(clienteSlug: string) {
@@ -220,6 +253,15 @@ export function getServicosAgendaveisConfig(clienteSlug: string) {
  * agenda. Sem entrada em nenhum dos dois devolve `null`, porque escrever
  * "EUR" por omissão era inventar um preço em euros para quem cobra noutra.
  */
+/**
+ * A moeda para mostrar quando ainda não há valores com moeda própria (13/11/2026): a configurada nos
+ * serviços; senão pelo fuso do cliente (Europa → euro, resto → dólar). Antes caía sempre em EUR e um
+ * cliente dos EUA sem dados (Claudia) via € no painel.
+ */
+export function moedaPadraoDoCliente(clienteSlug: string) {
+  return getMoedaDoCliente(clienteSlug) ?? (getClientTimezone(clienteSlug).startsWith("Europe/") ? "EUR" : "USD");
+}
+
 export function getMoedaDoCliente(clienteSlug: string) {
   return (
     clientConfigs[clienteSlug]?.moeda ??

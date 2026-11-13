@@ -18,7 +18,7 @@ import {
   getProdutosExcluidos,
   getServicosPorProduto,
 } from "@/lib/produtos/read";
-import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosConfig, moedaPadraoDoCliente } from "@/lib/servicos/config";
 import { getServicosSimples } from "@/lib/servicos/read";
 
 export async function generateMetadata() {
@@ -58,7 +58,7 @@ export default async function ProdutosPage() {
     new Map(servicos.map((servico) => [servico.id, servico.nome])),
   );
 
-  const moeda = getServicosConfig(profile.cliente_slug)?.moeda ?? "EUR";
+  const moeda = getServicosConfig(profile.cliente_slug)?.moeda ?? moedaPadraoDoCliente(profile.cliente_slug);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">

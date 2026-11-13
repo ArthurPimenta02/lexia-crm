@@ -61,8 +61,7 @@ export type EcraDoPainel = (typeof ECRAS_DO_PAINEL)[number];
  */
 const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   braz_insurance: ["/app/area-testes"],
-  // 05/11: a Claudia entra para testar a Carla (e ver os feedbacks que deu); o resto abre quando o agente for para produção.
-  claudia_leite_spa: ["/app/area-testes", "/app/feedbacks"],
+  // 13/11: claudia_leite_spa saiu daqui — vê o painel inteiro (a Carla está pronta para produção).
   // 06/11: conta de demonstração (revisor da Apple). Vê o painel com dados fictícios, menos a Área de
   // testes e as Execuções: nesta empresa a Área de testes fala com a cópia da Carol (Miranda).
   clinica_teste: [
