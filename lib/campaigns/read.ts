@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import "server-only";
 
 import { chaveTelefone } from "@/lib/pipeline/etapas";
@@ -421,7 +422,7 @@ export async function getPainelCampanhas({
         .order("dia", { ascending: true }),
       supabase
         .from("lexia_campanhas")
-        .select("campanha_externa_id, estado, id, nome, objectivo, conta_externa_id")
+        .select("campanha_externa_id, estado, id, nome, objectivo")
         .eq("cliente_slug", clienteSlug),
       contarContactosPorDia(clienteSlug, inicioIso, fimIso, timezone),
       contarAtribuicaoPorCampanha(clienteSlug, inicioIso, fimIso),
@@ -431,9 +432,20 @@ export async function getPainelCampanhas({
     return { ...painelVazio, moeda: moedaPadraoDoCliente(clienteSlug) };
   }
 
-  // Conta escolhida (13/11): só as campanhas dessa conta e os custos delas.
-  const todasCampanhas = (campanhasResultado.data ?? []) as (CampanhaRow & { conta_externa_id?: string | null })[];
-  const campanhas = conta ? todasCampanhas.filter((c) => c.conta_externa_id === conta) : todasCampanhas;
+  // Conta escolhida (13/11): só as campanhas dessa conta e os custos delas. A coluna conta_externa_id
+  // NÃO tem grant para `authenticated` (fase 8, grants por coluna): lê-se com a chave de serviço, só os
+  // ids, já filtrados por este cliente. Pedi-la na consulta do utilizador partia a tela de todos.
+  const todasCampanhas = (campanhasResultado.data ?? []) as CampanhaRow[];
+  let idsPermitidos: Set<string> | null = null;
+  if (conta) {
+    const { data: daConta } = await createAdminClient()
+      .from("lexia_campanhas")
+      .select("id")
+      .eq("cliente_slug", clienteSlug)
+      .eq("conta_externa_id", conta);
+    idsPermitidos = new Set((daConta ?? []).map((c: { id: string }) => c.id));
+  }
+  const campanhas = idsPermitidos ? todasCampanhas.filter((c) => idsPermitidos!.has(c.id)) : todasCampanhas;
   const idsDaConta = new Set(campanhas.map((c) => c.id));
   const custos = ((custosResultado.data ?? []) as CustoRow[]).filter((c) => !conta || idsDaConta.has(c.campanha_id));
 
