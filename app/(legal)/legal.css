@@ -1,0 +1,7 @@
+/* Páginas legais públicas (privacy, terms, data-deletion). */
+.legal h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.25rem; }
+.legal h2 { font-size: 1.15rem; font-weight: 600; margin-top: 2rem; }
+.legal ul { list-style: disc; padding-left: 1.3rem; }
+.legal li { margin: 0.3rem 0; }
+.legal a { text-decoration: underline; text-underline-offset: 3px; }
+.legal .data { color: var(--muted-foreground); font-size: 0.85rem; }
