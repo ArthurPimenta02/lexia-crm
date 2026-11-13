@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   BellRing,
   Ban,
   CalendarDays,
@@ -55,6 +56,7 @@ export const icones: Record<string, LucideIcon> = {
   followups: BellRing,
   conexoes: PlugZap,
   bloqueios: Ban,
+  eventos: Activity,
 };
 
 export type SidebarNavItem = {
