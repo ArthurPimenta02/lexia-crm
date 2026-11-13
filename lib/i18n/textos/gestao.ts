@@ -10,6 +10,9 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Todas as contas": "Todas as contas",
+    "Conta {id}": "Conta {id}",
+    "Conta de anúncios": "Conta de anúncios",
     "Eventos Meta": "Eventos Meta",
     "Eventos enviados à Meta": "Eventos enviados à Meta",
     "enviados à Meta.": "enviados à Meta.",
@@ -364,6 +367,9 @@ const textos: TextosDaArea = {
     "Passos": "Passos",
   },
   es: {
+    "Todas as contas": "Todas las cuentas",
+    "Conta {id}": "Cuenta {id}",
+    "Conta de anúncios": "Cuenta publicitaria",
     "Eventos Meta": "Eventos Meta",
     "Eventos enviados à Meta": "Eventos enviados a Meta",
     "enviados à Meta.": "enviados a Meta.",
@@ -718,6 +724,9 @@ const textos: TextosDaArea = {
     "Passos": "Pasos",
   },
   en: {
+    "Todas as contas": "All accounts",
+    "Conta {id}": "Account {id}",
+    "Conta de anúncios": "Ad account",
     "Eventos Meta": "Meta events",
     "Eventos enviados à Meta": "Events sent to Meta",
     "enviados à Meta.": "sent to Meta.",

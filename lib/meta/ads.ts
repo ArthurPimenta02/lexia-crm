@@ -145,7 +145,33 @@ export function getMetaAdsVariaveisEmFalta(clienteSlug: string): string[] {
  * configurada. Um cliente sem Meta Ads não é uma avaria; é o caso normal de
  * quem ainda não anuncia, e o painel tem de saber mostrar "sem dados".
  */
+/**
+ * Todas as contas de anúncios do cliente (13/11/2026: a Claudia tem duas). A variável aceita várias,
+ * separadas por vírgula; a tela Campanhas deixa escolher qual ver. A primeira é a "principal".
+ */
+export function getMetaAdsConfigs(clienteSlug: string): MetaAdsConfig[] {
+  const token =
+    process.env[getMetaAdsTokenEnvName(clienteSlug)]?.trim() ||
+    process.env.META_ADS_TOKEN?.trim();
+  const ids = (process.env[getMetaAdsAccountEnvName(clienteSlug)] ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (!token || !ids.length) {
+    return [];
+  }
+  return ids.map((id) => ({
+    accountId: id.startsWith("act_") ? id : `act_${id}`,
+    apiVersion: process.env.META_API_VERSION?.trim() || "v26.0",
+    token,
+  }));
+}
+
 export function getMetaAdsConfig(clienteSlug: string): MetaAdsConfig | null {
+  const varias = getMetaAdsConfigs(clienteSlug);
+  if (varias.length > 1) {
+    return varias[0];
+  }
   // O token do cliente ganha ao global. Um cliente com negócio próprio na Meta
   // tem de poder ter o seu, sem depender do token de outro cliente.
   const token =

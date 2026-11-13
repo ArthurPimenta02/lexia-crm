@@ -388,6 +388,7 @@ export async function getResumoCampanhas({
 
 export async function getPainelCampanhas({
   clienteSlug,
+  conta,
   fim,
   fimIso,
   inicio,
@@ -395,6 +396,8 @@ export async function getPainelCampanhas({
   timezone,
 }: {
   clienteSlug: string;
+  /** Só esta conta de anúncios (id sem `act_`); vazio = todas. */
+  conta?: string | null;
   /** Dia final inclusivo, YYYY-MM-DD no fuso do cliente. */
   fim: string;
   fimIso: string;
@@ -418,7 +421,7 @@ export async function getPainelCampanhas({
         .order("dia", { ascending: true }),
       supabase
         .from("lexia_campanhas")
-        .select("campanha_externa_id, estado, id, nome, objectivo")
+        .select("campanha_externa_id, estado, id, nome, objectivo, conta_externa_id")
         .eq("cliente_slug", clienteSlug),
       contarContactosPorDia(clienteSlug, inicioIso, fimIso, timezone),
       contarAtribuicaoPorCampanha(clienteSlug, inicioIso, fimIso),
@@ -428,8 +431,11 @@ export async function getPainelCampanhas({
     return { ...painelVazio, moeda: moedaPadraoDoCliente(clienteSlug) };
   }
 
-  const custos = (custosResultado.data ?? []) as CustoRow[];
-  const campanhas = (campanhasResultado.data ?? []) as CampanhaRow[];
+  // Conta escolhida (13/11): só as campanhas dessa conta e os custos delas.
+  const todasCampanhas = (campanhasResultado.data ?? []) as (CampanhaRow & { conta_externa_id?: string | null })[];
+  const campanhas = conta ? todasCampanhas.filter((c) => c.conta_externa_id === conta) : todasCampanhas;
+  const idsDaConta = new Set(campanhas.map((c) => c.id));
+  const custos = ((custosResultado.data ?? []) as CustoRow[]).filter((c) => !conta || idsDaConta.has(c.campanha_id));
 
   if (custos.length === 0) {
     return {
