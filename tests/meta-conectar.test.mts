@@ -34,3 +34,13 @@ test("contas do token: só os ids de permissões do Instagram", async () => {
   }) as typeof fetch;
   assert.deepEqual(await contasDoToken({ appId: "1", appSecret: "s", configId: "9" }, "tok", buscar), [{ id: "178", username: "uselexia.ai" }]);
 });
+
+test("contas do token: sem target_ids, lê as contas atribuídas ao usuário do sistema", async () => {
+  const buscar = (async (url: string) => {
+    if (url.includes("debug_token")) return Response.json({ data: { granular_scopes: [{ scope: "instagram_basic" }] } });
+    if (url.includes("/me?")) return Response.json({ id: "SU1" });
+    if (url.includes("/SU1/assigned_instagram_accounts")) return Response.json({ data: [{ id: "178" }] });
+    return Response.json({ id: "178", username: "uselexia.ai" });
+  }) as typeof fetch;
+  assert.deepEqual(await contasDoToken({ appId: "1", appSecret: "s", configId: "9" }, "tok", buscar), [{ id: "178", username: "uselexia.ai" }]);
+});

@@ -83,13 +83,20 @@ export async function trocarCodigo(cfg: ConfigMeta, code: string, buscar: Buscar
   return String(o.access_token);
 }
 
-// As contas do Instagram que o token autorizou (granular_scopes.target_ids do debug_token).
+// As contas do Instagram que o token autorizou: granular_scopes.target_ids do debug_token ou, se vazio
+// (contas do portfólio dono do app), as atribuídas ao usuário do sistema do token.
 export async function contasDoToken(cfg: ConfigMeta, token: string, buscar: Buscar = fetch) {
   const p = new URLSearchParams({ input_token: token, access_token: `${cfg.appId}|${cfg.appSecret}` });
   const o = await json(await buscar(`${GRAPH}/debug_token?${p}`, { cache: "no-store" }));
   const ids = new Set<string>();
   for (const g of o?.data?.granular_scopes ?? []) {
     if (String(g?.scope ?? "").startsWith("instagram_")) for (const id of g?.target_ids ?? []) ids.add(String(id));
+  }
+  // Contas do próprio portfólio não vêm em target_ids: lê-se o que foi atribuído ao usuário do sistema.
+  if (!ids.size) {
+    const eu = await json(await buscar(`${GRAPH}/me?fields=id&access_token=${encodeURIComponent(token)}`, { cache: "no-store" }));
+    const a = await json(await buscar(`${GRAPH}/${eu.id}/assigned_instagram_accounts?access_token=${encodeURIComponent(token)}`, { cache: "no-store" }));
+    for (const c of a?.data ?? []) if (c?.id) ids.add(String(c.id));
   }
   const contas: { id: string; username: string }[] = [];
   for (const id of ids) {
