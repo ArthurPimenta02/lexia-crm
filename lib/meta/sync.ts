@@ -9,6 +9,8 @@ import {
   fetchMetaCampaigns,
   fetchMetaDailyInsights,
   getMetaAdsConfig,
+  getMetaAdsConfigs,
+  type MetaAdsConfig,
   MetaAdsError,
   type MetaAd,
   type MetaCampaign,
@@ -49,6 +51,7 @@ type CampanhaDimensao = {
   objectivo: string | null;
   plataforma: "meta";
   sincronizada_em: string;
+  conta_externa_id?: string;
 };
 
 /**
@@ -153,14 +156,36 @@ export async function syncMetaCampanhas(
     throw new MetaAdsError("cliente_slug é obrigatório.", 400);
   }
 
-  const config = getMetaAdsConfig(clienteSlug);
+  const configs = getMetaAdsConfigs(clienteSlug);
 
-  if (!config) {
+  if (!configs.length || !getMetaAdsConfig(clienteSlug)) {
     throw new MetaAdsError(
       `O cliente ${clienteSlug} não tem conta de anúncios da Meta configurada.`,
       503,
     );
   }
+
+  // Uma conta de cada vez (13/11: a Claudia tem duas); o resultado soma as duas.
+  const resultados: MetaSyncResult[] = [];
+  for (const config of configs) {
+    resultados.push(await syncUmaConta(input, clienteSlug, config));
+  }
+  const [primeiro] = resultados;
+  return {
+    ...primeiro,
+    anuncios: resultados.reduce((t, r) => t + r.anuncios, 0),
+    campanhas: resultados.reduce((t, r) => t + r.campanhas, 0),
+    gastoTotal: Math.round(resultados.reduce((t, r) => t + r.gastoTotal, 0) * 100) / 100,
+    linhas: resultados.reduce((t, r) => t + r.linhas, 0),
+    moeda: resultados.find((r) => r.linhas > 0)?.moeda ?? primeiro.moeda,
+  };
+}
+
+async function syncUmaConta(
+  input: MetaSyncInput,
+  clienteSlug: string,
+  config: MetaAdsConfig,
+): Promise<MetaSyncResult> {
 
   const lookbackDays = Math.max(
     1,
@@ -210,7 +235,9 @@ export async function syncMetaCampanhas(
     }
   }
 
-  const campanhaRows = buildCampanhaRows(clienteSlug, campanhas, insights, agora);
+  // De que conta é cada campanha: a tela Campanhas filtra por isto.
+  const conta = config.accountId.replace(/^act_/, "");
+  const campanhaRows = buildCampanhaRows(clienteSlug, campanhas, insights, agora).map((row) => ({ ...row, conta_externa_id: conta }));
 
   if (campanhaRows.length === 0) {
     return {

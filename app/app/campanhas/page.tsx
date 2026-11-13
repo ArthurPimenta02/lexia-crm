@@ -5,6 +5,8 @@ import { CampaignsRefreshButton } from "@/app/components/campaigns-refresh-butto
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { getPainelCampanhas } from "@/lib/campaigns/read";
+import { FiltroTrilho } from "@/app/components/tela";
+import { getMetaAdsConfigs } from "@/lib/meta/ads";
 import {
   getDateInputValue,
   getDateRange,
@@ -22,6 +24,7 @@ type CampanhasPageProps = {
     fim?: string | string[];
     inicio?: string | string[];
     periodo?: string | string[];
+    conta?: string | string[];
   }>;
 };
 
@@ -66,7 +69,20 @@ export default async function CampanhasPage({
   const inicio = getDateInputValue(range.start, timezone);
   const fim = getDateInputValue(getInclusiveRangeEnd(range.end), timezone);
 
+  // Várias contas de anúncios (13/11, Claudia): escolhe-se qual ver; sem escolha, todas juntas.
+  const contas = getMetaAdsConfigs(clienteSlug).map((c) => c.accountId.replace(/^act_/, ""));
+  const pedida = getSearchValue(params.conta);
+  const conta = contas.includes(pedida) ? pedida : null;
+  const linkConta = (id: string | null) => {
+    const q = new URLSearchParams();
+    for (const k of ["periodo", "inicio", "fim"] as const) { const v = getSearchValue(params[k]); if (v) q.set(k, v); }
+    if (id) q.set("conta", id);
+    const qs = q.toString();
+    return `/app/campanhas${qs ? `?${qs}` : ""}`;
+  };
+
   const painel = await getPainelCampanhas({
+    conta,
     clienteSlug,
     fim,
     fimIso: range.end.toISOString(),
@@ -87,6 +103,17 @@ export default async function CampanhasPage({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      {contas.length > 1 ? (
+        <div className="flex min-w-0">
+          <FiltroTrilho
+            opcoes={[
+              { ativo: !conta, href: linkConta(null), label: t("Todas as contas") },
+              ...contas.map((id) => ({ ativo: conta === id, href: linkConta(id), label: t("Conta {id}", { id }) })),
+            ]}
+            rotulo={t("Conta de anúncios")}
+          />
+        </div>
+      ) : null}
       <CampaignsPanel
         acoes={
           <CampaignsRefreshButton
