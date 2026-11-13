@@ -3,6 +3,7 @@ import "server-only";
 import { chaveTelefone } from "@/lib/pipeline/etapas";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
+import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
 /**
  * Leitura do painel de campanhas (Fase 8).
@@ -356,7 +357,7 @@ export async function getResumoCampanhas({
     cliquesLink: 0,
     gasto: 0,
     impressoes: 0,
-    moeda: "EUR",
+    moeda: moedaPadraoDoCliente(clienteSlug),
     temDados: false,
   };
 
@@ -380,7 +381,7 @@ export async function getResumoCampanhas({
     }
   }
 
-  resumo.moeda = data.find((linha) => linha.moeda)?.moeda ?? "EUR";
+  resumo.moeda = data.find((linha) => linha.moeda)?.moeda ?? moedaPadraoDoCliente(clienteSlug);
 
   return resumo;
 }
@@ -424,7 +425,7 @@ export async function getPainelCampanhas({
     ]);
 
   if (custosResultado.error || campanhasResultado.error) {
-    return painelVazio;
+    return { ...painelVazio, moeda: moedaPadraoDoCliente(clienteSlug) };
   }
 
   const custos = (custosResultado.data ?? []) as CustoRow[];
@@ -433,6 +434,7 @@ export async function getPainelCampanhas({
   if (custos.length === 0) {
     return {
       ...painelVazio,
+      moeda: moedaPadraoDoCliente(clienteSlug),
       contactosComAnuncio: atribuicao.contactosComAnuncio,
       contactosNovos: [...contactosPorDia.values()].reduce(
         (total, valor) => total + valor,
@@ -531,7 +533,7 @@ export async function getPainelCampanhas({
       .sort((a, b) => a.dia.localeCompare(b.dia)),
     gasto,
     impressoes,
-    moeda: custos.find((custo) => custo.moeda)?.moeda ?? "EUR",
+    moeda: custos.find((custo) => custo.moeda)?.moeda ?? moedaPadraoDoCliente(clienteSlug),
     porCampanha: [...acumuladoPorCampanha.values()].sort(
       (a, b) => b.gasto - a.gasto,
     ),

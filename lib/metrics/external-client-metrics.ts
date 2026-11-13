@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 import { getClientTimezone } from "@/lib/clientes/timezone";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 
 export type ExternalClientMetrics = {
@@ -26,8 +27,15 @@ type ExternalClientConfig = {
     statusColumn: string;
     statusValues: string[];
     table: string;
+    /** Só as linhas com esta coluna = valor (ex.: origem = agente). */
+    onlyWhere?: { column: string; value: string };
   };
   envPrefix: string;
+  /**
+   * As marcações estão na Supabase CENTRAL (lexia_agendamentos, o espelho do Google), não numa base do
+   * cliente. Claudia, 13/11/2026: as marcações dela só existem no Google Calendar.
+   */
+  central?: boolean;
 };
 
 const clientConfigs: Record<string, ExternalClientConfig> = {
@@ -55,6 +63,21 @@ const clientConfigs: Record<string, ExternalClientConfig> = {
     },
     envPrefix: "MIRANDA",
   },
+  claudia_leite_spa: {
+    appointments: {
+      appointmentDateColumn: "inicio",
+      dateColumn: "criado_no_google",
+      hasClienteSlug: true,
+      // As que a Carla marcou (como a Miranda, cuja tabela é a do agente): a conversão é do agente.
+      onlyWhere: { column: "origem", value: "agente" },
+      serviceColumn: "servico",
+      statusColumn: "estado",
+      statusValues: ["confirmado"],
+      table: "lexia_agendamentos",
+    },
+    central: true,
+    envPrefix: "CLAUDIA_LEITE_SPA",
+  },
 };
 
 const emptyAppointmentWeekdays = [
@@ -78,6 +101,10 @@ function emptyExternalMetrics(isConfigured: boolean): ExternalClientMetrics {
 }
 
 function createExternalClient(config: ExternalClientConfig) {
+  if (config.central) {
+    return createAdminClient();
+  }
+
   const supabaseUrl = process.env[`${config.envPrefix}_SUPABASE_URL`]?.trim();
   const serviceRoleKey =
     process.env[`${config.envPrefix}_SUPABASE_SERVICE_ROLE_KEY`]?.trim();
@@ -123,6 +150,10 @@ async function listAppointments(
 
     if (config.appointments.hasClienteSlug) {
       query = query.eq("cliente_slug", clienteSlug);
+    }
+
+    if (config.appointments.onlyWhere) {
+      query = query.eq(config.appointments.onlyWhere.column, config.appointments.onlyWhere.value);
     }
 
     const result = await query

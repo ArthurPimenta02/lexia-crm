@@ -8,6 +8,7 @@ import { intervaloDe, type DadosResultados } from "@/lib/movel/resultados";
 import { Curva } from "../_c/curva";
 import { IcSeta } from "../_c/icones";
 import { Personalizado } from "./personalizado";
+import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function ResultadosMovel({ searchParams }: { searchParams: 
   } catch {
     d = null;
   }
-  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? "EUR");
+  const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? moedaPadraoDoCliente(c.clienteSlug));
   const curto = (k: string) => new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${k}T12:00:00Z`));
   const rotuloPeriodo = intervalo.de === intervalo.ate ? curto(intervalo.de) : `${curto(intervalo.de)} – ${curto(intervalo.ate)}`;
   const chips = [

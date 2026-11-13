@@ -788,15 +788,18 @@ function executoresPorTexto(
   linha: LinhaAgendavel,
   executores: Extract<ServicosAgendaveisConfig["executores"], { modo: "texto" }>,
 ): ExecutorAgendavel[] {
-  const escrito = String(linha[executores.coluna] ?? "")
+  // Mais do que um nome na coluna (Claudia, 13/11: "Claudia Leite ou Jessica") → os dois fazem o serviço.
+  const escritos = String(linha[executores.coluna] ?? "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .split(/\s+ou\s+|\s+or\s+|\s*\/\s*|\s*,\s*|\s+e\s+/)
+    .filter(Boolean);
 
-  const executor = executores.lista.find(
-    (candidato) => candidato.valor.toLowerCase() === escrito,
+  const encontrados = executores.lista.filter((candidato) =>
+    escritos.includes(candidato.valor.toLowerCase()),
   );
 
-  if (!executor) {
+  if (!encontrados.length) {
     return [];
   }
 
@@ -808,13 +811,11 @@ function executoresPorTexto(
     return [];
   }
 
-  return [
-    {
-      chave: executor.chave,
-      duracaoMinutos: Math.round(duracao),
-      nome: executor.nome,
-    },
-  ];
+  return encontrados.map((executor) => ({
+    chave: executor.chave,
+    duracaoMinutos: Math.round(duracao),
+    nome: executor.nome,
+  }));
 }
 
 /**
@@ -840,7 +841,9 @@ export async function getServicosAgendaveis(
 ): Promise<ServicoAgendavel[]> {
   const config = getServicosAgendaveisConfig(clienteSlug);
 
-  if (!config) {
+  // Sem marcação pelo painel (Claudia): a marcação do painel passa pelo n8n, que não conhece as agendas
+  // dela. Sem serviços agendáveis, o "Marcar" não aparece nem na web nem no app.
+  if (!config || config.marcarPeloPainel === false) {
     return [];
   }
 

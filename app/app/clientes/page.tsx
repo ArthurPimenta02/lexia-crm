@@ -13,7 +13,7 @@ import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 import { mostraViatura } from "@/lib/clientes/ficha";
 import { getClientes } from "@/lib/clientes/read";
 import { getClientTimezone } from "@/lib/clientes/timezone";
-import { getServicosConfig } from "@/lib/servicos/config";
+import { getServicosConfig, moedaPadraoDoCliente } from "@/lib/servicos/config";
 import { getT } from "@/lib/i18n/servidor";
 import { getServicosSimples } from "@/lib/servicos/read";
 
@@ -45,7 +45,7 @@ export default async function ClientesPage() {
     getServicosSimples(profile.cliente_slug),
   ]);
   const config = getServicosConfig(profile.cliente_slug);
-  const moeda = config?.moeda ?? "EUR";
+  const moeda = config?.moeda ?? moedaPadraoDoCliente(profile.cliente_slug);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
