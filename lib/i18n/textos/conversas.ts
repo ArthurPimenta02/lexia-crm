@@ -14,6 +14,11 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    // Desenho A+ (14/11)
+    "Troque o período em Filtros para ver conversas mais antigas.": "Mude o período em Filtros para ver conversas mais antigas.",
+    "Filtros, 1 ligado": "Filtros, 1 ativo",
+    "Filtros, {n} ligados": "Filtros, {n} ativos",
+    "Tirar o filtro {nome}": "Tirar o filtro {nome}",
     "Temperatura": "Temperatura",
     "Quente": "Quente",
     "Morno": "Morno",
@@ -255,6 +260,11 @@ const textos: TextosDaArea = {
     "Analisados": "Analisados",
   },
   es: {
+    // Desenho A+ (14/11)
+    "Troque o período em Filtros para ver conversas mais antigas.": "Cambia el período en Filtros para ver conversaciones más antiguas.",
+    "Filtros, 1 ligado": "Filtros, 1 activo",
+    "Filtros, {n} ligados": "Filtros, {n} activos",
+    "Tirar o filtro {nome}": "Quitar el filtro {nome}",
     "Temperatura": "Temperatura",
     "Quente": "Caliente",
     "Morno": "Tibio",
@@ -496,6 +506,11 @@ const textos: TextosDaArea = {
     "Analisados": "Revisados",
   },
   en: {
+    // Desenho A+ (14/11)
+    "Troque o período em Filtros para ver conversas mais antigas.": "Change the period in Filters to see older conversations.",
+    "Filtros, 1 ligado": "Filters, 1 on",
+    "Filtros, {n} ligados": "Filters, {n} on",
+    "Tirar o filtro {nome}": "Remove the {nome} filter",
     "Temperatura": "Temperature",
     "Quente": "Hot",
     "Morno": "Warm",
