@@ -6,10 +6,7 @@ import {
   ArrowUpRight,
   ChevronDown,
   FlaskConical,
-  MessageCircle,
-  MessagesSquare,
   Pencil,
-  Send,
   Star,
   Trash2,
   UserPlus,
@@ -23,18 +20,17 @@ import {
   clearClientTestData,
   updateClientUserStatus,
 } from "@/app/admin/clientes/[slug]/actions";
-import { CartaoMetrica } from "@/app/components/cartoes";
 import { ChannelIcon } from "@/app/components/channel-brand";
 import { Barra } from "@/app/components/ds";
 import {
   AvatarCanal,
   CabecalhoTela,
-  GradeMetricas,
   VazioTela,
 } from "@/app/components/tela";
 import { ClientUserForm } from "@/app/admin/clientes/[slug]/client-user-form";
 import { ClientSettingsForm } from "@/app/admin/clientes/[slug]/settings-form";
 import { FollowupsLongosBloco } from "@/app/admin/clientes/[slug]/followups-longos";
+import { MenuDoCliente } from "@/app/admin/clientes/[slug]/menu-cliente";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { ExpandableText } from "@/app/components/expandable-text";
 import {
@@ -343,12 +339,9 @@ export default async function ClientDetailPage({
     execucoesCount,
     feedbacksPendentes,
     handoffsPendentes,
-    totalConversas,
     whatsappConversas,
     messengerConversas,
     instagramConversas,
-    mensagensRecebidas,
-    mensagensEnviadas,
     { data: latestExecutionsData, error: latestExecutionsError },
     { data: latestFeedbacksData, error: latestFeedbacksError },
     { data: latestHandoffsData, error: latestHandoffsError },
@@ -364,12 +357,9 @@ export default async function ClientDetailPage({
     getCount("lexia_testes_execucoes", clientData.slug),
     getCount("lexia_feedbacks", clientData.slug, "pendente"),
     getCount("lexia_handoffs", clientData.slug, "pendente"),
-    getRealCount("lexia_contactos", clientData.slug),
     getRealCount("lexia_contactos", clientData.slug, { canal: "whatsapp" }),
     getRealCount("lexia_contactos", clientData.slug, { canal: "messenger" }),
     getRealCount("lexia_contactos", clientData.slug, { canal: "instagram" }),
-    getRealCount("lexia_mensagens", clientData.slug, { direccao: "recebida" }),
-    getRealCount("lexia_mensagens", clientData.slug, { direccao: "enviada" }),
     supabase
       .from("lexia_testes_execucoes")
       .select(
@@ -496,7 +486,7 @@ export default async function ClientDetailPage({
           <>
             <Link
               className="ds-botao ds-botao-secundario ds-botao-p"
-              href="/admin/feedbacks"
+              href={`/admin/feedbacks?cliente=${encodeURIComponent(clientData.slug)}`}
             >
               {t("Ver feedbacks")}
             </Link>
@@ -514,12 +504,12 @@ export default async function ClientDetailPage({
             ? pendentes === 1
               ? t("1 pendência")
               : t("{n} pendências", { n: numero.format(pendentes) })
-            : t("{n} conversas", { n: numero.format(totalConversas) })
+            : undefined
         }
         resto={
           pendentes > 0
             ? t("esperando a equipe Lexia.")
-            : t("atendidas, nada pendente.")
+            : t("Nada pendente com a equipe Lexia.")
         }
         sobretitulo={t("Admin Lexia · ficha do cliente")}
       />
@@ -563,41 +553,13 @@ export default async function ClientDetailPage({
         </div>
       </div>
 
-      <GradeMetricas>
-        <CartaoMetrica
-          cor="var(--ds-acao)"
-          icone={<MessagesSquare aria-hidden="true" className="h-4 w-4" />}
-          nota={t("todo o histórico")}
-          rotulo={t("Conversas")}
-          valor={numero.format(totalConversas)}
-        />
-        <CartaoMetrica
-          cor="var(--ds-info)"
-          icone={<MessageCircle aria-hidden="true" className="h-4 w-4" />}
-          nota={t("todo o histórico")}
-          rotulo={t("Mensagens recebidas")}
-          valor={numero.format(mensagensRecebidas)}
-        />
-        <CartaoMetrica
-          cor="var(--ds-destaque)"
-          icone={<Send aria-hidden="true" className="h-4 w-4" />}
-          nota={t("todo o histórico")}
-          rotulo={t("Respostas enviadas")}
-          valor={numero.format(mensagensEnviadas)}
-        />
-        <CartaoMetrica
-          cor="var(--ds-ouro)"
-          href="/admin/feedbacks"
-          icone={<Star aria-hidden="true" className="h-4 w-4" />}
-          nota={
-            handoffsPendentes > 0
-              ? t("{n} handoffs pendentes", { n: numero.format(handoffsPendentes) })
-              : undefined
-          }
-          rotulo={t("Feedbacks pendentes")}
-          valor={numero.format(feedbacksPendentes)}
-        />
-      </GradeMetricas>
+      <MenuDoCliente
+        feedbacksPendentes={feedbacksPendentes}
+        handoffsPendentes={handoffsPendentes}
+        slug={clientData.slug}
+        t={t}
+        temFollowups={clientData.slug === "miranda_skin_experts"}
+      />
 
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Bloco
@@ -680,6 +642,7 @@ export default async function ClientDetailPage({
         </Bloco>
       </div>
 
+      <span aria-hidden="true" className="block scroll-mt-6" id="configuracoes" />
       <Bloco titulo={t("Configurações do cliente")}
       >
         {workflows.length > 0 ? (

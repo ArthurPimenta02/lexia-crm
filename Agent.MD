@@ -298,7 +298,7 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 
 | Rota | Função | Navegação lateral |
 | --- | --- | --- |
-| `/admin` | Dashboard agregado. | Sim |
+| `/admin` | **Visão geral** (redesenhada a 2026-11-14): em cima o "Hoje" (`lib/admin/hoje.ts` + `app/admin/hoje.tsx`): um cartão por cliente com o número que pede ação (conversas sem resposta há mais de 20 min nos últimos 4 dias, sem fechos nem promessas; quem deve responder: agente, equipe ou defeito), marcações novas pela agente, handoffs com motivo, agenda de hoje e erros de 24 h; em baixo o "Desempenho" (`app/admin/desempenho.tsx`, os gráficos de antes sem os totais de enfeite). Menu do admin curto: Visão geral, Clientes, Controle do agente, Conexões da Lexia + acesso rápido aos clientes. As outras telas abrem-se pela casa do cliente (`/admin/clientes/<slug>`, submenu em `menu-cliente.tsx`) com `?cliente=<slug>`; handoffs e feedbacks aceitam esse filtro. | Sim |
 | `/admin/analista` | Chat analítico com seleção explícita de cliente. | Sim |
 | `/admin/campanhas` | Campanhas da Meta com seleção explícita de cliente. | Sim |
 | `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |

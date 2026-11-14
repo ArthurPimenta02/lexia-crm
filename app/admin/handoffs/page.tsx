@@ -130,7 +130,7 @@ function passaNoFiltro(status: string | null, filtro: Filtro) {
 export default async function AdminHandoffsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string | string[] }>;
+  searchParams: Promise<{ cliente?: string | string[]; status?: string | string[] }>;
 }) {
   // As pausas leem o Redis com credenciais de servidor, por isso a página
   // confirma o papel e o status aqui, sem depender apenas do layout.
@@ -166,9 +166,17 @@ export default async function AdminHandoffsPage({
     throw new Error("Não foi possível buscar os handoffs simulados.");
   }
 
-  const handoffs = (handoffsData ?? []) as AdminHandoff[];
-  const simulatedHandoffs = (simulatedData ?? []) as AdminSimulatedHandoff[];
-  const pedido = (await searchParams).status;
+  // `?cliente=` vem da casa do cliente: a mesma tela, só com as dele.
+  const params = await searchParams;
+  const clientePedido = Array.isArray(params.cliente) ? params.cliente[0] : params.cliente;
+  const doCliente = (slug: string) => !clientePedido || slug === clientePedido;
+  const handoffs = ((handoffsData ?? []) as AdminHandoff[]).filter((h) => doCliente(h.cliente_slug));
+  const simulatedHandoffs = ((simulatedData ?? []) as AdminSimulatedHandoff[]).filter((h) =>
+    doCliente(h.cliente_slug),
+  );
+  const comCliente = (q: string) =>
+    clientePedido ? `${q}${q ? "&" : "?"}cliente=${encodeURIComponent(clientePedido)}` : q;
+  const pedido = params.status;
   const filtro: Filtro =
     filtros.find((f) => f.chave === (Array.isArray(pedido) ? pedido[0] : pedido))?.chave ??
     "abertos";
@@ -185,7 +193,7 @@ export default async function AdminHandoffsPage({
           handoffs.length === 0 ? undefined : <FiltroTrilho
             opcoes={filtros.map((f) => ({
               ativo: f.chave === filtro,
-              href: f.chave === "abertos" ? "/admin/handoffs" : `/admin/handoffs?status=${f.chave}`,
+              href: `/admin/handoffs${comCliente(f.chave === "abertos" ? "" : `?status=${f.chave}`)}`,
               label: t(f.label),
               quantidade: contagem(f.chave),
             }))}
@@ -255,7 +263,7 @@ export default async function AdminHandoffsPage({
       </section>
 
       {canManageAgentLocks
-        ? getAgentLocksClientSlugs().map((clienteSlug) => (
+        ? getAgentLocksClientSlugs().filter(doCliente).map((clienteSlug) => (
             <Suspense fallback={null} key={clienteSlug}>
               <AgentLocksSection
                 clienteSlug={clienteSlug}

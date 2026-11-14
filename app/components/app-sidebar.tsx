@@ -36,6 +36,8 @@ import { BarraDoApp } from "@/app/components/barra-do-app";
  */
 
 type AppSidebarProps = {
+  /** Um segundo grupo por baixo do menu (no admin: acesso rápido a cada cliente). */
+  atalhos?: { items: SidebarNavItem[]; titulo: string };
   /** O sino. Fora no painel de administração, que não tem avisos. */
   comSino?: boolean;
   items: SidebarNavItem[];
@@ -43,6 +45,7 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({
+  atalhos,
   comSino = false,
   items,
   subtitle,
@@ -164,6 +167,15 @@ export function AppSidebar({
             items={items}
             onNavigate={() => setIsOpen(false)}
           />
+          {atalhos && atalhos.items.length > 0 ? (
+            <div className="mt-6">
+              <SidebarNav
+                groupLabel={atalhos.titulo}
+                items={atalhos.items}
+                onNavigate={() => setIsOpen(false)}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-col gap-1 border-t border-sidebar-border p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] lg:pb-2.5">

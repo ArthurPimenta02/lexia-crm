@@ -17,7 +17,7 @@ import { estaActivo, icones, type SidebarNavItem } from "@/app/components/sideba
  */
 
 /** As telas que valem uma aba, pela ordem de preferência. */
-const PREFERIDAS = ["/app", "/admin", "/app/conversas", "/admin/conversas", "/app/agenda", "/admin/handoffs"];
+const PREFERIDAS = ["/app", "/admin", "/app/conversas", "/admin/clientes", "/app/agenda", "/admin/turnos"];
 
 export function abasDoApp(items: SidebarNavItem[]) {
   return PREFERIDAS.map((href) => items.find((item) => item.href === href && !item.indisponivel))

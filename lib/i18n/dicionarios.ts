@@ -15,6 +15,7 @@ import movelV5 from "./textos/movel-v5";
 import conversasEnvio from "./textos/conversas-envio";
 import ajudante from "./textos/ajudante";
 import conectar from "./textos/conectar";
+import admin from "./textos/admin";
 
 /**
  * Cada área do painel tem o seu ficheiro em `textos/`. Estão separados para
@@ -36,6 +37,7 @@ const AREAS: TextosDaArea[] = [
   conversasEnvio,
   ajudante,
   conectar,
+  admin,
 ];
 
 function juntar(idioma: Exclude<Idioma, "pt-BR">): Dicionario {
