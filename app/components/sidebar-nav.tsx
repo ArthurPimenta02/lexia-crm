@@ -68,6 +68,8 @@ export type SidebarNavItem = {
    */
   indisponivel?: boolean;
   label: string;
+  /** Um ponto desta cor no lugar do ícone (o acesso rápido aos clientes do admin). */
+  ponto?: string;
 };
 
 type SidebarNavProps = {
@@ -154,7 +156,11 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
             key={item.href}
             onClick={onNavigate}
           >
-            <Icone
+            {item.ponto ? (
+              <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center">
+                <span className="h-2 w-2 rounded-full" style={{ background: item.ponto }} />
+              </span>
+            ) : <Icone
               aria-hidden="true"
               className={`h-4 w-4 shrink-0 transition ${
                 activo
@@ -162,7 +168,7 @@ export function SidebarNav({ groupLabel, items, onNavigate }: SidebarNavProps) {
                   : "text-sidebar-muted group-hover:text-sidebar-foreground"
               }`}
               strokeWidth={activo ? 2.2 : 1.8}
-            />
+            />}
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             <SidebarLinkStatus />
           </Link>

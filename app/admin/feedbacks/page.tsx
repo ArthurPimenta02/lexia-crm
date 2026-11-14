@@ -63,7 +63,7 @@ const statusActions: { label: string; status: AdminFeedbackStatus }[] = [
 export default async function AdminFeedbacksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string | string[] }>;
+  searchParams: Promise<{ cliente?: string | string[]; status?: string | string[] }>;
 }) {
   const t = await getT();
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
@@ -79,8 +79,15 @@ export default async function AdminFeedbacksPage({
     throw new Error("Não foi possível buscar os feedbacks.");
   }
 
-  const feedbacks = (data ?? []) as AdminFeedback[];
-  const filtro = lerFiltroFeedback((await searchParams).status);
+  // `?cliente=` vem da casa do cliente: a mesma tela, só com os dele.
+  const params = await searchParams;
+  const clientePedido = Array.isArray(params.cliente) ? params.cliente[0] : params.cliente;
+  const feedbacks = ((data ?? []) as AdminFeedback[]).filter(
+    (f) => !clientePedido || f.cliente_slug === clientePedido,
+  );
+  const comCliente = (q: string) =>
+    clientePedido ? `${q}${q ? "&" : "?"}cliente=${encodeURIComponent(clientePedido)}` : q;
+  const filtro = lerFiltroFeedback(params.status);
   const visiveis = feedbacks.filter((f) => passaNoFiltroFeedback(f, filtro));
   const pendentes = ajustesPendentes(feedbacks);
 
@@ -92,7 +99,7 @@ export default async function AdminFeedbacksPage({
             <FiltroTrilho
               opcoes={filtrosFeedback.map((f) => ({
                 ativo: f.chave === filtro,
-                href: f.chave === "todos" ? "/admin/feedbacks" : `/admin/feedbacks?status=${f.chave}`,
+                href: `/admin/feedbacks${comCliente(f.chave === "todos" ? "" : `?status=${f.chave}`)}`,
                 label: t(f.label),
                 quantidade: feedbacks.filter((x) => passaNoFiltroFeedback(x, f.chave)).length,
               }))}
@@ -112,7 +119,7 @@ export default async function AdminFeedbacksPage({
             ? t("Nenhum ajuste esperando análise.")
             : t("esperando análise.")
         }
-        sobretitulo={t("Feedbacks · todos os clientes")}
+        sobretitulo={clientePedido ? t("Feedbacks") : t("Feedbacks · todos os clientes")}
       />
 
       {feedbacks.length > 0 ? <CartoesFeedback feedbacks={feedbacks} t={t} /> : null}

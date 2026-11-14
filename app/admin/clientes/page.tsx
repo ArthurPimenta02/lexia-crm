@@ -10,7 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Lista de clientes do admin (14/11/2026). Antes, a página de cada cliente
  * (/admin/clientes/<slug>) só se abria pelo endereço. Aqui: busca por nome ou
  * slug, filtro por situação, o essencial de cada um (estado, modo de teste,
- * follow-ups de 3 e 7 dias, quantos contactos) e o acesso à página dele.
+ * follow-ups de 3 e 7 dias) e o acesso à página dele.
  * Lido com a service_role, só lexia_admin.
  */
 
@@ -66,18 +66,6 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     clientes = (semLongos.data ?? []) as Cliente[];
   }
 
-  // Quantos contactos cada cliente tem (conversas reais, sem as de teste).
-  const contagens = new Map<string, number>();
-  await Promise.all(
-    clientes.map(async (c) => {
-      const { count } = await admin
-        .from("lexia_contactos")
-        .select("id", { count: "exact", head: true })
-        .eq("cliente_slug", c.slug)
-        .not("identificador_conversa", "like", "teste:%");
-      contagens.set(c.slug, count ?? 0);
-    }),
-  );
 
   const termo = normalizar(busca);
   const noFiltro = (c: Cliente, s: string) =>
@@ -149,7 +137,6 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
           <div className="tela-lista p-1.5">
             {visiveis.map((c) => {
               const sit = situacaoDe(c);
-              const contactos = contagens.get(c.slug) ?? 0;
               return (
                 <Link className="tela-linha flex-wrap sm:flex-nowrap" href={`/admin/clientes/${encodeURIComponent(c.slug)}`} key={c.slug}>
                   <span
@@ -167,8 +154,6 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
                     </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       <span className="font-mono">{c.slug}</span>
-                      {" · "}
-                      {contactos === 1 ? t("1 contato") : t("{n} contatos", { n: contactos })}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm text-muted-foreground">{t("Abrir")} →</span>
