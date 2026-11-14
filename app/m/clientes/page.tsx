@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { contextoMovel } from "@/lib/movel/contexto";
 import { canalDe, telefoneLegivel } from "@/lib/movel/conversas";
-import { corDe, iniciais, quandoCurto } from "@/lib/movel/formato";
+import { iniciais, quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { IcBusca } from "../_c/icones";
+import { Iniciais } from "../_c/pecas";
 import { BotaoVoltar } from "../_c/voltar";
 import { VazioMascote } from "@/app/m/_c/vazio";
 
@@ -41,12 +42,12 @@ export default async function ClientesMovel({ searchParams }: { searchParams: Pr
   const semNome = (canal: string) => (canal === "instagram" ? t("Cliente do Instagram") : canal === "messenger" ? t("Cliente do Messenger") : t("Cliente"));
 
   return (
-    <main className="m-pagina">
-      <div className="m-topo">
+    <main className="m-pagina m6">
+      <header className="m6-cab volta">
         <BotaoVoltar reserva="/m/mais" rotulo={t("Voltar")} />
-        <div className="m-ola"><b>{t("Clientes")}</b></div>
-      </div>
-      <form action="/m/clientes" className="m-busca" role="search">
+        <h1>{t("Clientes")}</h1>
+      </header>
+      <form action="/m/clientes" className="m6-busca" role="search">
         <IcBusca />
         <input aria-label={t("Procurar por nome ou número")} defaultValue={q} enterKeyHint="search" name="q" placeholder={t("Procurar por nome ou número")} type="search" />
       </form>
@@ -61,7 +62,7 @@ export default async function ClientesMovel({ searchParams }: { searchParams: Pr
             const nome = (p.nome || "").trim() || telefoneLegivel(p.telefone_digitos) || semNome(canal);
             const linha = (
               <>
-                <div className="m-av" style={{ background: corDe(conversa || p.id) }}>{iniciais(nome)}<i className={`canal ${canal}`} /></div>
+                <Iniciais canal={conversa ? canal : undefined} tamanho={40} texto={iniciais(nome)} />
                 <div className="m-meio">
                   <b>{nome}</b>
                   <span>{[canal === "whatsapp" ? telefoneLegivel(p.telefone_digitos) : null, p.origem_tipo && p.origem_tipo !== "organico" ? t("de anúncio") : null].filter(Boolean).join(" · ") || " "}</span>

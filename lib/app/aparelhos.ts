@@ -13,13 +13,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * consulta que impede alguém de mexer no aparelho ou nas preferências de outro.
  */
 
+// 14/11: regras novas dos avisos — pediu_pessoa, irritado, resumo_semana e
+// meta_batida. `agenda_manual` fica aceite (preferências gravadas antes), mas
+// os marcados à mão já não geram aviso e o app deixou de mostrar o interruptor.
 export const TIPOS_DE_AVISO = [
   "a_espera",
+  "pediu_pessoa",
+  "irritado",
   "agendamento_novo",
   "agendamento_remarcado",
   "agendamento_cancelado",
   "agenda_manual",
   "resumo_manha",
+  "resumo_semana",
+  "meta_batida",
   "todos_os_clientes",
 ] as const;
 

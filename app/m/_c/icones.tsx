@@ -1,23 +1,31 @@
 /**
- * Ícones do app (traço 2, cantos redondos), com tamanho fixo para nunca
+ * Ícones do app (traço fino 1.7, cantos redondos, desenho v6 de 14/11), com tamanho fixo para nunca
  * crescerem com o contentor. Todos decorativos: o texto ao lado diz o que é.
  */
 type P = { tamanho?: number };
 const base = (t = 20) => ({ "aria-hidden": true, height: t, viewBox: "0 0 24 24", width: t });
-const traco = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: 2 };
+const traco = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, strokeWidth: 1.7 };
 
-export const IcCasa = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" /></svg>;
-export const IcConversa = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M20.5 11.5c0 4.4-3.8 7.5-8.5 7.5-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6c-1-1.3-1.7-3-1.7-4.9C3.5 7.1 7.3 4 12 4s8.5 3.1 8.5 7.5z" /></svg>;
-export const IcCalendario = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><rect height="15.5" rx="3" width="17" x="3.5" y="5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>;
-export const IcBarras = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M5 20V12M10 20V5M15 20v-9M20 20v-5" /></svg>;
+export const IcCasa = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={1.8}><path d="M4 11 12 4l8 7v9H4z" /></svg>;
+export const IcConversa = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M21 12a8 8 0 0 1-11.8 7L4 20l1-5.2A8 8 0 1 1 21 12z" /></svg>;
+export const IcCalendario = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><rect height="15" rx="3" width="16" x="4" y="5" /><path d="M4 10h16M9 3v4M15 3v4" /></svg>;
+export const IcCalendarioMais = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><rect height="15" rx="3" width="16" x="4" y="5" /><path d="M4 10h16M12 13v4M10 15h4" /></svg>;
+export const IcBarras = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={1.8}><path d="M4 19V9M10 19V5M16 19v-7" /></svg>;
+export const IcAnuncios = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" /></svg>;
+export const IcPontos = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={1.8}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
+export const IcPessoas = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6" /></svg>;
+export const IcFrasco = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-9V3" /></svg>;
+export const IcEstrela = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M12 3l2.5 5.5L20 9.5l-4 4 1 5.5-5-2.7-5 2.7 1-5.5-4-4 5.5-1z" /></svg>;
+export const IcEngrenagem = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>;
+export const IcFechar = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2}><path d="M6 6l12 12M18 6 6 18" /></svg>;
 export const IcBusca = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" /></svg>;
 export const IcSino = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" /></svg>;
-export const IcVoltar = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.4}><path d="m15 5-7 7 7 7" /></svg>;
-export const IcSeta = ({ tamanho = 14 }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.4}><path d="m9 6 6 6-6 6" /></svg>;
-export const IcMais = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.2}><path d="M12 5v14M5 12h14" /></svg>;
+export const IcVoltar = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={1.8}><path d="m15 6-6 6 6 6" /></svg>;
+export const IcSeta = ({ tamanho = 14 }: P) => <svg {...base(tamanho)} {...traco}><path d="m9 6 6 6-6 6" /></svg>;
+export const IcMais = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M12 5v14M5 12h14" /></svg>;
 export const IcPausa = ({ tamanho }: P) => <svg {...base(tamanho)} fill="currentColor"><rect height="14" rx="1.5" width="4" x="6" y="5" /><rect height="14" rx="1.5" width="4" x="14" y="5" /></svg>;
 export const IcPlay = ({ tamanho = 14 }: P) => <svg {...base(tamanho)} fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>;
-export const IcMic = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.2}><rect height="12" rx="3" width="6" x="9" y="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>;
+export const IcMic = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={1.9}><rect height="12" rx="3" width="6" x="9" y="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg>;
 export const IcEnviar = ({ tamanho }: P) => <svg {...base(tamanho)} fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6l.1 6.5L15 12l-11.5 1.9z" /></svg>;
 export const IcTelefone = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" /></svg>;
 export const IcCamara = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>;
@@ -25,7 +33,7 @@ export const IcGaleria = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}>
 export const IcDocumento = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v4h4" /></svg>;
 export const IcPessoa = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
 export const IcRobo = ({ tamanho = 12 }: P) => <svg {...base(tamanho)} fill="currentColor"><rect height="12" rx="4" width="16" x="4" y="7" /><rect height="4" width="2" x="11" y="3" /></svg>;
-export const IcCheck = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.4}><path d="M5 12.5l4.2 4.2L19 7" /></svg>;
+export const IcCheck = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2}><path d="m5 12 5 5 9-10" /></svg>;
 export const IcRelogio = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>;
 export const IcLua = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>;
 export const IcEuro = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco} strokeWidth={2.2}><path d="M17 6.5A7 7 0 1 0 17 17.5M4 10h9M4 14h9" /></svg>;
@@ -40,3 +48,8 @@ export const IcMessenger = ({ tamanho = 20 }: P) => <svg {...base(tamanho)} fill
 export const IcCanal = ({ canal, tamanho }: { canal: string; tamanho?: number }) =>
   canal === "instagram" ? <IcInstagram tamanho={tamanho} /> : canal === "messenger" ? <IcMessenger tamanho={tamanho} /> : <IcWhatsapp tamanho={tamanho} />;
 export const IcGrade = ({ tamanho }: P) => <svg {...base(tamanho)} {...traco}><rect height="6.5" rx="2" width="6.5" x="4" y="4" /><rect height="6.5" rx="2" width="6.5" x="13.5" y="4" /><rect height="6.5" rx="2" width="6.5" x="4" y="13.5" /><rect height="6.5" rx="2" width="6.5" x="13.5" y="13.5" /></svg>;
+/** A marca do canal no canto do avatar (traço colorido, como no desenho). */
+export const IcCanalMarca = ({ canal }: { canal: string }) =>
+  canal === "instagram" ? <svg aria-hidden="true" fill="none" height={10} stroke="#d6249f" strokeWidth={3} viewBox="0 0 24 24" width={10}><rect height="16" rx="5" width="16" x="4" y="4" /></svg>
+  : canal === "messenger" ? <svg aria-hidden="true" fill="none" height={10} stroke="#0084ff" strokeWidth={3} viewBox="0 0 24 24" width={10}><path d="M12 3a9 8.5 0 0 0-5 15.6V21l2.6-1.5A9 8.5 0 1 0 12 3z" /></svg>
+  : <svg aria-hidden="true" fill="none" height={10} stroke="#25d366" strokeWidth={3} viewBox="0 0 24 24" width={10}><path d="M4 20l1.4-4A8 8 0 1 1 8 18.6z" /></svg>;

@@ -2,9 +2,8 @@ import { notFound } from "next/navigation";
 
 import { contextoMovel } from "@/lib/movel/contexto";
 import { lerConversa } from "@/lib/movel/conversas";
-import { corDe, iniciais, partesNoFuso } from "@/lib/movel/formato";
+import { iniciais, partesNoFuso } from "@/lib/movel/formato";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
-import { telefoneLegivel } from "@/lib/movel/conversas";
 
 import { Chat } from "./chat";
 
@@ -19,18 +18,23 @@ export default async function ConversaMovel({ params }: { params: Promise<{ conv
   if (!d) notFound();
 
   const t = c.t;
+  const canal = d.canal === "whatsapp" ? "WhatsApp" : d.canal === "instagram" ? "Instagram" : "Messenger";
+  const temperatura = d.temperatura === "quente" ? t("quente") : d.temperatura === "morno" ? t("morno") : d.temperatura === "frio" ? t("frio") : null;
   return (
     <Chat
       inicial={{
         canal: d.canal,
         conversa: d.conversa,
-        cor: corDe(d.conversa),
+        esperaDesde: d.esperaDesde,
         estado: d.estado,
+        ficha: `/m/conversas/${encodeURIComponent(d.conversa)}/ficha`,
         iniciais: iniciais(d.nome || "?"),
         mensagens: d.mensagens,
         nome: d.nome || (d.canal === "instagram" ? t("Cliente do Instagram") : d.canal === "messenger" ? t("Cliente do Messenger") : t("Cliente")),
+        quente: d.temperatura === "quente",
+        subtitulo: canal,
         telefone: d.telefone,
-        telefoneLegivel: telefoneLegivel(d.telefone),
+        temperatura,
         ultimaRecebida: d.ultimaRecebida,
       }}
       hoje={partesNoFuso(new Date(), c.fuso).chave}
@@ -38,8 +42,8 @@ export default async function ConversaMovel({ params }: { params: Promise<{ conv
       locale={c.locale}
       textos={{
         agente: t("Agente"),
-        agenteResponde: t("O agente está respondendo"),
-        agenteRespondeSub: t("Toque em Assumir para responder você mesmo"),
+        agenteResponde: t("Agente respondendo"),
+        anexar: t("Anexar"),
         assumir: t("Assumir"),
         audio: t("Áudio"),
         audioIndisponivel: t("Áudio (não disponível)"),
@@ -51,12 +55,12 @@ export default async function ConversaMovel({ params }: { params: Promise<{ conv
         documento: t("Documento"),
         enviar: t("Enviar"),
         erroEnvio: t("Não foi enviada. Toque para tentar de novo."),
-        estaConsigo: t("Está com você"),
-        estaConsigoSub: t("O agente pausou nesta conversa"),
-        foraJanela: t("Passaram mais de 24 h desde a última mensagem do cliente: a Meta pode recusar o envio."),
+        estaConsigo: t("Com você"),
+        ficha: t("Ficha do cliente"),
         galeria: t("Galeria"),
         gravando: t("Gravando…"),
         hoje: t("Hoje"),
+        ligar: t("Ligar"),
         mensagem: t("Mensagem"),
         ontem: t("Ontem"),
         semMicrofone: t("Não foi possível usar o microfone. Verifique a permissão nos Ajustes do iPhone."),

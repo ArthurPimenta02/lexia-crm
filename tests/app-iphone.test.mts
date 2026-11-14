@@ -108,7 +108,11 @@ test("preferências: omissões iguais às do serviço; cada um só grava as suas
     agendamento_cancelado: true,
     agendamento_novo: true,
     agendamento_remarcado: true,
+    irritado: true,
+    meta_batida: true,
+    pediu_pessoa: true,
     resumo_manha: true,
+    resumo_semana: true,
     todos_os_clientes: false,
   });
 

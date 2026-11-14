@@ -9,6 +9,9 @@ import {
 import { getConversationLocks, listAgentLocks, type AgentLock } from "@/lib/redis/agent-locks";
 import { ehContaDemo, travasDemo } from "@/lib/movel/demo";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lerTemperaturas, temperaturaPorConversa, type Temperatura } from "@/lib/temperatura/leitura";
+
+import { listarEsperas } from "./esperas";
 
 /**
  * Conversas do app do iPhone. Tudo preso ao `clienteSlug` do contexto.
@@ -32,6 +35,7 @@ export type ResumoConversa = {
   previaDe: "cliente" | "agente" | "equipe";
   quando: string;
   telefone: string | null;
+  temperatura: Temperatura | null;
 };
 
 export const DIAS_DA_LISTA = 14;
@@ -91,7 +95,8 @@ type Linha = { id: string; identificador_conversa: string; direccao: string | nu
 function previaDe(l: Linha) {
   const [m] = prepareConversationMessages([{ ...l, cliente_slug: "", contacto_id: null, id: "x" }]);
   if (m?.content) return m.content.replace(/\s+/g, " ").slice(0, 140);
-  return m?.displayType === "audio" ? "🎤" : m?.displayType === "imagem" ? "📷" : m?.displayType === "video" ? "🎥" : m?.displayType === "documento" ? "📄" : "";
+  // Sem texto: o tipo da mídia entre colchetes (a tela troca pela palavra no idioma do iPhone).
+  return m?.displayType === "audio" ? "[audio]" : m?.displayType === "imagem" ? "[imagem]" : m?.displayType === "video" ? "[video]" : m?.displayType === "documento" ? "[documento]" : "";
 }
 
 export async function listarConversas(clienteSlug: string, agora = new Date()): Promise<ResumoConversa[]> {
@@ -130,12 +135,17 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
     const u = porConversa.get(c)!.at(-1)!;
     u.conteudo = conteudos.get(u.id) ?? null;
   }
-  const [fichas, travas] = await Promise.all([
+  const [fichas, travas, esperas, temperaturas] = await Promise.all([
     conversas.length
       ? base.from("lexia_contactos").select("identificador_conversa, nome, telefone").eq("cliente_slug", clienteSlug).in("identificador_conversa", conversas.slice(0, 1000))
       : Promise.resolve({ data: [] as { identificador_conversa: string; nome: string | null; telefone: string | null }[] }),
     (ehContaDemo(clienteSlug) ? travasDemo() : listAgentLocks(clienteSlug)).catch(() => ({ locks: [] as AgentLock[] })),
+    listarEsperas(clienteSlug, agora).catch(() => []),
+    lerTemperaturas(base, clienteSlug).catch(() => new Map()),
   ]);
+  // "À espera" vem SEMPRE da lista única (lib/movel/esperas.ts): é o mesmo
+  // número da aba, do chip e do ícone do iPhone.
+  const esperaPor = new Map(esperas.map((e) => [e.conversa, e.desde]));
   const nomes = new Map((fichas.data ?? []).map((f) => [f.identificador_conversa, f]));
   const travasPor = new Map<string, AgentLock[]>();
   for (const t of travas.locks ?? []) {
@@ -150,7 +160,10 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
       const ultima = ms[ms.length - 1];
       const ficha = nomes.get(conversa);
       const tel = telefoneDe(conversa) ?? (ficha?.telefone ? String(ficha.telefone).replace(/\D/g, "") : null);
-      const { estado, esperaDesde } = estadoDe(ms.slice(-40), travasPor.get(conversa) ?? []);
+      const calculado = estadoDe(ms.slice(-40), travasPor.get(conversa) ?? []);
+      const esperaDesde = esperaPor.get(conversa) ?? null;
+      // Pausada com o cliente sem resposta há mais de 48 h: está com a equipa, mas já não conta como espera.
+      const estado: EstadoConversa = esperaDesde ? "espera" : calculado.estado === "espera" ? "comigo" : calculado.estado;
       return {
         canal: canalDe(conversa),
         conversa,
@@ -161,6 +174,7 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
         previaDe: quemEscreveu(ultima.direccao, ultima.origem),
         quando: ultima.criado_em ?? "",
         telefone: tel,
+        temperatura: (temperaturas.get(conversa)?.temperatura as Temperatura | undefined) ?? null,
       };
     })
     .sort((a, b) => (a.quando < b.quando ? 1 : -1));
@@ -169,7 +183,10 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
 export type DetalheConversa = {
   canal: Canal;
   conversa: string;
+  /** Desde quando o cliente espera (só nas últimas 48 h, a regra da lista de esperas). */
+  esperaDesde: string | null;
   estado: EstadoConversa;
+  temperatura: Temperatura | null;
   mensagens: DisplayConversationMessage[];
   nome: string;
   telefone: string | null;
@@ -192,21 +209,39 @@ export async function lerConversa(clienteSlug: string, conversa: string, desde?:
   const registos = [...((data ?? []) as ConversationMessageRecord[])].reverse();
   if (!desde && registos.length === 0) return null;
 
-  const [ficha, travas] = await Promise.all([
+  const [ficha, travas, temperatura] = await Promise.all([
     base.from("lexia_contactos").select("nome, telefone").eq("cliente_slug", clienteSlug).eq("identificador_conversa", conversa).maybeSingle(),
     (ehContaDemo(clienteSlug) ? travasDemo(conversa) : getConversationLocks(clienteSlug, conversa)).catch(() => ({ locks: [] as AgentLock[] })),
+    desde ? Promise.resolve(null) : temperaturaDaConversa(clienteSlug, conversa).catch(() => null),
   ]);
   const mensagens = await assinarMidias(prepareConversationMessages(registos), clienteSlug);
   const tel = telefoneDe(conversa) ?? (ficha.data?.telefone ? String(ficha.data.telefone).replace(/\D/g, "") : null);
   const ultimaRecebida = [...registos].reverse().find((m) => m.direccao !== "enviada")?.criado_em ?? null;
 
+  const { estado, esperaDesde } = estadoDe(registos.slice(-40), travas.locks ?? []);
+  const recente = esperaDesde && Date.now() - Date.parse(esperaDesde) < 48 * 3600_000 ? esperaDesde : null;
   return {
     canal: canalDe(conversa),
     conversa,
-    estado: estadoDe(registos.slice(-40), travas.locks ?? []).estado,
+    esperaDesde: recente,
+    estado: estado === "espera" && !recente ? "comigo" : estado,
     mensagens,
     nome: (ficha.data?.nome || "").trim() || telefoneLegivel(tel) || "",
     telefone: tel,
+    temperatura: temperatura?.temperatura ?? null,
     ultimaRecebida,
   };
+}
+
+/** A temperatura atual de uma conversa (o evento mais recente) e o motivo. */
+export async function temperaturaDaConversa(clienteSlug: string, conversa: string) {
+  const { data } = await createAdminClient()
+    .from("lexia_eventos")
+    .select("identificador_conversa, ocorrido_em, dados")
+    .eq("cliente_slug", clienteSlug)
+    .eq("tipo", "lead_temperatura")
+    .eq("identificador_conversa", conversa)
+    .order("ocorrido_em", { ascending: false })
+    .limit(1);
+  return temperaturaPorConversa((data ?? []) as Parameters<typeof temperaturaPorConversa>[0]).get(conversa) ?? null;
 }

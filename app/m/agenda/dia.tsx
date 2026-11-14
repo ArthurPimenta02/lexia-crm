@@ -12,7 +12,6 @@ type Evento = {
   conversa: string | null;
   dia: string;
   rotuloDia: string;
-  cor: string;
   estado: string;
   executor: string | null;
   hora: string;
@@ -21,6 +20,7 @@ type Evento = {
   link: string | null;
   nome: string;
   origem: string;
+  passou: boolean;
   pendenteSinal: boolean;
   servico: string | null;
   telefone: string | null;
@@ -29,7 +29,7 @@ type Evento = {
 type Servico = { id: string; nome: string; preco: number | null; precoTexto: string | null; executores: { chave: string; nome: string; duracaoMinutos: number }[] };
 type Contacto = { id: string; nome: string; telefone: string };
 type Textos = Record<
-  | "abrirGoogle" | "agente" | "cancelado" | "cliente" | "confirmar" | "conversa" | "dia" | "erroGeral" | "escolhaCliente" | "faltaSinal" | "fechar" | "hora"
+  | "abrirGoogle" | "agente" | "agenteTag" | "agora" | "cancelado" | "cliente" | "confirmar" | "conversa" | "dia" | "erroGeral" | "escolhaCliente" | "faltaSinal" | "fechar" | "hora"
   | "ligar" | "manual" | "marcado" | "marcar" | "marcarMesmoAssim" | "nenhum" | "novaMarcacao" | "ocupado" | "procurarCliente" | "profissional" | "servico",
   string
 >;
@@ -37,7 +37,7 @@ type Textos = Record<
 const semAcentos = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 
 export function DiaAgenda(props: {
-  abrirMarcar: boolean; agrupar: boolean; horaAgora: string; contactos: Contacto[]; dia: string; eHoje: boolean; eventos: Evento[]; podeMarcar: boolean; servicos: Servico[]; textos: Textos;
+  abrirMarcar: boolean; agrupar: boolean; contactoInicial: string | null; horaAgora: string; contactos: Contacto[]; dia: string; eHoje: boolean; eventos: Evento[]; podeMarcar: boolean; servicos: Servico[]; textos: Textos;
 }) {
   const { textos: t } = props;
   const router = useRouter();
@@ -50,32 +50,28 @@ export function DiaAgenda(props: {
 
   return (
     <>
-      <div style={{ marginTop: 14 }}>
+      <section aria-label={t.dia} className="m6-eventos">
         {ativos.length === 0 ? <VazioMascote>{t.nenhum}</VazioMascote> : ativos.map((e, i) => {
           const linhaAgora = !props.agrupar && props.eHoje && e.hora > horaAgora && (i === 0 || ativos[i - 1].hora <= horaAgora);
           const novoDia = props.agrupar && (i === 0 || ativos[i - 1].dia !== e.dia);
+          const cancelado = e.estado === "cancelado";
           return (
             <div key={e.id}>
-              {novoDia ? <div className="m-sec" style={{ margin: i === 0 ? "4px 2px 8px" : "18px 2px 8px" }}><h2 style={{ fontSize: 17 }}>{e.rotuloDia}</h2></div> : null}
-              {linhaAgora ? <div aria-hidden="true" style={{ alignItems: "center", display: "flex", gap: 6, margin: "2px 0 6px 54px" }}><i style={{ background: "var(--m-vermelho)", borderRadius: "50%", height: 9, width: 9 }} /><span style={{ background: "var(--m-vermelho)", flex: 1, height: 2 }} /></div> : null}
-              <div className="m-linha-t">
-                <div className="hh">{e.hora}</div>
-                <div className="sl">
-                  <button className={`m-evento ${e.cor}${e.estado === "cancelado" ? " cancelado" : ""}`} onClick={() => setAberto(e)} type="button">
-                    <span className="barra" />
-                    <span style={{ minWidth: 0 }}>
-                      <b>{e.nome || "—"}</b>
-                      <span style={{ textTransform: "none" }}>{[e.servico, e.executor, e.valorTexto, e.pendenteSinal ? t.faltaSinal : null, e.estado === "cancelado" ? t.cancelado : null].filter(Boolean).join(" · ")}</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
+              {novoDia ? <p className="m6-rotulo m6-grupo">{e.rotuloDia}</p> : null}
+              {linhaAgora ? <div aria-label={`${t.agora}, ${horaAgora}`} className="m6-agora"><span>{horaAgora}</span><i /></div> : null}
+              <button className={`m6-ev${e.passou || cancelado ? " passou" : ""}${cancelado ? " cancelado" : ""}`} onClick={() => setAberto(e)} type="button">
+                <span className="h">{e.hora}</span>
+                <span className="n">{e.nome || "—"}</span>
+                {cancelado ? <span className="v">{t.cancelado}</span> : e.origem === "agente" ? <span className="v ag">{t.agenteTag}</span> : <span className="v">{e.valorTexto ?? ""}</span>}
+                <span className="d">{[e.servico, e.executor, e.pendenteSinal ? t.faltaSinal : null].filter(Boolean).join(" · ") || " "}</span>
+              </button>
             </div>
           );
         })}
-      </div>
+        {!props.agrupar && props.eHoje && ativos.length > 0 && ativos[ativos.length - 1].hora <= horaAgora ? <div aria-label={`${t.agora}, ${horaAgora}`} className="m6-agora"><span>{horaAgora}</span><i /></div> : null}
+      </section>
 
-      {props.podeMarcar ? <button className="m-flutuante" onClick={() => setMarcar(true)} type="button"><IcMais /> {t.marcar}</button> : null}
+      {props.podeMarcar ? <button className="m-flutuante" onClick={() => setMarcar(true)} type="button"><IcMais tamanho={18} /> {t.marcar}</button> : null}
 
       {aberto ? (
         <>
@@ -85,9 +81,9 @@ export function DiaAgenda(props: {
             <h3>{aberto.nome || "—"}</h3>
             <p className="d">{[`${aberto.hora}–${aberto.horaFim}`, aberto.servico, aberto.executor, aberto.valorTexto].filter(Boolean).join(" · ")}<br />{aberto.origem === "agente" ? t.agente : t.manual}{aberto.pendenteSinal ? ` · ${t.faltaSinal}` : ""}</p>
             <div className="m-grade-acoes" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-              {aberto.conversa ? <Link href={`/m/conversas/${encodeURIComponent(aberto.conversa)}`}><IcConversa />{t.conversa}</Link> : <span style={{ opacity: 0.4 }}><IcConversa />{t.conversa}</span>}
-              {aberto.telefone ? <a href={`tel:+${aberto.telefone}`}><IcTelefone />{t.ligar}</a> : <span style={{ opacity: 0.4 }}><IcTelefone />{t.ligar}</span>}
-              {aberto.link ? <a href={aberto.link} rel="noreferrer" target="_blank"><IcCalendario />Google</a> : <span style={{ opacity: 0.4 }}><IcCalendario />Google</span>}
+              {aberto.conversa ? <Link href={`/m/conversas/${encodeURIComponent(aberto.conversa)}`}><span className="c"><IcConversa /></span>{t.conversa}</Link> : <span style={{ opacity: 0.4 }}><span className="c"><IcConversa /></span>{t.conversa}</span>}
+              {aberto.telefone ? <a href={`tel:+${aberto.telefone}`}><span className="c"><IcTelefone /></span>{t.ligar}</a> : <span style={{ opacity: 0.4 }}><span className="c"><IcTelefone /></span>{t.ligar}</span>}
+              {aberto.link ? <a href={aberto.link} rel="noreferrer" target="_blank"><span className="c"><IcCalendario /></span>Google</a> : <span style={{ opacity: 0.4 }}><span className="c"><IcCalendario /></span>Google</span>}
             </div>
             <button className="m-botao" onClick={() => setAberto(null)} type="button">{t.fechar}</button>
           </div>
@@ -96,6 +92,7 @@ export function DiaAgenda(props: {
 
       {marcar ? (
         <FormMarcar
+          contactoInicial={props.contactoInicial}
           contactos={props.contactos}
           dia={props.dia}
           onFechar={() => setMarcar(false)}
@@ -110,9 +107,10 @@ export function DiaAgenda(props: {
   );
 }
 
-function FormMarcar({ contactos, dia, onFechar, onMarcado, servicos, textos: t }: { contactos: Contacto[]; dia: string; onFechar: () => void; onMarcado: () => void; servicos: Servico[]; textos: Textos }) {
+function FormMarcar({ contactoInicial, contactos, dia, onFechar, onMarcado, servicos, textos: t }: { contactoInicial: string | null; contactos: Contacto[]; dia: string; onFechar: () => void; onMarcado: () => void; servicos: Servico[]; textos: Textos }) {
   const [busca, setBusca] = useState("");
-  const [contacto, setContacto] = useState<Contacto | null>(null);
+  // Vindo da ficha de um cliente (?contacto=…): já escolhido.
+  const [contacto, setContacto] = useState<Contacto | null>(() => contactos.find((c) => c.id === contactoInicial) ?? null);
   const [servicoId, setServicoId] = useState(servicos[0]?.id ?? "");
   const servico = servicos.find((s) => s.id === servicoId) ?? null;
   const [executor, setExecutor] = useState(servico?.executores[0]?.chave ?? "");
@@ -191,7 +189,7 @@ function FormMarcar({ contactos, dia, onFechar, onMarcado, servicos, textos: t }
         {erro ? <p style={{ color: "var(--m-vermelho)", fontSize: 14, margin: "6px 4px 10px" }}>{erro}</p> : null}
 
         <button className="m-botao verde" disabled={pendente} onClick={() => enviar(conflitos.length ? { confirmado: "sim", ignorar_conflito: "sim" } : avisos.length ? { confirmado: "sim" } : {})} style={{ marginTop: 8 }} type="button">
-          <IcCheck /> {conflitos.length ? t.marcarMesmoAssim : avisos.length ? t.confirmar : t.marcar}
+          <IcCheck tamanho={18} /> {conflitos.length ? t.marcarMesmoAssim : avisos.length ? t.confirmar : t.marcar}
         </button>
       </div>
     </>

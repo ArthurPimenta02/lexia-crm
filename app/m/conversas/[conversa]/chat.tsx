@@ -6,25 +6,30 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { DisplayConversationMessage } from "@/lib/conversations/message-display";
 import { createClient } from "@/lib/supabase/client";
 
-import { IcCamara, IcCanal, IcDocumento, IcEnviar, IcGaleria, IcMais, IcMic, IcPausa, IcPessoa, IcPlay, IcRobo, IcTelefone, IcVoltar } from "../../_c/icones";
+import { duracaoCurta } from "@/lib/movel/formato";
+
+import { IcCamara, IcDocumento, IcEnviar, IcFechar, IcGaleria, IcMais, IcMic, IcPausa, IcPlay, IcTelefone, IcVoltar } from "../../_c/icones";
 import { useTecladoDoChat } from "../../_c/teclado";
 
 type Estado = "espera" | "comigo" | "agente";
 type Inicial = {
   canal: string;
   conversa: string;
-  cor: string;
+  esperaDesde: string | null;
   estado: Estado;
+  ficha: string;
   iniciais: string;
   mensagens: DisplayConversationMessage[];
   nome: string;
   telefone: string | null;
-  telefoneLegivel: string | null;
+  quente: boolean;
+  subtitulo: string;
+  temperatura: string | null;
   ultimaRecebida: string | null;
 };
 type Textos = Record<
-  | "agente" | "agenteResponde" | "agenteRespondeSub" | "assumir" | "audio" | "camara" | "cancelar" | "devolver" | "documento" | "enviar"
-  | "erroEnvio" | "estaConsigo" | "estaConsigoSub" | "foraJanela" | "galeria" | "gravando" | "hoje" | "mensagem" | "ontem" | "semMicrofone"
+  | "agente" | "agenteResponde" | "anexar" | "assumir" | "audio" | "camara" | "cancelar" | "devolver" | "documento" | "enviar"
+  | "erroEnvio" | "estaConsigo" | "ficha" | "galeria" | "gravando" | "hoje" | "ligar" | "mensagem" | "ontem" | "semMicrofone"
   | "semMensagens" | "voltar" | "audioIndisponivel" | "fotoIndisponivel" | "videoIndisponivel",
   string
 >;
@@ -126,15 +131,17 @@ function Conteudo({ tipo, url, texto, chave, mime, rotulos }: { tipo: string; ur
   if (tipo === "video" && url && !falhou) return <><video className="m-midia-video" controls onError={() => setFalhou(true)} playsInline preload="metadata" src={url} />{texto ? <span className="legenda">{texto}</span> : null}</>;
   if (tipo === "audio" && url && !falhou) return <><Audio chave={chave} onFalha={() => setFalhou(true)} src={url} />{texto ? <span className="legenda" style={{ opacity: 0.75, fontSize: 14 }}>{texto}</span> : null}</>;
   if (tipo === "documento" && url) return <a className="m-doc" href={url} rel="noreferrer" target="_blank"><IcDocumento /><span>{texto || mime || "PDF"}</span></a>;
-  if (tipo === "imagem") return <Indisponivel rotulo={`📷 ${rotulos.foto}`} texto={texto} />;
-  if (tipo === "video") return <Indisponivel rotulo={`🎥 ${rotulos.video}`} texto={texto} />;
-  if (tipo === "audio") return <Indisponivel rotulo={`🎤 ${rotulos.audio}`} texto={texto} />;
+  if (tipo === "imagem") return <Indisponivel rotulo={rotulos.foto} texto={texto} />;
+  if (tipo === "video") return <Indisponivel rotulo={rotulos.video} texto={texto} />;
+  if (tipo === "audio") return <Indisponivel rotulo={rotulos.audio} texto={texto} />;
   return <>{texto}</>;
 }
 
 export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial; hoje: string; fuso: string; locale: string; textos: Textos }) {
   const [mensagens, setMensagens] = useState(inicial.mensagens);
   const [estado, setEstado] = useState<Estado>(inicial.estado);
+  const [esperaDesde, setEsperaDesde] = useState<string | null>(inicial.esperaDesde);
+  const [, setRelogio] = useState(0);
   const [pendentes, setPendentes] = useState<Pendente[]>([]);
   const [texto, setTexto] = useState("");
   const [anexos, setAnexos] = useState(false);
@@ -163,7 +170,11 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
     if (perto.current) lista.current?.scrollTo({ top: lista.current.scrollHeight });
   }, []);
   useTecladoDoChat(raiz, aoMudarTeclado);
-  const foraDaJanela = inicial.canal !== "whatsapp" && inicial.ultimaRecebida && Date.now() - Date.parse(inicial.ultimaRecebida) > 24 * 3600_000;
+  // O "· N min" da faixa anda sozinho.
+  useEffect(() => {
+    const id = window.setInterval(() => setRelogio((n) => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const descer = useCallback((suave = false) => {
     const el = lista.current;
@@ -184,8 +195,10 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
       if (ultimoQuando.current) q.set("desde", ultimoQuando.current);
       const r = await fetch(`/api/m/conversa?${q}`, { cache: "no-store" });
       if (!r.ok) return;
-      const d = (await r.json()) as { estado: Estado | null; mensagens: DisplayConversationMessage[] };
+      const d = (await r.json()) as { esperaDesde?: string | null; estado: Estado | null; mensagens: DisplayConversationMessage[] };
       if (d.estado) setEstado(d.estado);
+      if (d.estado === "espera" && d.esperaDesde) setEsperaDesde((antes) => antes ?? d.esperaDesde ?? null);
+      if (d.estado === "agente") setEsperaDesde(null);
       if (d.mensagens.length) {
         ultimoQuando.current = d.mensagens.at(-1)?.criado_em ?? ultimoQuando.current;
         setMensagens((ant) => {
@@ -217,6 +230,7 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
         const d = (await r.json().catch(() => ({}))) as { erro?: string };
         if (!r.ok) throw new Error(d.erro || textos.erroEnvio);
         setEstado("comigo");
+        setEsperaDesde(null);
         await atualizar();
         setPendentes((ps) => ps.filter((p) => p.id !== pendente.id));
       } catch (e) {
@@ -258,6 +272,7 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
         const d = (await r.json().catch(() => ({}))) as { erro?: string };
         if (!r.ok) throw new Error(d.erro || textos.erroEnvio);
         setEstado("comigo");
+        setEsperaDesde(null);
         await atualizar();
         setPendentes((ps) => ps.filter((p) => p.id !== id));
       } catch (e) {
@@ -339,6 +354,7 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
       const d = (await r.json().catch(() => ({}))) as { erro?: string };
       if (!r.ok) throw new Error(d.erro || "");
       setEstado(accao === "assumir" ? "comigo" : "agente");
+      if (accao === "devolver") setEsperaDesde(null);
     } catch (e) {
       mostrarAviso(e instanceof Error && e.message ? e.message : textos.erroEnvio);
     } finally {
@@ -362,9 +378,8 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
     const temMidia = Boolean(m.mediaUrl) && m.displayType !== "texto";
     linhas.push(
       <div className={`m-b ${q}${temMidia ? " midia" : ""}`} key={m.displayId}>
-        {q === "ag" ? <span className="quem"><IcRobo /> {textos.agente}</span> : null}
         <Conteudo chave={m.displayId} rotulos={rotulosMidia} texto={m.content} tipo={m.displayType} url={m.mediaUrl} />
-        <small>{horaNoFuso(m.criado_em, fuso)}</small>
+        <small>{q === "ag" ? `${textos.agente} · ` : ""}{horaNoFuso(m.criado_em, fuso)}</small>
       </div>,
     );
   }
@@ -374,21 +389,22 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
   return (
     <div className="m-chat" ref={raiz}>
       <header className="m-chat-cab">
-        <Link aria-label={textos.voltar} className="m-redondo" href="/m/conversas"><IcVoltar /></Link>
-        <div className="m-av p" style={{ background: inicial.cor }}>
-          {inicial.iniciais}
-          <i className={`canal ${inicial.canal}`}><IcCanal canal={inicial.canal} tamanho={9} /></i>
-        </div>
-        <div className="m-meio"><b>{inicial.nome}</b><span>{gravando ? textos.gravando : [inicial.canal === "whatsapp" ? "WhatsApp" : inicial.canal === "instagram" ? "Instagram" : "Messenger", inicial.telefoneLegivel].filter(Boolean).join(" · ")}</span></div>
-        {inicial.telefone ? <a aria-label="Telefone" className="m-redondo" href={`tel:+${inicial.telefone}`}><IcTelefone /></a> : null}
+        <Link aria-label={textos.voltar} className="m-ic" href="/m/conversas"><IcVoltar tamanho={22} /></Link>
+        <Link aria-label={textos.ficha} className="m-chat-quem" href={inicial.ficha}>
+          <span aria-hidden="true" className="m-ini m">{inicial.iniciais}</span>
+          <span className="tx">
+            <b>{inicial.nome}</b>
+            <span>{gravando ? textos.gravando : <>{inicial.subtitulo}{inicial.temperatura ? <> · <em className={inicial.quente ? "q" : undefined}>{inicial.temperatura}</em></> : null}</>}</span>
+          </span>
+        </Link>
+        {inicial.telefone ? <a aria-label={textos.ligar} className="m-ic" href={`tel:+${inicial.telefone}`}><IcTelefone /></a> : null}
       </header>
 
-      <div className={`m-faixa${comigo ? "" : " agente"}`}>
-        {comigo ? <IcPessoa /> : <IcRobo tamanho={18} />}
-        <div className="txt"><b>{comigo ? textos.estaConsigo : textos.agenteResponde}</b><span>{comigo ? textos.estaConsigoSub : textos.agenteRespondeSub}</span></div>
-        <button className="bt" disabled={mudandoEstado} onClick={() => void mudarEstado(comigo ? "devolver" : "assumir")} type="button">{comigo ? textos.devolver : textos.assumir}</button>
+      <div className={`m-estado-faixa${comigo ? " comigo" : ""}`}>
+        <span aria-hidden="true" className="ponto" />
+        <span className="tx">{comigo ? <>{textos.estaConsigo}{esperaDesde ? <span className="min"> · {duracaoCurta(esperaDesde, new Date())}</span> : null}</> : textos.agenteResponde}</span>
+        <button disabled={mudandoEstado} onClick={() => void mudarEstado(comigo ? "devolver" : "assumir")} type="button">{comigo ? textos.devolver : textos.assumir}</button>
       </div>
-      {foraDaJanela ? <div className="m-faixa" style={{ background: "var(--m-laranja-claro)" }}><div className="txt"><span style={{ color: "var(--m-texto)" }}>{textos.foraJanela}</span></div></div> : null}
 
       <div className="m-msgs" onScroll={(e) => { const el = e.currentTarget; perto.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140; }} ref={lista}>
         {visiveis.length === 0 && pendentes.length === 0 ? <div className="m-data">{textos.semMensagens}</div> : null}
@@ -404,13 +420,13 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
       <div className="m-compor">
         {gravando ? (
           <>
-            <button aria-label={textos.cancelar} className="m-redondo" onClick={() => pararGravacao(true)} type="button" style={{ color: "var(--m-vermelho)" }}>✕</button>
+            <button aria-label={textos.cancelar} className="m-ic sup" onClick={() => pararGravacao(true)} type="button" style={{ color: "var(--m-vermelho)" }}><IcFechar tamanho={18} /></button>
             <div className="m-gravacao"><span className="bola" /><span className="t">{Math.floor(segundos / 60)}:{String(segundos % 60).padStart(2, "0")}</span><span style={{ flex: 1, color: "var(--m-texto2)", fontSize: 14 }}>{gravando.travado ? "" : `‹ ${textos.cancelar}`}</span></div>
             {gravando.travado ? <button aria-label={textos.enviar} className="m-mic" onClick={() => pararGravacao(false)} type="button"><IcEnviar /></button> : <button aria-label={textos.audio} className="m-mic gravando" onPointerCancel={() => pararGravacao(true)} onPointerUp={micUp} type="button"><IcMic /></button>}
           </>
         ) : (
           <>
-            <button aria-label={textos.galeria} className="m-redondo" onClick={() => setAnexos(true)} type="button"><IcMais /></button>
+            <button aria-label={textos.anexar} className="m-ic sup" onClick={() => setAnexos(true)} type="button"><IcMais tamanho={20} /></button>
             <textarea
               aria-label={textos.mensagem}
               enterKeyHint="send"
@@ -440,9 +456,9 @@ export function Chat({ inicial, hoje, fuso, locale, textos }: { inicial: Inicial
           <div className="m-folha" role="dialog">
             <div className="m-pega" />
             <div className="m-grade-acoes" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginTop: 0 }}>
-              <button onClick={() => inputCamara.current?.click()} type="button"><span style={{ color: "var(--m-acento)" }}><IcCamara /></span>{textos.camara}</button>
-              <button onClick={() => inputGaleria.current?.click()} type="button"><span style={{ color: "var(--m-azul)" }}><IcGaleria /></span>{textos.galeria}</button>
-              <button onClick={() => inputDoc.current?.click()} type="button"><span style={{ color: "var(--m-laranja)" }}><IcDocumento /></span>{textos.documento}</button>
+              <button onClick={() => inputCamara.current?.click()} type="button"><span className="c"><IcCamara /></span>{textos.camara}</button>
+              <button onClick={() => inputGaleria.current?.click()} type="button"><span className="c"><IcGaleria /></span>{textos.galeria}</button>
+              <button onClick={() => inputDoc.current?.click()} type="button"><span className="c"><IcDocumento /></span>{textos.documento}</button>
             </div>
             <button className="m-botao" onClick={() => setAnexos(false)} type="button">{textos.cancelar}</button>
           </div>

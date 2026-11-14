@@ -9,14 +9,12 @@ import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 import { ehContaDemo, SERVICOS_DEMO } from "@/lib/movel/demo";
 
-import { IcVoltar } from "../_c/icones";
+import { IcSeta, IcVoltar } from "../_c/icones";
 import { DiaAgenda } from "./dia";
 
 export const dynamic = "force-dynamic";
 
-const CORES = ["", "c1", "c2"];
-
-export default async function AgendaMovel({ searchParams }: { searchParams: Promise<{ dia?: string; nova?: string; prof?: string; vista?: string }> }) {
+export default async function AgendaMovel({ searchParams }: { searchParams: Promise<{ contacto?: string; dia?: string; nova?: string; prof?: string; vista?: string }> }) {
   const c = (await contextoMovel())!;
   const { t } = c;
   const params = await searchParams;
@@ -54,56 +52,71 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
 
   const titulo = new Intl.DateTimeFormat(c.locale, { month: "long", timeZone: "UTC", year: dia.slice(0, 4) === hoje.slice(0, 4) ? undefined : "numeric" }).format(new Date(`${dia}T12:00:00Z`));
   const executores = [...new Set((dados?.eventos ?? []).filter((e) => e.estado !== "cancelado").map((e) => e.executor).filter(Boolean) as string[])];
-  const corDoExecutor = (ex: string | null) => CORES[Math.max(0, executores.indexOf(ex ?? "")) % CORES.length];
   const eventos = (dados?.eventos ?? []).filter((e) => (!prof || e.executor === prof) && (vista !== "mes" || e.dia === dia));
+  const ativos = eventos.filter((e) => e.estado !== "cancelado");
+  const peloAgente = ativos.filter((e) => e.origem === "agente").length;
+  const valorTotal = ativos.reduce((a, e) => a + (e.valor ?? 0), 0);
+  const nomeDia = (k: string) => new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${k}T12:00:00Z`)).replace(".", "").toLowerCase();
+  const anterior = url({ dia: vista === "mes" ? mesAoLado(-1) : somarDias(dia, -7) });
+  const seguinte = url({ dia: vista === "mes" ? mesAoLado(1) : somarDias(dia, 7) });
 
   return (
-    <main className="m-pagina">
-      <div className="m-titulo">
+    <main className="m-pagina m6 m6-agenda">
+      <header className="m6-cab">
         <h1 style={{ textTransform: "capitalize" }}>{titulo}</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Link aria-label={t("Anterior")} className="m-redondo" href={url({ dia: vista === "mes" ? mesAoLado(-1) : somarDias(dia, -7) })} replace><IcVoltar /></Link>
-          <Link aria-label={t("Seguinte")} className="m-redondo" href={url({ dia: vista === "mes" ? mesAoLado(1) : somarDias(dia, 7) })} replace style={{ transform: "scaleX(-1)" }}><IcVoltar /></Link>
-        </div>
-      </div>
+        <nav aria-label={t("Ver por")} className="m6-seg">
+          <Link aria-current={vista === "dia" ? "true" : undefined} href={url({ vista: "dia" })} replace>{t("Dia")}</Link>
+          <Link aria-current={vista === "semana" ? "true" : undefined} href={url({ vista: "semana" })} replace>{t("Semana")}</Link>
+          <Link aria-current={vista === "mes" ? "true" : undefined} href={url({ vista: "mes" })} replace>{t("Mês")}</Link>
+        </nav>
+      </header>
 
-      <div className="m-segm" style={{ marginBottom: 12 }}>
-        <Link className={vista === "dia" ? "on" : ""} href={url({ vista: "dia" })} replace>{t("Dia")}</Link>
-        <Link className={vista === "semana" ? "on" : ""} href={url({ vista: "semana" })} replace>{t("Semana")}</Link>
-        <Link className={vista === "mes" ? "on" : ""} href={url({ vista: "mes" })} replace>{t("Mês")}</Link>
-      </div>
-
-      {vista === "mes" && dados ? (
-        <div className="m-mes">
-          {dados.semana.map((k) => <span className="cab" key={`c-${k}`}>{new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "narrow" }).format(new Date(`${k}T12:00:00Z`))}</span>)}
-          {dados.grelha.map((k) => {
-            const n = dados!.contagem[k] ?? 0;
-            const fora = k < dados!.mes.inicio || k > dados!.mes.fim;
-            return (
-              <Link className={`dia${fora ? " fora" : ""}${k === dia ? " on" : ""}${k === hoje ? " hoje" : ""}`} href={url({ dia: k })} key={k} replace>
+      <div className="m6-semana-nav">
+        <Link aria-label={t("Anterior")} className="seta" href={anterior} replace><IcVoltar tamanho={16} /></Link>
+        {vista === "mes" && dados ? (
+          <div className="m6-mes">
+            {dados.semana.map((k) => <span className="cab" key={`c-${k}`}>{nomeDia(k).slice(0, 3)}</span>)}
+            {dados.grelha.map((k) => {
+              const n = dados!.contagem[k] ?? 0;
+              const fora = k < dados!.mes.inicio || k > dados!.mes.fim;
+              return (
+                <Link aria-current={k === dia ? "date" : undefined} className={`dia${fora ? " fora" : ""}${k === hoje ? " hoje" : ""}`} href={url({ dia: k })} key={k} replace>
+                  <b>{Number(k.slice(8))}</b>
+                  <i style={n ? undefined : { visibility: "hidden" }} />
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <nav aria-label={t("Dias da semana")} className="m6-dias">
+            {(dados?.semana ?? []).map((k) => (
+              <Link aria-current={k === dia ? "date" : undefined} className={`dia${k === hoje ? " hoje" : ""}`} href={url({ dia: k })} key={k} replace>
+                {nomeDia(k)}
                 <b>{Number(k.slice(8))}</b>
-                {n ? <span className="n">{n}</span> : <span className="n vazio" />}
+                <i style={dados!.diasComEventos.includes(k) ? undefined : { visibility: "hidden" }} />
               </Link>
-            );
-          })}
+            ))}
+          </nav>
+        )}
+        <Link aria-label={t("Seguinte")} className="seta" href={seguinte} replace><IcSeta tamanho={16} /></Link>
+      </div>
+
+      {dados ? (
+        <div className="m6-resumo">
+          <span className="n">{ativos.length}</span>
+          <span className="t">
+            {ativos.length === 1 ? t("agendamento") : t("agendamentos")}
+            {peloAgente ? <> · <span className="ac">{t("{n} pelo agente", { n: peloAgente })}</span></> : null}
+            {valorTotal ? ` · ${moeda(valorTotal, c.locale, codigoMoeda)}` : null}
+          </span>
         </div>
       ) : null}
 
-      {vista !== "mes" ? <nav className="m-dias" style={{ marginTop: 0 }}>
-        {(dados?.semana ?? []).map((k) => (
-          <Link className={`m-dia${k === dia ? " on" : ""}`} href={url({ dia: k })} key={k} replace>
-            {dados!.diasComEventos.includes(k) ? <i /> : null}
-            <span style={{ textTransform: "capitalize" }}>{new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(new Date(`${k}T12:00:00Z`)).replace(".", "")}</span>
-            <b>{Number(k.slice(8))}</b>
-          </Link>
-        ))}
-      </nav> : null}
-
       {executores.length > 1 ? (
-        <div className="m-segm" style={{ margin: "12px 0 6px" }}>
-          <Link className={prof ? "" : "on"} href={url({ prof: null })} replace>{t("Todos")}</Link>
-          {executores.slice(0, 3).map((ex) => <Link className={prof === ex ? "on" : ""} href={url({ prof: ex })} key={ex} replace style={{ textTransform: "capitalize" }}>{ex}</Link>)}
-        </div>
+        <nav aria-label={t("Profissional")} className="m6-chips">
+          <Link aria-current={prof ? undefined : "true"} className={`m6-chip peq${prof ? "" : " on"}`} href={url({ prof: null })} replace>{t("Todos")}</Link>
+          {executores.map((ex) => <Link aria-current={prof === ex ? "true" : undefined} className={`m6-chip peq${prof === ex ? " on" : ""}`} href={url({ prof: ex })} key={ex} replace style={{ textTransform: "capitalize" }}>{ex}</Link>)}
+        </nav>
       ) : null}
 
       {!dados ? <div className="m-vazio" style={{ marginTop: 14 }}>{t("Não foi possível carregar a agenda.")}</div> : (
@@ -113,7 +126,7 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
           dia={dia}
           eventos={eventos.map((e) => ({
             ...e,
-            cor: corDoExecutor(e.executor),
+            passou: Date.parse(e.fim) <= agora.getTime(),
             executor: e.executor ? e.executor.charAt(0).toUpperCase() + e.executor.slice(1) : null,
             hora: partesNoFuso(e.inicio, c.fuso).hora,
             rotuloDia: (() => { const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC", weekday: "long" }).format(new Date(`${e.dia}T12:00:00Z`)); return r.charAt(0).toUpperCase() + r.slice(1); })(),
@@ -123,11 +136,14 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
           agrupar={vista === "semana"}
           eHoje={dia === hoje}
           abrirMarcar={params.nova === "1"}
+          contactoInicial={typeof params.contacto === "string" ? params.contacto : null}
           podeMarcar={podeMarcar && servicos.length > 0 && contactos.length > 0}
           servicos={servicos.map((s) => ({ executores: s.executores, id: s.id, nome: s.nome, preco: s.precoBase, precoTexto: s.precoBase ? moeda(s.precoBase, c.locale, codigoMoeda) : null }))}
           textos={{
             abrirGoogle: t("Abrir no Google Agenda"),
             agente: t("Marcado pelo agente"),
+            agenteTag: t("agente"),
+            agora: t("Agora"),
             cancelado: t("Cancelado"),
             cliente: t("Cliente"),
             confirmar: t("Confirmar"),

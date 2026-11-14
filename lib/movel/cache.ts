@@ -15,25 +15,25 @@ import { dadosResultados, type Intervalo } from "./resultados";
  */
 export const hojeRapido = unstable_cache(
   async (clienteSlug: string, fuso: string) => dadosHoje(clienteSlug, fuso, new Date()),
-  ["m-hoje-v1"],
+  ["m-hoje-v2"],
   { revalidate: 20 },
 );
 
 export const resultadosRapido = unstable_cache(
   async (clienteSlug: string, fuso: string, intervalo: Intervalo) => dadosResultados(clienteSlug, fuso, intervalo, new Date()),
-  ["m-resultados-v1"],
+  ["m-resultados-v2"],
   { revalidate: 60 },
 );
 
 export const maisRapido = unstable_cache(
   async (clienteSlug: string, fuso: string) => dadosMais(clienteSlug, fuso, new Date()),
-  ["m-mais-v1"],
+  ["m-mais-v2"],
   { revalidate: 60 },
 );
 
 // A lista de conversas: 10 s (o chat em si atualiza-se sozinho a cada 3 s).
 export const conversasRapido = unstable_cache(
   async (clienteSlug: string) => listarConversas(clienteSlug, new Date()),
-  ["m-conversas-v1"],
+  ["m-conversas-v2"],
   { revalidate: 10 },
 );
