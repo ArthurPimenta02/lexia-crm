@@ -9,7 +9,7 @@ export function BotaoVoltar({ reserva, rotulo }: { reserva: string; rotulo: stri
   const router = useRouter();
   return (
     <button aria-label={rotulo} className="m-redondo" onClick={() => (window.history.length > 1 ? router.back() : router.replace(reserva))} type="button">
-      <IcVoltar tamanho={17} />
+      <IcVoltar tamanho={22} />
     </button>
   );
 }

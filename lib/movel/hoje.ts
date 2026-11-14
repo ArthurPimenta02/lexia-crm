@@ -2,48 +2,45 @@ import "server-only";
 
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lerTemperaturas } from "@/lib/temperatura/leitura";
 
-import { canalDe, telefoneDe, telefoneLegivel } from "./conversas";
+import { canalDe, quemEscreveu, telefoneDe, telefoneLegivel } from "./conversas";
+import { esperasDe, lerMensagensDaEspera, resolvidasDesde } from "./esperas";
 import { chaveDoDia, moedaDoCliente, partesNoFuso } from "./formato";
 
 /**
- * Os dados da tela "Hoje" (desenho aprovado a 05/11), todos de uma empresa:
- * - quem precisa do dono (clientes à espera de uma pessoa, sinal por pagar);
- * - a agenda do dia (o próximo em destaque) e o valor previsto;
- * - ontem em números, com os leads dos últimos 7 dias;
- * - campanhas dos últimos 7 dias (gasto, leads de anúncio, custo por lead).
- * Leituras curtas: só as colunas que a tela mostra.
+ * Os dados da tela "Hoje" (desenho v6 aprovado a 14/11), todos de uma empresa:
+ * - os agendamentos de hoje (quantos, quantos do agente, o próximo, a lista);
+ * - conversas e leads de hoje (no fuso da empresa);
+ * - anúncios dos últimos 7 dias (gasto, leads de anúncio, quantos agendaram);
+ * - "Para fazer agora": a lista única de esperas (lib/movel/esperas.ts) e os
+ *   leads quentes sem marcação futura;
+ * - "Já resolvido hoje": esperas respondidas hoje e marcações do agente hoje.
+ * `pendencias` e `amanha` continuam para o Analista Lexia (lib/ajudante).
  */
 
 export type Pendencia =
   | { tipo: "espera"; conversa: string; canal: string; nome: string; desde: string; previa: string }
   | { tipo: "sinal"; conversa: string | null; nome: string; inicio: string; valor: number | null };
 
-export type Marcacao = { id: string; inicio: string; fim: string; nome: string; servico: string | null; executor: string | null; valor: number | null; pendenteSinal: boolean; conversa: string | null };
+export type Marcacao = { id: string; inicio: string; fim: string; nome: string; servico: string | null; executor: string | null; valor: number | null; pendenteSinal: boolean; conversa: string | null; doAgente: boolean };
 
-/** Uma linha de "O que aconteceu": marcação nova ou lead novo nas últimas 24 h. */
-export type Acontecimento =
-  | { tipo: "marcou"; quando: string; nome: string; servico: string | null; doAgente: boolean; valor: number | null; conversa: string | null }
-  | { tipo: "lead"; quando: string; nome: string; deAnuncio: boolean; conversa: string | null };
+export type Espera = { conversa: string; canal: string; nome: string; desde: string; previa: string };
+export type Quente = { conversa: string; canal: string; nome: string; motivo: string };
+export type Resolvido = { tipo: "respondida"; conversa: string; nome: string } | { tipo: "marcou"; conversa: string | null; nome: string; servico: string | null };
 
 export type DadosHoje = {
-  aconteceu: Acontecimento[];
   agenda: Marcacao[];
   amanha: number;
-  campanhas: null | {
-    anuncios: { nome: string; leads: number }[];
-    ativos: number;
-    gasto: number;
-    gastoPorDia: number[];
-    leads: number;
-    agendaram: number;
-    valorAgendado: number;
-  };
-  diasComMarcacao: string[]; // chaves AAAA-MM-DD desta semana
+  avisoRecente: boolean;
+  campanhas: null | { agendaram: number; gasto: number; leads: number };
+  conversasHoje: { total: number; peloAgente: number };
+  esperas: Espera[];
+  leadsHoje: { total: number; deAnuncio: number };
   moeda: string;
-  ontem: { leads: number; agendaram: number; valor: number; leadsPorDia: number[]; mediaLeads: number };
   pendencias: Pendencia[];
-  semana: string[]; // as 7 chaves de dia (segunda a domingo) da semana de hoje
+  quentes: Quente[];
+  resolvidos: Resolvido[];
 };
 
 /** Início e fim (UTC) do dia `chave` no fuso. */
@@ -70,71 +67,43 @@ export function semanaDe(chave: string) {
   return Array.from({ length: 7 }, (_, i) => somarDias(segunda, i));
 }
 
+/** O texto da mensagem guardada (às vezes vem em JSON com `texto`). */
+function textoDe(conteudo: unknown) {
+  let texto = String(conteudo ?? "");
+  try { const j = JSON.parse(texto); if (j && typeof j === "object") texto = String(j.texto ?? ""); } catch { /* texto simples */ }
+  return texto.replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
 export async function dadosHoje(clienteSlug: string, fuso: string, agora = new Date()): Promise<DadosHoje> {
   const base = createAdminClient();
   const hoje = chaveDoDia(agora, fuso);
-  const semana = semanaDe(hoje);
   const dHoje = limitesDoDia(hoje, fuso);
-  const dSemana = { fim: limitesDoDia(semana[6], fuso).fim, inicio: limitesDoDia(semana[0], fuso).inicio };
+  const amanhaLim = limitesDoDia(somarDias(hoje, 1), fuso);
   const sete = { fim: limitesDoDia(somarDias(hoje, -1), fuso).fim, inicio: limitesDoDia(somarDias(hoje, -7), fuso).inicio };
-  const ontem = limitesDoDia(somarDias(hoje, -1), fuso);
-  const desde48h = new Date(agora.getTime() - 48 * 3600_000).toISOString();
-
   const desde24h = new Date(agora.getTime() - 24 * 3600_000).toISOString();
 
-  const [agendaSemana, naPausa, contactos7, criadosOntem, custos, anunciosAtivos, marcados24, leads24] = await Promise.all([
-    base.from("lexia_agendamentos").select("id, inicio, fim, titulo, nome_cliente, telefone_digitos, servico, executor, valor_previsto, estado, dados, dia_inteiro")
-      .eq("cliente_slug", clienteSlug).gte("inicio", dSemana.inicio).lt("inicio", limitesDoDia(somarDias(semana[6], 1), fuso).fim).neq("estado", "cancelado").order("inicio", { ascending: true }).limit(500),
-    base.from("lexia_mensagens").select("identificador_conversa, criado_em").eq("cliente_slug", clienteSlug).eq("origem", "recebida_na_pausa").gte("criado_em", desde48h).order("criado_em", { ascending: true }).limit(500),
-    base.from("lexia_contactos").select("criado_em, origem_tipo, origem_source_id, origem_titulo, telefone_digitos").eq("cliente_slug", clienteSlug).gte("criado_em", sete.inicio).lt("criado_em", sete.fim).limit(5000),
-    base.from("lexia_agendamentos").select("valor_previsto, telefone_digitos, criado_no_google").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").gte("criado_no_google", sete.inicio).lt("criado_no_google", sete.fim).limit(2000),
-    base.from("lexia_campanha_custos").select("dia, gasto, moeda, campanha_id").eq("cliente_slug", clienteSlug).gte("dia", somarDias(hoje, -7)).lte("dia", somarDias(hoje, -1)).limit(2000),
-    base.from("lexia_anuncios").select("anuncio_externo_id, nome, estado").eq("cliente_slug", clienteSlug).eq("plataforma", "meta").limit(500),
-    base.from("lexia_agendamentos").select("criado_no_google, nome_cliente, titulo, servico, origem, valor_previsto, telefone_digitos").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").eq("dia_inteiro", false).gte("criado_no_google", desde24h).order("criado_no_google", { ascending: false }).limit(8),
-    base.from("lexia_contactos").select("criado_em, nome, origem_tipo, identificador_conversa").eq("cliente_slug", clienteSlug).gte("criado_em", desde24h).order("criado_em", { ascending: false }).limit(8),
+  const [agendaHoje, espera, msgsHoje, contactosHoje, contactos7, criados7, custos, marcadosHoje, temperaturas, avisos] = await Promise.all([
+    base.from("lexia_agendamentos").select("id, inicio, fim, titulo, nome_cliente, telefone_digitos, servico, executor, valor_previsto, origem, dados, dia_inteiro")
+      .eq("cliente_slug", clienteSlug).gte("inicio", dHoje.inicio).lt("inicio", amanhaLim.fim).neq("estado", "cancelado").eq("dia_inteiro", false).order("inicio", { ascending: true }).limit(500),
+    lerMensagensDaEspera(clienteSlug, agora),
+    base.from("lexia_mensagens").select("identificador_conversa, direccao, origem").eq("cliente_slug", clienteSlug).gte("criado_em", dHoje.inicio).lt("criado_em", dHoje.fim).limit(20000),
+    base.from("lexia_contactos").select("origem_tipo").eq("cliente_slug", clienteSlug).gte("criado_em", dHoje.inicio).lt("criado_em", dHoje.fim).limit(5000),
+    base.from("lexia_contactos").select("origem_tipo, telefone_digitos").eq("cliente_slug", clienteSlug).gte("criado_em", sete.inicio).lt("criado_em", sete.fim).limit(5000),
+    base.from("lexia_agendamentos").select("telefone_digitos").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").gte("criado_no_google", sete.inicio).lt("criado_no_google", sete.fim).limit(2000),
+    base.from("lexia_campanha_custos").select("gasto, moeda").eq("cliente_slug", clienteSlug).gte("dia", somarDias(hoje, -7)).lte("dia", somarDias(hoje, -1)).limit(2000),
+    base.from("lexia_agendamentos").select("nome_cliente, titulo, servico, telefone_digitos, criado_no_google").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").eq("dia_inteiro", false).eq("origem", "agente").gte("criado_no_google", dHoje.inicio).lt("criado_no_google", dHoje.fim).order("criado_no_google", { ascending: false }).limit(20),
+    lerTemperaturas(base, clienteSlug).catch(() => new Map()),
+    base.from("lexia_app_envios").select("id").eq("cliente_slug", clienteSlug).gte("criado_em", desde24h).limit(1),
   ]);
 
-  // ---------------- precisa de si: à espera
-  const pendencias: Pendencia[] = [];
-  const primeira = new Map<string, string>();
-  for (const m of naPausa.data ?? []) if (!primeira.has(m.identificador_conversa)) primeira.set(m.identificador_conversa, m.criado_em);
-  const conversasEspera = [...primeira.keys()];
-  if (conversasEspera.length) {
-    const [enviadas, fichas, ultimas] = await Promise.all([
-      base.from("lexia_mensagens").select("identificador_conversa, criado_em").eq("cliente_slug", clienteSlug).eq("direccao", "enviada").gte("criado_em", desde48h).in("identificador_conversa", conversasEspera).limit(2000),
-      base.from("lexia_contactos").select("identificador_conversa, nome, telefone").eq("cliente_slug", clienteSlug).in("identificador_conversa", conversasEspera),
-      base.from("lexia_mensagens").select("identificador_conversa, conteudo, criado_em").eq("cliente_slug", clienteSlug).eq("direccao", "recebida").gte("criado_em", desde48h).in("identificador_conversa", conversasEspera).order("criado_em", { ascending: false }).limit(300),
-    ]);
-    const ultimaEnviada = new Map<string, string>();
-    for (const m of enviadas.data ?? []) if ((ultimaEnviada.get(m.identificador_conversa) ?? "") < m.criado_em) ultimaEnviada.set(m.identificador_conversa, m.criado_em);
-    const nomes = new Map((fichas.data ?? []).map((f) => [f.identificador_conversa, f]));
-    const previa = new Map<string, string>();
-    for (const m of ultimas.data ?? []) if (!previa.has(m.identificador_conversa)) previa.set(m.identificador_conversa, String(m.conteudo ?? ""));
-    for (const conversa of conversasEspera) {
-      // início do episódio: primeira "recebida na pausa" depois da última enviada
-      const env = ultimaEnviada.get(conversa) ?? "";
-      const episodio = (naPausa.data ?? []).filter((m) => m.identificador_conversa === conversa && m.criado_em > env);
-      if (!episodio.length) continue;
-      const ficha = nomes.get(conversa);
-      const tel = telefoneDe(conversa);
-      let texto = previa.get(conversa) ?? "";
-      try { const j = JSON.parse(texto); if (j && typeof j === "object") texto = String(j.texto ?? ""); } catch { /* texto simples */ }
-      pendencias.push({
-        canal: canalDe(conversa), conversa, desde: episodio[0].criado_em, nome: (ficha?.nome || "").trim() || telefoneLegivel(tel) || "",
-        previa: texto.replace(/\s+/g, " ").slice(0, 120), tipo: "espera",
-      });
-    }
-    pendencias.sort((a, b) => ((a as { desde: string }).desde < (b as { desde: string }).desde ? -1 : 1));
-  }
-
-  // ---------------- agenda
-  type LinhaAg = { id: string; inicio: string; fim: string; titulo: string | null; nome_cliente: string | null; telefone_digitos: string | null; servico: string | null; executor: string | null; valor_previsto: number | null; dados: Record<string, unknown> | null; dia_inteiro: boolean };
-  const linhasSemana = (agendaSemana.data ?? []) as LinhaAg[];
-  const diasComMarcacao = [...new Set(linhasSemana.filter((l) => !l.dia_inteiro).map((l) => chaveDoDia(l.inicio, fuso)))];
-  const agenda: Marcacao[] = linhasSemana
-    .filter((l) => !l.dia_inteiro && l.inicio >= dHoje.inicio && l.inicio < dHoje.fim)
+  // ---------------- agenda de hoje (e quantos amanhã)
+  type LinhaAg = { id: string; inicio: string; fim: string; titulo: string | null; nome_cliente: string | null; telefone_digitos: string | null; servico: string | null; executor: string | null; valor_previsto: number | null; origem: string | null; dados: Record<string, unknown> | null };
+  const linhas = (agendaHoje.data ?? []) as LinhaAg[];
+  const agenda: Marcacao[] = linhas
+    .filter((l) => l.inicio < dHoje.fim)
     .map((l) => ({
       conversa: l.telefone_digitos ? `whatsapp:${l.telefone_digitos}` : null,
+      doAgente: l.origem === "agente",
       executor: l.executor,
       fim: l.fim,
       id: l.id,
@@ -144,77 +113,94 @@ export async function dadosHoje(clienteSlug: string, fuso: string, agora = new D
       servico: l.servico,
       valor: l.valor_previsto === null ? null : Number(l.valor_previsto),
     }));
-  const amanha = linhasSemana.filter((l) => !l.dia_inteiro && chaveDoDia(l.inicio, fuso) === somarDias(hoje, 1)).length;
-  for (const m of agenda) {
-    if (m.pendenteSinal && Date.parse(m.fim) > agora.getTime()) pendencias.push({ conversa: m.conversa, inicio: m.inicio, nome: m.nome, tipo: "sinal", valor: m.valor });
+  const amanha = linhas.filter((l) => l.inicio >= dHoje.fim).length;
+
+  // ---------------- conversas e leads de hoje
+  const recebidas = new Set<string>();
+  const doAgente = new Set<string>();
+  for (const m of (msgsHoje.data ?? []) as { identificador_conversa: string; direccao: string | null; origem: string | null }[]) {
+    if (m.identificador_conversa.startsWith("teste:")) continue;
+    if (m.direccao !== "enviada") recebidas.add(m.identificador_conversa);
+    else if (quemEscreveu(m.direccao, m.origem) === "agente") doAgente.add(m.identificador_conversa);
   }
+  const conversasHoje = { peloAgente: [...recebidas].filter((c) => doAgente.has(c)).length, total: recebidas.size };
+  const deAnuncio = (o: string | null) => Boolean(o && o !== "organico");
+  const leadsHoje = { deAnuncio: (contactosHoje.data ?? []).filter((c) => deAnuncio(c.origem_tipo)).length, total: (contactosHoje.data ?? []).length };
 
-  // ---------------- ontem e últimos 7 dias
-  const dias7 = Array.from({ length: 7 }, (_, i) => somarDias(hoje, i - 7));
-  const leadsPorDia = dias7.map((d) => (contactos7.data ?? []).filter((c) => chaveDoDia(c.criado_em, fuso) === d).length);
-  const criados = (criadosOntem.data ?? []) as { valor_previsto: number | null; telefone_digitos: string | null; criado_no_google: string }[];
-  const deOntem = criados.filter((c) => c.criado_no_google >= ontem.inicio && c.criado_no_google < ontem.fim);
-  const ontemDados = {
-    agendaram: deOntem.length,
-    leads: leadsPorDia[6],
-    leadsPorDia,
-    mediaLeads: leadsPorDia.slice(0, 6).reduce((a, b) => a + b, 0) / 6,
-    valor: deOntem.reduce((a, c) => a + (Number(c.valor_previsto) || 0), 0),
-  };
+  // ---------------- anúncios (últimos 7 dias, sem hoje: o gasto da Meta só fecha no dia seguinte)
+  const custosLinhas = (custos.data ?? []) as { gasto: number; moeda: string }[];
+  const leadsAnuncio = (contactos7.data ?? []).filter((c) => deAnuncio(c.origem_tipo));
+  const telefonesAnuncio = new Set(leadsAnuncio.map((c) => c.telefone_digitos).filter(Boolean));
+  const gasto = custosLinhas.reduce((a, c) => a + Number(c.gasto || 0), 0);
+  const campanhas = custosLinhas.length || leadsAnuncio.length
+    ? { agendaram: (criados7.data ?? []).filter((c) => c.telefone_digitos && telefonesAnuncio.has(c.telefone_digitos)).length, gasto, leads: leadsAnuncio.length }
+    : null;
 
-  // ---------------- campanhas (7 dias)
-  const custosLinhas = (custos.data ?? []) as { dia: string; gasto: number; moeda: string; campanha_id: string }[];
-  let campanhas: DadosHoje["campanhas"] = null;
-  const deAnuncio = (contactos7.data ?? []).filter((c) => c.origem_tipo && c.origem_tipo !== "organico");
-  if (custosLinhas.length || deAnuncio.length) {
-    const nomesAnuncio = new Map((anunciosAtivos.data ?? []).map((a) => [a.anuncio_externo_id, a.nome as string]));
-    const porAnuncio = new Map<string, number>();
-    for (const c of deAnuncio) {
-      const nome = (c.origem_source_id && nomesAnuncio.get(c.origem_source_id)) || c.origem_titulo || "Anúncio";
-      porAnuncio.set(nome, (porAnuncio.get(nome) ?? 0) + 1);
-    }
-    const telefonesAnuncio = new Set(deAnuncio.map((c) => c.telefone_digitos).filter(Boolean));
-    const agendaramDeAnuncio = criados.filter((c) => c.telefone_digitos && telefonesAnuncio.has(c.telefone_digitos));
-    campanhas = {
-      agendaram: agendaramDeAnuncio.length,
-      anuncios: [...porAnuncio.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([nome, leads]) => ({ leads, nome })),
-      ativos: new Set(custosLinhas.filter((x) => Number(x.gasto) > 0).map((x) => x.campanha_id)).size,
-      gasto: custosLinhas.reduce((a, c) => a + Number(c.gasto || 0), 0),
-      gastoPorDia: dias7.map((d) => custosLinhas.filter((c) => c.dia === d).reduce((a, c) => a + Number(c.gasto || 0), 0)),
-      leads: deAnuncio.length,
-      valorAgendado: agendaramDeAnuncio.reduce((a, c) => a + (Number(c.valor_previsto) || 0), 0),
-    };
-  }
+  // ---------------- esperas (a lista única), quentes e já resolvidos
+  const listaEspera = esperasDe(espera.naPausa, espera.enviadas, agora);
+  const resolvidas = resolvidasDesde(espera.naPausa, espera.enviadas, dHoje.inicio, agora);
+  const emEspera = new Set(listaEspera.map((e) => e.conversa));
+  const limiteQuente = new Date(agora.getTime() - 7 * 86_400_000).toISOString();
+  const candidatasQuentes = [...temperaturas.entries()]
+    .filter(([conversa, v]) => v.temperatura === "quente" && v.em >= limiteQuente && !emEspera.has(conversa) && !conversa.startsWith("teste:"))
+    .sort((a, b) => (a[1].em < b[1].em ? 1 : -1))
+    .slice(0, 20);
+  const conversasNomes = [...new Set([...listaEspera.map((e) => e.conversa), ...resolvidas, ...candidatasQuentes.map(([c]) => c)])];
 
-  // ---------------- o que aconteceu (24 h)
-  const aconteceu: Acontecimento[] = [
-    ...((marcados24.data ?? []) as { criado_no_google: string; nome_cliente: string | null; titulo: string | null; servico: string | null; origem: string | null; valor_previsto: number | null; telefone_digitos: string | null }[]).map((m) => ({
+  const [fichas, ultimas] = await Promise.all([
+    conversasNomes.length
+      ? base.from("lexia_contactos").select("identificador_conversa, nome, telefone_digitos").eq("cliente_slug", clienteSlug).in("identificador_conversa", conversasNomes)
+      : Promise.resolve({ data: [] as { identificador_conversa: string; nome: string | null; telefone_digitos: string | null }[] }),
+    listaEspera.length
+      ? base.from("lexia_mensagens").select("identificador_conversa, conteudo, criado_em").eq("cliente_slug", clienteSlug).eq("direccao", "recebida").gte("criado_em", listaEspera[0].desde).in("identificador_conversa", listaEspera.map((e) => e.conversa)).order("criado_em", { ascending: false }).limit(300)
+      : Promise.resolve({ data: [] as { identificador_conversa: string; conteudo: string | null; criado_em: string }[] }),
+  ]);
+  const fichaPor = new Map((fichas.data ?? []).map((f) => [f.identificador_conversa, f]));
+  const nomeDe = (conversa: string) => (fichaPor.get(conversa)?.nome || "").trim() || telefoneLegivel(telefoneDe(conversa)) || "";
+  const previaPor = new Map<string, string>();
+  for (const m of ultimas.data ?? []) if (!previaPor.has(m.identificador_conversa)) previaPor.set(m.identificador_conversa, textoDe(m.conteudo));
+
+  const esperas: Espera[] = listaEspera.map((e) => ({ canal: canalDe(e.conversa), conversa: e.conversa, desde: e.desde, nome: nomeDe(e.conversa), previa: previaPor.get(e.conversa) ?? "" }));
+
+  // Quentes sem marcação futura (a ligação marcação ↔ conversa é o telefone, como na agenda).
+  const telefoneDaConversa = (c: string) => telefoneDe(c) ?? fichaPor.get(c)?.telefone_digitos ?? null;
+  const telefonesQuentes = candidatasQuentes.map(([c]) => telefoneDaConversa(c)).filter(Boolean) as string[];
+  const futuras = telefonesQuentes.length
+    ? await base.from("lexia_agendamentos").select("telefone_digitos").eq("cliente_slug", clienteSlug).neq("estado", "cancelado").gte("inicio", agora.toISOString()).in("telefone_digitos", telefonesQuentes).limit(500)
+    : { data: [] as { telefone_digitos: string | null }[] };
+  const comMarcacao = new Set((futuras.data ?? []).map((f) => f.telefone_digitos));
+  const quentes: Quente[] = candidatasQuentes
+    .filter(([c]) => { const tel = telefoneDaConversa(c); return !tel || !comMarcacao.has(tel); })
+    .slice(0, 5)
+    .map(([conversa, v]) => ({ canal: canalDe(conversa), conversa, motivo: v.motivo, nome: nomeDe(conversa) }));
+
+  const resolvidos: Resolvido[] = [
+    ...resolvidas.map((conversa) => ({ conversa, nome: nomeDe(conversa), tipo: "respondida" as const })),
+    ...((marcadosHoje.data ?? []) as { nome_cliente: string | null; titulo: string | null; servico: string | null; telefone_digitos: string | null }[]).map((m) => ({
       conversa: m.telefone_digitos ? `whatsapp:${m.telefone_digitos}` : null,
-      doAgente: m.origem === "agente",
       nome: (m.nome_cliente || m.titulo || "").trim(),
-      quando: m.criado_no_google,
       servico: m.servico,
       tipo: "marcou" as const,
-      valor: m.valor_previsto === null ? null : Number(m.valor_previsto),
     })),
-    ...((leads24.data ?? []) as { criado_em: string; nome: string | null; origem_tipo: string | null; identificador_conversa: string | null }[]).map((l) => ({
-      conversa: l.identificador_conversa,
-      deAnuncio: Boolean(l.origem_tipo && l.origem_tipo !== "organico"),
-      nome: (l.nome || "").trim(),
-      quando: l.criado_em,
-      tipo: "lead" as const,
-    })),
-  ].sort((a, b) => (a.quando < b.quando ? 1 : -1)).slice(0, 6);
+  ].slice(0, 8);
+
+  // Para o Analista Lexia: esperas + sinais por pagar.
+  const pendencias: Pendencia[] = [
+    ...esperas.map((e) => ({ ...e, tipo: "espera" as const })),
+    ...agenda.filter((m) => m.pendenteSinal && Date.parse(m.fim) > agora.getTime()).map((m) => ({ conversa: m.conversa, inicio: m.inicio, nome: m.nome, tipo: "sinal" as const, valor: m.valor })),
+  ];
 
   return {
-    aconteceu,
     agenda,
     amanha,
+    avisoRecente: Boolean(avisos.data?.length),
     campanhas,
-    diasComMarcacao,
+    conversasHoje,
+    esperas,
+    leadsHoje,
     moeda: custosLinhas[0]?.moeda ?? moedaDoCliente(getMoedaDoCliente(clienteSlug), fuso),
-    ontem: ontemDados,
     pendencias,
-    semana,
+    quentes,
+    resolvidos,
   };
 }

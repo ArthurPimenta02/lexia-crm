@@ -1,47 +1,77 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { esperasDe, JANELA_ESPERA_MS, type Espera, type MensagemCurta } from "./esperas-regra";
+
+export { esperasDe, resolvidasDesde, type Espera, type MensagemCurta } from "./esperas-regra";
+
 /**
- * Quantas conversas estão à espera de uma pessoa (o número da aba Conversas e
- * do ícone). Leve de propósito, porque corre a cada 30 s com o app aberto:
- * lê só as mensagens "recebida_na_pausa" das últimas 48 h e, dessas
- * conversas, só as enviadas depois.
+ * A LISTA das conversas à espera de uma pessoa — uma regra só para o número
+ * da aba Conversas, o chip "Esperando", o "Para fazer agora" do Hoje, a rota
+ * /api/m/contagem e o número no ícone do iPhone (Arthur, 14/11: o ícone
+ * mostrava um número que ele não encontrava em lado nenhum).
+ *
+ * Leve de propósito, porque corre a cada 30 s com o app aberto: lê só as
+ * mensagens "recebida_na_pausa" das últimas 48 h e, dessas conversas, só as
+ * enviadas no mesmo intervalo. A regra em si (pura, testada) está em
+ * `esperas-regra.ts`.
  */
-export async function contarEsperas(clienteSlug: string, agora = new Date()): Promise<number> {
+export async function lerMensagensDaEspera(clienteSlug: string, agora = new Date()) {
   const base = createAdminClient();
-  const desde = new Date(agora.getTime() - 48 * 3600_000).toISOString();
-  const { data: naPausa } = await base
+  const desde = new Date(agora.getTime() - JANELA_ESPERA_MS).toISOString();
+  const { data: naPausa, error } = await base
     .from("lexia_mensagens")
     .select("identificador_conversa, criado_em")
     .eq("cliente_slug", clienteSlug)
     .eq("origem", "recebida_na_pausa")
     .gte("criado_em", desde)
     .order("criado_em", { ascending: true })
-    .limit(500);
-  if (!naPausa?.length) return 0;
-
-  const primeira = new Map<string, string>();
-  for (const m of naPausa) if (!primeira.has(m.identificador_conversa)) primeira.set(m.identificador_conversa, m.criado_em);
-  const { data: enviadas } = await base
-    .from("lexia_mensagens")
-    .select("identificador_conversa, criado_em")
-    .eq("cliente_slug", clienteSlug)
-    .eq("direccao", "enviada")
-    .gte("criado_em", desde)
-    .in("identificador_conversa", [...primeira.keys()])
-    .order("criado_em", { ascending: false })
     .limit(1000);
-  const ultimaEnviada = new Map<string, string>();
-  for (const m of enviadas ?? []) if (!ultimaEnviada.has(m.identificador_conversa)) ultimaEnviada.set(m.identificador_conversa, m.criado_em);
+  if (error) throw new Error("Não foi possível ler as esperas.");
+  const conversas = [...new Set((naPausa ?? []).map((m) => m.identificador_conversa as string))].filter((c) => !c.startsWith("teste:"));
+  if (!conversas.length) return { enviadas: [] as MensagemCurta[], naPausa: (naPausa ?? []) as MensagemCurta[] };
 
-  // À espera: houve "recebida na pausa" depois da última enviada.
-  const ultimaNaPausa = new Map<string, string>();
-  for (const m of naPausa) ultimaNaPausa.set(m.identificador_conversa, m.criado_em);
-  let n = 0;
-  for (const [conversa, quando] of ultimaNaPausa) {
-    const env = ultimaEnviada.get(conversa);
-    if (!env || env < quando) n++;
+  const enviadas: MensagemCurta[] = [];
+  for (let i = 0; i < conversas.length; i += 200) {
+    const { data } = await base
+      .from("lexia_mensagens")
+      .select("identificador_conversa, criado_em")
+      .eq("cliente_slug", clienteSlug)
+      .eq("direccao", "enviada")
+      .gte("criado_em", desde)
+      .in("identificador_conversa", conversas.slice(i, i + 200))
+      .order("criado_em", { ascending: false })
+      .limit(2000);
+    enviadas.push(...((data ?? []) as MensagemCurta[]));
   }
-  return n;
+  return { enviadas, naPausa: (naPausa ?? []) as MensagemCurta[] };
 }
+
+/** As conversas desta empresa à espera de uma pessoa (a mais antiga primeiro). */
+export async function listarEsperas(clienteSlug: string, agora = new Date()): Promise<Espera[]> {
+  const { enviadas, naPausa } = await lerMensagensDaEspera(clienteSlug, agora);
+  return esperasDe(naPausa, enviadas, agora);
+}
+
+export async function contarEsperas(clienteSlug: string, agora = new Date()): Promise<number> {
+  return (await listarEsperas(clienteSlug, agora)).length;
+}
+
+/**
+ * Quantas conversas à espera em cada empresa (para a Lexia: o ícone soma
+ * todas, como os avisos do admin, e o Hoje/Ajustes dizem onde estão).
+ * Guardado 15 s, para o ícone não pedir à base 2 leituras por empresa a cada
+ * 30 s de cada aparelho.
+ */
+export const esperasPorEmpresa = unstable_cache(
+  async (slugs: string[]): Promise<Record<string, number>> => {
+    const agora = new Date();
+    const pares = await Promise.all(slugs.map(async (s) => [s, await contarEsperas(s, agora).catch(() => 0)] as const));
+    return Object.fromEntries(pares);
+  },
+  ["m-esperas-empresas-v1"],
+  { revalidate: 15 },
+);

@@ -14,7 +14,7 @@ type Plugin = {
  * plugin LexiaNativo) e num aparelho com Face ID, Touch ID ou código.
  * Ligar pede o Face ID na hora, para confirmar que funciona.
  */
-export function FaceId({ textos }: { textos: Record<"faceid" | "touchid" | "codigo" | "sub", string> }) {
+export function FaceId({ textos }: { textos: Record<"faceid" | "touchid" | "codigo", string> }) {
   const [estado, setEstado] = useState<null | { ligado: boolean; tipo: string }>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export function FaceId({ textos }: { textos: Record<"faceid" | "touchid" | "codi
   return (
     <button aria-pressed={estado.ligado} className="m-opcao" onClick={() => void mudar()} type="button">
       <div className="ic"><IcRosto /></div>
-      <div><b>{titulo}</b><span>{textos.sub}</span></div>
+      <div><b>{titulo}</b></div>
       <span className={`m-interr${estado.ligado ? " on" : ""}`} />
     </button>
   );

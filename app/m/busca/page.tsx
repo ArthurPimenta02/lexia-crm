@@ -2,10 +2,12 @@ import Link from "next/link";
 
 import { contextoMovel } from "@/lib/movel/contexto";
 import { canalDe, telefoneLegivel } from "@/lib/movel/conversas";
-import { corDe, iniciais, quandoCurto } from "@/lib/movel/formato";
+import { iniciais, quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { IcBusca, IcCanal } from "../_c/icones";
+import { IcBusca } from "../_c/icones";
+import { Iniciais } from "../_c/pecas";
+import { BotaoVoltar } from "../_c/voltar";
 
 export const dynamic = "force-dynamic";
 
@@ -52,22 +54,25 @@ export default async function BuscaMovel({ searchParams }: { searchParams: Promi
   };
 
   return (
-    <main className="m-pagina">
-      <div className="m-titulo"><h1>{t("Procurar")}</h1></div>
-      <form action="/m/busca" className="m-busca" role="search">
+    <main className="m-pagina m6">
+      <header className="m6-cab volta">
+        <BotaoVoltar reserva="/m" rotulo={t("Voltar")} />
+        <h1>{t("Procurar")}</h1>
+      </header>
+      <form action="/m/busca" className="m6-busca" role="search">
         <IcBusca />
         <input aria-label={t("Procurar")} autoFocus={!q} defaultValue={q} enterKeyHint="search" name="q" placeholder={t("Nome, número ou palavra da conversa")} type="search" />
       </form>
 
-      {q.length < 2 ? <p className="m-discreto" style={{ marginTop: 24 }}>{t("Escreva um nome, um número ou uma palavra que o cliente disse.")}</p> : (
+      {q.length < 2 ? null : (
         <>
           {fichas.length ? (
             <>
               <div className="m-sec"><h2>{t("Clientes")}</h2></div>
-              <div className="m-caixa">
+              <div className="m-lista-conv">
                 {fichas.map((f) => (
                   <Link className="m-conv" href={`/m/conversas/${encodeURIComponent(f.identificador_conversa)}`} key={f.identificador_conversa}>
-                    <div className="m-av" style={{ background: corDe(f.identificador_conversa) }}>{iniciais(f.nome || "?")}<i className={`canal ${canalDe(f.identificador_conversa)}`}><IcCanal canal={canalDe(f.identificador_conversa)} tamanho={10} /></i></div>
+                    <Iniciais canal={canalDe(f.identificador_conversa)} tamanho={40} texto={iniciais(f.nome || "?")} />
                     <div className="m-meio"><b>{f.nome || telefoneLegivel(f.telefone?.replace(/\D/g, "") ?? null) || t("Cliente")}</b><span>{telefoneLegivel(f.telefone?.replace(/\D/g, "") ?? null) ?? ""}</span></div>
                   </Link>
                 ))}
@@ -77,10 +82,10 @@ export default async function BuscaMovel({ searchParams }: { searchParams: Promi
           {msgsUnicas.length ? (
             <>
               <div className="m-sec"><h2>{t("Mensagens")}</h2></div>
-              <div className="m-caixa">
+              <div className="m-lista-conv">
                 {msgsUnicas.map((m) => (
                   <Link className="m-conv" href={`/m/conversas/${encodeURIComponent(m.identificador_conversa)}`} key={m.identificador_conversa}>
-                    <div className="m-av" style={{ background: corDe(m.identificador_conversa) }}>{iniciais(nomes.get(m.identificador_conversa) || "?")}<i className={`canal ${canalDe(m.identificador_conversa)}`}><IcCanal canal={canalDe(m.identificador_conversa)} tamanho={10} /></i></div>
+                    <Iniciais canal={canalDe(m.identificador_conversa)} tamanho={40} texto={iniciais(nomes.get(m.identificador_conversa) || "?")} />
                     <div className="m-meio"><b>{nomes.get(m.identificador_conversa) || telefoneLegivel(m.identificador_conversa.replace(/\D/g, "")) || t("Cliente")}</b><span>{trecho(m.conteudo ?? "")}</span></div>
                     <div className="dir"><span className="h">{quandoCurto(m.criado_em, agora, c.fuso, c.locale, t("Ontem"))}</span></div>
                   </Link>

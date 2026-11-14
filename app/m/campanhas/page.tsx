@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
@@ -8,9 +7,9 @@ import { chaveDoDia, moeda } from "@/lib/movel/formato";
 import { diasDoIntervalo, intervaloDe } from "@/lib/movel/resultados";
 import { limitesDoDia, somarDias } from "@/lib/movel/hoje";
 
-import { Curva } from "../_c/curva";
+import { ValorGrande } from "../_c/pecas";
+import { Periodos } from "../_c/periodos";
 import { BotaoVoltar } from "../_c/voltar";
-import { Personalizado } from "../resultados/personalizado";
 import { VazioMascote } from "@/app/m/_c/vazio";
 import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
@@ -27,8 +26,8 @@ export default async function CampanhasMovel({ searchParams }: { searchParams: P
   if (!ecraPermitido(c.clienteSlug, "/app/campanhas")) redirect("/m/mais");
   const params = await searchParams;
   const hoje = chaveDoDia(new Date(), c.fuso);
-  // Por omissão os últimos 7 dias: o gasto da Meta só fecha no dia seguinte.
-  const intervalo = params.p ? intervaloDe(params.p, params.de, params.ate, hoje) : { ate: hoje, chave: "sete" as const, de: somarDias(hoje, -6) };
+  // Por omissão "Uma semana" (os últimos 7 dias), como em todas as telas.
+  const intervalo = intervaloDe(params.p ?? "semana", params.de, params.ate, hoje);
   let d: PainelCampanhas | null = null;
   try {
     d = await getPainelCampanhas({
@@ -43,64 +42,63 @@ export default async function CampanhasMovel({ searchParams }: { searchParams: P
     d = null;
   }
   const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? moedaPadraoDoCliente(c.clienteSlug));
-  const curto = (k: string) => new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${k}T12:00:00Z`));
   const dias = diasDoIntervalo(intervalo);
   const listaDias = Array.from({ length: dias }, (_, i) => somarDias(intervalo.de, i));
   const gastoPorDia = new Map((d?.diario ?? []).map((x) => [x.dia, x.gasto]));
-  // 13/11/2026: o mesmo filtro de todas as telas ("Uma semana" = sem `p`, os últimos 7 dias).
-  const chips = [
-    ["hoje", t("Hoje"), "/m/campanhas?p=hoje"],
-    ["ontem", t("Ontem"), "/m/campanhas?p=ontem"],
-    ["sete", t("Uma semana"), "/m/campanhas"],
-    ["tudo", t("Período total"), "/m/campanhas?p=tudo"],
-  ] as const;
-  const estado = (bruto: string | null) => { const e = bruto?.toUpperCase() ?? null; return e === "ACTIVE" ? { c: "on", r: t("Ativa") } : e === "PAUSED" ? { c: "", r: t("Pausada") } : { c: "", r: e ? t("Parada") : "" }; };
+  const pausada = (bruto: string | null) => Boolean(bruto && bruto.toUpperCase() !== "ACTIVE");
+
+  // A linha do gasto: um traço simples, dia a dia.
+  const valores = listaDias.map((k) => gastoPorDia.get(k) ?? 0);
+  const maxG = Math.max(1, ...valores);
+  const pontos = valores.map((v, i) => `${valores.length > 1 ? ((i / (valores.length - 1)) * 342).toFixed(1) : 171},${(64 - (v / maxG) * 56).toFixed(1)}`).join(" ");
+  const agendaram = (d?.porCampanha ?? []).reduce((a, p) => a + p.marcacoesAtribuidas, 0);
 
   return (
-    <main className="m-pagina">
-      <div className="m-topo">
+    <main className="m-pagina m6 m6-campanhas">
+      <header className="m6-cab volta">
         <BotaoVoltar reserva="/m/mais" rotulo={t("Voltar")} />
-        <div className="m-ola"><b>{t("Campanhas")}</b></div>
-        <span className="m-periodo">{intervalo.de === intervalo.ate ? curto(intervalo.de) : `${curto(intervalo.de)} – ${curto(intervalo.ate)}`}</span>
-      </div>
-      <div className="m-chips">
-        {chips.map(([k, r, href]) => <Link className={`m-chip${intervalo.chave === k ? " on" : ""}`} href={href} key={k} replace scroll={false}>{r}</Link>)}
-        <Personalizado activo={intervalo.chave === "personalizado"} ate={intervalo.ate} caminho="/m/campanhas" de={intervalo.de} hoje={hoje} textos={{ aplicar: t("Ver resultados"), ate: t("Até"), de: t("De"), personalizado: t("Personalizado") }} />
-      </div>
+        <h1>{t("Campanhas")}</h1>
+      </header>
+      <Periodos caminho="/m/campanhas" hoje={hoje} intervalo={intervalo} t={t} />
 
       {!d ? <div className="m-vazio">{t("Não foi possível carregar as campanhas.")}</div> : !d.temDados ? (
         <VazioMascote>{t("Ainda não há dados de anúncios desta empresa.")}</VazioMascote>
       ) : (
         <>
-          <div className="m-rot">{t("Investido")}</div>
-          <div className="m-grande">{dinheiro(d.gasto)}</div>
-          {dias > 1 ? <Curva bolha={(n) => dinheiro(n)} valores={listaDias.map((k) => gastoPorDia.get(k) ?? 0)} /> : <div style={{ height: 16 }} />}
+          <section aria-label={t("Investido")} className="m6-bloco">
+            <span className="m6-rotulo">{t("Investido")}</span>
+            <span className="m6-investido"><ValorGrande locale={c.locale} moeda={d.moeda} valor={d.gasto} /></span>
+            {dias > 1 ? (
+              <svg aria-hidden="true" className="m6-gasto" preserveAspectRatio="none" viewBox="0 0 342 70">
+                <polyline fill="none" points={pontos} stroke="var(--m-acento)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                <line stroke="var(--m-fio)" strokeWidth="1" vectorEffect="non-scaling-stroke" x1="0" x2="342" y1="69" y2="69" />
+              </svg>
+            ) : null}
+          </section>
 
-          <div className="m-duas">
-            <div className="m-vc"><small>{t("Leads novos")}</small><strong>{d.contactosNovos}</strong><em>{t("{n} de anúncio", { n: d.contactosComAnuncio })}</em></div>
-            <div className="m-vc"><small>{t("Custo por lead")}</small><strong>{d.custoPorContacto === null ? "—" : dinheiro(d.custoPorContacto)}</strong><em>{t("{n} cliques", { n: d.cliquesLink || d.cliques })}</em></div>
+          <div className="m6-tres">
+            <div><b>{d.contactosNovos}</b><span>{t("leads")}</span></div>
+            <div><b>{d.custoPorContacto === null ? "—" : dinheiro(d.custoPorContacto)}</b><span>{t("por lead")}</span></div>
+            <div><b className="ac">{agendaram}</b><span>{t("agendaram")}</span></div>
           </div>
 
-          <div className="m-sec"><h2>{t("Por campanha")}</h2></div>
-          {d.porCampanha.length ? (
-            <div className="m-lista-camp">
-              {d.porCampanha.map((p) => {
-                const e = estado(p.estado);
-                return (
-                  <div className="m-camp" key={p.id}>
-                    <div className="topo-c"><b>{p.nome}</b>{e.r ? <span className={`m-estado-c ${e.c}`}><i />{e.r}</span> : null}</div>
-                    <div className="nums">
-                      <div><strong>{dinheiro(p.gasto)}</strong><small>{t("investido")}</small></div>
-                      <div><strong>{p.contactosAtribuidos}</strong><small>{t("leads")}</small></div>
-                      <div><strong>{p.contactosAtribuidos ? dinheiro(p.gasto / p.contactosAtribuidos) : "—"}</strong><small>{t("por lead")}</small></div>
-                      <div><strong>{p.marcacoesAtribuidas}</strong><small>{t("agendaram")}</small></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : <div className="m-vazio">{t("Nenhuma campanha com gasto neste período.")}</div>}
-          <p className="m-discreto">{t("Os leads por campanha contam só quem chegou com o anúncio identificado, por isso são um mínimo.")}</p>
+          <section aria-label={t("Por campanha")}>
+            <p className="m6-rotulo">{t("Por campanha")}</p>
+            {d.porCampanha.length ? d.porCampanha.map((p) => {
+              const parada = pausada(p.estado);
+              return (
+                <div className={`m6-camp${parada ? " parada" : ""}`} key={p.id}>
+                  <span className="topo"><span aria-label={parada ? t("Pausada") : t("Ativa")} className="ponto" role="img" /><span className="nome">{p.nome}</span><span className="val">{dinheiro(p.gasto)}</span></span>
+                  <span className="det">{[
+                    p.contactosAtribuidos === 1 ? t("1 lead") : t("{n} leads", { n: p.contactosAtribuidos }),
+                    p.contactosAtribuidos ? t("{valor} por lead", { valor: dinheiro(p.gasto / p.contactosAtribuidos) }) : null,
+                    p.marcacoesAtribuidas ? (p.marcacoesAtribuidas === 1 ? t("1 agendou") : t("{n} agendaram", { n: p.marcacoesAtribuidas })) : null,
+                    parada ? t("pausada") : null,
+                  ].filter(Boolean).join(" · ")}</span>
+                </div>
+              );
+            }) : <div className="m-vazio">{t("Nenhuma campanha com gasto neste período.")}</div>}
+          </section>
         </>
       )}
     </main>

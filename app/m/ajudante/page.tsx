@@ -18,7 +18,7 @@ export default async function AjudanteMovel({ searchParams }: { searchParams: Pr
         enviada: t("Enviada ✓"), enviando: t("Enviando…"), enviar: t("Enviar"), erro: t("Não consegui responder agora. Tente de novo."),
         falhou: t("O envio falhou."), mensagemPara: t("Mensagem para {nome}"), nova: t("Nova conversa"), pergunte: t("Pergunte à Lexia"),
         semConversas: t("Ainda não há conversas."), sub: c.clienteNome, titulo: t("Analista Lexia"),
-        vazio: t("Consulto a agenda, as conversas, os leads e as campanhas, e preparo respostas para você confirmar."), verConversa: t("Ver conversa"), voltar: t("Voltar"),
+        verConversa: t("Ver conversa"), voltar: t("Voltar"),
       }}
     />
   );

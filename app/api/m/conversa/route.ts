@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
   try {
     const d = await lerConversa(c.clienteSlug, conversa, desde);
-    return Response.json({ estado: d?.estado ?? null, mensagens: d?.mensagens ?? [] });
+    return Response.json({ esperaDesde: d?.esperaDesde ?? null, estado: d?.estado ?? null, mensagens: d?.mensagens ?? [] });
   } catch {
     return Response.json({ erro: c.t("Não foi possível atualizar a conversa.") }, { status: 500 });
   }

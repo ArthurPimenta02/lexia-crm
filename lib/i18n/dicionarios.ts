@@ -12,6 +12,7 @@ import operacao from "./textos/operacao";
 import movel from "./textos/movel";
 import movelTestes from "./textos/movel-testes";
 import movelV5 from "./textos/movel-v5";
+import movelV6 from "./textos/movel-v6";
 import conversasEnvio from "./textos/conversas-envio";
 import ajudante from "./textos/ajudante";
 import conectar from "./textos/conectar";
@@ -34,6 +35,7 @@ const AREAS: TextosDaArea[] = [
   movel,
   movelTestes,
   movelV5,
+  movelV6,
   conversasEnvio,
   ajudante,
   conectar,

@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-import { IcCalendario, IcConversa, IcEmpresa, IcPessoa, IcRelogio } from "../_c/icones";
+import { IcCalendario, IcConversa, IcEmpresa, IcRelogio } from "../_c/icones";
 
 type Prefs = Record<string, boolean>;
 
-/** Ligar e desligar cada tipo de aviso (usa /api/app/preferencias). */
-export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; textos: Record<"agenda" | "agendaSub" | "espera" | "esperaSub" | "manual" | "manualSub" | "resumo" | "resumoSub" | "todos" | "todosSub" | "erro", string> }) {
+/**
+ * Ligar e desligar cada tipo de aviso (usa /api/app/preferencias). Regras de
+ * 14/11: os marcados à mão nunca avisam (sem interruptor); cada linha liga ou
+ * desliga um grupo de tipos.
+ */
+export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; textos: Record<"agenda" | "espera" | "resumos" | "todos" | "erro", string> }) {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [erro, setErro] = useState(false);
 
@@ -31,12 +35,12 @@ export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; texto
     }
   };
 
-  const linha = (chave: string, tipos: string[], icone: React.ReactNode, titulo: string, sub: string) => {
+  const linha = (chave: string, tipos: string[], icone: React.ReactNode, titulo: string) => {
     const on = Boolean(prefs && tipos.every((x) => prefs[x]));
     return (
       <button aria-pressed={on} className="m-opcao" disabled={!prefs} key={chave} onClick={() => void mudar(tipos, !on)} type="button">
         <div className="ic">{icone}</div>
-        <div><b>{titulo}</b><span>{sub}</span></div>
+        <div><b>{titulo}</b></div>
         <span className={`m-interr${on ? " on" : ""}`} />
       </button>
     );
@@ -45,11 +49,10 @@ export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; texto
   return (
     <>
       <div className="m-caixa">
-        {linha("espera", ["a_espera"], <IcConversa />, t.espera, t.esperaSub)}
-        {linha("agenda", ["agendamento_novo", "agendamento_remarcado", "agendamento_cancelado"], <IcCalendario />, t.agenda, t.agendaSub)}
-        {linha("manual", ["agenda_manual"], <IcPessoa />, t.manual, t.manualSub)}
-        {linha("resumo", ["resumo_manha"], <IcRelogio />, t.resumo, t.resumoSub)}
-        {admin ? linha("todos", ["todos_os_clientes"], <IcEmpresa />, t.todos, t.todosSub) : null}
+        {linha("espera", ["a_espera", "pediu_pessoa", "irritado"], <IcConversa />, t.espera)}
+        {linha("agenda", ["agendamento_novo", "agendamento_remarcado", "agendamento_cancelado"], <IcCalendario />, t.agenda)}
+        {linha("resumos", ["resumo_manha", "resumo_semana", "meta_batida"], <IcRelogio />, t.resumos)}
+        {admin ? linha("todos", ["todos_os_clientes"], <IcEmpresa />, t.todos) : null}
       </div>
       {erro ? <p style={{ color: "var(--m-vermelho)", fontSize: 13, margin: "6px 4px" }}>{t.erro}</p> : null}
     </>

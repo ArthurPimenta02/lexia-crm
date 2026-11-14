@@ -18,6 +18,8 @@ export type Intervalo = { chave: ChavePeriodo; de: string; ate: string };
 
 type Numeros = {
   agendamentos: number;
+  /** Agendamentos marcados por quem chegou de anúncio no mesmo período (pelo telefone). */
+  agendaramAnuncio: number;
   doAgente: number;
   aMao: number;
   cancelados: number;
@@ -67,17 +69,19 @@ export function diasDoIntervalo(i: { de: string; ate: string }) {
 async function numeros(clienteSlug: string, inicio: string, fim: string, agora: Date) {
   const base = createAdminClient();
   const [contactos, criados, noIntervalo, recebidas] = await Promise.all([
-    base.from("lexia_contactos").select("criado_em, origem_tipo, origem_source_id, origem_titulo").eq("cliente_slug", clienteSlug).gte("criado_em", inicio).lt("criado_em", fim).limit(10000),
-    base.from("lexia_agendamentos").select("valor_previsto, fim, origem").eq("cliente_slug", clienteSlug).gte("criado_no_google", inicio).lt("criado_no_google", fim).neq("estado", "cancelado").eq("dia_inteiro", false).limit(5000),
+    base.from("lexia_contactos").select("criado_em, origem_tipo, origem_source_id, origem_titulo, telefone_digitos").eq("cliente_slug", clienteSlug).gte("criado_em", inicio).lt("criado_em", fim).limit(10000),
+    base.from("lexia_agendamentos").select("valor_previsto, fim, origem, telefone_digitos").eq("cliente_slug", clienteSlug).gte("criado_no_google", inicio).lt("criado_no_google", fim).neq("estado", "cancelado").eq("dia_inteiro", false).limit(5000),
     base.from("lexia_agendamentos").select("estado").eq("cliente_slug", clienteSlug).gte("inicio", inicio).lt("inicio", fim).eq("estado", "cancelado").eq("dia_inteiro", false).limit(5000),
     base.from("lexia_mensagens").select("identificador_conversa").eq("cliente_slug", clienteSlug).eq("direccao", "recebida").gte("criado_em", inicio).lt("criado_em", fim).limit(30000),
   ]);
   const ags = criados.data ?? [];
   const cs = contactos.data ?? [];
   const doAgente = ags.filter((x) => x.origem === "agente");
+  const telefonesAnuncio = new Set(cs.filter((c) => c.origem_tipo && c.origem_tipo !== "organico").map((c) => c.telefone_digitos).filter(Boolean));
   const n: Numeros = {
     aMao: ags.length - doAgente.length,
     agendamentos: ags.length,
+    agendaramAnuncio: ags.filter((x) => x.telefone_digitos && telefonesAnuncio.has(x.telefone_digitos)).length,
     cancelados: (noIntervalo.data ?? []).length,
     conversas: new Set((recebidas.data ?? []).map((m) => m.identificador_conversa)).size,
     doAgente: doAgente.length,

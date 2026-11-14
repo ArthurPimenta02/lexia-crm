@@ -12,7 +12,7 @@ export function Personalizado({ activo, caminho = "/m/resultados", de, ate, hoje
 
   return (
     <>
-      <button className={`m-chip${activo ? " on" : ""}`} onClick={() => setAberto(true)} type="button">{textos.personalizado}</button>
+      <button aria-pressed={activo} className={`m6-chip${activo ? " on" : ""}`} onClick={() => setAberto(true)} type="button">{textos.personalizado}</button>
       {aberto ? (
         <>
           <div className="m-veu" onClick={() => setAberto(false)} />

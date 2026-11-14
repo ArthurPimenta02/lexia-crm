@@ -3,14 +3,14 @@ import Link from "next/link";
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { maisRapido } from "@/lib/movel/cache";
 import { contextoMovel } from "@/lib/movel/contexto";
-import { chaveDoDia } from "@/lib/movel/formato";
+import { chaveDoDia, diferencaDias, iniciais, moeda } from "@/lib/movel/formato";
 import type { DadosMais } from "@/lib/movel/mais";
 
-import { IcCheck } from "../_c/icones";
-import { AvatarMascote, Mascote } from "@/app/components/mascote";
+import { IcAnuncios, IcCalendario, IcEngrenagem, IcEstrela, IcFrasco, IcPessoas, IcSeta, IcSino } from "../_c/icones";
 
 export const dynamic = "force-dynamic";
 
+/** Mais (desenho v6, 14/11): o perfil, a meta do mês e as outras telas, numa lista com fios. */
 export default async function MaisMovel() {
   const c = (await contextoMovel())!;
   const { t } = c;
@@ -20,68 +20,54 @@ export default async function MaisMovel() {
   } catch {
     d = null;
   }
-  const hoje = chaveDoDia(new Date(), c.fuso);
+  const agora = new Date();
+  const hoje = chaveDoDia(agora, c.fuso);
   const pode = (ecra: string) => ecraPermitido(c.clienteSlug, ecra);
-  const grandes = [
-    pode("/app/campanhas") ? { destaque: true, emo: "📣", href: "/m/campanhas", r: t("Campanhas") } : null,
-    pode("/app/area-testes") ? { destaque: false, emo: "🧪", href: "/m/testes", r: t("Área de testes") } : null,
-  ].filter(Boolean) as { destaque: boolean; emo: string; href: string; r: string }[];
-  const pequenos = [
-    pode("/app/clientes") ? { emo: "👥", href: "/m/clientes", r: t("Clientes") } : null,
-    pode("/app/agenda") ? { emo: "📅", href: "/m/agenda", r: t("Agenda") } : null,
-    { emo: "🔔", href: "/m/avisos", r: t("Avisos") },
-    { emo: "⚙️", href: "/m/ajustes", r: t("Ajustes") },
-  ].filter(Boolean) as { emo: string; href: string; r: string }[];
-
   const feitos = d ? (c.meta.conta === "agente" ? d.mes.agente : d.mes.todos) : 0;
   const pct = c.meta.mes ? Math.min(100, Math.round((feitos / c.meta.mes) * 100)) : 0;
-  const ultimo = d ? new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d.mes.ultimoDia}T12:00:00Z`)) : "";
-  const inicialDoDia = (k: string) => new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "narrow" }).format(new Date(`${k}T12:00:00Z`));
-  const naSemana = d ? d.semana.reduce((a, x) => a + x.agente, 0) : 0;
+  const mes = new Intl.DateTimeFormat(c.locale, { month: "long", timeZone: "UTC" }).format(new Date(`${hoje}T12:00:00Z`));
+  const faltamDias = d ? Math.max(0, diferencaDias(`${d.mes.ultimoDia}T12:00:00Z`, agora, c.fuso)) : 0;
+
+  const item = (href: string, icone: React.ReactNode, rotulo: string, lado?: string | null) => (
+    <Link className="m6-item" href={href} key={href}>
+      <span className="ic">{icone}</span>
+      {rotulo}
+      <span className="lado">{lado ?? null}<IcSeta tamanho={14} /></span>
+    </Link>
+  );
+  const telas = [
+    pode("/app/campanhas") ? item("/m/campanhas", <IcAnuncios tamanho={18} />, t("Campanhas"), d?.anuncios ? moeda(d.anuncios.gasto, c.locale, d.anuncios.moeda) : null) : null,
+    pode("/app/clientes") ? item("/m/clientes", <IcPessoas tamanho={18} />, t("Clientes")) : null,
+    pode("/app/agenda") ? item("/m/agenda", <IcCalendario tamanho={18} />, t("Agenda")) : null,
+    pode("/app/area-testes") ? item("/m/testes", <IcFrasco tamanho={18} />, t("Testar o agente")) : null,
+    pode("/app/analista") ? item("/m/ajudante?tela=/m/mais", <IcEstrela tamanho={18} />, t("Analista Lexia")) : null,
+  ].filter(Boolean);
 
   return (
-    <main className="m-pagina">
-      <div className="m-titulo"><h1>{t("Mais")}</h1></div>
+    <main className="m-pagina m6">
+      <Link className="m6-perfil" href="/m/ajustes">
+        <span aria-hidden="true" className="m-ini" style={{ fontSize: 17, height: 52, width: 52 }}>{iniciais(c.nomeUsuario || c.clienteNome).slice(0, 1)}</span>
+        <span className="tx"><b>{c.nomeUsuario || t("Você")}</b><span>{c.clienteNome}</span></span>
+        <IcSeta tamanho={16} />
+      </Link>
 
-      <Link className="m-tile destaque m-tile-largo" href="/m/ajudante?tela=/m/mais"><span className="emo"><AvatarMascote tamanho={34} /></span><b>{t("Analista Lexia")}</b><small>{t("Pergunte qualquer coisa sobre o seu negócio")}</small></Link>
-      {grandes.length ? (
-        <div className="m-g2">
-          {grandes.map((g) => <Link className={`m-tile${g.destaque ? " destaque" : ""}`} href={g.href} key={g.href}><span className="emo">{g.emo}</span>{g.r}</Link>)}
-        </div>
-      ) : null}
-      <div className="m-g4">
-        {pequenos.map((g) => <Link className="m-tile" href={g.href} key={g.href}><span className="emo4">{g.emo}</span>{g.r}</Link>)}
-      </div>
+      {c.meta.mes ? (
+        <Link aria-label={t("Meta do mês")} className="m6-meta" href="/m/ajustes#meta">
+          <span className="l1"><span className="m6-rotulo">{t("Meta de {mes}", { mes })}</span>{faltamDias ? <span className="s">{faltamDias === 1 ? t("falta 1 dia") : t("faltam {n} dias", { n: faltamDias })}</span> : null}</span>
+          <span className="l2"><span className="n">{feitos}</span> <span className="s">{t("de {total} agendamentos", { total: c.meta.mes })}</span></span>
+          <span aria-hidden="true" className="barra"><span style={{ width: `${pct}%` }} /></span>
+        </Link>
+      ) : (
+        <Link className="m6-meta" href="/m/ajustes#meta">
+          <span className="l1"><span className="m6-rotulo">{t("Meta de {mes}", { mes })}</span><span className="ac">{t("Definir meta")}</span></span>
+        </Link>
+      )}
 
-      {d ? (
-        <>
-          <div className="m-sec"><h2>{t("Semana do agente")}</h2><span>{naSemana === 1 ? t("1 marcação") : t("{n} marcações", { n: naSemana })}</span></div>
-          <div className="m-semana">
-            {d.semana.map((x) => (
-              <div className={x.dia === hoje ? "hoje" : ""} key={x.dia}>
-                <span style={{ textTransform: "uppercase" }}>{inicialDoDia(x.dia)}</span>
-                <i className={x.agente ? "ok" : ""}>{x.agente > 1 ? x.agente : x.agente ? <IcCheck tamanho={14} /> : null}</i>
-              </div>
-            ))}
-          </div>
-
-          <div className="m-sec" style={{ marginTop: 24 }}>
-            <h2>{t("Meta do mês")}</h2>
-            {c.meta.mes ? <span>{t("{n} de {total}", { n: feitos, total: c.meta.mes })}</span> : <Link href="/m/ajustes#meta">{t("Definir")}</Link>}
-          </div>
-          {c.meta.mes ? (
-            <>
-              <div className="m-meta"><i style={{ width: `${pct}%` }} /></div>
-              <div className="m-meta-l">
-                <span className={feitos >= c.meta.mes ? "m-meta-feliz" : undefined}>{feitos >= c.meta.mes ? <><Mascote pairar={false} pose="feliz" tamanho={34} />{t("Meta batida 🎉")}</> : t("{p}% · faltam {n}", { n: c.meta.mes - feitos, p: pct })}</span>
-                <span>{t("até {dia}", { dia: ultimo })}</span>
-              </div>
-            </>
-          ) : (
-            <Link className="m-vazio m-vazio-link" href="/m/ajustes#meta">{t("Escolha nos Ajustes quantos agendamentos quer fazer por mês. Este mês: {n}.", { n: d.mes.todos })}</Link>
-          )}
-        </>
-      ) : <div className="m-vazio">{t("Não foi possível carregar.")}</div>}
+      {telas.length ? <nav aria-label={t("Telas")} className="m6-grupo-itens">{telas}</nav> : null}
+      <nav aria-label={t("Conta")} className="m6-grupo-itens">
+        {item("/m/avisos", <IcSino tamanho={18} />, t("Avisos"))}
+        {item("/m/ajustes", <IcEngrenagem tamanho={18} />, t("Ajustes"))}
+      </nav>
     </main>
   );
 }

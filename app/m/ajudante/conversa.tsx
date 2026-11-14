@@ -10,7 +10,7 @@ import { IcEnviar, IcMais, IcVoltar } from "../_c/icones";
 import { useTecladoDoChat } from "../_c/teclado";
 import { AvatarMascote } from "@/app/components/mascote";
 
-type Textos = Record<"titulo" | "sub" | "pergunte" | "enviar" | "voltar" | "nova" | "conversas" | "semConversas" | "vazio" | "desligado" | "erro" | "aPensar" | "mensagemPara" | "cliente" | "enviada" | "enviando" | "falhou" | "verConversa", string>;
+type Textos = Record<"titulo" | "sub" | "pergunte" | "enviar" | "voltar" | "nova" | "conversas" | "semConversas" | "desligado" | "erro" | "aPensar" | "mensagemPara" | "cliente" | "enviada" | "enviando" | "falhou" | "verConversa", string>;
 
 /** O Analista Lexia no iPhone: tela inteira, como um chat. */
 export function ConversaAjudante({ sugestoes, tela, textos: x }: { sugestoes: string[]; tela?: string; textos: Textos }) {
@@ -54,7 +54,7 @@ export function ConversaAjudante({ sugestoes, tela, textos: x }: { sugestoes: st
         <div className="m-msgs" ref={msgs}>
           {a.mensagens.length === 0 ? (
             <div className="m-aj-vazio">
-              <p>{a.ligado === false ? x.desligado : x.vazio}</p>
+              {a.ligado === false ? <p>{x.desligado}</p> : null}
               {sugestoes.map((s) => <button disabled={a.ligado === false} key={s} onClick={() => enviar(s)} type="button">{s}</button>)}
             </div>
           ) : null}
