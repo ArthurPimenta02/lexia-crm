@@ -7,7 +7,6 @@ import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
-import { CONTAS_INTERNAS } from "@/lib/admin/hoje";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -21,6 +20,9 @@ const adminNavigation = [
   { label: "Controle do agente", href: "/admin/turnos", icon: "turnos" },
   { label: "Conexões da Lexia", href: "/admin/conexoes", icon: "conexoes" },
 ];
+
+/** Contas internas de teste, fora do acesso rápido. */
+const CONTAS_INTERNAS = new Set(["cliente_teste", "clinica_teste"]);
 
 /** Os clientes no acesso rápido: verde no ar, dourado em teste; contas internas fora. */
 async function clientesDoMenu() {
