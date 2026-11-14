@@ -4,8 +4,8 @@ import { Suspense } from "react";
 import { saveClientConversationFeedback } from "@/app/app/conversas/actions";
 import { ConversationAgentStatus } from "@/app/components/conversation-agent-status";
 import {
-  BuscaConversas,
-  FiltrosConversas,
+  BuscaEFiltros,
+  FiltrosAtivos,
   hrefConversas,
   type EstadoConversas,
 } from "@/app/components/conversation-filter-bar";
@@ -13,6 +13,7 @@ import { getConversationPeriodState } from "@/app/components/conversation-period
 import {
   AreaConversas,
   CabecalhoConversa,
+  DetalhesConversa,
   FichaConversa,
   HistoricoConversa,
   ListaConversas,
@@ -22,7 +23,7 @@ import {
   TopoLista,
 } from "@/app/components/conversation-workspace";
 import { CaixaDeEnvio } from "@/app/components/caixa-de-envio";
-import { AvisoLinha, CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
+import { AvisoLinha, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getSelectedTimezone, getTimezoneLabel } from "@/lib/clientes/timezone";
 import { exigirEcra } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -389,8 +390,6 @@ export default async function ClientConversationsPage({
       )
     : sortedContacts;
   // Temperatura do lead (14/11): filtro por cima da situação; a conversa aberta fica sempre.
-  const contagemTemperatura = (tp: string) =>
-    porSituacao.filter((contact) => temperaturaDe(contact.identificador_conversa) === tp).length;
   const contatosVisiveis = temperaturaPedida
     ? porSituacao.filter(
         (contact) =>
@@ -431,25 +430,56 @@ export default async function ClientConversationsPage({
     ? selectedContact.nome || selectedContact.telefone || t("Sem nome")
     : "";
 
+  const opcoesTemperatura =
+    temperaturas.size > 0 ? TEMPERATURAS.map((tp) => ({ chave: tp, label: NOMES_TEMPERATURA[tp] })) : null;
+  const fichaAberta = (
+          selectedContact ? (
+            <FichaConversa
+              canal={selectedContact.canal}
+              linhas={[
+                ...(selectedContact.telefone
+                  ? [{ rotulo: t("Telefone"), valor: selectedContact.telefone }]
+                  : []),
+                {
+                  rotulo: t("Primeiro contato"),
+                  valor: formatarData(selectedContact.criado_em, timeZone, locale, t("Sem data"), {
+                    dateStyle: "medium",
+                  }),
+                },
+                {
+                  rotulo: t("Última atividade"),
+                  valor: formatarData(
+                    selectedSummary?.lastActivityAt ?? selectedContact.atualizado_em,
+                    timeZone,
+                    locale,
+                    t("Sem data"),
+                  ),
+                },
+                ...(temperaturaAberta
+                  ? [{
+                      rotulo: t("Temperatura"),
+                      valor: temperaturaAberta.motivo
+                        ? `${NOMES_TEMPERATURA[temperaturaAberta.temperatura]} · ${temperaturaAberta.motivo}`
+                        : NOMES_TEMPERATURA[temperaturaAberta.temperatura],
+                    }]
+                  : []),
+                {
+                  rotulo: t("Histórico"),
+                  valor:
+                    (selectedSummary?.messageCount ?? 0) === 1
+                      ? t("{n} mensagem", { n: 1 })
+                      : t("{n} mensagens", { n: selectedSummary?.messageCount ?? 0 }),
+                },
+              ]}
+              situacao={situacaoDe(selectedContact.identificador_conversa)}
+            />
+          ) : null
+  );
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-4 lg:h-[calc(100dvh-4rem)] lg:min-h-[640px]">
       <AtualizacaoAutomatica segundos={5} sinal={sinalDaTela.bind(null, "conversas", null)} />
 
-      <div className={isChatOpenOnMobile ? "max-lg:hidden" : ""}>
-        <CabecalhoTela
-          acoes={<FiltrosConversas estado={estado} />}
-          destaque={
-            esperando === 0
-              ? undefined
-              : esperando === 1
-                ? t("1 conversa")
-                : t("{n} conversas", { n: esperando })
-          }
-          resto={esperando === 0 ? t("Ninguém esperando resposta.") : t("esperando resposta.")}
-          sobretitulo={t("Conversas")}
-          subtitulo={`${searchQuery ? t("Busca em todo o período") : t(range.label)} · ${getTimezoneLabel(timeZone)}`}
-        />
-      </div>
 
       <AreaConversas
         chat={
@@ -457,14 +487,17 @@ export default async function ClientConversationsPage({
             <>
               <CabecalhoConversa
                 acoes={
-                  <Suspense fallback={null}>
+<>
+<Suspense fallback={null}>
                     <ConversationAgentStatus
                       clienteSlug={profile.cliente_slug}
                       contactLabel={selectedContact.nome || selectedContact.telefone || undefined}
                       identificadorConversa={selectedContact.identificador_conversa}
                     />
                   </Suspense>
-                }
+<DetalhesConversa>{fichaAberta}</DetalhesConversa>
+</>
+}
                 canal={selectedContact.canal}
                 nome={nomeSelecionado}
                 semNome={!selectedContact.nome && !selectedContact.telefone}
@@ -517,53 +550,11 @@ export default async function ClientConversationsPage({
           )
         }
         conversaAberta={isChatOpenOnMobile}
-        ficha={
-          selectedContact ? (
-            <FichaConversa
-              canal={selectedContact.canal}
-              linhas={[
-                ...(selectedContact.telefone
-                  ? [{ rotulo: t("Telefone"), valor: selectedContact.telefone }]
-                  : []),
-                {
-                  rotulo: t("Primeiro contato"),
-                  valor: formatarData(selectedContact.criado_em, timeZone, locale, t("Sem data"), {
-                    dateStyle: "medium",
-                  }),
-                },
-                {
-                  rotulo: t("Última atividade"),
-                  valor: formatarData(
-                    selectedSummary?.lastActivityAt ?? selectedContact.atualizado_em,
-                    timeZone,
-                    locale,
-                    t("Sem data"),
-                  ),
-                },
-                ...(temperaturaAberta
-                  ? [{
-                      rotulo: t("Temperatura"),
-                      valor: temperaturaAberta.motivo
-                        ? `${NOMES_TEMPERATURA[temperaturaAberta.temperatura]} · ${temperaturaAberta.motivo}`
-                        : NOMES_TEMPERATURA[temperaturaAberta.temperatura],
-                    }]
-                  : []),
-                {
-                  rotulo: t("Histórico"),
-                  valor:
-                    (selectedSummary?.messageCount ?? 0) === 1
-                      ? t("{n} mensagem", { n: 1 })
-                      : t("{n} mensagens", { n: selectedSummary?.messageCount ?? 0 }),
-                },
-              ]}
-              situacao={situacaoDe(selectedContact.identificador_conversa)}
-            />
-          ) : null
-        }
         lista={
           <>
             <TopoLista>
-              <BuscaConversas estado={estado} />
+              <h1 className="px-1 text-lg font-semibold tracking-tight text-foreground">{t("Conversas")}</h1>
+              <BuscaEFiltros estado={estado} temperaturas={opcoesTemperatura} />
               <FiltroTrilho
                 opcoes={[
                   {
@@ -581,25 +572,12 @@ export default async function ClientConversationsPage({
                 ]}
                 rotulo={t("Situação")}
               />
-              {temperaturas.size > 0 ? (
-                <FiltroTrilho
-                  opcoes={[
-                    {
-                      ativo: !temperaturaPedida,
-                      href: hrefConversas(estado, { temperatura: "" }),
-                      label: t("Todas"),
-                      quantidade: porSituacao.length,
-                    },
-                    ...TEMPERATURAS.map((tp) => ({
-                      ativo: temperaturaPedida === tp,
-                      href: hrefConversas(estado, { temperatura: tp }),
-                      label: NOMES_TEMPERATURA[tp],
-                      quantidade: contagemTemperatura(tp),
-                    })),
-                  ]}
-                  rotulo={t("Temperatura")}
-                />
-              ) : null}
+              <FiltrosAtivos
+                estado={estado}
+                nomeFuso={getTimezoneLabel(timeZone)}
+                nomePeriodo={searchQuery ? t("Busca em todo o período") : t(range.label)}
+                temperaturas={opcoesTemperatura}
+              />
             </TopoLista>
             <ListaConversas
               itens={itens}
@@ -611,7 +589,7 @@ export default async function ClientConversationsPage({
                       ? t("Confira o nome ou tente pelo número.")
                       : situacaoPedida
                         ? t("Todas as conversas deste período já foram respondidas.")
-                        : t("Troque o período no topo para ver conversas mais antigas.")
+                        : t("Troque o período em Filtros para ver conversas mais antigas.")
                   }
                   titulo={
                     searchQuery

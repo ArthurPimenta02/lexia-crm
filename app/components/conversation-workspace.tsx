@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Info } from "lucide-react";
 
 import { getChannelLabel } from "@/app/components/channel-brand";
 import { ConversationFeedbackAction } from "@/app/components/conversation-feedback-action";
@@ -347,5 +347,25 @@ export async function FichaConversa({
       ))}
       {extra ? <div className="border-t border-border pt-4">{extra}</div> : null}
     </div>
+  );
+}
+
+/**
+ * A ficha deixou de ser uma coluna fixa (desenho A+, 14/11/2026): abre pelo
+ * botão "Detalhes" no cabeçalho da conversa, por cima das mensagens.
+ */
+export async function DetalhesConversa({ children }: { children: ReactNode }) {
+  const t = await getT();
+
+  return (
+    <details className="group relative">
+      <summary className="ds-botao ds-botao-secundario ds-botao-p cursor-pointer list-none group-open:bg-muted [&::-webkit-details-marker]:hidden">
+        <Info aria-hidden="true" className="h-3.5 w-3.5" />
+        {t("Detalhes")}
+      </summary>
+      <div className="ds-bloco absolute top-[calc(100%+0.5rem)] right-0 z-30 max-h-[70dvh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto shadow-xl">
+        {children}
+      </div>
+    </details>
   );
 }

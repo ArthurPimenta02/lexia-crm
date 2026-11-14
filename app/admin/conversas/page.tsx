@@ -6,8 +6,8 @@ import { saveAdminConversationFeedback } from "@/app/admin/conversas/actions";
 import { BloquearContacto } from "@/app/admin/conversas/bloquear-contacto";
 import { ConversationAgentStatus } from "@/app/components/conversation-agent-status";
 import {
-  BuscaConversas,
-  FiltrosConversas,
+  BuscaEFiltros,
+  FiltrosAtivos,
   hrefConversas,
   type EstadoConversas,
 } from "@/app/components/conversation-filter-bar";
@@ -16,6 +16,7 @@ import { getConversationPeriodState } from "@/app/components/conversation-period
 import {
   AreaConversas,
   CabecalhoConversa,
+  DetalhesConversa,
   FichaConversa,
   HistoricoConversa,
   ListaConversas,
@@ -25,7 +26,7 @@ import {
   TopoLista,
 } from "@/app/components/conversation-workspace";
 import { CaixaDeEnvio } from "@/app/components/caixa-de-envio";
-import { AvisoLinha, CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
+import { AvisoLinha, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getTimezoneLabel } from "@/lib/clientes/timezone";
 import { getSelectedTimezone } from "@/lib/clientes/timezone";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
@@ -468,39 +469,62 @@ export default async function AdminConversationsPage({
     </Form>
   );
 
+  const fichaAberta = (
+            selectedContact ? (
+              <FichaConversa
+                canal={selectedContact.canal}
+                linhas={[
+                  ...(selectedContact.telefone
+                    ? [{ rotulo: t("Telefone"), valor: selectedContact.telefone }]
+                    : []),
+                  {
+                    rotulo: t("Primeiro contato"),
+                    valor: formatarData(selectedContact.criado_em, timeZone, locale, t("Sem data"), {
+                      dateStyle: "medium",
+                    }),
+                  },
+                  {
+                    rotulo: t("Última atividade"),
+                    valor: formatarData(
+                      selectedSummary?.lastActivityAt ?? selectedContact.atualizado_em,
+                      timeZone,
+                      locale,
+                      t("Sem data"),
+                    ),
+                  },
+                  {
+                    rotulo: t("Histórico"),
+                    valor:
+                      (selectedSummary?.messageCount ?? 0) === 1
+                        ? t("{n} mensagem", { n: 1 })
+                        : t("{n} mensagens", { n: selectedSummary?.messageCount ?? 0 }),
+                  },
+                  {
+                    rotulo: t("Identificador"),
+                    valor: (
+                      <span className="font-mono text-xs font-normal break-all text-muted-foreground">
+                        {selectedContact.identificador_conversa}
+                      </span>
+                    ),
+                  },
+                ]}
+                situacao={situacaoDe(selectedContact.identificador_conversa)}
+              />
+            ) : null
+  );
+
   return (
     <section className="flex w-full min-w-0 flex-col gap-4 lg:h-[calc(100dvh-4rem)] lg:min-h-[640px]">
       <AtualizacaoAutomatica segundos={5} sinal={sinalDaTela.bind(null, "conversas", selectedClient?.slug ?? null)} />
 
       <div className={isChatOpenOnMobile ? "max-lg:hidden" : ""}>
-        <CabecalhoTela
-          acoes={
-            <div className="flex min-w-0 flex-col items-stretch gap-2 lg:items-end">
-              {seletorCliente}
-              {selectedClient ? <FiltrosConversas estado={estado} /> : null}
-            </div>
-          }
-          destaque={
-            !selectedClient || esperando === 0
-              ? undefined
-              : esperando === 1
-                ? t("1 conversa")
-                : t("{n} conversas", { n: esperando })
-          }
-          resto={
-            !selectedClient
-              ? t("Conversas")
-              : esperando === 0
-                ? t("Ninguém esperando resposta.")
-                : t("esperando resposta.")
-          }
-          sobretitulo={
-            selectedClient
-              ? `${selectedClient.nome ?? selectedClient.slug} · ${t("Conversas")}`
-              : t("Conversas")
-          }
-          subtitulo={`${searchQuery ? t("Busca em todo o período") : t(range.label)} · ${getTimezoneLabel(timeZone)}`}
-        />
+        {/* Desenho A+ (14/11): no topo só fica a escolha do cliente; os filtros vivem no botão da lista. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="ds-sobretitulo">
+            {selectedClient ? `${selectedClient.nome ?? selectedClient.slug} · ${t("Conversas")}` : t("Conversas")}
+          </p>
+          {seletorCliente}
+        </div>
       </div>
 
       {!selectedClient ? (
@@ -514,7 +538,8 @@ export default async function AdminConversationsPage({
               <>
                 <CabecalhoConversa
                   acoes={
-                    <>
+<>
+
                       <Suspense fallback={null}>
                         <BloquearContacto
                           clienteSlug={selectedClient.slug}
@@ -531,8 +556,10 @@ export default async function AdminConversationsPage({
                           />
                         </Suspense>
                       ) : null}
-                    </>
-                  }
+                    
+<DetalhesConversa>{fichaAberta}</DetalhesConversa>
+</>
+}
                   canal={selectedContact.canal}
                   nome={nomeSelecionado}
                   semNome={!selectedContact.nome && !selectedContact.telefone}
@@ -585,53 +612,11 @@ export default async function AdminConversationsPage({
             )
           }
           conversaAberta={isChatOpenOnMobile}
-          ficha={
-            selectedContact ? (
-              <FichaConversa
-                canal={selectedContact.canal}
-                linhas={[
-                  ...(selectedContact.telefone
-                    ? [{ rotulo: t("Telefone"), valor: selectedContact.telefone }]
-                    : []),
-                  {
-                    rotulo: t("Primeiro contato"),
-                    valor: formatarData(selectedContact.criado_em, timeZone, locale, t("Sem data"), {
-                      dateStyle: "medium",
-                    }),
-                  },
-                  {
-                    rotulo: t("Última atividade"),
-                    valor: formatarData(
-                      selectedSummary?.lastActivityAt ?? selectedContact.atualizado_em,
-                      timeZone,
-                      locale,
-                      t("Sem data"),
-                    ),
-                  },
-                  {
-                    rotulo: t("Histórico"),
-                    valor:
-                      (selectedSummary?.messageCount ?? 0) === 1
-                        ? t("{n} mensagem", { n: 1 })
-                        : t("{n} mensagens", { n: selectedSummary?.messageCount ?? 0 }),
-                  },
-                  {
-                    rotulo: t("Identificador"),
-                    valor: (
-                      <span className="font-mono text-xs font-normal break-all text-muted-foreground">
-                        {selectedContact.identificador_conversa}
-                      </span>
-                    ),
-                  },
-                ]}
-                situacao={situacaoDe(selectedContact.identificador_conversa)}
-              />
-            ) : null
-          }
           lista={
             <>
               <TopoLista>
-                <BuscaConversas estado={estado} />
+                <h1 className="px-1 text-lg font-semibold tracking-tight text-foreground">{t("Conversas")}</h1>
+                <BuscaEFiltros estado={estado} />
                 <FiltroTrilho
                   opcoes={[
                     {
@@ -649,6 +634,11 @@ export default async function AdminConversationsPage({
                   ]}
                   rotulo={t("Situação")}
                 />
+                <FiltrosAtivos
+                  estado={estado}
+                  nomeFuso={getTimezoneLabel(timeZone)}
+                  nomePeriodo={searchQuery ? t("Busca em todo o período") : t(range.label)}
+                />
               </TopoLista>
               <ListaConversas
                 itens={itens}
@@ -660,7 +650,7 @@ export default async function AdminConversationsPage({
                         ? t("Confira o nome ou tente pelo número.")
                         : situacaoPedida
                           ? t("Todas as conversas deste período já foram respondidas.")
-                          : t("Troque o período no topo para ver conversas mais antigas.")
+                          : t("Troque o período em Filtros para ver conversas mais antigas.")
                     }
                     titulo={
                       searchQuery
