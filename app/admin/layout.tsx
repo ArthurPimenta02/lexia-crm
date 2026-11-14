@@ -10,6 +10,7 @@ import { getLoggedInUserProfile } from "@/lib/auth/profile";
 
 const adminNavigation = [
   { label: "Dashboard", href: "/admin", icon: "dashboard" },
+  { label: "Clientes", href: "/admin/clientes", icon: "clientes" },
   { label: "Analista Lexia", href: "/admin/analista", icon: "analista" },
   { label: "Campanhas", href: "/admin/campanhas", icon: "campanhas" },
   { label: "Eventos Meta", href: "/admin/eventos-meta", icon: "eventos" },
