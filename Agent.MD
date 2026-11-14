@@ -310,6 +310,7 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 | `/admin/conversas` | Conversas por cliente. | Sim |
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
 | `/admin/feedbacks` | Triagem de feedbacks. | Sim |
+| `/admin/clientes` | **Clientes** (2026-11-14): lista de todos os clientes com busca por nome/slug, filtro por situação (ativos, inativos, em teste), estado, modo de teste, follow-ups de 3/7 dias e número de contatos; cada linha abre `/admin/clientes/[slug]`. service_role, só `lexia_admin`. | Sim |
 | `/admin/clientes/novo` | Criação de cliente. | Não |
 | `/admin/clientes/[slug]` | Detalhe e gestão do cliente. Desde 2026-11-14 (Miranda e Detail): bloco **Follow-ups de 3 e 7 dias** com o interruptor `lexia_clientes.followups_longos` (migration `202611140017_followups_longos.sql`, rollback em `supabase/rollbacks/`) e a fila do que está agendado, lida de `lexia_eventos` (`followup_longo_agendado` sem `followup_enviado`/`_cancelado`/`_encerrado` depois; `lib/temperatura/leitura.ts`). | Não |
 | `/admin/ajustes` | Ajustes/regras do agente. | Não |
