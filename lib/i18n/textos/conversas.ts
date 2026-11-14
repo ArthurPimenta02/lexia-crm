@@ -14,6 +14,10 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Temperatura": "Temperatura",
+    "Quente": "Quente",
+    "Morno": "Morno",
+    "Frio": "Frio",
     "{n} resultado": "{n} resultado",
     "{n} resultados": "{n} resultados",
     "{n} conversa": "{n} conversa",
@@ -251,6 +255,10 @@ const textos: TextosDaArea = {
     "Analisados": "Analisados",
   },
   es: {
+    "Temperatura": "Temperatura",
+    "Quente": "Caliente",
+    "Morno": "Tibio",
+    "Frio": "Frío",
     "{n} resultado": "{n} resultado",
     "{n} resultados": "{n} resultados",
     "{n} conversa": "{n} conversación",
@@ -488,6 +496,10 @@ const textos: TextosDaArea = {
     "Analisados": "Revisados",
   },
   en: {
+    "Temperatura": "Temperature",
+    "Quente": "Hot",
+    "Morno": "Warm",
+    "Frio": "Cold",
     "{n} resultado": "{n} result",
     "{n} resultados": "{n} results",
     "{n} conversa": "{n} conversation",

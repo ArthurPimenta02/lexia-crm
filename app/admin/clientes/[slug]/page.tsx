@@ -34,6 +34,7 @@ import {
 } from "@/app/components/tela";
 import { ClientUserForm } from "@/app/admin/clientes/[slug]/client-user-form";
 import { ClientSettingsForm } from "@/app/admin/clientes/[slug]/settings-form";
+import { FollowupsLongosBloco } from "@/app/admin/clientes/[slug]/followups-longos";
 import { ConfirmActionButton } from "@/app/components/confirm-action-button";
 import { ExpandableText } from "@/app/components/expandable-text";
 import {
@@ -762,6 +763,8 @@ export default async function ClientDetailPage({
           </div>
         </details>
       </Bloco>
+
+      <FollowupsLongosBloco clienteSlug={clientData.slug} locale={locale} timeZone={timeZone} />
 
       <Bloco
         legenda={

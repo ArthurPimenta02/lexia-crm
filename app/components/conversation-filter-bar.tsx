@@ -24,6 +24,8 @@ import { getT } from "@/lib/i18n/servidor";
  * só o que se pede, para nenhum filtro apagar os outros.
  */
 export type SituacaoFiltro = "" | "esperando";
+/** Temperatura do lead (14/11): frio, morno ou quente, decidida pelo Juiz de follow-up. */
+export type TemperaturaFiltro = "" | "frio" | "morno" | "quente";
 
 export type EstadoConversas = {
   basePath: string;
@@ -34,6 +36,7 @@ export type EstadoConversas = {
   fuso: string;
   periodo: ConversationPeriodState;
   situacao: SituacaoFiltro;
+  temperatura?: TemperaturaFiltro;
 };
 
 export function hrefConversas(
@@ -47,6 +50,7 @@ export function hrefConversas(
   if (e.canal) params.set("canal", e.canal);
   if (e.busca) params.set("busca", e.busca);
   if (e.situacao) params.set("situacao", e.situacao);
+  if (e.temperatura) params.set("temperatura", e.temperatura);
   params.set("fuso", e.fuso);
   appendConversationPeriodParams(params, e.periodo);
   if (e.conversa) params.set("conversa", e.conversa);
@@ -61,6 +65,7 @@ function CamposEscondidos({ estado }: { estado: EstadoConversas }) {
       {estado.cliente ? <input name="cliente" type="hidden" value={estado.cliente} /> : null}
       {estado.canal ? <input name="canal" type="hidden" value={estado.canal} /> : null}
       {estado.situacao ? <input name="situacao" type="hidden" value={estado.situacao} /> : null}
+      {estado.temperatura ? <input name="temperatura" type="hidden" value={estado.temperatura} /> : null}
       <input name="fuso" type="hidden" value={estado.fuso} />
       <input name="periodo" type="hidden" value={estado.periodo.key} />
       {estado.periodo.key === "personalizado" ? (

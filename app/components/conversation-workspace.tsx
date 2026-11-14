@@ -150,7 +150,12 @@ export type ItemConversa = {
   /** Sem nome nem número: o rosto mostra "?" em vez das iniciais de "Sem nome". */
   semNome?: boolean;
   situacao: SituacaoConversa | null;
+  /** Temperatura do lead (14/11), decidida pelo Juiz de follow-up; null = ainda não avaliado. */
+  temperatura?: "frio" | "morno" | "quente" | null;
 };
+
+const SELO_TEMPERATURA = { quente: "ds-selo-perigo", morno: "ds-selo-ouro", frio: "ds-selo-neutro" } as const;
+const NOME_TEMPERATURA = { quente: "Quente", morno: "Morno", frio: "Frio" } as const;
 
 export async function ListaConversas({
   itens,
@@ -188,6 +193,9 @@ export async function ListaConversas({
             </div>
             <div className="mt-0.5 flex min-w-0 items-center gap-2">
               <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-muted-foreground">{item.previa}</p>
+              {item.temperatura ? (
+                <span className={`ds-selo ${SELO_TEMPERATURA[item.temperatura]} shrink-0`}>{t(NOME_TEMPERATURA[item.temperatura])}</span>
+              ) : null}
               {item.foraDoPeriodo ? (
                 <span className="ds-selo ds-selo-ouro shrink-0">{t("Fora do período")}</span>
               ) : item.situacao === "esperando" ? (
