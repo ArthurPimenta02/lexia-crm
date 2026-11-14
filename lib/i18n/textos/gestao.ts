@@ -10,6 +10,7 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "No ar": "No ar",
     "na Lexia.": "na Lexia.",
     "Buscar cliente": "Procurar cliente",
     "Buscar": "Procurar",
@@ -390,6 +391,7 @@ const textos: TextosDaArea = {
     "Passos": "Passos",
   },
   es: {
+    "No ar": "En vivo",
     "na Lexia.": "en Lexia.",
     "Buscar cliente": "Buscar cliente",
     "Buscar": "Buscar",
@@ -770,6 +772,7 @@ const textos: TextosDaArea = {
     "Passos": "Pasos",
   },
   en: {
+    "No ar": "Live",
     "na Lexia.": "on Lexia.",
     "Buscar cliente": "Search clients",
     "Buscar": "Search",

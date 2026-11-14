@@ -29,7 +29,18 @@ type Cliente = {
 
 const primeiro = (v: string | string[] | undefined) => (Array.isArray(v) ? (v[0] ?? "") : (v ?? ""));
 const normalizar = (v: string) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-const SITUACOES = ["", "ativo", "inativo", "teste"] as const;
+const SITUACOES = ["", "no_ar", "teste", "inativo"] as const;
+/**
+ * Uma situação só por cliente (14/11): antes saíam "Ativo" (a conta) e "Modo teste"
+ * (a etiqueta), e todos apareciam com as duas. Agora: Inativo/Suspenso se a conta não
+ * está ativa; senão Em teste se o modo teste está marcado; senão No ar.
+ */
+type Situacao = "no_ar" | "teste" | "inativo" | "suspenso";
+const situacaoDe = (c: { status: string | null; modo_teste: boolean | null }): Situacao =>
+  (c.status ?? "ativo") === "suspenso" ? "suspenso"
+  : (c.status ?? "ativo") !== "ativo" ? "inativo"
+  : c.modo_teste ? "teste"
+  : "no_ar";
 
 export default async function ClientesPage({ searchParams }: ClientesPageProps) {
   const { profile } = await getLoggedInUserProfile();
@@ -69,11 +80,9 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   );
 
   const termo = normalizar(busca);
-  const daSituacao = (c: Cliente) =>
-    situacao === "" ? true
-    : situacao === "teste" ? Boolean(c.modo_teste)
-    : situacao === "ativo" ? (c.status ?? "ativo") === "ativo"
-    : (c.status ?? "ativo") !== "ativo";
+  const noFiltro = (c: Cliente, s: string) =>
+    s === "" ? true : s === "inativo" ? ["inativo", "suspenso"].includes(situacaoDe(c)) : situacaoDe(c) === s;
+  const daSituacao = (c: Cliente) => noFiltro(c, situacao);
   const porBusca = clientes.filter((c) => !termo || normalizar(`${c.nome ?? ""} ${c.slug}`).includes(termo));
   const visiveis = porBusca.filter(daSituacao);
 
@@ -86,9 +95,9 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
     const q = p.toString();
     return `/admin/clientes${q ? `?${q}` : ""}`;
   };
-  const contar = (s: string) => porBusca.filter((c) => (s === "" ? true : s === "teste" ? Boolean(c.modo_teste) : s === "ativo" ? (c.status ?? "ativo") === "ativo" : (c.status ?? "ativo") !== "ativo")).length;
-  const nomeStatus: Record<string, string> = { ativo: t("Ativo"), inativo: t("Inativo"), suspenso: t("Suspenso") };
-  const seloStatus: Record<string, string> = { ativo: "ds-selo-verde", inativo: "ds-selo-neutro", suspenso: "ds-selo-alerta" };
+  const contar = (s: string) => porBusca.filter((c) => noFiltro(c, s)).length;
+  const nomeSituacao: Record<Situacao, string> = { no_ar: t("No ar"), teste: t("Em teste"), inativo: t("Inativo"), suspenso: t("Suspenso") };
+  const seloSituacao: Record<Situacao, string> = { no_ar: "ds-selo-verde", teste: "ds-selo-ouro", inativo: "ds-selo-neutro", suspenso: "ds-selo-alerta" };
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-6">
@@ -121,9 +130,9 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
         <FiltroTrilho
           opcoes={[
             { ativo: situacao === "", href: href({ situacao: "" }), label: t("Todos"), quantidade: contar("") },
-            { ativo: situacao === "ativo", href: href({ situacao: "ativo" }), label: t("Ativos"), quantidade: contar("ativo") },
-            { ativo: situacao === "inativo", href: href({ situacao: "inativo" }), label: t("Inativos"), quantidade: contar("inativo") },
+            { ativo: situacao === "no_ar", href: href({ situacao: "no_ar" }), label: t("No ar"), quantidade: contar("no_ar") },
             { ativo: situacao === "teste", href: href({ situacao: "teste" }), label: t("Em teste"), quantidade: contar("teste") },
+            { ativo: situacao === "inativo", href: href({ situacao: "inativo" }), label: t("Inativos"), quantidade: contar("inativo") },
           ]}
           rotulo={t("Situação")}
         />
@@ -139,7 +148,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
         ) : (
           <div className="tela-lista p-1.5">
             {visiveis.map((c) => {
-              const status = c.status ?? "ativo";
+              const sit = situacaoDe(c);
               const contactos = contagens.get(c.slug) ?? 0;
               return (
                 <Link className="tela-linha flex-wrap sm:flex-nowrap" href={`/admin/clientes/${encodeURIComponent(c.slug)}`} key={c.slug}>
@@ -153,8 +162,7 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="min-w-0 truncate text-sm font-semibold text-foreground">{c.nome || c.slug}</span>
-                      <span className={`ds-selo ${seloStatus[status] ?? "ds-selo-neutro"}`}>{nomeStatus[status] ?? status}</span>
-                      {c.modo_teste ? <span className="ds-selo ds-selo-ouro">{t("Modo teste")}</span> : null}
+                      <span className={`ds-selo ${seloSituacao[sit]}`}>{nomeSituacao[sit]}</span>
                       {c.followups_longos ? <span className="ds-selo ds-selo-neutro">{t("Follow-ups de 3 e 7 dias")}</span> : null}
                     </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
