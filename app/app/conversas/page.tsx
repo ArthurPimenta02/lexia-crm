@@ -40,6 +40,7 @@ import { assinarMidias } from "@/lib/conversations/media-urls";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
+import { ehTemperatura, lerTemperaturas, TEMPERATURAS } from "@/lib/temperatura/leitura";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 
@@ -53,6 +54,7 @@ type ConversationsPageProps = {
     inicio?: string | string[];
     periodo?: string | string[];
     situacao?: string | string[];
+    temperatura?: string | string[];
   }>;
 };
 
@@ -267,11 +269,12 @@ export default async function ClientConversationsPage({
   const requestedHistoryPromise = requestedConversation
     ? loadConversationHistory(requestedConversation)
     : Promise.resolve(emptyMessagesResult);
-  const [contactsResult, messagesResult, requestedHistoryResult] =
+  const [contactsResult, messagesResult, requestedHistoryResult, temperaturas] =
     await Promise.all([
       contactsPromise,
       periodMessagesPromise,
       requestedHistoryPromise,
+      lerTemperaturas(supabase, profile.cliente_slug),
     ]);
 
   if (contactsResult.error) {
@@ -358,6 +361,8 @@ export default async function ClientConversationsPage({
     displayMessages[displayMessages.length - 1]?.displayId ?? "sem-mensagens";
 
   const situacaoPedida = getSearchValue(params.situacao) === "esperando" ? "esperando" : "";
+  const temperaturaParam = getSearchValue(params.temperatura);
+  const temperaturaPedida = ehTemperatura(temperaturaParam) ? temperaturaParam : "";
   const estado: EstadoConversas = {
     basePath: "/app/conversas",
     busca: searchQuery,
@@ -366,6 +371,7 @@ export default async function ClientConversationsPage({
     fuso: selectedTimezone.value,
     periodo: periodState,
     situacao: situacaoPedida,
+    temperatura: temperaturaPedida,
   };
   const timeZone = selectedTimezone.timeZone;
   // A situação vem da última mensagem do período, a mesma regra do dashboard.
@@ -374,13 +380,24 @@ export default async function ClientConversationsPage({
   const esperando = sortedContacts.filter(
     (contact) => situacaoDe(contact.identificador_conversa) === "esperando",
   ).length;
-  const contatosVisiveis = situacaoPedida
+  const temperaturaDe = (identificador: string) => temperaturas.get(identificador)?.temperatura ?? null;
+  const porSituacao = situacaoPedida
     ? sortedContacts.filter(
         (contact) =>
           situacaoDe(contact.identificador_conversa) === "esperando" ||
           contact.identificador_conversa === requestedConversation,
       )
     : sortedContacts;
+  // Temperatura do lead (14/11): filtro por cima da situação; a conversa aberta fica sempre.
+  const contagemTemperatura = (tp: string) =>
+    porSituacao.filter((contact) => temperaturaDe(contact.identificador_conversa) === tp).length;
+  const contatosVisiveis = temperaturaPedida
+    ? porSituacao.filter(
+        (contact) =>
+          temperaturaDe(contact.identificador_conversa) === temperaturaPedida ||
+          contact.identificador_conversa === requestedConversation,
+      )
+    : porSituacao;
   const itens = contatosVisiveis.map((contact) => {
     const isSelected =
       selectedContact?.identificador_conversa === contact.identificador_conversa;
@@ -405,8 +422,11 @@ export default async function ClientConversationsPage({
       selecionado: isSelected,
       semNome: !contact.nome && !contact.telefone,
       situacao: situacaoDe(contact.identificador_conversa),
+      temperatura: temperaturaDe(contact.identificador_conversa),
     };
   });
+  const temperaturaAberta = selectedContact ? temperaturas.get(selectedContact.identificador_conversa) : undefined;
+  const NOMES_TEMPERATURA = { quente: t("Quente"), morno: t("Morno"), frio: t("Frio") };
   const nomeSelecionado = selectedContact
     ? selectedContact.nome || selectedContact.telefone || t("Sem nome")
     : "";
@@ -520,6 +540,14 @@ export default async function ClientConversationsPage({
                     t("Sem data"),
                   ),
                 },
+                ...(temperaturaAberta
+                  ? [{
+                      rotulo: t("Temperatura"),
+                      valor: temperaturaAberta.motivo
+                        ? `${NOMES_TEMPERATURA[temperaturaAberta.temperatura]} · ${temperaturaAberta.motivo}`
+                        : NOMES_TEMPERATURA[temperaturaAberta.temperatura],
+                    }]
+                  : []),
                 {
                   rotulo: t("Histórico"),
                   valor:
@@ -553,6 +581,25 @@ export default async function ClientConversationsPage({
                 ]}
                 rotulo={t("Situação")}
               />
+              {temperaturas.size > 0 ? (
+                <FiltroTrilho
+                  opcoes={[
+                    {
+                      ativo: !temperaturaPedida,
+                      href: hrefConversas(estado, { temperatura: "" }),
+                      label: t("Todas"),
+                      quantidade: porSituacao.length,
+                    },
+                    ...TEMPERATURAS.map((tp) => ({
+                      ativo: temperaturaPedida === tp,
+                      href: hrefConversas(estado, { temperatura: tp }),
+                      label: NOMES_TEMPERATURA[tp],
+                      quantidade: contagemTemperatura(tp),
+                    })),
+                  ]}
+                  rotulo={t("Temperatura")}
+                />
+              ) : null}
             </TopoLista>
             <ListaConversas
               itens={itens}

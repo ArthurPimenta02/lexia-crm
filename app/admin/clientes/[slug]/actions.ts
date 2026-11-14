@@ -412,3 +412,36 @@ export async function clearClientTestData(clienteSlug: string) {
 
   return { ok: true };
 }
+
+/**
+ * Interruptor dos follow-ups de 3 e 7 dias (14/11/2026). Os agentes leem
+ * `lexia_clientes.followups_longos` a cada minuto: desligado, nenhum sai e
+ * nenhum novo é agendado (frio, morno e quente ficam só com 1 h e 24 h).
+ */
+export async function definirFollowupsLongos(clienteSlug: string, ligado: boolean) {
+  const t = await getT();
+
+  if (!(await isLexiaAdmin()) || !clienteSlug) {
+    return { ok: false, error: t("Acesso não autorizado.") };
+  }
+
+  let supabaseAdmin: ReturnType<typeof createAdminClient>;
+  try {
+    supabaseAdmin = createAdminClient();
+  } catch {
+    return { ok: false, error: t("Não foi possível criar o client admin do Supabase.") };
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("lexia_clientes")
+    .update({ followups_longos: ligado })
+    .eq("slug", clienteSlug)
+    .select("slug");
+
+  if (error || !data?.length) {
+    return { ok: false, error: t("Não foi possível guardar. A coluna followups_longos já foi criada na base?") };
+  }
+
+  revalidatePath(`/admin/clientes/${clienteSlug}`);
+  return { ok: true, error: null };
+}

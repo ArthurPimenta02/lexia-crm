@@ -269,7 +269,7 @@ Arquivos de referência:
 | `/app/analista` | Chat analítico isolado do próprio cliente. | Sim |
 | `/app/campanhas` | Gasto e entrega das campanhas da Meta do próprio cliente. | Sim |
 | `/app/servicos` | Custo, preço e margem por serviço. Edição apenas para `cliente_admin`. | Sim |
-| `/app/conversas` | Conversas reais. | Sim |
+| `/app/conversas` | Conversas reais. Desde 2026-11-14: selo e filtro de **temperatura do lead** (frio/morno/quente, decidida pelo Juiz de follow-up dos agentes; o evento mais recente `lead_temperatura` de `lexia_eventos`, sessão do usuário, filtrado por `cliente_slug`) e o motivo na ficha. | Sim |
 | `/app/area-testes` | Simulação do agente. | Sim |
 | `/app/handoffs` | Handoffs reais e simulados. | Sim |
 | `/app/feedbacks` | Histórico de feedbacks. | Sim |
@@ -311,7 +311,7 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 | `/admin/handoffs` | Gestão de handoffs. | Sim |
 | `/admin/feedbacks` | Triagem de feedbacks. | Sim |
 | `/admin/clientes/novo` | Criação de cliente. | Não |
-| `/admin/clientes/[slug]` | Detalhe e gestão do cliente. | Não |
+| `/admin/clientes/[slug]` | Detalhe e gestão do cliente. Desde 2026-11-14 (Miranda e Detail): bloco **Follow-ups de 3 e 7 dias** com o interruptor `lexia_clientes.followups_longos` (migration `202611140017_followups_longos.sql`, rollback em `supabase/rollbacks/`) e a fila do que está agendado, lida de `lexia_eventos` (`followup_longo_agendado` sem `followup_enviado`/`_cancelado`/`_encerrado` depois; `lib/temperatura/leitura.ts`). | Não |
 | `/admin/ajustes` | Ajustes/regras do agente. | Não |
 | `/admin/execucoes` | Execuções com detalhes brutos. | Não |
 | `/admin/configuracoes` | Placeholder. | Não |
