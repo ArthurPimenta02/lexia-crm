@@ -83,6 +83,13 @@ export async function gerarRascunho(admin: SupabaseClient, clienteSlug: string, 
       const { error } = await admin.from("lexia_onboarding_itens").update({ removido_em: agora() }).eq("cliente_slug", clienteSlug).eq("onboarding_id", onb.id).is("removido_em", null);
       if (error) throw new Error(error.message);
     }
+    // Os rascunhos da geração anterior saem: um campo que a IA achou antes e agora não acha não pode
+    // ficar para trás. Só se apagam linhas "rascunho" (nunca uma resposta), e só aqui, antes de a conversa
+    // ser liberada (a guarda no topo garante), quando ainda não existe resposta nenhuma da cliente.
+    {
+      const { error } = await admin.from("lexia_onboarding_campos").delete().eq("cliente_slug", clienteSlug).eq("onboarding_id", onb.id).eq("estado", "rascunho");
+      if (error) throw new Error(error.message);
+    }
     await acrescentarLinhas(admin, clienteSlug, onb.id, linhas, feitoPor);
     const ordem: Record<string, number> = {};
     for (const item of itens) {

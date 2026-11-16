@@ -8,7 +8,9 @@
  * consulta sai sem o slug.
  *
  * NUNCA PERDER DADOS: o diário de campos e as mensagens só recebem INSERT.
- * Não há UPDATE nem DELETE de respostas neste ficheiro.
+ * Não há UPDATE nem DELETE de respostas neste ficheiro. (A única limpeza que
+ * existe é a dos rascunhos da IA quando o rascunho é gerado de novo, em
+ * `etapa1.ts`, antes de a conversa começar.)
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 

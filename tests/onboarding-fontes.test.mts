@@ -81,3 +81,13 @@ test("o formato pedido à IA só aceita chaves que existem e nunca pede arquivos
     assert.ok(c.tipo !== "upload" && !c.quando, k);
   }
 });
+
+test("escolhas do dono não se deduzem do site: só entram se a equipe as anotou", () => {
+  const pos = campo("posicionamento");
+  assert.equal(pos.modo, "cartao");
+  const doSite = rascunhoParaCaderno({ ...vazio, campos: [{ chave: "posicionamento", valor: pos.opcoes![0], lista: [], fonte: "site", trecho: "Top 10" }] });
+  assert.deepEqual(doSite.linhas, [], "posicionamento deduzido do site não entra");
+  const daLexia = rascunhoParaCaderno({ ...vazio, campos: [{ chave: "posicionamento", valor: pos.opcoes![0], lista: [], fonte: "lexia", trecho: "ela disse" }] });
+  assert.equal(daLexia.linhas.length, 1, "anotado pela equipe entra (como rascunho)");
+  assert.equal(daLexia.linhas[0].estado, "rascunho");
+});
