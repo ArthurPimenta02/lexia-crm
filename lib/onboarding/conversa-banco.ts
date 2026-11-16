@@ -26,7 +26,7 @@ export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, o
       const { data, error } = await admin.from("lexia_onboardings").select("cursor").eq("cliente_slug", clienteSlug).eq("id", onboardingId).maybeSingle();
       falhar("andamento", error);
       const c = ((data as { cursor: Partial<Andamento> | null } | null)?.cursor ?? {}) as Partial<Andamento>;
-      return { listas: c.listas ?? ANDAMENTO_VAZIO.listas, gruposPerguntados: c.gruposPerguntados ?? ANDAMENTO_VAZIO.gruposPerguntados };
+      return { listas: c.listas ?? ANDAMENTO_VAZIO.listas, gruposPerguntados: c.gruposPerguntados ?? ANDAMENTO_VAZIO.gruposPerguntados, ...(c.semResposta ? { semResposta: c.semResposta } : {}) };
     },
     async gravarAndamento(a: Andamento) {
       const { error } = await admin.from("lexia_onboardings").update({ cursor: a, atualizado_em: new Date().toISOString() }).eq("cliente_slug", clienteSlug).eq("id", onboardingId);

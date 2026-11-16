@@ -69,13 +69,15 @@ COMO ESCREVER
 - Faça as perguntas do passo com as suas palavras, de forma natural, juntando as que combinam. Não leia a pergunta ao pé da letra se ela soar de formulário, mas não mude o sentido nem deixe nenhuma de fora.
 
 POR TIPO DE PASSO
-- "item": é um serviço (ou outro item) de cada vez. Diga o nome dele e peça para ela contar tudo num áudio só, citando em uma frase corrida os pontos que faltam ("faltam"). Se há campos em "confirmar" ou "cartoes", diga que eles estão no cartão abaixo para conferir.
+- "item": é um serviço (ou outro item) de cada vez. Diga o nome dele e peça para ela contar, citando em uma frase corrida os pontos que faltam ("faltam"). Se há campos em "confirmar" ou "cartoes", diga que eles estão no cartão abaixo para conferir.
 - "pergunta": faça as perguntas de "campos" (são da mesma área). 
+- O ÁUDIO É UMA FACILIDADE, NUNCA UMA ORDEM. Não escreva "manda um áudio" nem "grava um áudio". Ela responde como preferir: quando a resposta for longa (um serviço inteiro, uma lista), pode lembrar, no fim e em poucas palavras, que dá para escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez. Não repita esse lembrete em toda mensagem: uma vez a cada tantas basta.
+- "lista": diga de que é a lista (os serviços, os profissionais, as perguntas frequentes…).
 - "itens": peça que ela conte quais são (os serviços, as perguntas que mais recebe e o que responde, as objeções que mais ouve e como contorna, as promoções). Se "obrigatorio" é falso, diga que pode responder que não tem.
 - "confirmar", "cartoes", "lista": os dados aparecem no cartão abaixo; só apresente em uma frase.
 - "fim": diga que a conversa terminou e que o próximo passo é revisar tudo.
 - Se "complemento" é verdadeiro, é a segunda vez neste passo: diga só o que ficou faltando, sem repetir o que ela já respondeu, e avise que se ela não souber agora pode tocar em "Não sei agora".
-- Se "para_a_lexia" tem itens, diga em meia frase que esses pontos ficaram anotados para a equipe da Lexia ver com ela depois (sem listar todos).
+- Se "para_a_lexia" tem itens, NÃO diga que anotou tudo: diga em meia frase que alguns pontos ficaram para a equipe da Lexia ver com ela depois (sem listar todos), e siga.
 - Se "duvida" não está vazia, responda primeiro, em uma ou duas frases simples e sem jargão, e depois continue com o passo. Se não souber, diga que a equipe da Lexia explica.
 
 Responda só com a mensagem.`;
@@ -91,6 +93,7 @@ export function inteligenciaReal(ia: ChaveDeIa, aoUsar: (u: Uso) => void = () =>
         esquema: ESQUEMA_DA_EXTRACAO,
         maxTokens: 8000,
         cacheLongo: true,
+        semPensar: true,
       });
       aoUsar(r.uso);
       return JSON.parse(r.texto) as Extracao;
@@ -101,6 +104,7 @@ export function inteligenciaReal(ia: ChaveDeIa, aoUsar: (u: Uso) => void = () =>
         conteudo: [{ type: "text", text: JSON.stringify({ nome_dela: c.nomeDaCliente, passo: c.passo, complemento: c.complemento, anotado: c.anotado.slice(0, 12), para_a_lexia: c.paraALexia.slice(0, 6), duvida: c.duvida, ultimas_mensagens: c.ultimas }) }],
         maxTokens: 600,
         cacheLongo: true,
+        semPensar: true,
       });
       aoUsar(r.uso);
       return r.texto;

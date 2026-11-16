@@ -235,17 +235,35 @@ function progressoDe(linhas: LinhaDoCaderno[], itens: ItemDoCaderno[], terminou:
 
 const ultimasDe = (ms: MensagemDaConversa[]) => ms.slice(-6).map((m) => ({ autor: m.autor, texto: m.conteudo.slice(0, 700) }));
 
+const LISTA_ACHADA: Record<GrupoQueRepete, string> = {
+  servicos: "Estes são os serviços que eu encontrei.",
+  profissionais: "Estes são os profissionais que eu encontrei.",
+  faqs: "Estas são as perguntas frequentes que eu encontrei.",
+  objecoes: "Estas são as objeções que eu encontrei.",
+  promocoes: "Estas são as promoções que eu encontrei.",
+};
+const QUAIS_SAO: Record<GrupoQueRepete, string> = {
+  servicos: "Quais serviços você oferece?",
+  profissionais: "Quem atende aí com você, e o que cada pessoa faz?",
+  faqs: "Quais são as perguntas que as clientes mais fazem, e o que você costuma responder?",
+  objecoes: "Quais objeções você mais ouve (preço, medo, tempo) e como costuma responder?",
+  promocoes: "Você tem alguma promoção ou pacote valendo agora?",
+};
+const PRINCIPAIS: Record<GrupoQueRepete, string> = { servicos: "os serviços principais", profissionais: "quem atende", faqs: "as perguntas mais comuns", objecoes: "as objeções mais comuns", promocoes: "as promoções principais" };
+
 /** A fala de reserva, quando a IA não responde: seca, mas correta, e a conversa não para. */
 export function falaPadrao(cartao: Cartao, complemento: boolean): string {
   switch (cartao.tipo) {
     case "confirmar":
       return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim? O que estiver errado, é só corrigir no próprio campo.";
     case "lista":
-      return "Estes são os que eu encontrei. Desmarca o que você não oferece e acrescenta o que estiver faltando.";
+      return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
-      return complemento ? "Consegue me contar pelo menos os principais? Pode ser por áudio." : "Me conta quais são, pode ser por áudio.";
+      return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
     case "item":
-      return complemento ? `Sobre ${cartao.nome || "este item"}, ficou faltando só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}` : `Agora me conta sobre ${cartao.nome || "este item"}. Pode mandar tudo num áudio só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}`;
+      return complemento
+        ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está na lista abaixo.`
+        : `Agora me conta sobre ${cartao.nome || "este item"}: o que eu preciso saber está na lista abaixo. Pode escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez.`;
     case "cartoes":
       return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
     case "pergunta":
@@ -408,7 +426,16 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const perguntados = new Set(perguntadosNoPasso(passo).map((c) => chave(c.campo.chave, c.itemId)));
   // Se ela só fez uma pergunta (ou só mandou um arquivo) e não respondeu a nada, o passo repete-se sem gastar uma tentativa.
   const semResposta = resolvidas.size === 0 && !resposta.pular && !resposta.nenhum && !(resposta.valores ?? []).length && !resposta.lista;
-  const naoConta = semResposta && (!!duvida || (!limpo(resposta.texto) && resposta.tipoDoArquivo === "arquivo"));
+  // Também não gasta tentativa a PRIMEIRA resposta que não toca em nenhuma das perguntas do passo
+  // ("está tudo certo", ao conferir o cartão). À segunda vez seguida no mesmo passo, conta: a conversa não fica presa.
+  const idDoPasso = passo.tipo === "item" ? `item:${passo.itemId}` : passo.tipo === "pergunta" ? `pergunta:${passo.campos.map((c) => c.campo.chave).join(",")}` : passo.tipo === "itens" ? `itens:${passo.grupo}` : "";
+  const nenhumaDasPerguntas = !!idDoPasso && !resposta.pular && !resposta.nenhum && ![...perguntados].some((x) => resolvidas.has(x)) && !(passo.tipo === "itens" && itens.some((i) => i.grupo === passo.grupo && !i.removido));
+  // Só na primeira vez que o passo aparece (nenhuma das perguntas dele foi contada ainda).
+  const nuncaContado = perguntadosNoPasso(passo).every((c) => c.linha?.estado !== "vago");
+  const segundaVezSemResposta = nenhumaDasPerguntas && andamento.semResposta === idDoPasso;
+  const primeiraVezSemResposta = nenhumaDasPerguntas && !segundaVezSemResposta && nuncaContado;
+  andamento.semResposta = nenhumaDasPerguntas ? idDoPasso : undefined;
+  const naoConta = primeiraVezSemResposta || (semResposta && (!!duvida || (!limpo(resposta.texto) && resposta.tipoDoArquivo === "arquivo")));
   if (passo.tipo === "itens" && naoConta) andamento.gruposPerguntados.pop();
   for (const c of naoConta ? [] : doPasso) {
     const k = chave(c.campo.chave, c.itemId);
@@ -419,7 +446,9 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
       continue;
     }
     // Conta uma pergunta. À segunda sem resposta, o caderno passa-o a pendência (nunca uma terceira).
-    const perguntas = (c.linha?.estado === "vago" ? c.linha.perguntas : 0) + 1;
+    // Duas respostas seguidas sem tocar em nenhuma pergunta do passo: a primeira foi de graça, esta fecha o assunto
+    // (o passo já lhe apareceu duas vezes; não aparece uma terceira).
+    const perguntas = segundaVezSemResposta && perguntados.has(k) ? 2 : (c.linha?.estado === "vago" ? c.linha.perguntas : 0) + 1;
     novas.push({ campo: c.campo.chave, itemId: c.itemId, valor: perguntados.has(k) ? null : (c.linha?.valor ?? null), estado: "vago", fonte: "cliente", evidencia: { mensagem: recebida.id }, perguntas });
     if (perguntas >= 2) paraALexia.push(c.campo.pergunta);
   }

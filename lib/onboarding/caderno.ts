@@ -178,7 +178,12 @@ export type Passo =
   | { tipo: "fim" };
 
 /** O que já foi feito e não se vê no caderno: listas já conferidas e grupos opcionais já perguntados. */
-export type Andamento = { listas: GrupoQueRepete[]; gruposPerguntados: GrupoQueRepete[] };
+export type Andamento = {
+  listas: GrupoQueRepete[];
+  gruposPerguntados: GrupoQueRepete[];
+  /** O passo em que ela já respondeu uma vez sem tocar em nenhuma das perguntas (essa vez não contou como tentativa). */
+  semResposta?: string;
+};
 export const ANDAMENTO_VAZIO: Andamento = { listas: [], gruposPerguntados: [] };
 
 export const LOTE_DE_CONFIRMACAO = 8;
