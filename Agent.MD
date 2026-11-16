@@ -320,7 +320,30 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 ### Onboarding com entrevistadora (em construção, 2026-11-16)
 
 Três etapas dentro do painel: 1) informações gerais (equipe da Lexia), 2) conversa com a
-entrevistadora (cliente), 3) revisão. **Só a Etapa 1 existe.**
+entrevistadora (cliente), 3) revisão. **Existem as Etapas 1 e 2; a revisão ainda não.**
+
+Etapa 2 (conversa):
+
+- `GET/POST /api/onboarding/conversa` (`maxDuration` 300). O GET devolve a conversa e, na
+  primeira vez, cria a abertura. O POST é um turno: grava a mensagem da cliente ANTES de tudo
+  (`id_do_aparelho` único: reenviar não duplica), lê o áudio ou o arquivo, anota e responde.
+  Se algo falhar a meio, a mensagem fica guardada (`processada_em` nulo) e o mesmo envio retoma.
+- `lib/onboarding/conversa.ts` é o motor (sem base nem IA: recebe um `Repositorio` e uma
+  `Inteligencia`). Quem decide o próximo passo é `proximoPasso` em `caderno.ts`: confirmar o
+  rascunho do negócio → lista de serviços → um serviço de cada vez → profissionais → cada seção
+  (cartões de escolha, depois perguntas) → perguntas frequentes, objeções, promoções.
+  Um campo é perguntado no máximo duas vezes; depois é pendência para a Lexia.
+- A IA faz duas coisas separadas (`entrevistadora.ts`): EXTRAIR valores do que a cliente disse
+  (saída em esquema JSON; o código confere cada valor contra o esquema e nunca reescreve o que
+  já foi respondido) e FALAR a próxima mensagem. Claude `claude-sonnet-5`, chave do cliente.
+- Áudio: gravado na tela, enviado ao bucket (`<slug>/conversa/`, até 14 MB) e transcrito pelo
+  Gemini (`gemini-2.5-flash`) com a chave da conexão global `ia` da Lexia (`audio.ts`).
+- O andamento que não se vê no caderno (listas conferidas, grupos já perguntados) vive em
+  `lexia_onboardings.cursor`. Quando o caderno diz "fim", o estado passa a `revisao`.
+- A equipe acompanha a conversa em `/admin/clientes/<slug>/onboarding`, só leitura.
+
+Etapa 1:
+
 
 - `/app/onboarding` é a tela do onboarding **dentro da conta do cliente**. Enquanto o cliente
   estiver em `ecrasPorCliente` com `["/app/onboarding"]` (hoje: `jessica_beauty`), a conta só

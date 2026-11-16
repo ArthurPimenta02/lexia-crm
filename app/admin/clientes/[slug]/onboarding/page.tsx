@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { liberarConversa, salvarEtapa1 } from "@/app/admin/clientes/[slug]/onboarding/actions";
+import { ConversaOnboarding } from "@/app/components/onboarding/conversa";
 import { Etapa1Form } from "@/app/components/onboarding/etapa1-form";
 import { CabecalhoTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
@@ -26,6 +27,7 @@ export default async function OnboardingDoClientePage({ params }: { params: Prom
   if (!cliente) notFound();
   const nome = (cliente as { nome: string | null }).nome ?? slug;
   const dados = await dadosDaEtapa1(admin, slug);
+  const naEtapa1 = dados.estado === "etapa1" || dados.estado === "preparando";
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
@@ -35,11 +37,16 @@ export default async function OnboardingDoClientePage({ params }: { params: Prom
             {t("Voltar ao cliente")}
           </Link>
         }
-        resto={t("Informações gerais")}
-        sobretitulo={`${nome} · ${t("Onboarding")} · ${t("Etapa 1 de 3")}`}
-        subtitulo={t("A equipe da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.")}
+        resto={naEtapa1 ? t("Informações gerais") : t("Conversa")}
+        sobretitulo={`${nome} · ${t("Onboarding")} · ${t("Etapa {n} de 3", { n: naEtapa1 ? 1 : dados.estado === "conversa" ? 2 : 3 })}`}
+        subtitulo={naEtapa1 ? t("A equipe da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.") : undefined}
       />
-      <Etapa1Form {...dados} clienteSlug={slug} liberar={liberarConversa.bind(null, slug)} salvarAcao={salvarEtapa1.bind(null, slug)} />
+      {naEtapa1 ? (
+        <Etapa1Form {...dados} clienteSlug={slug} liberar={liberarConversa.bind(null, slug)} salvarAcao={salvarEtapa1.bind(null, slug)} />
+      ) : (
+        // A equipe acompanha a conversa, sem responder no lugar da cliente.
+        <ConversaOnboarding clienteSlug={slug} somenteLeitura />
+      )}
     </main>
   );
 }
