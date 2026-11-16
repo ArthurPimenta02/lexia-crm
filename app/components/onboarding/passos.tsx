@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 /** As três etapas do onboarding, numa linha: feitas, a atual e as que faltam. */
 export function PassosOnboarding({ atual, itens }: { atual: number; itens: { nota: string; titulo: string }[] }) {
   return (
-    <ol className="grid gap-2 sm:grid-cols-3">
+    <ol className="grid grid-cols-3 gap-2">
       {itens.map((item, i) => {
         const n = i + 1;
         const feita = n < atual;
@@ -11,7 +11,7 @@ export function PassosOnboarding({ atual, itens }: { atual: number; itens: { not
         return (
           <li
             aria-current={ativa ? "step" : undefined}
-            className={`flex min-w-0 items-center gap-3 rounded-xl border px-3.5 py-3 ${ativa ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)]" : "border-[var(--ds-borda)]"} ${!ativa && !feita ? "opacity-60" : ""}`}
+            className={`flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 sm:gap-3 sm:px-3.5 sm:py-3 ${ativa ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)]" : "border-[var(--ds-borda)]"} ${!ativa && !feita ? "opacity-60" : ""}`}
             key={item.titulo}
           >
             <span
@@ -20,8 +20,8 @@ export function PassosOnboarding({ atual, itens }: { atual: number; itens: { not
               {feita ? <Check aria-hidden="true" size={13} strokeWidth={3} /> : n}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-foreground">{item.titulo}</span>
-              <span className="block truncate text-[0.8125rem] text-muted-foreground">{item.nota}</span>
+              <span className="block truncate text-[0.8125rem] font-medium text-foreground sm:text-sm">{item.titulo}</span>
+              <span className="hidden truncate text-[0.8125rem] text-muted-foreground sm:block">{item.nota}</span>
             </span>
           </li>
         );

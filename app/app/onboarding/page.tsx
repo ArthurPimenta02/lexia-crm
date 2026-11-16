@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { liberarConversa, salvarEtapa1 } from "@/app/app/onboarding/actions";
+import { ConversaOnboarding } from "@/app/components/onboarding/conversa";
 import { Etapa1Form } from "@/app/components/onboarding/etapa1-form";
 import { PassosOnboarding } from "@/app/components/onboarding/passos";
 import { CabecalhoTela, VazioTela } from "@/app/components/tela";
@@ -52,9 +53,11 @@ export default async function OnboardingPage() {
       />
       {naEtapa1 ? (
         <Etapa1Form {...dados} liberar={liberarConversa} salvarAcao={salvarEtapa1} />
+      ) : etapa === 2 ? (
+        <ConversaOnboarding />
       ) : (
         <div className="ds-cartao">
-          <VazioTela texto={t("As informações gerais já estão guardadas. A conversa com a entrevistadora é o próximo passo e abre aqui.")} titulo={t("A conversa abre em breve")} />
+          <VazioTela texto={t("A conversa terminou e está tudo guardado. A revisão é o próximo passo e abre aqui.")} titulo={t("A revisão abre em breve")} />
         </div>
       )}
     </div>

@@ -247,7 +247,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
     case "item":
       return complemento ? `Sobre ${cartao.nome || "este item"}, ficou faltando só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}` : `Agora me conta sobre ${cartao.nome || "este item"}. Pode mandar tudo num áudio só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}`;
     case "cartoes":
-      return "Algumas escolhas rápidas. Já deixei marcado o que costuma funcionar melhor; muda o que quiser.";
+      return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
     case "pergunta":
       return cartao.campos.map((c) => c.pergunta).join(" ");
     default:
