@@ -16,6 +16,7 @@ import movelV6 from "./textos/movel-v6";
 import conversasEnvio from "./textos/conversas-envio";
 import ajudante from "./textos/ajudante";
 import conectar from "./textos/conectar";
+import onboarding from "./textos/onboarding";
 import admin from "./textos/admin";
 
 /**
@@ -39,6 +40,7 @@ const AREAS: TextosDaArea[] = [
   conversasEnvio,
   ajudante,
   conectar,
+  onboarding,
   admin,
 ];
 
