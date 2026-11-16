@@ -143,7 +143,8 @@ Recebe o que foi lido das fontes do negócio (site, arquivos, textos colados, an
 REGRAS
 - Nunca invente nem deduza por achar provável. Se a fonte não diz, o campo fica de fora: ele será perguntado ao dono na entrevista.
 - Cada item traz "fonte" (de onde saiu) e "trecho" (até 12 palavras copiadas da fonte, só o bastante para achar o lugar).
-- Nunca escolha a opção "Outro": se nenhuma opção serve, o campo fica de fora. Anotações da equipe da Lexia têm fonte "lexia".
+- Nunca escolha a opção "Outro": se nenhuma opção serve, o campo fica de fora.
+- Escolhas e preferências do dono (posicionamento, tom, emojis, regras de atendimento, como responder) só entram quando estão escritas nas anotações da equipe da Lexia. Nunca as deduza do site, de prêmios, de avaliações ou do estilo dos textos. Anotações da equipe da Lexia têm fonte "lexia".
 - Copie preços, durações e nomes exatamente como estão. Não some, não converta moeda, não arredonde.
 - Campos com opções: use exatamente o texto de uma das opções (em "valor"; se for de escolher várias, em "lista"). Se nenhuma opção corresponder ao que a fonte diz, deixe o campo de fora.
 - Campos de texto: "valor" com a informação, "lista" vazia.
@@ -214,6 +215,8 @@ export function rascunhoParaCaderno(r: RascunhoBruto): { linhas: NovaLinha[]; it
   for (const c of r.campos ?? []) {
     const campo = raiz.get(c.chave);
     if (!campo || vistos.has(c.chave)) continue;
+    // Escolhas do dono (posicionamento, tom, regras) não se deduzem de um site: só entram se a equipe as anotou.
+    if (campo.modo === "cartao" && c.fonte !== "lexia") continue;
     const valor = valorValido(campo, c.valor, c.lista ?? []);
     if (valor === undefined) continue;
     vistos.add(c.chave);
@@ -238,6 +241,7 @@ export function rascunhoParaCaderno(r: RascunhoBruto): { linhas: NovaLinha[]; it
       const ls: Omit<NovaLinha, "itemId">[] = [];
       for (const [k2, campo] of campos) {
         if (!(k2 in x)) continue;
+        if (campo.modo === "cartao" && x.fonte !== "lexia") continue;
         const valor = valorValido(campo, x[k2], []);
         if (valor !== undefined) ls.push({ campo: k2, valor, estado: "rascunho", fonte: x.fonte, evidencia: ev(x) });
       }
