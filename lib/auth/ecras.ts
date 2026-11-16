@@ -48,6 +48,7 @@ export const ECRAS_DO_PAINEL = [
   "/app/feedbacks",
   "/app/configuracoes",
   "/app/execucoes",
+  "/app/onboarding",
 ] as const;
 
 export type EcraDoPainel = (typeof ECRAS_DO_PAINEL)[number];
@@ -64,6 +65,8 @@ const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   // 13/11: claudia_leite_spa saiu daqui — vê o painel inteiro (a Carla está pronta para produção).
   // 06/11: conta de demonstração (revisor da Apple). Vê o painel com dados fictícios, menos a Área de
   // testes e as Execuções: nesta empresa a Área de testes fala com a cópia da Carol (Miranda).
+  // 16/11: em onboarding. A conta só abre o onboarding (3 etapas) até ele ser aprovado; depois sai daqui.
+  jessica_beauty: ["/app/onboarding"],
   clinica_teste: [
     "/app", "/app/conversas", "/app/agenda", "/app/pipeline", "/app/clientes", "/app/campanhas",
     "/app/servicos", "/app/produtos", "/app/handoffs", "/app/feedbacks", "/app/analista", "/app/configuracoes",
@@ -114,6 +117,11 @@ export function exigirEcra(
   }
 
   redirect(ecraDeEntrada(clienteSlug));
+}
+
+/** Conta em onboarding: a única tela que abre é a do onboarding, e o menu mostra só isso. */
+export function soOnboarding(clienteSlug: string | null | undefined) {
+  return !temOPainelInteiro(clienteSlug) && ecraDeEntrada(clienteSlug) === "/app/onboarding";
 }
 
 /** Só para o teste poder percorrer o que está configurado. */

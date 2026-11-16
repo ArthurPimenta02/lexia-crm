@@ -238,6 +238,8 @@ test("o fuso de cada cliente só está escrito no módulo do fuso", () => {
   const permitidos = [
     "lib/clientes/timezone.ts",
     "tests/fuso-horario.test.mts",
+    // As OPÇÕES da pergunta "qual é o fuso?" do onboarding: é uma lista de escolha, não o fuso de um cliente.
+    "lib/onboarding/esquema.ts",
   ];
   const faltas: string[] = [];
 

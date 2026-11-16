@@ -317,6 +317,34 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 | `/admin/execucoes` | Execuções com detalhes brutos. | Não |
 | `/admin/configuracoes` | Placeholder. | Não |
 
+### Onboarding com entrevistadora (em construção, 2026-11-16)
+
+Três etapas dentro do painel: 1) informações gerais (equipe da Lexia), 2) conversa com a
+entrevistadora (cliente), 3) revisão. **Só a Etapa 1 existe.**
+
+- `/app/onboarding` é a tela do onboarding **dentro da conta do cliente**. Enquanto o cliente
+  estiver em `ecrasPorCliente` com `["/app/onboarding"]` (hoje: `jessica_beauty`), a conta só
+  abre essa tela e o menu lateral mostra só "Onboarding" (`soOnboarding` em `lib/auth/ecras.ts`).
+  Quem tem o painel inteiro é reencaminhado para `/app`.
+- A empresa de cada pedido vem de `acessoAoOnboarding` (`lib/onboarding/acesso.ts`): conta de
+  cliente = sempre a da sessão; `lexia_admin` = a pedida, confirmada na `lexia_clientes`.
+- `/admin/clientes/<slug>/onboarding` (só `lexia_admin`, a mesma tela): links, tipo de negócio, idiomas,
+  anotações, texto colado e arquivos. "Gerar rascunho" lê o site (até 9 páginas, só endereços
+  públicos), os arquivos (PDF e imagem, pelo Claude) e as anotações, e grava o que achou como
+  **rascunho**. "Liberar a conversa" passa o estado para `conversa`.
+- `POST /api/onboarding/arquivo` (`passo: preparar | registar`): upload direto ao bucket privado
+  `onboarding`, na pasta `<slug>/etapa1/`. `POST /api/onboarding/rascunho` (`maxDuration` 300).
+- Tabelas no Supabase **central** (migration `202611160017`, RLS ligado, só `service_role`):
+  `lexia_onboardings`, `lexia_onboarding_itens`, `lexia_onboarding_arquivos`,
+  `lexia_onboarding_mensagens`, `lexia_onboarding_campos` (diário que só recebe INSERT) e a
+  view `lexia_onboarding_campos_atual`.
+- `lib/onboarding/esquema.ts` é GERADO a partir do formulário antigo (13 seções, 145 campos);
+  `caderno.ts` decide o que falta perguntar (nada fica de fora, nenhuma pergunta se repete,
+  rascunho não conta como resposta); `fontes.ts` filtra o que a IA devolve contra o esquema.
+- A IA é o Claude (`claude-sonnet-5`) com a chave do **próprio cliente** (conexão `ia`:
+  `anthropic_api_key` e `anthropic_base_url`). Sem ela a tela avisa e não gera.
+- Instagram e Google não se deixam ler por fora: entram por "Texto colado" ou por prints.
+
 ### API do Analista Lexia
 
 | Rota | Método | Função |

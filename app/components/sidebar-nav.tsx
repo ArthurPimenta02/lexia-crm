@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  ClipboardCheck,
   BellRing,
   Ban,
   CalendarDays,
@@ -57,6 +58,7 @@ export const icones: Record<string, LucideIcon> = {
   conexoes: PlugZap,
   bloqueios: Ban,
   eventos: Activity,
+  onboarding: ClipboardCheck,
 };
 
 export type SidebarNavItem = {

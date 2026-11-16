@@ -56,7 +56,10 @@ export function MenuDoCliente({
     },
     {
       titulo: t("Conta"),
-      itens: [{ label: t("Configurações"), href: "#configuracoes" }],
+      itens: [
+        { label: t("Onboarding"), href: `/admin/clientes/${encodeURIComponent(slug)}/onboarding` },
+        { label: t("Configurações"), href: "#configuracoes" },
+      ],
     },
   ];
 
