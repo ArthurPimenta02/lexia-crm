@@ -173,7 +173,7 @@ export type FontesLidas = { etapa1: Etapa1; site: string; arquivos: { nome: stri
 export function textoDasFontes(f: FontesLidas): string {
   const partes: string[] = [];
   const e = f.etapa1;
-  partes.push(`# ANOTAÇÕES DA EQUIPE DA LEXIA (fonte: lexia)\nTipo de negócio: ${e.tipo_de_negocio ?? ""}\nIdiomas do atendimento: ${(e.idiomas ?? []).join(", ")}\nInstagram: ${e.instagram ?? ""}\nSite: ${e.site ?? ""}\nPerfil no Google: ${e.google ?? ""}\nLink de agendamento: ${e.agendamento ?? ""}\n\n${e.notas ?? ""}`);
+  partes.push(`# ANOTAÇÕES DA EQUIPE DA LEXIA (fonte: lexia)\nTipo de negócio: ${e.tipo_de_negocio ?? ""}\nIdiomas do atendimento: ${(e.idiomas ?? []).join(", ")}\nInstagram: ${e.instagram ?? ""}\nSite: ${e.site ?? ""}\nPerfil no Google: ${e.google ?? ""}\n\n${e.notas ?? ""}`);
   if (e.texto_colado?.trim()) partes.push(`# TEXTO COLADO PELA EQUIPE (bio, posts, avaliações; fonte: instagram ou google conforme o que for dito no texto)\n${e.texto_colado.trim()}`);
   if (f.site.trim()) partes.push(`# SITE (fonte: site)\n${f.site}`);
   for (const a of f.arquivos) partes.push(`# ARQUIVO "${a.nome}" (fonte: arquivo)\n${a.texto}`);

@@ -24,7 +24,6 @@ export type Etapa1 = {
   instagram?: string;
   site?: string;
   google?: string;
-  agendamento?: string;
   tipo_de_negocio?: string;
   idiomas?: string[];
   notas?: string;

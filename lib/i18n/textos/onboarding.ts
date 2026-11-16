@@ -4,7 +4,6 @@ import type { TextosDaArea } from "../traduzir";
 const textos: TextosDaArea = {
   "pt-PT": {
     "(bio, posts, avaliações do Google)": "(bio, posts, avaliações do Google)",
-    "(se usar)": "(se usar)",
     "A cliente só confirma o que está aqui. O que falta, a conversa pergunta.": "A cliente só confirma o que está aqui. O que falta, a conversa pergunta.",
     "A conversa já foi liberada.": "A conversa já foi libertada.",
     "A equipe da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.": "A equipa da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.",
@@ -30,7 +29,6 @@ const textos: TextosDaArea = {
     "Leva de 1 a 2 minutos. Pode deixar esta tela aberta.": "Demora 1 a 2 minutos. Pode deixar este ecrã aberto.",
     "Liberar a conversa para a cliente": "Libertar a conversa para a cliente",
     "Lido": "Lido",
-    "Link de agendamento": "Link de marcação",
     "Não foi possível enviar o arquivo.": "Não foi possível enviar o ficheiro.",
     "Não foi possível gerar o rascunho.": "Não foi possível gerar o rascunho.",
     "Não foi possível salvar. Tente de novo.": "Não foi possível guardar. Tente de novo.",
@@ -56,7 +54,6 @@ const textos: TextosDaArea = {
   },
   es: {
     "(bio, posts, avaliações do Google)": "(bio, publicaciones, reseñas de Google)",
-    "(se usar)": "(si lo usa)",
     "A cliente só confirma o que está aqui. O que falta, a conversa pergunta.": "La clienta solo confirma lo que está aquí. Lo que falta, lo pregunta la conversación.",
     "A conversa já foi liberada.": "La conversación ya fue habilitada.",
     "A equipe da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.": "El equipo de Lexia completa esta etapa. La IA lee todo y prepara el borrador, y la conversación solo pregunta lo que falte.",
@@ -82,7 +79,6 @@ const textos: TextosDaArea = {
     "Leva de 1 a 2 minutos. Pode deixar esta tela aberta.": "Tarda de 1 a 2 minutos. Puede dejar esta pantalla abierta.",
     "Liberar a conversa para a cliente": "Habilitar la conversación para la clienta",
     "Lido": "Leído",
-    "Link de agendamento": "Enlace de reservas",
     "Não foi possível enviar o arquivo.": "No se pudo enviar el archivo.",
     "Não foi possível gerar o rascunho.": "No se pudo generar el borrador.",
     "Não foi possível salvar. Tente de novo.": "No se pudo guardar. Inténtelo de nuevo.",
@@ -108,7 +104,6 @@ const textos: TextosDaArea = {
   },
   en: {
     "(bio, posts, avaliações do Google)": "(bio, posts, Google reviews)",
-    "(se usar)": "(if used)",
     "A cliente só confirma o que está aqui. O que falta, a conversa pergunta.": "The client only confirms what is here. The conversation asks for whatever is missing.",
     "A conversa já foi liberada.": "The conversation has already been released.",
     "A equipe da Lexia preenche esta etapa. A IA lê tudo e prepara o rascunho, e a conversa só pergunta o que faltar.": "The Lexia team fills in this step. The AI reads everything and prepares the draft, and the conversation only asks for what is missing.",
@@ -134,7 +129,6 @@ const textos: TextosDaArea = {
     "Leva de 1 a 2 minutos. Pode deixar esta tela aberta.": "Takes 1 to 2 minutes. You can leave this screen open.",
     "Liberar a conversa para a cliente": "Release the conversation to the client",
     "Lido": "Read",
-    "Link de agendamento": "Booking link",
     "Não foi possível enviar o arquivo.": "The file could not be uploaded.",
     "Não foi possível gerar o rascunho.": "The draft could not be generated.",
     "Não foi possível salvar. Tente de novo.": "Could not save. Try again.",

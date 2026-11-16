@@ -133,9 +133,6 @@ export function Etapa1Form({
             <Campo rotulo={t("Perfil no Google")}>
               <input className="ds-campo" defaultValue={etapa1.google ?? ""} name="google" placeholder="https://" />
             </Campo>
-            <Campo ajuda={t("(se usar)")} rotulo={t("Link de agendamento")}>
-              <input className="ds-campo" defaultValue={etapa1.agendamento ?? ""} name="agendamento" placeholder="https://" />
-            </Campo>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

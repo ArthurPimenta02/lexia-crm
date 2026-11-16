@@ -29,7 +29,6 @@ export async function salvarEtapa1(clienteSlug: string, _estado: EstadoEtapa1, f
     instagram: texto(formData, "instagram", 300),
     site: texto(formData, "site", 300),
     google: texto(formData, "google", 500),
-    agendamento: texto(formData, "agendamento", 300),
     tipo_de_negocio: texto(formData, "tipo_de_negocio", 120),
     idiomas: formData.getAll("idiomas").map(String).filter((i) => IDIOMAS.includes(i)),
     notas: texto(formData, "notas", 20_000),
