@@ -17,8 +17,11 @@ import {
   proximoPasso,
   resumir,
   seAplica,
+  type Andamento,
+  type CampoNoCaderno,
   type ItemDoCaderno,
   type LinhaDoCaderno,
+  type Passo,
 } from "../lib/onboarding/caderno";
 import { ESQUEMA_ONBOARDING } from "../lib/onboarding/esquema";
 
@@ -77,6 +80,32 @@ test("o que a IA achou é rascunho: aparece para confirmar e NÃO conta como res
   assert.equal(depois.find((x) => x.campo.chave === "nome_do_negocio")!.situacao, "resolvido");
 });
 
+/** Uma cliente que responde a tudo o que o caderno pede. Devolve os campos perguntados, na ordem. */
+function entrevistar(linhas: LinhaDoCaderno[], itens: ItemDoCaderno[], responder: (c: CampoNoCaderno) => LinhaDoCaderno | null = (c) => linha(c.campo.chave, c.campo.opcoes?.[0] ?? "resposta", "respondido", c.itemId)) {
+  const andamento: Andamento = { listas: [], gruposPerguntados: [] };
+  const pedidos: string[] = [];
+  const passos: Passo["tipo"][] = [];
+  for (let i = 0; i < 900; i++) {
+    const p = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
+    passos.push(p.tipo);
+    if (p.tipo === "fim") return { pedidos, passos, andamento };
+    if (p.tipo === "lista") { andamento.listas.push(p.grupo); continue; }
+    if (p.tipo === "itens") {
+      andamento.gruposPerguntados.push(p.grupo);
+      if (p.obrigatorio) { itens.push({ id: `${p.grupo}-novo`, grupo: p.grupo, ordem: 0, removido: false }); andamento.listas.push(p.grupo); }
+      continue;
+    }
+    const alvos = p.tipo === "item" ? [...p.confirmar, ...p.cartoes, ...p.faltam] : p.campos;
+    assert.ok(alvos.length > 0, `passo ${p.tipo} vazio`);
+    for (const a of alvos) {
+      pedidos.push(`${a.itemId ?? ""}|${a.campo.chave}`);
+      const r = responder(a);
+      if (r) linhas.push(r);
+    }
+  }
+  throw new Error("a entrevista não terminou");
+}
+
 test("nenhuma pergunta se repete: resolvido nunca volta; vago ganha UM complemento e depois é pendência", () => {
   assert.equal(MAXIMO_DE_PERGUNTAS, 2);
   const chave = "politica_de_cancelamento";
@@ -85,61 +114,72 @@ test("nenhuma pergunta se repete: resolvido nunca volta; vago ganha UM complemen
   assert.equal(sit(linha(chave, "depende", "vago", null, 1)), "falta", "vago à primeira: cabe um complemento");
   assert.equal(sit(linha(chave, "depende", "vago", null, 2)), "pendencia", "vago à segunda: não se pergunta uma terceira vez");
   assert.equal(sit(linha(chave, null, "pulado", null, 1)), "pendencia");
-  // o próximo passo nunca devolve um campo resolvido ou em pendência
+
   const linhas = [linha(chave, "depende", "vago", null, 2), linha("nome_do_agente", "Lia", "respondido")];
-  const itens: ItemDoCaderno[] = [servico("s1"), { id: "f1", grupo: "faqs", ordem: 0, removido: false }, { id: "o1", grupo: "objecoes", ordem: 0, removido: false }];
-  const visto = new Set<string>();
-  let caderno = montarCaderno(linhas, itens);
-  for (let i = 0; i < 400; i++) {
-    const p = proximoPasso(caderno, itens);
-    if (p.tipo === "fim" || p.tipo === "itens") break;
-    const alvos = p.tipo === "pergunta" ? [p.alvo] : p.campos;
-    for (const a of alvos) {
-      const k = `${a.itemId}|${a.campo.chave}`;
-      assert.ok(!visto.has(k), `perguntou duas vezes: ${k}`);
-      assert.notEqual(a.campo.chave, chave, "campo em pendência voltou a ser perguntado");
-      assert.notEqual(a.campo.chave, "nome_do_agente", "campo resolvido voltou a ser perguntado");
-      visto.add(k);
-      linhas.push(linha(a.campo.chave, a.campo.opcoes?.[0] ?? "resposta", "respondido", a.itemId));
-    }
-    caderno = montarCaderno(linhas, itens);
-  }
-  assert.ok(visto.size > 60, `percorreu ${visto.size} campos`);
+  const { pedidos } = entrevistar(linhas, [servico("s1")]);
+  assert.equal(new Set(pedidos).size, pedidos.length, "um campo foi pedido duas vezes");
+  assert.ok(!pedidos.includes(`|${chave}`), "campo em pendência voltou a ser perguntado");
+  assert.ok(!pedidos.includes("|nome_do_agente"), "campo resolvido voltou a ser perguntado");
+  assert.ok(pedidos.length > 90, `percorreu ${pedidos.length} campos`);
+});
+
+test("quem nunca responde é perguntado duas vezes por campo e a entrevista termina, sem ciclo", () => {
+  const vezes = new Map<string, number>();
+  const linhas: LinhaDoCaderno[] = [];
+  const { pedidos } = entrevistar(linhas, [servico("s1")], (c) => {
+    const k = `${c.itemId ?? ""}|${c.campo.chave}`;
+    const n = (vezes.get(k) ?? 0) + 1;
+    vezes.set(k, n);
+    return linha(c.campo.chave, null, "vago", c.itemId, n);
+  });
+  assert.equal(Math.max(...vezes.values()), 2, "ninguém é perguntado três vezes");
+  assert.ok(pedidos.length > 150, String(pedidos.length));
+  const r = resumir(montarCaderno(linhas, [servico("s1")]), [servico("s1")]);
+  assert.equal(r.podeAprovar, false, "sem respostas não se aprova");
+  assert.equal(r.faltam, 0, "tudo virou pendência: não sobra nada por perguntar");
 });
 
 test("responder tudo o que o caderno pede chega ao fim e libera a aprovação; um obrigatório em pendência não libera", () => {
-  const itens: ItemDoCaderno[] = [servico("s1"), { id: "f1", grupo: "faqs", ordem: 0, removido: false }, { id: "o1", grupo: "objecoes", ordem: 0, removido: false }];
+  const itens: ItemDoCaderno[] = [servico("s1")];
   const linhas: LinhaDoCaderno[] = [];
-  let caderno = montarCaderno(linhas, itens);
-  for (let i = 0; i < 600; i++) {
-    const p = proximoPasso(caderno, itens);
-    if (p.tipo === "fim") break;
-    assert.notEqual(p.tipo, "itens", "todos os grupos obrigatórios têm item");
-    const alvos = p.tipo === "pergunta" ? [p.alvo] : (p as { campos: typeof caderno }).campos;
-    for (const a of alvos) linhas.push(linha(a.campo.chave, a.campo.opcoes?.[0] ?? "resposta", "respondido", a.itemId));
-    caderno = montarCaderno(linhas, itens);
-  }
-  const r = resumir(caderno, itens);
-  assert.equal(r.podeAprovar, true, r.bloqueiam.map((b) => b.campo.chave).join(", "));
+  const { passos } = entrevistar(linhas, itens);
+  assert.equal(passos.at(-1), "fim");
+  const r = resumir(montarCaderno(linhas, itens), itens);
+  assert.equal(r.podeAprovar, true, r.bloqueiam.map((b) => b.campo.chave).join(", ") + " | " + r.gruposSemItem.join(","));
   assert.equal(r.percentual, 100);
   const comPendencia = montarCaderno([...linhas.filter((l) => l.campo !== "politica_de_cancelamento"), linha("politica_de_cancelamento", "depende", "vago", null, 2)], itens);
   assert.equal(resumir(comPendencia, itens).podeAprovar, false);
 });
 
-test("a entrevista começa por confirmar o que já se sabe, depois os serviços, um de cada vez", () => {
+test("a ordem: confirmar o negócio, conferir a lista de serviços, um serviço de cada vez, depois o resto", () => {
   const itens = [servico("s1", 0), servico("s2", 1)];
-  const linhas = [linha("endereco_completo", "Rua X", "rascunho"), linha("nome", "Botox", "rascunho", "s1"), linha("nome", "Peeling", "confirmado", "s2")];
+  const linhas = [linha("endereco_completo", "Rua X", "rascunho"), linha("nome", "Botox", "rascunho", "s1"), linha("nome", "Peeling", "rascunho", "s2")];
   const p1 = proximoPasso(montarCaderno(linhas, itens), itens);
   assert.equal(p1.tipo, "confirmar");
-  const confirmadas = linhas.map((l) => ({ ...l, estado: "confirmado" as const }));
-  const p2 = proximoPasso(montarCaderno(confirmadas, itens), itens);
-  assert.equal(p2.tipo, "pergunta");
-  if (p2.tipo === "pergunta") {
-    assert.equal(p2.alvo.itemId, "s1", "começa pelo primeiro serviço");
-    assert.ok(p2.mesmoItem.every((c) => c.itemId === "s1"), "o que mais falta desse serviço vai junto, para um áudio responder vários campos");
+  if (p1.tipo === "confirmar") assert.ok(p1.campos.every((c) => !c.itemId), "a primeira confirmação é só do negócio");
+  linhas.push(linha("endereco_completo", "Rua X", "confirmado"));
+  const p2 = proximoPasso(montarCaderno(linhas, itens), itens);
+  assert.equal(p2.tipo, "lista");
+  const andamento: Andamento = { listas: ["servicos"], gruposPerguntados: [] };
+  const p3 = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
+  assert.equal(p3.tipo, "item");
+  if (p3.tipo === "item") {
+    assert.equal(p3.itemId, "s1", "começa pelo primeiro serviço");
+    assert.deepEqual(p3.confirmar.map((c) => c.campo.chave), ["nome"]);
+    assert.ok(p3.faltam.length > 5 && p3.faltam.every((c) => c.itemId === "s1"), "o que falta desse serviço vai junto, para um áudio responder vários campos");
+    assert.ok(p3.cartoes.every((c) => c.campo.modo === "cartao"));
   }
-  // item removido deixa de ser perguntado
+  // serviço retirado da lista deixa de ser perguntado
   const semS1 = [{ ...itens[0], removido: true }, itens[1]];
-  const p3 = proximoPasso(montarCaderno(confirmadas, semS1), semS1);
-  if (p3.tipo === "pergunta") assert.equal(p3.alvo.itemId, "s2");
+  const p4 = proximoPasso(montarCaderno(linhas, semS1), semS1, andamento);
+  assert.equal(p4.tipo === "item" && p4.itemId, "s2");
+  // grupo obrigatório vazio pergunta-se duas vezes, nunca uma terceira
+  assert.deepEqual(proximoPasso(montarCaderno([], []), []), { tipo: "itens", grupo: "servicos", obrigatorio: true });
+  assert.deepEqual(proximoPasso(montarCaderno([], []), [], { listas: [], gruposPerguntados: ["servicos"] }), { tipo: "itens", grupo: "servicos", obrigatorio: true });
+  const p5 = proximoPasso(montarCaderno([], []), [], { listas: [], gruposPerguntados: ["servicos", "servicos"] });
+  assert.ok(!(p5.tipo === "itens" && p5.grupo === "servicos"), "terceira pergunta pelos serviços");
+});
+
+test("arquivos não são perguntas do caderno", () => {
+  assert.ok(!montarCaderno([], [servico("s1")]).some((c) => c.campo.tipo === "upload"));
 });

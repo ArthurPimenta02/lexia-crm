@@ -44,6 +44,8 @@ export type PedidoIa = {
   /** Esquema JSON da resposta. Com ele, `texto` é sempre JSON válido nesse formato. */
   esquema?: Record<string, unknown>;
   maxTokens?: number;
+  /** Guarda o texto fixo (sistema) por 1 hora em vez de 5 minutos: para a conversa, em que as mensagens se espaçam. */
+  cacheLongo?: boolean;
 };
 
 export type Uso = { entrada: number; saida: number; cache: number; escrita: number };
@@ -65,7 +67,7 @@ export async function perguntar(ia: ChaveDeIa, pedido: PedidoIa): Promise<{ text
   const corpo = {
     model: MODELO_ONBOARDING,
     max_tokens: pedido.maxTokens ?? 8000,
-    system: [{ type: "text", text: pedido.sistema, cache_control: { type: "ephemeral" } }],
+    system: [{ type: "text", text: pedido.sistema, cache_control: pedido.cacheLongo ? { type: "ephemeral", ttl: "1h" } : { type: "ephemeral" } }],
     messages: [{ role: "user", content: pedido.conteudo }],
     ...(pedido.esquema ? { output_config: { format: { type: "json_schema", schema: pedido.esquema } } } : {}),
   };
@@ -76,7 +78,7 @@ export async function perguntar(ia: ChaveDeIa, pedido: PedidoIa): Promise<{ text
         method: "POST",
         headers: { "x-api-key": ia.chave, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         body: JSON.stringify(corpo),
-        signal: AbortSignal.timeout(240_000),
+        signal: AbortSignal.timeout(pedido.cacheLongo ? 90_000 : 240_000),
       });
       const j = (await r.json().catch(() => ({}))) as {
         content?: { type: string; text?: string }[];
@@ -108,4 +110,4 @@ export async function perguntar(ia: ChaveDeIa, pedido: PedidoIa): Promise<{ text
 }
 
 /** Custo em dólares de uma chamada (Sonnet 5: 2 / 10 por milhão; cache lido 0,2; escrito 2,5). */
-export const custoUsd = (u: Uso) => (u.entrada * 2 + u.saida * 10 + u.cache * 0.2 + u.escrita * 2.5) / 1e6;
+export const custoUsd = (u: Uso) => (u.entrada * 2 + u.saida * 10 + u.cache * 0.2 + u.escrita * 2.5) / 1e6; // escrita de 1 hora custa 4 por milhão: a conta fica um pouco por baixo na 1ª mensagem

@@ -99,6 +99,8 @@ export function montarCaderno(
 
   for (const secao of esquema) {
     for (const campo of secao.campos) {
+      // Pedidos de arquivo (logotipo, fotos…) não são perguntas: entram pelo botão de anexar, a qualquer momento.
+      if (campo.tipo === "upload") continue;
       if (!seAplica(campo.quando, raiz)) continue;
       const linha = porChave.get(chave(campo.chave, null)) ?? null;
       out.push({ secao: secao.chave, grupo: null, itemId: null, campo, linha, situacao: situacaoDe(linha) });
@@ -108,6 +110,7 @@ export function montarCaderno(
       for (const item of ativos) {
         const valores = valoresDe(item.id);
         for (const campo of grupo.campos) {
+          if (campo.tipo === "upload") continue;
           if (!seAplica(campo.quando, valores)) continue;
           const linha = porChave.get(chave(campo.chave, item.id)) ?? null;
           out.push({ secao: secao.chave, grupo: grupo.chave, itemId: item.id, campo, linha, situacao: situacaoDe(linha) });
@@ -160,58 +163,104 @@ export function resumir(caderno: CampoNoCaderno[], itens: ItemDoCaderno[], esque
 
 /** O próximo passo da entrevista, decidido pelo caderno. */
 export type Passo =
-  | { tipo: "confirmar"; campos: CampoNoCaderno[] } // o que as fontes e a Lexia já preencheram
-  | { tipo: "cartoes"; secao: string; campos: CampoNoCaderno[] } // escolhas rápidas de uma seção
-  | { tipo: "itens"; grupo: GrupoQueRepete } // falta listar os serviços, as perguntas frequentes…
-  | { tipo: "pergunta"; alvo: CampoNoCaderno; mesmoItem: CampoNoCaderno[] } // conversa
+  /** O que as fontes e a Lexia já preencheram sobre o negócio: ela confirma ou corrige. */
+  | { tipo: "confirmar"; campos: CampoNoCaderno[] }
+  /** A lista de itens que o rascunho achou (os serviços, por exemplo): tira os que não faz, acrescenta os que faltam. */
+  | { tipo: "lista"; grupo: GrupoQueRepete; itens: ItemDoCaderno[] }
+  /** O grupo está vazio: ela conta quais são (os serviços, as perguntas que mais recebe…). */
+  | { tipo: "itens"; grupo: GrupoQueRepete; obrigatorio: boolean }
+  /** Um item de cada vez (um serviço inteiro): confirma o que se achou, escolhe os cartões e conta o que falta. */
+  | { tipo: "item"; grupo: GrupoQueRepete; itemId: string; confirmar: CampoNoCaderno[]; cartoes: CampoNoCaderno[]; faltam: CampoNoCaderno[] }
+  /** Escolhas rápidas de uma seção. */
+  | { tipo: "cartoes"; secao: string; campos: CampoNoCaderno[] }
+  /** O que só ela sabe, poucas perguntas de cada vez, da mesma seção. */
+  | { tipo: "pergunta"; secao: string; campos: CampoNoCaderno[] }
   | { tipo: "fim" };
 
-/** Quantas confirmações ou cartões vão de cada vez (uma tela que se lê num relance). */
-export const TAMANHO_DO_LOTE = 6;
+/** O que já foi feito e não se vê no caderno: listas já conferidas e grupos opcionais já perguntados. */
+export type Andamento = { listas: GrupoQueRepete[]; gruposPerguntados: GrupoQueRepete[] };
+export const ANDAMENTO_VAZIO: Andamento = { listas: [], gruposPerguntados: [] };
+
+export const LOTE_DE_CONFIRMACAO = 8;
+export const LOTE_DE_CARTOES = 5;
+export const LOTE_DE_PERGUNTAS = 3;
+
+const GRUPOS_PRIMEIRO: GrupoQueRepete[] = ["servicos", "profissionais"];
+const GRUPOS_DEPOIS: GrupoQueRepete[] = ["faqs", "objecoes", "promocoes"];
 
 /**
  * Ordem da entrevista:
- *   1. confirmar o que já se sabe (rápido e dá confiança);
- *   2. os serviços, um a um, começando pelos que ela mais quer vender (a ordem dos itens);
- *   3. o resto dos grupos (profissionais, perguntas frequentes, objeções, promoções);
- *   4. as escolhas rápidas, seção a seção;
- *   5. o que só ela sabe, seção a seção.
- * Dentro de cada parte, nunca aparece um campo que já esteja resolvido ou em pendência.
+ *   1. confirmar o que já se sabe do negócio (rápido e dá confiança);
+ *   2. os serviços: conferir a lista e depois um a um, na ordem dos itens;
+ *   3. os profissionais;
+ *   4. o resto, seção a seção: primeiro as escolhas rápidas, depois o que só ela sabe;
+ *   5. perguntas frequentes, objeções e promoções.
+ * Nunca aparece um campo que já esteja resolvido ou em pendência.
  */
-export function proximoPasso(caderno: CampoNoCaderno[], itens: ItemDoCaderno[], esquema: SecaoOnboarding[] = ESQUEMA_ONBOARDING): Passo {
-  const porConfirmar = caderno.filter((c) => c.situacao === "por_confirmar");
-  if (porConfirmar.length) {
-    // um item de cada vez (um serviço inteiro), ou o lote da raiz
-    const primeiro = porConfirmar[0];
-    const lote = porConfirmar.filter((c) => c.itemId === primeiro.itemId).slice(0, TAMANHO_DO_LOTE);
-    return { tipo: "confirmar", campos: lote };
-  }
+export function proximoPasso(
+  caderno: CampoNoCaderno[],
+  itens: ItemDoCaderno[],
+  andamento: Andamento = ANDAMENTO_VAZIO,
+  esquema: SecaoOnboarding[] = ESQUEMA_ONBOARDING,
+): Passo {
+  const aberto = (c: CampoNoCaderno) => c.situacao === "falta" || c.situacao === "por_confirmar";
 
-  const semItem = gruposVazios(itens, esquema);
-  if (semItem.includes("servicos")) return { tipo: "itens", grupo: "servicos" };
+  const rascunhoDaRaiz = caderno.filter((c) => !c.grupo && c.situacao === "por_confirmar");
+  if (rascunhoDaRaiz.length) return { tipo: "confirmar", campos: rascunhoDaRaiz.slice(0, LOTE_DE_CONFIRMACAO) };
 
-  const emFalta = caderno.filter((c) => c.situacao === "falta");
-  const deGrupo = (g: GrupoQueRepete) => emFalta.filter((c) => c.grupo === g);
-  for (const grupo of ["servicos", "profissionais", "faqs", "objecoes", "promocoes"] as GrupoQueRepete[]) {
-    if (grupo !== "servicos" && semItem.includes(grupo)) return { tipo: "itens", grupo };
-    const faltam = deGrupo(grupo);
-    if (!faltam.length) continue;
-    const alvo = faltam.find((c) => c.campo.modo !== "cartao") ?? faltam[0];
-    if (alvo.campo.modo === "cartao") {
-      return { tipo: "cartoes", secao: alvo.secao, campos: faltam.filter((c) => c.itemId === alvo.itemId && c.campo.modo === "cartao").slice(0, TAMANHO_DO_LOTE) };
+  const doGrupo = (grupo: GrupoQueRepete): Passo | null => {
+    const definicao = esquema.flatMap((s) => s.grupos).find((g) => g.chave === grupo);
+    if (!definicao) return null;
+    const ativos = itens.filter((i) => i.grupo === grupo && !i.removido).sort((a, b) => a.ordem - b.ordem);
+    if (!ativos.length) {
+      // Vazio: o opcional pergunta-se uma vez; o obrigatório, duas (a pergunta e um complemento).
+      // Depois disso fica para a Lexia (e, sendo obrigatório, continua a impedir a aprovação).
+      const vezes = andamento.gruposPerguntados.filter((g) => g === grupo).length;
+      if (vezes < (definicao.obrigatorio ? MAXIMO_DE_PERGUNTAS : 1)) return { tipo: "itens", grupo, obrigatorio: definicao.obrigatorio };
+      return null;
     }
-    return { tipo: "pergunta", alvo, mesmoItem: faltam.filter((c) => c.itemId === alvo.itemId && c !== alvo && c.campo.modo !== "cartao") };
+    if (!andamento.listas.includes(grupo)) return { tipo: "lista", grupo, itens: ativos };
+    for (const item of ativos) {
+      const campos = caderno.filter((c) => c.itemId === item.id && aberto(c));
+      if (!campos.length) continue;
+      return {
+        tipo: "item",
+        grupo,
+        itemId: item.id,
+        confirmar: campos.filter((c) => c.situacao === "por_confirmar"),
+        cartoes: campos.filter((c) => c.situacao === "falta" && c.campo.modo === "cartao"),
+        faltam: campos.filter((c) => c.situacao === "falta" && c.campo.modo !== "cartao"),
+      };
+    }
+    return null;
+  };
+
+  for (const grupo of GRUPOS_PRIMEIRO) {
+    const passo = doGrupo(grupo);
+    if (passo) return passo;
   }
 
-  const daRaiz = emFalta.filter((c) => !c.grupo);
-  const cartoes = daRaiz.filter((c) => c.campo.modo === "cartao");
-  if (cartoes.length) {
-    const secao = cartoes[0].secao;
-    return { tipo: "cartoes", secao, campos: cartoes.filter((c) => c.secao === secao).slice(0, TAMANHO_DO_LOTE) };
+  const emFalta = caderno.filter((c) => !c.grupo && c.situacao === "falta");
+  for (const secao of esquema) {
+    const daSecao = emFalta.filter((c) => c.secao === secao.chave);
+    const cartoes = daSecao.filter((c) => c.campo.modo === "cartao");
+    if (cartoes.length) return { tipo: "cartoes", secao: secao.chave, campos: cartoes.slice(0, LOTE_DE_CARTOES) };
+    const conversa = daSecao.filter((c) => c.campo.modo !== "cartao");
+    if (conversa.length) return { tipo: "pergunta", secao: secao.chave, campos: conversa.slice(0, LOTE_DE_PERGUNTAS) };
   }
-  const alvo = daRaiz[0];
-  if (alvo) return { tipo: "pergunta", alvo, mesmoItem: daRaiz.filter((c) => c.secao === alvo.secao && c !== alvo) };
+
+  for (const grupo of GRUPOS_DEPOIS) {
+    const passo = doGrupo(grupo);
+    if (passo) return passo;
+  }
   return { tipo: "fim" };
+}
+
+/** Os campos que um passo pergunta em conversa (os que contam para o teto de duas perguntas). */
+export function perguntadosNoPasso(passo: Passo): CampoNoCaderno[] {
+  if (passo.tipo === "pergunta") return passo.campos;
+  if (passo.tipo === "item") return passo.faltam;
+  return [];
 }
 
 /** A que campo (e item) pertence uma chave, para gravar uma resposta sem errar de lugar. */
