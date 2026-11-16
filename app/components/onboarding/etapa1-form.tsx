@@ -4,7 +4,7 @@ import { useActionState, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Check, FileText, Loader2, Upload } from "lucide-react";
 
-import { liberarConversa, salvarEtapa1, type EstadoEtapa1 } from "@/app/admin/clientes/[slug]/onboarding/actions";
+import type { EstadoEtapa1 } from "@/lib/onboarding/etapa1-acoes";
 import { useIdioma } from "@/app/components/idioma";
 import { createClient } from "@/lib/supabase/client";
 import type { Achados, EstadoOnboarding, Etapa1 } from "@/lib/onboarding/dados";
@@ -45,14 +45,19 @@ export function Etapa1Form({
   clienteSlug,
   estado,
   etapa1,
+  liberar,
   numeros,
+  salvarAcao,
   temChaveDeIa,
 }: {
   achado: Linha[];
   achados: Achados;
   arquivos: Arquivo[];
-  clienteSlug: string;
+  /** Só o admin indica o cliente. No painel do cliente fica vazio: o servidor usa a empresa da sessão. */
+  clienteSlug?: string;
   estado: EstadoOnboarding;
+  liberar: () => Promise<EstadoEtapa1>;
+  salvarAcao: (estado: EstadoEtapa1, formData: FormData) => Promise<EstadoEtapa1>;
   etapa1: Etapa1;
   numeros: Numeros | null;
   temChaveDeIa: boolean;
@@ -60,7 +65,7 @@ export function Etapa1Form({
   const { t } = useIdioma();
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
-  const [salvo, salvar, salvando] = useActionState(salvarEtapa1.bind(null, clienteSlug), inicial);
+  const [salvo, salvar, salvando] = useActionState(salvarAcao, inicial);
   const [enviando, setEnviando] = useState<string[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -97,7 +102,7 @@ export function Etapa1Form({
     setGerando(true);
     try {
       // Primeiro grava o que está na tela: o rascunho lê o que está salvo.
-      const s = await salvarEtapa1(clienteSlug, inicial, new FormData(form.current));
+      const s = await salvarAcao(inicial, new FormData(form.current));
       if (s.type === "error") throw new Error(s.message ?? "");
       const r = await fetch("/api/onboarding/rascunho", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cliente: clienteSlug }) });
       const j = (await r.json().catch(() => ({}))) as { ok?: boolean; erro?: string };
@@ -130,9 +135,11 @@ export function Etapa1Form({
             <Campo rotulo={t("Site")}>
               <input className="ds-campo" defaultValue={etapa1.site ?? ""} inputMode="url" name="site" placeholder="https://" />
             </Campo>
-            <Campo rotulo={t("Perfil no Google")}>
-              <input className="ds-campo" defaultValue={etapa1.google ?? ""} name="google" placeholder="https://" />
+            <div className="sm:col-span-2">
+              <Campo rotulo={t("Perfil no Google")}>
+                <input className="ds-campo" defaultValue={etapa1.google ?? ""} name="google" placeholder="https://" />
             </Campo>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -326,7 +333,7 @@ export function Etapa1Form({
               <button
                 className="ds-botao ds-botao-primario self-start"
                 disabled={liberando || gerando}
-                onClick={() => iniciarLiberacao(async () => { const r = await liberarConversa(clienteSlug); if (r.type === "error") setErro(r.message); router.refresh(); })}
+                onClick={() => iniciarLiberacao(async () => { const r = await liberar(); if (r.type === "error") setErro(r.message); router.refresh(); })}
                 type="button"
               >
                 {t("Liberar a conversa para a cliente")}

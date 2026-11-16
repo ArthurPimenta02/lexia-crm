@@ -1,27 +1,23 @@
 import { randomUUID } from "node:crypto";
 
-import { getLoggedInUserProfile } from "@/lib/auth/profile";
+import { acessoAoOnboarding } from "@/lib/onboarding/acesso";
 import { abrirOnboarding, BUCKET_ONBOARDING, pastaDoCliente, registarArquivo, TAMANHO_MAXIMO_ARQUIVO } from "@/lib/onboarding/dados";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 const EXTENSAO: Record<string, string> = { "application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif", "text/plain": "txt", "text/csv": "csv" };
 
 /**
- * Arquivos da Etapa 1 (só lexia_admin). Dois passos, porque a Vercel não
+ * Arquivos da Etapa 1, sempre na pasta da empresa da sessão (ou da escolhida pela equipe da Lexia). Dois passos, porque a Vercel não
  * aceita corpos grandes: `preparar` devolve um endereço assinado para o
  * navegador subir direto ao bucket privado; `registar` grava a linha depois
  * de o arquivo lá estar. O caminho é decidido aqui, na pasta do cliente.
  */
 export async function POST(request: Request) {
-  const { profile, user } = await getLoggedInUserProfile();
-  if (!user || profile?.role !== "lexia_admin") return Response.json({ erro: "Acesso não autorizado." }, { status: 403 });
   const corpo = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const slug = String(corpo.cliente ?? "").trim();
-  const admin = createAdminClient();
-  const { data: cliente } = await admin.from("lexia_clientes").select("slug").eq("slug", slug).maybeSingle();
-  if (!cliente) return Response.json({ erro: "Cliente não encontrado." }, { status: 404 });
+  const acesso = await acessoAoOnboarding(corpo.cliente);
+  if (!acesso) return Response.json({ erro: "Acesso não autorizado." }, { status: 403 });
+  const { admin, clienteSlug: slug } = acesso;
 
   const mime = String(corpo.mime ?? "").toLowerCase().split(";")[0];
   const tamanho = Number(corpo.tamanho ?? 0);
@@ -43,7 +39,7 @@ export async function POST(request: Request) {
     const { data: lista } = await admin.storage.from(BUCKET_ONBOARDING).list(pasta, { search: caminho.slice(pasta.length + 1) });
     if (!lista?.length) return Response.json({ erro: "O arquivo não chegou. Tente enviar de novo." }, { status: 400 });
     const onb = await abrirOnboarding(admin, slug);
-    const id = await registarArquivo(admin, slug, onb.id, { origem: "etapa1", caminho, nome, mime, tamanho, enviadoPor: user.id });
+    const id = await registarArquivo(admin, slug, onb.id, { origem: "etapa1", caminho, nome, mime, tamanho, enviadoPor: acesso.userId });
     return Response.json({ id });
   }
   return Response.json({ erro: "Pedido inválido." }, { status: 400 });

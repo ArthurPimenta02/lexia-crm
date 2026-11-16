@@ -5,7 +5,7 @@ import { AppSidebar } from "@/app/components/app-sidebar";
 import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
 import { ScrollToTop } from "@/app/components/scroll-to-top";
-import { ecraPermitido } from "@/lib/auth/ecras";
+import { ecraPermitido, soOnboarding } from "@/lib/auth/ecras";
 import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
@@ -46,11 +46,16 @@ export default async function ClientAppLayout({
 
     Isto é só o desenho. Quem recusa a entrada é a guarda de cada página.
   */
-  const navegacao = clientNavigation.map((item) => ({
-    ...item,
-    label: t(item.label),
-    indisponivel: !ecraPermitido(profile.cliente_slug, item.href),
-  }));
+  // Conta em onboarding: o menu é só o onboarding. Mostrar doze telas fechadas a quem
+  // ainda nem tem agente seria ruído; o resto do painel aparece quando o onboarding for aprovado.
+  const emOnboarding = soOnboarding(profile.cliente_slug);
+  const navegacao = emOnboarding
+    ? [{ label: t("Onboarding"), href: "/app/onboarding", icon: "onboarding" }]
+    : clientNavigation.map((item) => ({
+        ...item,
+        label: t(item.label),
+        indisponivel: !ecraPermitido(profile.cliente_slug, item.href),
+      }));
 
   return (
     // `h-dvh` + `overflow-hidden` fazem a moldura caber exactamente no ecrã:
@@ -60,9 +65,9 @@ export default async function ClientAppLayout({
     <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background pt-[calc(3.5rem+env(safe-area-inset-top,0px))] text-foreground lg:flex-row lg:pt-0">
       <div aria-hidden="true" className="ds-aurora" />
       <AppSidebar
-        comSino
+        comSino={!emOnboarding}
         items={navegacao}
-        subtitle={t("Painel do agente")}
+        subtitle={emOnboarding ? t("Onboarding") : t("Painel do agente")}
       />
 
       <ScrollToTop alvoId="conteudo" />
