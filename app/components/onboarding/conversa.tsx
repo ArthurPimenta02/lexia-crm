@@ -287,7 +287,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
         <p className="ds-titulo-3 text-foreground">{cartao.nome}</p>
         {cartao.faltam.length ? (
           <div>
-            <p className="ds-sobretitulo">{t("Para contar no áudio")}</p>
+            <p className="ds-sobretitulo">{t("O que eu preciso saber")}</p>
             <ul className="mt-2 flex flex-col gap-1 text-sm leading-relaxed text-foreground">
               {cartao.faltam.map((f) => (
                 <li className="flex gap-2" key={k(f)}>
@@ -305,7 +305,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
           <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
         {cartao.faltam.length ? (
-          cartao.confirmar.length || cartao.cartoes.length ? <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("O que marcar aqui vai junto com a sua resposta. Responda por áudio ou texto aí embaixo.")}</p> : null
+          cartao.confirmar.length || cartao.cartoes.length ? <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("O que marcar aqui vai junto com a sua resposta. Responda por texto ou áudio aí embaixo.")}</p> : null
         ) : (
           <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({})} type="button">
             {t("Está certo, continuar")}
@@ -600,7 +600,7 @@ export function ConversaOnboarding({
                       enviar({});
                     }
                   }}
-                  placeholder={pedeTexto ? t("Escreva aqui ou grave um áudio") : t("Se quiser, escreva algo a mais")}
+                  placeholder={pedeTexto ? t("Escreva aqui ou, se preferir, grave um áudio") : t("Se quiser, escreva algo a mais")}
                   rows={1}
                   value={texto}
                 />

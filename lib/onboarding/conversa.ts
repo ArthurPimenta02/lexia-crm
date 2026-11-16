@@ -235,17 +235,35 @@ function progressoDe(linhas: LinhaDoCaderno[], itens: ItemDoCaderno[], terminou:
 
 const ultimasDe = (ms: MensagemDaConversa[]) => ms.slice(-6).map((m) => ({ autor: m.autor, texto: m.conteudo.slice(0, 700) }));
 
+const LISTA_ACHADA: Record<GrupoQueRepete, string> = {
+  servicos: "Estes são os serviços que eu encontrei.",
+  profissionais: "Estes são os profissionais que eu encontrei.",
+  faqs: "Estas são as perguntas frequentes que eu encontrei.",
+  objecoes: "Estas são as objeções que eu encontrei.",
+  promocoes: "Estas são as promoções que eu encontrei.",
+};
+const QUAIS_SAO: Record<GrupoQueRepete, string> = {
+  servicos: "Quais serviços você oferece?",
+  profissionais: "Quem atende aí com você, e o que cada pessoa faz?",
+  faqs: "Quais são as perguntas que as clientes mais fazem, e o que você costuma responder?",
+  objecoes: "Quais objeções você mais ouve (preço, medo, tempo) e como costuma responder?",
+  promocoes: "Você tem alguma promoção ou pacote valendo agora?",
+};
+const PRINCIPAIS: Record<GrupoQueRepete, string> = { servicos: "os serviços principais", profissionais: "quem atende", faqs: "as perguntas mais comuns", objecoes: "as objeções mais comuns", promocoes: "as promoções principais" };
+
 /** A fala de reserva, quando a IA não responde: seca, mas correta, e a conversa não para. */
 export function falaPadrao(cartao: Cartao, complemento: boolean): string {
   switch (cartao.tipo) {
     case "confirmar":
       return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim? O que estiver errado, é só corrigir no próprio campo.";
     case "lista":
-      return "Estes são os que eu encontrei. Desmarca o que você não oferece e acrescenta o que estiver faltando.";
+      return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
-      return complemento ? "Consegue me contar pelo menos os principais? Pode ser por áudio." : "Me conta quais são, pode ser por áudio.";
+      return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
     case "item":
-      return complemento ? `Sobre ${cartao.nome || "este item"}, ficou faltando só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}` : `Agora me conta sobre ${cartao.nome || "este item"}. Pode mandar tudo num áudio só: ${cartao.faltam.map((c) => c.pergunta).join(" ")}`;
+      return complemento
+        ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está na lista abaixo.`
+        : `Agora me conta sobre ${cartao.nome || "este item"}: o que eu preciso saber está na lista abaixo. Pode escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez.`;
     case "cartoes":
       return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
     case "pergunta":

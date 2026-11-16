@@ -91,3 +91,11 @@ test("escolhas do dono não se deduzem do site: só entram se a equipe as anotou
   assert.equal(daLexia.linhas.length, 1, "anotado pela equipe entra (como rascunho)");
   assert.equal(daLexia.linhas[0].estado, "rascunho");
 });
+
+test("diferenciais e observações finais não saem das fontes: é a dona que responde", () => {
+  const e = esquemaDoRascunho() as unknown as { properties: { campos: { items: { properties: { chave: { enum: string[] } } } } } };
+  const chaves = e.properties.campos.items.properties.chave.enum;
+  for (const k of ["diferencial_1", "diferencial_2", "diferencial_3", "informacoes_adicionais"]) assert.ok(!chaves.includes(k), k);
+  const r = rascunhoParaCaderno({ ...vazio, campos: [{ chave: "diferencial_1", valor: "Boston's #1", lista: [], fonte: "site", trecho: "" }] });
+  assert.deepEqual(r.linhas, []);
+});

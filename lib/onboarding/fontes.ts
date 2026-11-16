@@ -115,7 +115,12 @@ const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"] as const;
 const FONTES = ["site", "instagram", "google", "arquivo", "lexia"] as const;
 type Fonte = (typeof FONTES)[number];
 
-const camposDaRaiz = () => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).filter((c) => c.tipo !== "upload" && c.tipo !== "horarios" && !c.quando);
+/**
+ * O que a IA NÃO tira das fontes, mesmo que lá esteja: é a dona que diz com as palavras dela.
+ * Um prêmio no site não é necessariamente o diferencial que ela quer que a assistente use (Arthur, 16/11/2026).
+ */
+const SO_A_DONA_RESPONDE = new Set(["diferencial_1", "diferencial_2", "diferencial_3", "informacoes_adicionais"]);
+const camposDaRaiz = () => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).filter((c) => c.tipo !== "upload" && c.tipo !== "horarios" && !c.quando && !SO_A_DONA_RESPONDE.has(c.chave));
 const grupo = (chave: string) => ESQUEMA_ONBOARDING.flatMap((s) => s.grupos).find((g) => g.chave === chave)!;
 
 const texto = { type: "string" };
