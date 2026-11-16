@@ -426,7 +426,16 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const perguntados = new Set(perguntadosNoPasso(passo).map((c) => chave(c.campo.chave, c.itemId)));
   // Se ela só fez uma pergunta (ou só mandou um arquivo) e não respondeu a nada, o passo repete-se sem gastar uma tentativa.
   const semResposta = resolvidas.size === 0 && !resposta.pular && !resposta.nenhum && !(resposta.valores ?? []).length && !resposta.lista;
-  const naoConta = semResposta && (!!duvida || (!limpo(resposta.texto) && resposta.tipoDoArquivo === "arquivo"));
+  // Também não gasta tentativa a PRIMEIRA resposta que não toca em nenhuma das perguntas do passo
+  // ("está tudo certo", ao conferir o cartão). À segunda vez seguida no mesmo passo, conta: a conversa não fica presa.
+  const idDoPasso = passo.tipo === "item" ? `item:${passo.itemId}` : passo.tipo === "pergunta" ? `pergunta:${passo.campos.map((c) => c.campo.chave).join(",")}` : passo.tipo === "itens" ? `itens:${passo.grupo}` : "";
+  const nenhumaDasPerguntas = !!idDoPasso && !resposta.pular && !resposta.nenhum && ![...perguntados].some((x) => resolvidas.has(x)) && !(passo.tipo === "itens" && itens.some((i) => i.grupo === passo.grupo && !i.removido));
+  // Só na primeira vez que o passo aparece (nenhuma das perguntas dele foi contada ainda).
+  const nuncaContado = perguntadosNoPasso(passo).every((c) => c.linha?.estado !== "vago");
+  const segundaVezSemResposta = nenhumaDasPerguntas && andamento.semResposta === idDoPasso;
+  const primeiraVezSemResposta = nenhumaDasPerguntas && !segundaVezSemResposta && nuncaContado;
+  andamento.semResposta = nenhumaDasPerguntas ? idDoPasso : undefined;
+  const naoConta = primeiraVezSemResposta || (semResposta && (!!duvida || (!limpo(resposta.texto) && resposta.tipoDoArquivo === "arquivo")));
   if (passo.tipo === "itens" && naoConta) andamento.gruposPerguntados.pop();
   for (const c of naoConta ? [] : doPasso) {
     const k = chave(c.campo.chave, c.itemId);
@@ -437,7 +446,9 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
       continue;
     }
     // Conta uma pergunta. À segunda sem resposta, o caderno passa-o a pendência (nunca uma terceira).
-    const perguntas = (c.linha?.estado === "vago" ? c.linha.perguntas : 0) + 1;
+    // Duas respostas seguidas sem tocar em nenhuma pergunta do passo: a primeira foi de graça, esta fecha o assunto
+    // (o passo já lhe apareceu duas vezes; não aparece uma terceira).
+    const perguntas = segundaVezSemResposta && perguntados.has(k) ? 2 : (c.linha?.estado === "vago" ? c.linha.perguntas : 0) + 1;
     novas.push({ campo: c.campo.chave, itemId: c.itemId, valor: perguntados.has(k) ? null : (c.linha?.valor ?? null), estado: "vago", fonte: "cliente", evidencia: { mensagem: recebida.id }, perguntas });
     if (perguntas >= 2) paraALexia.push(c.campo.pergunta);
   }

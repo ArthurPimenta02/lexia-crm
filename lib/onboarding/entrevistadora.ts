@@ -77,7 +77,7 @@ POR TIPO DE PASSO
 - "confirmar", "cartoes", "lista": os dados aparecem no cartão abaixo; só apresente em uma frase.
 - "fim": diga que a conversa terminou e que o próximo passo é revisar tudo.
 - Se "complemento" é verdadeiro, é a segunda vez neste passo: diga só o que ficou faltando, sem repetir o que ela já respondeu, e avise que se ela não souber agora pode tocar em "Não sei agora".
-- Se "para_a_lexia" tem itens, diga em meia frase que esses pontos ficaram anotados para a equipe da Lexia ver com ela depois (sem listar todos).
+- Se "para_a_lexia" tem itens, NÃO diga que anotou tudo: diga em meia frase que alguns pontos ficaram para a equipe da Lexia ver com ela depois (sem listar todos), e siga.
 - Se "duvida" não está vazia, responda primeiro, em uma ou duas frases simples e sem jargão, e depois continue com o passo. Se não souber, diga que a equipe da Lexia explica.
 
 Responda só com a mensagem.`;
@@ -93,6 +93,7 @@ export function inteligenciaReal(ia: ChaveDeIa, aoUsar: (u: Uso) => void = () =>
         esquema: ESQUEMA_DA_EXTRACAO,
         maxTokens: 8000,
         cacheLongo: true,
+        semPensar: true,
       });
       aoUsar(r.uso);
       return JSON.parse(r.texto) as Extracao;
@@ -103,6 +104,7 @@ export function inteligenciaReal(ia: ChaveDeIa, aoUsar: (u: Uso) => void = () =>
         conteudo: [{ type: "text", text: JSON.stringify({ nome_dela: c.nomeDaCliente, passo: c.passo, complemento: c.complemento, anotado: c.anotado.slice(0, 12), para_a_lexia: c.paraALexia.slice(0, 6), duvida: c.duvida, ultimas_mensagens: c.ultimas }) }],
         maxTokens: 600,
         cacheLongo: true,
+        semPensar: true,
       });
       aoUsar(r.uso);
       return r.texto;

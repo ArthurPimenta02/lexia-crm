@@ -46,6 +46,11 @@ export type PedidoIa = {
   maxTokens?: number;
   /** Guarda o texto fixo (sistema) por 1 hora em vez de 5 minutos: para a conversa, em que as mensagens se espaçam. */
   cacheLongo?: boolean;
+  /**
+   * Responde direto, sem a etapa de raciocínio do modelo. Medido a 16/11/2026 na extração de uma resposta
+   * longa: 19 s com raciocínio, 5,5 s sem, com o mesmo resultado. Para a conversa, em que a cliente está à espera.
+   */
+  semPensar?: boolean;
 };
 
 export type Uso = { entrada: number; saida: number; cache: number; escrita: number };
@@ -69,6 +74,7 @@ export async function perguntar(ia: ChaveDeIa, pedido: PedidoIa): Promise<{ text
     max_tokens: pedido.maxTokens ?? 8000,
     system: [{ type: "text", text: pedido.sistema, cache_control: pedido.cacheLongo ? { type: "ephemeral", ttl: "1h" } : { type: "ephemeral" } }],
     messages: [{ role: "user", content: pedido.conteudo }],
+    ...(pedido.semPensar ? { thinking: { type: "disabled" } } : {}),
     ...(pedido.esquema ? { output_config: { format: { type: "json_schema", schema: pedido.esquema } } } : {}),
   };
   let ultimo: unknown = null;

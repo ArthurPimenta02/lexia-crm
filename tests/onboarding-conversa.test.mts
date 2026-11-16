@@ -133,6 +133,19 @@ test("um áudio responde vários campos do serviço; o que faltar ganha UM compl
   assert.ok(!(c2.tipo === "item" && c2.itemId === "s1" && c2.faltam.length > 0), "não há terceira pergunta sobre o mesmo serviço");
 });
 
+test("'está tudo certo' não gasta uma tentativa: a primeira resposta que não toca nas perguntas não conta; a segunda seguida conta", async () => {
+  const b = comServico();
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await turno(b.repo, ia(), msg({ texto: "está tudo certo" }), "");
+  assert.equal(await atual(b, "contraindicacoes", "s1"), undefined, "nenhuma pergunta foi contada");
+  const c1 = b.ultimoCartao();
+  assert.ok(c1.tipo === "item" && c1.itemId === "s1" && c1.faltam.length > 5, "o serviço continua inteiro por perguntar");
+  await turno(b.repo, ia(), msg({ texto: "ok" }), "");
+  assert.equal((await atual(b, "contraindicacoes", "s1"))!.perguntas, 2, "à segunda vez seguida sem resposta, o assunto fecha");
+  const c2 = b.ultimoCartao();
+  assert.ok(!(c2.tipo === "item" && c2.itemId === "s1" && c2.faltam.length > 0), "o serviço não aparece uma terceira vez");
+});
+
 test("o código confere o que a IA devolve: opção inexistente, item desconhecido e campo já respondido ficam de fora", async () => {
   const b = comServico();
   await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
