@@ -257,6 +257,57 @@ test("serviço só com rascunho da Lexia: conferir é um toque, sem chamar a IA,
   assert.ok(!(b.ultimoCartao().tipo === "item" && (b.ultimoCartao() as { itemId: string }).itemId === "s1"), "o serviço fica fechado num turno só");
 });
 
+test("perguntas frequentes sugeridas: conferem-se todas num cartão só; a que ela tira sai, a que ela corrige fica como resposta dela", async () => {
+  const faq = (id: string, ordem: number): ItemDoCaderno => ({ id, grupo: "faqs", ordem, removido: false });
+  const sug = (campo: string, valor: string, itemId: string): NovaLinha => ({ campo, itemId, valor, estado: "rascunho", fonte: "recomendacao" });
+  const b = banco({ itens: [faq("f1", 0), faq("f2", 1), faq("f3", 2)], linhas: [sug("pergunta", "Dói?", "f1"), sug("resposta", "Usamos anestésico.", "f1"), sug("pergunta", "Quanto tempo dura?", "f2"), sug("resposta", "De 1 a 2 anos.", "f2"), sug("pergunta", "Posso fazer grávida?", "f3"), sug("resposta", "Não.", "f3")] });
+  await b.repo.gravarAndamento({ listas: ["servicos", "profissionais"], gruposPerguntados: ["servicos", "servicos", "profissionais"] });
+  // tudo o resto já respondido: só interessa o grupo
+  const resto = montarCaderno(await b.repo.linhas(), await b.repo.itens()).filter((c) => !c.grupo);
+  await b.repo.acrescentarLinhas(resto.map((c) => ({ campo: c.campo.chave, valor: null, estado: "nao_se_aplica" as const, fonte: "cliente" as const })));
+  let falas = 0;
+  const i: Inteligencia = { async extrair() { return NADA; }, async falar() { falas++; return "fala"; } };
+  await abrirConversa(b.repo, i, "");
+  const c = b.ultimoCartao();
+  assert.ok(c.tipo === "lista" && c.grupo === "faqs", JSON.stringify(c).slice(0, 200));
+  if (c.tipo !== "lista") return;
+  assert.deepEqual(c.itens.map((x) => [x.nome, x.campos?.map((f) => f.campo).join(), x.campos?.[0].fonte]), [["Dói?", "resposta", "recomendacao"], ["Quanto tempo dura?", "resposta", "recomendacao"], ["Posso fazer grávida?", "resposta", "recomendacao"]]);
+  assert.equal(falas, 0);
+  await turno(b.repo, i, msg({ lista: { manter: ["f1", "f2"], novos: [] }, valores: [{ campo: "resposta", itemId: "f1", valor: "Usamos anestésico." }, { campo: "resposta", itemId: "f2", valor: "De 1 a 3 anos, depende da pele." }] }), "");
+  assert.deepEqual([(await atual(b, "pergunta", "f1"))!.estado, (await atual(b, "resposta", "f1"))!.estado], ["confirmado", "confirmado"]);
+  assert.deepEqual([(await atual(b, "resposta", "f2"))!.estado, (await atual(b, "resposta", "f2"))!.valor], ["respondido", "De 1 a 3 anos, depende da pele."]);
+  assert.ok(b.itens.find((x) => x.id === "f3")!.removido, "a que ela desmarcou sai");
+  const depois = b.ultimoCartao();
+  assert.ok(!(depois.tipo === "item" && depois.grupo === "faqs") && !(depois.tipo === "lista" && depois.grupo === "faqs"), "as perguntas frequentes fecharam num turno só");
+});
+
+test("escolhas com recomendação: vão todas juntas, uma vez, com a recomendada à vista; o que ela não escolher volta na seção", async () => {
+  const b = banco({ itens: [servico("s1")], linhas: [{ campo: "nome", itemId: "s1", valor: "Botox", estado: "confirmado", fonte: "cliente" }] });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: ["profissionais"], tabelas: ["servicos"] });
+  const doServico = montarCaderno(await b.repo.linhas(), await b.repo.itens()).filter((c) => c.itemId === "s1" && c.campo.chave !== "nome");
+  await b.repo.acrescentarLinhas(doServico.map((c) => ({ campo: c.campo.chave, itemId: "s1", valor: null, estado: "nao_se_aplica" as const, fonte: "cliente" as const })));
+  await abrirConversa(b.repo, ia(), "");
+  const c = b.ultimoCartao();
+  assert.ok(c.tipo === "cartoes" && c.secao === "recomendadas" && c.campos.length >= 20, JSON.stringify(c).slice(0, 200));
+  if (c.tipo !== "cartoes") return;
+  assert.ok(c.campos.every((f) => f.recomendado !== undefined), "só entram escolhas que têm recomendação");
+  assert.ok(new Set(c.campos.map((f) => f.campo)).has("emojis") && new Set(c.campos.map((f) => f.campo)).has("ativar_follow_up"), "de todas as seções");
+  // ela aceita todas menos uma, que muda, e deixa uma por escolher
+  const semEsta = c.campos.find((f) => f.campo === "emojis")!;
+  await turno(b.repo, ia(), msg({ valores: c.campos.filter((f) => f !== semEsta).map((f) => ({ campo: f.campo, itemId: null, valor: f.campo === "forma_de_tratamento" ? f.opcoes!.find((o) => o !== f.recomendado) : f.recomendado })) }), "");
+  assert.equal((await atual(b, "ativar_follow_up"))!.estado, "respondido");
+  assert.notEqual((await atual(b, "forma_de_tratamento"))!.valor, c.campos.find((f) => f.campo === "forma_de_tratamento")!.recomendado, "o que ela mudou fica como ela escolheu");
+  const vistos: string[] = [];
+  for (let n = 0; n < 40 && b.ultimoCartao().tipo !== "fim"; n++) {
+    const p = b.ultimoCartao();
+    assert.ok(!(p.tipo === "cartoes" && p.secao === "recomendadas"), "o cartão das recomendações apareceu de novo");
+    if (p.tipo === "cartoes") vistos.push(...p.campos.map((f) => f.campo));
+    await turno(b.repo, ia(), msg({ pular: true }), "");
+  }
+  assert.ok(vistos.includes("emojis"), "o que ela deixou por escolher volta na seção dele");
+  assert.ok(!vistos.includes("ativar_follow_up"), "o que ela aceitou não volta");
+});
+
 test("grupo vazio: ela conta quais são e eles entram como itens; itens repetidos não duplicam", async () => {
   const b = banco();
   await abrirConversa(b.repo, ia(), "");

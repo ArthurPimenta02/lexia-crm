@@ -15,6 +15,7 @@
  */
 import {
   ANDAMENTO_VAZIO,
+  SECAO_DAS_RECOMENDADAS,
   campoDoEsquema,
   montarCaderno,
   perguntadosNoPasso,
@@ -49,7 +50,7 @@ export type CampoDoCartao = {
 /** O passo, no formato que a tela desenha (vai dentro da mensagem da entrevistadora). */
 export type Cartao =
   | { tipo: "confirmar"; campos: CampoDoCartao[] }
-  | { tipo: "lista"; grupo: GrupoQueRepete; itens: { id: string; nome: string }[] }
+  | { tipo: "lista"; grupo: GrupoQueRepete; itens: { id: string; nome: string; campos?: CampoDoCartao[] }[] }
   | { tipo: "itens"; grupo: GrupoQueRepete; obrigatorio: boolean }
   | { tipo: "tabela"; grupo: GrupoQueRepete; linhas: { itemId: string; nome: string; campos: CampoDoCartao[] }[] }
   | { tipo: "item"; grupo: GrupoQueRepete; itemId: string; nome: string; confirmar: CampoDoCartao[]; cartoes: CampoDoCartao[]; faltam: CampoDoCartao[] }
@@ -165,7 +166,14 @@ export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
     case "confirmar":
       return { tipo: "confirmar", campos: passo.campos.map(paraCartao) };
     case "lista":
-      return { tipo: "lista", grupo: passo.grupo, itens: passo.itens.map((i) => ({ id: i.id, nome: nomeDoItem(i.id, passo.grupo, linhas) })) };
+      return {
+        tipo: "lista",
+        grupo: passo.grupo,
+        itens: passo.itens.map((i) => {
+          const campos = passo.detalhes.find((d) => d.itemId === i.id)?.campos.map(paraCartao);
+          return { id: i.id, nome: nomeDoItem(i.id, passo.grupo, linhas), ...(campos?.length ? { campos } : {}) };
+        }),
+      };
     case "itens":
       return { tipo: "itens", grupo: passo.grupo, obrigatorio: passo.obrigatorio };
     case "tabela":
@@ -176,7 +184,7 @@ export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
       return { tipo: "item", grupo: passo.grupo, itemId: passo.itemId, nome: nomeDoItem(passo.itemId, passo.grupo, linhas), confirmar: semNome(passo.confirmar).map(paraCartao), cartoes: passo.cartoes.map(paraCartao), faltam: semNome(passo.faltam).map(paraCartao) };
     }
     case "cartoes":
-      return { tipo: "cartoes", secao: passo.secao, titulo: SECOES.get(passo.secao) ?? "", campos: passo.campos.map(paraCartao) };
+      return { tipo: "cartoes", secao: passo.secao, titulo: passo.secao === SECAO_DAS_RECOMENDADAS ? "Recomendações da Lexia" : (SECOES.get(passo.secao) ?? ""), campos: passo.campos.map(paraCartao) };
     case "pergunta":
       return { tipo: "pergunta", secao: passo.secao, titulo: SECOES.get(passo.secao) ?? "", campos: passo.campos.map(paraCartao) };
     default:
@@ -189,6 +197,7 @@ function camposDoPasso(passo: Passo): CampoNoCaderno[] {
   if (passo.tipo === "confirmar" || passo.tipo === "cartoes" || passo.tipo === "pergunta") return passo.campos;
   if (passo.tipo === "item") return [...passo.confirmar, ...passo.cartoes, ...passo.faltam];
   if (passo.tipo === "tabela") return passo.linhas.flatMap((l) => l.campos);
+  if (passo.tipo === "lista") return passo.detalhes.flatMap((d) => d.campos);
   return [];
 }
 
@@ -249,6 +258,13 @@ const LISTA_ACHADA: Record<GrupoQueRepete, string> = {
   objecoes: "Estas são as objeções que eu encontrei.",
   promocoes: "Estas são as promoções que eu encontrei.",
 };
+const LISTA_SUGERIDA: Record<GrupoQueRepete, string> = {
+  servicos: LISTA_ACHADA.servicos,
+  profissionais: "Estes são os profissionais que eu encontrei, com o que cada um faz.",
+  faqs: "Preparei as perguntas que clientes de negócios como o seu mais fazem, cada uma com uma resposta sugerida.",
+  objecoes: "Preparei as objeções que mais aparecem em negócios como o seu, cada uma com uma sugestão de resposta.",
+  promocoes: "Estas são as promoções que eu encontrei.",
+};
 const QUAIS_SAO: Record<GrupoQueRepete, string> = {
   servicos: "Quais serviços você oferece?",
   profissionais: "Quem atende aí com você, e o que cada pessoa faz?",
@@ -264,6 +280,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
     case "confirmar":
       return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim? O que estiver errado, é só corrigir no próprio campo.";
     case "lista":
+      if (cartao.itens.some((i) => i.campos?.length)) return `${LISTA_SUGERIDA[cartao.grupo]} Corrija o que for diferente aí, desmarque o que não vale e acrescente o que estiver faltando.`;
       return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
@@ -275,6 +292,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
         ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está na lista abaixo.`
         : `Agora me conta sobre ${cartao.nome || "este item"}: o que eu preciso saber está na lista abaixo. Pode escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez.`;
     case "cartoes":
+      if (cartao.secao === SECAO_DAS_RECOMENDADAS) return "Para estas escolhas, já deixei marcado o que costuma funcionar melhor. Dá uma olhada: o que você quiser diferente, é só tocar em Mudar. O que estiver bom fica como está.";
       return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
     case "pergunta":
       return cartao.campos.map((c) => c.pergunta).join(" ");

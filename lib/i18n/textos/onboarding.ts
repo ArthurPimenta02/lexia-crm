@@ -3,6 +3,12 @@ import type { TextosDaArea } from "../traduzir";
 /** Textos do onboarding (/app/onboarding e /admin/clientes/<slug>/onboarding). */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Recomendações da Lexia": "Recomendações da Lexia",
+    "Falta escolher": "Falta escolher",
+    "Fechar": "Fechar",
+    "Mudar": "Mudar",
+    "Aceitar as recomendadas": "Aceitar as recomendadas",
+    "Você mudou {n}": "Mudou {n}",
     "Rascunho da Lexia": "Rascunho da Lexia",
     "Informação de saúde: confira com atenção antes de continuar.": "Informação de saúde: confira com atenção antes de continuar.",
     "Preço e duração": "Preço e duração",
@@ -112,6 +118,12 @@ const textos: TextosDaArea = {
     "Voltar ao cliente": "Voltar ao cliente",
   },
   es: {
+    "Recomendações da Lexia": "Recomendaciones de Lexia",
+    "Falta escolher": "Falta elegir",
+    "Fechar": "Cerrar",
+    "Mudar": "Cambiar",
+    "Aceitar as recomendadas": "Aceptar las recomendadas",
+    "Você mudou {n}": "Cambió {n}",
     "Rascunho da Lexia": "Borrador de Lexia",
     "Informação de saúde: confira com atenção antes de continuar.": "Información de salud: revísela con atención antes de continuar.",
     "Preço e duração": "Precio y duración",
@@ -221,6 +233,12 @@ const textos: TextosDaArea = {
     "Voltar ao cliente": "Volver al cliente",
   },
   en: {
+    "Recomendações da Lexia": "Lexia's recommendations",
+    "Falta escolher": "Not chosen yet",
+    "Fechar": "Close",
+    "Mudar": "Change",
+    "Aceitar as recomendadas": "Accept the recommended ones",
+    "Você mudou {n}": "You changed {n}",
     "Rascunho da Lexia": "Lexia draft",
     "Informação de saúde: confira com atenção antes de continuar.": "Health information: check it carefully before continuing.",
     "Preço e duração": "Price and duration",

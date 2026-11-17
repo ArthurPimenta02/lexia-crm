@@ -179,6 +179,10 @@ function estadoInicial(c: Cartao): EstadoDoCartao {
   const confirmar = c.tipo === "confirmar" ? c.campos : c.tipo === "item" ? c.confirmar : [];
   for (const f of confirmar) valores[k(f)] = f.valor;
   // Na tabela, o que as fontes acharam já vem escrito na linha do serviço.
+  // Na lista de perguntas frequentes, objeções e profissionais, a resposta sugerida de cada item já vem escrita.
+  if (c.tipo === "lista") for (const f of c.itens.flatMap((i) => i.campos ?? [])) valores[k(f)] = f.valor;
+  // Nas escolhas com recomendação, a recomendada já vem marcada (e fica à vista o que está sendo aceito).
+  if (c.tipo === "cartoes" && c.secao === "recomendadas") for (const f of c.campos) valores[k(f)] = f.recomendado;
   if (c.tipo === "tabela") for (const f of c.linhas.flatMap((l) => l.campos)) if (f.valor !== undefined && f.valor !== null) valores[k(f)] = f.valor;
   return { valores, manter: new Set(c.tipo === "lista" ? c.itens.map((i) => i.id) : []), novos: [] };
 }
@@ -221,6 +225,7 @@ const linhaCompleta = (l: LinhaDaTabela, valores: Record<string, unknown>) => l.
 function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Cartao; estado: EstadoDoCartao; mudar: (e: EstadoDoCartao) => void; ocupado: boolean; enviar: (e: Partial<Envio>) => void }) {
   const { t } = useIdioma();
   const [novo, setNovo] = useState("");
+  const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const set = (f: CampoDoCartao, v: unknown) => mudar({ ...estado, valores: { ...estado.valores, [k(f)]: v } });
   const valoresDe = (campos: CampoDoCartao[]) => campos.filter((f) => !vazio(estado.valores[k(f)]) || estado.valores[k(f)] === null).map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estado.valores[k(f)] }));
 
@@ -233,6 +238,51 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
         <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({ valores: valoresDe(cartao.campos) })} type="button">
           {t("Está certo, continuar")}
         </button>
+      </div>
+    );
+  }
+
+  if (cartao.tipo === "cartoes" && cartao.secao === "recomendadas") {
+    const faltam = cartao.campos.filter((f) => vazio(estado.valores[k(f)])).length;
+    const mudadas = cartao.campos.filter((f) => JSON.stringify(estado.valores[k(f)]) !== JSON.stringify(f.recomendado)).length;
+    return (
+      <div className="ds-cartao flex flex-col gap-4 p-4">
+        <p className="ds-sobretitulo">{t("Recomendações da Lexia")}</p>
+        <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
+          {cartao.campos.map((f) => {
+            const v = estado.valores[k(f)];
+            const aberto = abertos.has(k(f));
+            return (
+              <li className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0" key={k(f)}>
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[0.8125rem] text-muted-foreground">{f.pergunta}</p>
+                    {aberto ? null : <p className="mt-0.5 text-sm font-medium text-foreground">{vazio(v) ? t("Falta escolher") : Array.isArray(v) ? v.join(" · ") : String(v)}</p>}
+                  </div>
+                  <button
+                    className="shrink-0 text-[0.8125rem] text-[var(--ds-acao)] underline-offset-2 hover:underline"
+                    onClick={() => {
+                      const n = new Set(abertos);
+                      if (aberto) n.delete(k(f));
+                      else n.add(k(f));
+                      setAbertos(n);
+                    }}
+                    type="button"
+                  >
+                    {aberto ? t("Fechar") : t("Mudar")}
+                  </button>
+                </div>
+                {aberto ? <Opcoes campo={f} mudar={(nv) => set(f, nv)} valor={v} /> : null}
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="ds-botao ds-botao-primario" disabled={ocupado || faltam > 0} onClick={() => enviar({ valores: valoresDe(cartao.campos) })} type="button">
+            {mudadas ? t("Confirmar escolhas") : t("Aceitar as recomendadas")}
+          </button>
+          {faltam > 0 ? <span className="text-[0.8125rem] text-muted-foreground">{t("Falta escolher {n}", { n: faltam })}</span> : mudadas ? <span className="text-[0.8125rem] text-muted-foreground">{t("Você mudou {n}", { n: mudadas })}</span> : null}
+        </div>
       </div>
     );
   }
@@ -287,8 +337,21 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
                   }}
                   type="checkbox"
                 />
-                <span className={estado.manter.has(i.id) ? "" : "text-muted-foreground line-through"}>{i.nome || t("(sem nome)")}</span>
+                <span className={`min-w-0 ${estado.manter.has(i.id) ? (i.campos?.length ? "font-medium" : "") : "text-muted-foreground line-through"}`}>{i.nome || t("(sem nome)")}</span>
               </label>
+              {i.campos?.length && estado.manter.has(i.id) ? (
+                <div className="mb-3 ml-7 flex flex-col gap-3">
+                  {i.campos.map((f) => (
+                    <label className="flex min-w-0 flex-col gap-1.5" key={k(f)}>
+                      <span className="text-[0.8125rem] text-muted-foreground">
+                        {f.pergunta}
+                        {f.fonte === "recomendacao" ? <span className="ds-selo ml-2 align-middle">{t("Rascunho da Lexia")}</span> : null}
+                      </span>
+                      <textarea className="ds-campo min-h-20 py-2 leading-relaxed" onChange={(e) => set(f, e.target.value)} value={String(estado.valores[k(f)] ?? "")} />
+                    </label>
+                  ))}
+                </div>
+              ) : null}
             </li>
           ))}
           {estado.novos.map((n) => (
@@ -318,7 +381,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             {t("Acrescentar")}
           </button>
         </div>
-        <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({ lista: { manter: [...estado.manter], novos: novo.trim() ? [...estado.novos, novo.trim()] : estado.novos } })} type="button">
+        <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({ lista: { manter: [...estado.manter], novos: novo.trim() ? [...estado.novos, novo.trim()] : estado.novos }, valores: valoresDe(cartao.itens.filter((i) => estado.manter.has(i.id)).flatMap((i) => i.campos ?? [])) })} type="button">
           {t("Esta é a lista, continuar")}
         </button>
       </div>

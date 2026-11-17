@@ -21,7 +21,7 @@ import {
   listarArquivos,
   type Achado,
 } from "@/lib/onboarding/dados";
-import { juntarTextos, lerArquivo, lerSite, pedirRascunho, pedirTextosDosServicos, rascunhoParaCaderno, servicosParaEscrever } from "@/lib/onboarding/fontes";
+import { juntarSugestoes, juntarTextos, lerArquivo, lerSite, pedirRascunho, pedirSugestoes, pedirTextosDosServicos, rascunhoParaCaderno, servicosParaEscrever, textoDasFontes } from "@/lib/onboarding/fontes";
 import { chaveDoCliente, custoUsd, type Uso } from "@/lib/onboarding/ia";
 
 export type ResultadoDoRascunho = { ok: true; custoUsd: number } | { ok: false; erro: string };
@@ -29,8 +29,8 @@ export type ResultadoDoRascunho = { ok: true; custoUsd: number } | { ok: false; 
 const agora = () => new Date().toISOString();
 
 /** As peças que falam com o mundo de fora. Trocam-se nos testes; em produção são as verdadeiras. */
-export type Pecas = { chave: typeof chaveDoCliente; site: typeof lerSite; arquivo: typeof lerArquivo; rascunho: typeof pedirRascunho; textos: typeof pedirTextosDosServicos };
-const PECAS: Pecas = { chave: chaveDoCliente, site: lerSite, arquivo: lerArquivo, rascunho: pedirRascunho, textos: pedirTextosDosServicos };
+export type Pecas = { chave: typeof chaveDoCliente; site: typeof lerSite; arquivo: typeof lerArquivo; rascunho: typeof pedirRascunho; textos: typeof pedirTextosDosServicos; sugestoes: typeof pedirSugestoes };
+const PECAS: Pecas = { chave: chaveDoCliente, site: lerSite, arquivo: lerArquivo, rascunho: pedirRascunho, textos: pedirTextosDosServicos, sugestoes: pedirSugestoes };
 
 export async function gerarRascunho(admin: SupabaseClient, clienteSlug: string, feitoPor: string | null, pecas: Pecas = PECAS): Promise<ResultadoDoRascunho> {
   const onb = await abrirOnboarding(admin, clienteSlug);
@@ -76,20 +76,33 @@ export async function gerarRascunho(admin: SupabaseClient, clienteSlug: string, 
     const { rascunho, uso } = await pecas.rascunho(ia, { etapa1: onb.etapa1, site, arquivos: lidos });
     usos.push(uso);
     const { linhas, itens: achados } = rascunhoParaCaderno(rascunho);
-    // 4b) os textos de cada serviço que as fontes não trazem: a Lexia escreve, a dona confere na conversa.
-    //     Se esta parte falhar, o rascunho segue sem ela: os textos passam a ser perguntados, nada se perde.
+    // 4b) o que as fontes não trazem e a Lexia pode ESCREVER para a dona só conferir: os textos de cada serviço
+    //     e as perguntas frequentes e objeções mais comuns do ramo. As duas chamadas correm juntas. Se uma falhar,
+    //     o rascunho segue sem ela: isso passa a ser perguntado na conversa, nada se perde.
     let itens = achados;
     const paraEscrever = servicosParaEscrever(achados);
-    if (paraEscrever.length) {
-      try {
-        const r = await pecas.textos(ia, { tipoDeNegocio: onb.etapa1.tipo_de_negocio ?? "", servicos: paraEscrever });
-        usos.push(r.uso);
-        itens = juntarTextos(achados, r.textos);
-        const escritos = itens.filter((item, n) => item.linhas.length > achados[n].linhas.length).length;
-        fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: true, detalhe: `Rascunho escrito pela Lexia para ${escritos} de ${paraEscrever.length} serviços`, em: agora() });
-      } catch (e) {
-        fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: false, detalhe: `Não consegui escrever os textos dos serviços (${e instanceof Error ? e.message : "erro"}). A conversa pergunta um a um.`, em: agora() });
-      }
+    const nomes = (g: string) => achados.filter((x) => x.grupo === g).map((x) => x.nome);
+    const erro = (e: unknown) => (e instanceof Error ? e.message : "erro");
+    const [textos, sugestoes] = await Promise.allSettled([
+      paraEscrever.length ? pecas.textos(ia, { tipoDeNegocio: onb.etapa1.tipo_de_negocio ?? "", servicos: paraEscrever }) : Promise.resolve(null),
+      pecas.sugestoes(ia, { tipoDeNegocio: onb.etapa1.tipo_de_negocio ?? "", servicos: nomes("servicos"), jaExistem: { faqs: nomes("faqs"), objecoes: nomes("objecoes") }, fontes: textoDasFontes({ etapa1: onb.etapa1, site, arquivos: lidos }) }),
+    ]);
+    if (textos.status === "fulfilled" && textos.value) {
+      usos.push(textos.value.uso);
+      itens = juntarTextos(itens, textos.value.textos);
+      const escritos = itens.filter((item, n) => item.linhas.length > achados[n].linhas.length).length;
+      fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: true, detalhe: `Rascunho escrito pela Lexia para ${escritos} de ${paraEscrever.length} serviços`, em: agora() });
+    } else if (textos.status === "rejected") {
+      fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: false, detalhe: `Não consegui escrever os textos dos serviços (${erro(textos.reason)}). A conversa pergunta um a um.`, em: agora() });
+    }
+    if (sugestoes.status === "fulfilled") {
+      usos.push(sugestoes.value.uso);
+      const antes = itens.length;
+      itens = juntarSugestoes(itens, sugestoes.value.sugestoes);
+      const novas = itens.slice(antes);
+      fontes.push({ fonte: "lexia", titulo: "Perguntas frequentes e objeções", ok: true, detalhe: `Sugeridas pela Lexia: ${novas.filter((x) => x.grupo === "faqs").length} perguntas frequentes e ${novas.filter((x) => x.grupo === "objecoes").length} objeções`, em: agora() });
+    } else {
+      fontes.push({ fonte: "lexia", titulo: "Perguntas frequentes e objeções", ok: false, detalhe: `Não consegui preparar as sugestões (${erro(sugestoes.reason)}). A conversa pergunta.`, em: agora() });
     }
 
     // 5) gravar: sai o rascunho anterior (itens marcados como removidos), entra o novo
