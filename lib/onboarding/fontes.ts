@@ -153,7 +153,7 @@ REGRAS
 - Copie preços, durações e nomes exatamente como estão. Não some, não converta moeda, não arredonde.
 - Campos com opções: use exatamente o texto de uma das opções (em "valor"; se for de escolher várias, em "lista"). Se nenhuma opção corresponder ao que a fonte diz, deixe o campo de fora.
 - Campos de texto: "valor" com a informação, "lista" vazia.
-- Serviços: um item por serviço realmente oferecido. Cada técnica ou procedimento que a fonte cita pelo nome é um serviço separado (se a fonte diz que a sobrancelha pode ser feita em microblading, shadow ou hybrid, são três serviços; "também fazemos tintura, laminação e design" são mais três). O nome de uma categoria ou de uma seção do site ("Sobrancelhas", "Lábios", "Estética avançada") não é um serviço: liste o que está dentro dela. O que a fonte diz da categoria (duração, descrição) vale para cada serviço dela. Campos que a fonte não traz ficam com texto vazio. "tipo_de_preco" é um de: ${grupo("servicos").campos.find((c) => c.chave === "tipo_de_preco")!.opcoes!.join(" | ")} (ou vazio se a fonte não deixa claro).
+- Serviços: um item por serviço realmente oferecido. Cada técnica ou procedimento que a fonte cita pelo nome é um serviço separado (se a fonte diz que a sobrancelha pode ser feita em microblading, shadow ou hybrid, são três serviços; "também fazemos tintura, laminação e design" são mais três). O nome de uma categoria ou de uma seção do site ("Sobrancelhas", "Lábios", "Estética avançada") não é um serviço: liste o que está dentro dela. O que a fonte diz da categoria (duração, descrição) vale para cada serviço dela. O mesmo serviço citado em fontes diferentes, ou com nomes parecidos ("Hybrid" e "Hybrid Brows", "Lamination" e "Brow Lamination"), é UM item só: use o nome mais completo e junte o que cada fonte diz. Uma descrição genérica das anotações ("procedimentos de ticket mais baixo", "os injetáveis") não é um serviço, e uma faixa de preço dita por alto para vários serviços não é o preço de nenhum deles. Campos que a fonte não traz ficam com texto vazio. "tipo_de_preco" é um de: ${grupo("servicos").campos.find((c) => c.chave === "tipo_de_preco")!.opcoes!.join(" | ")} (ou vazio se a fonte não deixa claro).
 - Perguntas frequentes e objeções: só as que aparecem de fato nas fontes (seção de FAQ, comentários, avaliações, anotações), com a resposta que a fonte dá. Sem resposta na fonte, deixe a resposta vazia.
 - Horários: uma linha por dia em que abre, no formato HH:MM.
 - "resumo": duas frases para a equipe da Lexia sobre o que foi encontrado e o que mais faltou.
@@ -186,8 +186,18 @@ export function textoDasFontes(f: FontesLidas): string {
   return partes.join("\n\n").slice(0, 160_000);
 }
 
+/**
+ * O teto da resposta do rascunho. Conta também o raciocínio do modelo, não só o texto: com muitas fontes
+ * (anotações longas e vários prints) 16 mil não chegaram e a geração falhou com "a resposta ficou cortada"
+ * (17/11/2026, primeira cliente). O custo é pelo que se usa, não pelo teto.
+ * Também por isso o rascunho responde sem a etapa de raciocínio: medido com as mesmas fontes, 141 s e 15,8 mil
+ * tokens com raciocínio contra 50 s e 6,3 mil sem, com uma lista de serviços igual ou melhor. A rota tem 300 s
+ * para o rascunho inteiro (arquivos, rascunho, textos dos serviços e sugestões).
+ */
+const LIMITE_DO_RASCUNHO = 48000;
+
 export async function pedirRascunho(ia: ChaveDeIa, fontes: FontesLidas): Promise<{ rascunho: RascunhoBruto; uso: Uso }> {
-  const r = await perguntar(ia, { sistema: instrucoes(), conteudo: [{ type: "text", text: textoDasFontes(fontes) }], esquema: esquemaDoRascunho(), maxTokens: 16000 });
+  const r = await perguntar(ia, { sistema: instrucoes(), conteudo: [{ type: "text", text: textoDasFontes(fontes) }], esquema: esquemaDoRascunho(), maxTokens: LIMITE_DO_RASCUNHO, semPensar: true });
   return { rascunho: JSON.parse(r.texto) as RascunhoBruto, uso: r.uso };
 }
 
