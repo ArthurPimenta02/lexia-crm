@@ -276,25 +276,50 @@ const QUAIS_SAO: Record<GrupoQueRepete, string> = {
 };
 const PRINCIPAIS: Record<GrupoQueRepete, string> = { servicos: "os serviços principais", profissionais: "quem atende", faqs: "as perguntas mais comuns", objecoes: "as objeções mais comuns", promocoes: "as promoções principais" };
 
+/** O nome curto de cada informação, para a fala da entrevistadora (a pergunta inteira fica no cartão). */
+const ROTULO: Record<string, string> = {
+  descricao_e_indicacao: "o que é e como é feito",
+  para_quem_indicar: "para quem você indica",
+  preparo_e_cuidados: "os cuidados antes e depois",
+  contraindicacoes: "as contraindicações",
+  numero_de_sessoes: "quantas sessões costuma levar",
+  tipo_de_preco: "como é o preço",
+  valor: "o preço",
+  duracao_media: "quanto tempo leva",
+  variacao_de_preco: "como o preço varia",
+  motivo_da_avaliacao: "por que o preço depende de avaliação",
+  especialidade: "o que essa pessoa faz",
+};
+const rotuloCurto = (c: CampoDoCartao) => ROTULO[c.campo] ?? c.pergunta.replace(/[?.]$/, "").replace(/^./, (x) => x.toLowerCase());
+const emLista = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} e ${xs[xs.length - 1]}`);
+
 export const MAIS_CONFERENCIA = "Mais um pouco do que eu encontrei. Confere também?";
 
 /** A fala de reserva, quando a IA não responde: seca, mas correta, e a conversa não para. */
 export function falaPadrao(cartao: Cartao, complemento: boolean): string {
   switch (cartao.tipo) {
     case "confirmar":
-      return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim?";
+      return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim? Se algo estiver errado, é só corrigir no próprio campo e tocar em continuar.";
     case "lista":
       if (cartao.itens.some((i) => i.campos?.length)) return `${LISTA_SUGERIDA[cartao.grupo]} Corrija o que for diferente aí, desmarque o que não vale e acrescente o que estiver faltando.`;
       return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
     case "tabela":
-      return "Agora o preço e a duração de cada serviço, tudo de uma vez.";
-    case "item":
-      if (!cartao.faltam.length) return `${cartao.nome || "Este item"}: deixei um rascunho pronto. Confira e corrija no próprio campo o que for diferente aí.`;
-      return complemento
-        ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está no cartão abaixo.`
-        : `Agora ${cartao.nome || "este item"}. Preencha no cartão abaixo o que falta ou, se for mais fácil, grave um áudio contando tudo de uma vez.`;
+      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Digita o preço em cada linha; se algum depende de avaliação, escolhe isso na linha dele.";
+    case "item": {
+      const nome = cartao.nome || "este item";
+      // O que ela precisa contar: o que falta e o que só a Lexia sugeriu (isso é ela que diz, com as palavras dela).
+      const pedir = [...cartao.faltam, ...cartao.confirmar.filter((c) => c.fonte === "recomendacao")];
+      const contar = pedir.filter((c) => !c.opcoes?.length && c.campo !== "valor").map(rotuloCurto);
+      const tocar = pedir.filter((c) => c.opcoes?.length || c.campo === "valor").map(rotuloCurto);
+      const achados = cartao.confirmar.some((c) => c.fonte !== "recomendacao");
+      if (!pedir.length && !cartao.cartoes.length) return `${nome}: já achei tudo nas suas fontes. Confere abaixo e toca em continuar.`;
+      const partes = [complemento ? `Sobre ${nome}, ficou faltando só isto.` : `Agora ${nome}.`];
+      if (contar.length) partes.push(`Me manda um áudio, ou escreve com detalhes, contando:\n${contar.map((x) => `• ${x}`).join("\n")}`);
+      const fim = [tocar.length ? `Marca abaixo ${emLista(tocar)}.` : "", achados && !complemento ? "O que eu já achei está abaixo, só para conferir." : ""].filter(Boolean).join(" ");
+      return [partes.join(" "), fim].filter(Boolean).join(contar.length ? "\n" : " ");
+    }
     case "cartoes":
       if (cartao.secao === SECAO_DAS_RECOMENDADAS) return "Para estas escolhas, já deixei marcado o que costuma funcionar melhor. Dá uma olhada: o que você quiser diferente, é só tocar em Mudar. O que estiver bom fica como está.";
       return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
@@ -308,9 +333,13 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
 async function falar(ia: Inteligencia, c: ContextoDaFala): Promise<string> {
   // Cartões de toque não precisam de IA para serem apresentados (resposta na hora), salvo se ela perguntou algo.
   // Também o serviço em que só há rascunho para conferir: nada a perguntar, é só apresentar.
-  const soConferir = c.passo.tipo === "item" && !c.passo.faltam.length && !c.anotado.length && !c.paraALexia.length;
-  const simples = (c.passo.tipo === "confirmar" || c.passo.tipo === "cartoes" || c.passo.tipo === "lista" || c.passo.tipo === "tabela" || soConferir) && !c.duvida;
-  if (simples) return falaPadrao(c.passo, c.complemento);
+  // O passo de um item (serviço, profissional) é sempre apresentado pelo código: curto, igual de um para o outro
+  // e dizendo exatamente o que contar (a IA enumerava tudo o que estava no cartão e a fala virava um parágrafo).
+  const simples = (c.passo.tipo === "confirmar" || c.passo.tipo === "cartoes" || c.passo.tipo === "lista" || c.passo.tipo === "tabela" || c.passo.tipo === "item") && !c.duvida;
+  if (simples) {
+    const antes = c.passo.tipo === "item" ? [c.anotado.length ? "Anotei." : "", c.paraALexia.length ? "O que ficou em aberto eu deixo para a equipe da Lexia ver com você." : ""].filter(Boolean).join(" ") : "";
+    return [antes, falaPadrao(c.passo, c.complemento)].filter(Boolean).join(" ");
+  }
   try {
     const texto = (await ia.falar(c)).trim();
     if (texto) return texto;

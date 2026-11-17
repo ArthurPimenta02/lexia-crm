@@ -176,17 +176,6 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
   );
 }
 
-/** A instrução do cartão: uma frase que diz exatamente o que fazer agora. */
-function OQueFazer({ children }: { children: React.ReactNode }) {
-  const { t } = useIdioma();
-  return (
-    <div className="rounded-xl bg-[var(--ds-acao-fundo)] px-3.5 py-3">
-      <p className="ds-sobretitulo text-[var(--ds-acao)]">{t("O que fazer agora")}</p>
-      <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">{children}</p>
-    </div>
-  );
-}
-
 /** Um rascunho já preenchido, fechado: mostra o começo do texto e abre para editar. */
 function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown; abrir: () => void }) {
   const { t } = useIdioma();
@@ -209,7 +198,7 @@ function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown;
 
 // ------------------------------------------------------------------ o cartão ativo
 
-type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[] };
+type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[]; sugestoes?: boolean };
 
 function estadoInicial(c: Cartao): EstadoDoCartao {
   const valores: Record<string, unknown> = {};
@@ -269,7 +258,6 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   if (cartao.tipo === "confirmar") {
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        <OQueFazer>{t("Leia os dados abaixo. Se algo estiver errado, corrija no próprio campo. Depois toque em \"Está certo, continuar\".")}</OQueFazer>
         {cartao.campos.map((f) => (
           <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
@@ -430,7 +418,6 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const emBranco = cartao.linhas.filter((l) => !linhaCompleta(l, estado.valores)).length;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        <OQueFazer>{t("Digite o preço e a duração de cada serviço. Se o preço de algum depende de avaliação, escolha isso na linha dele. Depois toque em \"Enviar a tabela\".")}</OQueFazer>
         <div aria-hidden="true" className="hidden min-w-0 grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[0.75rem] font-medium text-muted-foreground sm:grid">
           <span>{t("Como é o preço")}</span>
           <span>{t("Preço")}</span>
@@ -476,45 +463,35 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   }
 
   if (cartao.tipo === "item") {
-    const tipo = cartao.faltam.find((f) => f.campo === "tipo_de_preco");
-    const preco = cartao.faltam.find((f) => f.campo === "valor");
-    const outros = cartao.faltam.filter((f) => f !== tipo && f !== preco);
+    // Três coisas diferentes: o que se marca com um toque, o que já veio das fontes dela (confere) e o que a
+    // Lexia só sugeriu (isso é ela que conta; a sugestão fica fechada e só vale se ela abrir e aceitar).
+    const tocar = [...cartao.faltam.filter((f) => f.opcoes?.length || f.campo === "valor"), ...cartao.cartoes];
+    const contar = cartao.faltam.filter((f) => !tocar.includes(f));
+    const achados = cartao.confirmar.filter((f) => f.fonte !== "recomendacao");
+    const sugeridos = cartao.confirmar.filter((f) => f.fonte === "recomendacao");
+    const tipo = tocar.find((f) => f.campo === "tipo_de_preco");
     const tipoAtual = tipo ? (estado.valores[k(tipo)] as string | undefined) : undefined;
-    const temFalta = cartao.faltam.length > 0 || cartao.cartoes.length > 0;
+    const pedeAudio = contar.length > 0 || (sugeridos.length > 0 && !estado.sugestoes);
+    if (!tocar.length && !achados.length && !sugeridos.length) return null;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        <p className="ds-titulo-3 text-foreground">{cartao.nome}</p>
-        <OQueFazer>
-          {preco
-            ? t("Digite o preço deste serviço e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
-            : tipo
-              ? t("Escolha como é o preço deste serviço e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
-            : temFalta
-              ? t("Responda o que está em \"Falta só isto\" e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
-              : t("Já está tudo preenchido. Dê uma olhada: se estiver certo, toque em \"Está certo, continuar\".")}
-        </OQueFazer>
-        {temFalta ? (
-          <div className="flex flex-col gap-4">
-            <p className="ds-sobretitulo">{t("Falta só isto")}</p>
-            {tipo || preco ? (
-              <div className="flex min-w-0 flex-col gap-2">
-                <p className="text-sm font-semibold text-foreground">{preco ? t("Quanto custa?") : t("Como é o preço deste serviço?")}</p>
-                {tipo ? <Opcoes campo={{ ...tipo, opcoes: (tipo.opcoes ?? []).filter((o) => !/^outro/i.test(o)) }} mudar={(v) => set(tipo, v)} valor={estado.valores[k(tipo)]} /> : null}
-                {preco && !semValor(tipoAtual) ? (
-                  <input aria-label={t("Preço")} className="ds-campo max-w-xs" inputMode="decimal" onChange={(e) => set(preco, e.target.value)} placeholder={t("Digite o preço (ex.: 650)")} value={String(estado.valores[k(preco)] ?? "")} />
-                ) : null}
+        {tocar.map((f) =>
+          f.campo === "valor" ? (
+            semValor(tipoAtual) ? null : (
+              <div className="flex min-w-0 flex-col gap-1.5" key={k(f)}>
+                <p className="text-sm font-semibold text-foreground">{t("Quanto custa?")}</p>
+                <input aria-label={t("Preço")} className="ds-campo max-w-xs" inputMode="decimal" onChange={(e) => set(f, e.target.value)} placeholder={t("Digite o preço (ex.: 650)")} value={String(estado.valores[k(f)] ?? "")} />
               </div>
-            ) : null}
-            {[...outros, ...cartao.cartoes].map((f) => (
-              <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
-            ))}
-          </div>
-        ) : null}
-        {cartao.confirmar.length ? (
+            )
+          ) : (
+            <Campo campo={f.campo === "tipo_de_preco" ? { ...f, pergunta: t("Como é o preço deste serviço?"), opcoes: (f.opcoes ?? []).filter((o) => !/^outro/i.test(o)) } : f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+          ),
+        )}
+        {achados.length ? (
           <div className="flex flex-col gap-3">
-            <p className="ds-sobretitulo">{t("Já preenchido")}</p>
+            <p className="ds-sobretitulo">{t("O que eu já achei")}</p>
             <div className="flex flex-col divide-y divide-[var(--ds-linha)]">
-              {cartao.confirmar.map((f) => (
+              {achados.map((f) => (
                 <div className="py-3 first:pt-0 last:pb-0" key={k(f)}>
                   {abertos.has(k(f)) ? <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} /> : <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} valor={estado.valores[k(f)]} />}
                 </div>
@@ -522,17 +499,24 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             </div>
           </div>
         ) : null}
+        {sugeridos.length && estado.sugestoes ? (
+          <div className="flex flex-col gap-4">
+            <p className="ds-sobretitulo">{t("Sugestão da Lexia: confira e corrija")}</p>
+            {sugeridos.map((f) => (
+              <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+            ))}
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
-            {temFalta ? t("Continuar") : t("Está certo, continuar")}
-          </button>
-          {temFalta ? (
-            <>
-              <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
-                {t("Não sei agora")}
-              </button>
-              <span className="text-[0.8125rem] text-muted-foreground">{t("Se preferir, responda por áudio ou texto aí embaixo.")}</span>
-            </>
+          {!pedeAudio || tocar.some((f) => !vazio(estado.valores[k(f)])) ? (
+            <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
+              {pedeAudio ? t("Enviar") : t("Está certo, continuar")}
+            </button>
+          ) : null}
+          {sugeridos.length && !estado.sugestoes ? (
+            <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => mudar({ ...estado, sugestoes: true })} type="button">
+              {t("Prefiro partir de uma sugestão")}
+            </button>
           ) : null}
         </div>
       </div>
@@ -546,7 +530,7 @@ function tituloDoPasso(p: Cartao, t: (s: string, v?: Record<string, string | num
   const grupos: Record<string, string> = { servicos: t("Serviços"), profissionais: t("Profissionais"), faqs: t("Perguntas frequentes"), objecoes: t("Objeções"), promocoes: t("Promoções") };
   switch (p.tipo) {
     case "confirmar":
-      return t("Dados do negócio conferidos");
+      return t("Dados do negócio");
     case "lista":
     case "itens":
       return grupos[p.grupo] ?? t("Lista conferida");
@@ -680,7 +664,7 @@ export function ConversaOnboarding({
     if (enviando || pendente?.erro) return;
     const doItem =
       cartao?.tipo === "item" && !extra.pular
-        ? [...cartao.confirmar, ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
+        ? [...cartao.confirmar.filter((f) => f.fonte !== "recomendacao" || estadoDoCartao.sugestoes), ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
         : [];
     // Só o preço, sem dizer o tipo: é preço fixo (a primeira opção), como na tabela. Preço que depende de avaliação não leva valor.
     if (cartao?.tipo === "item") {
@@ -761,8 +745,31 @@ export function ConversaOnboarding({
     );
   }
 
+  // "Já feito": cada passo respondido aparece uma vez só; os itens de um grupo (serviços) viram uma contagem.
+  const feitos: string[] = [];
+  {
+    const itensFeitos = new Map<string, Set<string>>();
+    mensagens.forEach((m, i) => {
+      const p = m.autor === "entrevistadora" ? ((m.dados ?? {}) as { passo?: Cartao }).passo : undefined;
+      if (!p || mensagens[i + 1]?.autor !== "cliente") return;
+      if (p.tipo === "item") {
+        const nome = tituloDoPasso({ tipo: "lista", grupo: p.grupo, itens: [] } as Cartao, t);
+        itensFeitos.set(nome, (itensFeitos.get(nome) ?? new Set()).add(p.itemId));
+        return;
+      }
+      const titulo = tituloDoPasso(p, t);
+      if (!feitos.includes(titulo)) feitos.push(titulo);
+    });
+    for (const [nome, ids] of itensFeitos) {
+      const linha = t("{nome}: {n} com detalhes", { nome, n: ids.size });
+      const i = feitos.indexOf(nome);
+      if (i >= 0) feitos[i] = linha;
+      else feitos.push(linha);
+    }
+  }
+
   const podeResponder = !somenteLeitura && !terminou;
-  const pedeTexto = cartao?.tipo === "item" ? cartao.faltam.length > 0 : cartao?.tipo === "pergunta" || cartao?.tipo === "itens";
+  const pedeTexto = cartao?.tipo === "item" ? cartao.faltam.length > 0 || cartao.confirmar.some((f) => f.fonte === "recomendacao") : cartao?.tipo === "pergunta" || cartao?.tipo === "itens";
   const bloqueado = enviando || !!pendente?.erro;
 
   return (
@@ -771,20 +778,12 @@ export function ConversaOnboarding({
         <ol aria-live="polite" className="flex flex-col gap-3">
           {mensagens.map((m, i) => {
             const minha = m.autor === "cliente";
-            // Um passo já respondido no cartão ocupa uma linha só: o que fica à vista é a pergunta de agora.
             const seguinte = mensagens[i + 1];
             const anterior = mensagens[i - 1];
             const passoDe = (x?: MensagemDaConversa) => (x?.autor === "entrevistadora" ? ((x.dados ?? {}) as { passo?: Cartao }).passo : undefined);
             if (minha && !m.conteudo && passoDe(anterior)) return null;
-            if (!minha && passoDe(m) && seguinte?.autor === "cliente" && !seguinte.conteudo) {
-              const d = (seguinte.dados ?? {}) as { pular?: boolean; nenhum?: boolean };
-              return (
-                <li className="flex items-center gap-2 px-1 text-[0.8125rem] text-muted-foreground" key={m.id}>
-                  <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--ds-acao)]" />
-                  <span className="min-w-0 truncate">{tituloDoPasso(passoDe(m)!, t)}{d.pular ? ` · ${t("Não sei agora")}` : d.nenhum ? ` · ${t("Não tenho")}` : ""}</span>
-                </li>
-              );
-            }
+            // O passo respondido só no cartão sai da conversa e vai para a lista "Já feito", ao lado.
+            if (!minha && passoDe(m) && seguinte?.autor === "cliente" && !seguinte.conteudo) return null;
             const dados = (m.dados ?? {}) as { valores?: unknown[]; lista?: unknown; pular?: boolean; nenhum?: boolean };
             const soCartao = minha && !m.conteudo;
             return (
@@ -869,7 +868,7 @@ export function ConversaOnboarding({
                       enviar({});
                     }
                   }}
-                  placeholder={pedeTexto ? t("Escreva aqui ou, se preferir, grave um áudio") : t("Se quiser, escreva algo a mais")}
+                  placeholder={pedeTexto ? t("Grave um áudio ou escreva aqui com detalhes") : t("Se quiser, escreva algo a mais")}
                   rows={1}
                   value={texto}
                 />
@@ -884,7 +883,7 @@ export function ConversaOnboarding({
                 )}
               </div>
             )}
-            {pedeTexto && cartao?.tipo !== "item" && gravando === null ? (
+            {pedeTexto && gravando === null ? (
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem]">
                 <button className="text-muted-foreground underline-offset-2 hover:underline" disabled={bloqueado} onClick={() => enviar({ pular: true })} type="button">
                   {t("Não sei agora")}
@@ -917,6 +916,16 @@ export function ConversaOnboarding({
               {progresso.pendencias ? ` · ${t("{n} para ver com a Lexia", { n: progresso.pendencias })}` : ""}
             </p>
           </>
+        ) : null}
+        {feitos.length ? (
+          <ul className="flex flex-col gap-1.5 border-t border-[var(--ds-linha)] pt-3">
+            {feitos.map((f) => (
+              <li className="flex items-start gap-2 text-[0.8125rem] leading-relaxed text-muted-foreground" key={f}>
+                <Check aria-hidden="true" className="mt-1 h-3.5 w-3.5 shrink-0 text-[var(--ds-acao)]" />
+                <span className="min-w-0">{f}</span>
+              </li>
+            ))}
+          </ul>
         ) : null}
         <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("Tudo fica salvo a cada resposta. Pode fechar e voltar quando quiser: a conversa continua de onde parou.")}</p>
       </aside>

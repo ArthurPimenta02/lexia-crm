@@ -124,7 +124,7 @@ test("um áudio responde vários campos do serviço; o que faltar ganha UM compl
   assert.equal((await atual(b, "duracao_media", "s1"))!.estado, "respondido");
   const c1 = b.ultimoCartao();
   assert.equal(c1.tipo, "item");
-  assert.match(b.msgs.at(-1)!.conteudo, /complemento/, "segunda vez no mesmo serviço: é um complemento");
+  assert.match(b.msgs.at(-1)!.conteudo, /^Anotei\. Sobre Microblading, ficou faltando só isto\./, "segunda vez no mesmo serviço: é um complemento, curto e escrito pelo código");
   if (c1.tipo === "item") assert.ok(!c1.faltam.some((f) => f.campo === "valor" || f.campo === "duracao_media"), "o que ela respondeu não volta");
   assert.deepEqual([(await atual(b, "contraindicacoes", "s1"))!.estado, (await atual(b, "contraindicacoes", "s1"))!.perguntas], ["vago", 1]);
   await turno(b.repo, ia(), msg({ texto: "não sei mais" }), "");
