@@ -42,6 +42,8 @@ export type CampoDoCartao = {
   ajuda?: string;
   /** Informação de saúde: a tela pede para conferir com atenção. */
   atencao?: boolean;
+  /** A fonte de onde o rascunho saiu não tinha certeza: a tela pede para conferir. */
+  aConfirmar?: boolean;
   /** O que o rascunho achou (só nos campos por confirmar). */
   valor?: unknown;
   fonte?: string;
@@ -153,7 +155,7 @@ const paraCartao = (c: CampoNoCaderno): CampoDoCartao => ({
   ...(c.campo.recomendado !== undefined ? { recomendado: c.campo.recomendado } : {}),
   ...(c.campo.ajuda ? { ajuda: c.campo.ajuda } : {}),
   ...(c.campo.atencao ? { atencao: true } : {}),
-  ...(c.situacao === "por_confirmar" && c.linha ? { valor: c.linha.valor, fonte: c.linha.fonte } : {}),
+  ...(c.situacao === "por_confirmar" && c.linha ? { valor: c.linha.valor, fonte: c.linha.fonte, ...(c.linha.evidencia?.a_confirmar === true ? { aConfirmar: true } : {}) } : {}),
 });
 
 export function nomeDoItem(itemId: string, grupo: GrupoQueRepete, linhas: LinhaDoCaderno[]): string {

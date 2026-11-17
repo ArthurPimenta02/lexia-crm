@@ -155,6 +155,12 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
           {t("Informação de saúde: confira com atenção antes de continuar.")}
         </p>
       ) : null}
+      {confirmar && campo.aConfirmar && !descartado ? (
+        <p className="flex items-start gap-1.5 text-[0.8125rem] leading-relaxed text-[var(--ds-alerta)]">
+          <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {t("Não temos certeza desta informação: confira e corrija se for diferente.")}
+        </p>
+      ) : null}
       {descartado ? (
         <p className="text-[0.8125rem] text-muted-foreground">{t("Sem problema, eu pergunto isso na conversa.")}</p>
       ) : campo.tipo === "horarios" ? (

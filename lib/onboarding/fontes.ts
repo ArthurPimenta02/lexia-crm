@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ESQUEMA_ONBOARDING, type CampoOnboarding } from "@/lib/onboarding/esquema";
 import { BUCKET_ONBOARDING, type ArquivoOnboarding, type Etapa1, type NovaLinha } from "@/lib/onboarding/dados";
+import { seAplica } from "@/lib/onboarding/caderno";
 import { perguntar, type Bloco, type ChaveDeIa, type Uso } from "@/lib/onboarding/ia";
 
 // ------------------------------------------------------------------ site
@@ -120,11 +121,16 @@ type Fonte = (typeof FONTES)[number];
  * Um prêmio no site não é necessariamente o diferencial que ela quer que a assistente use (Arthur, 16/11/2026).
  */
 const SO_A_DONA_RESPONDE = new Set(["diferencial_1", "diferencial_2", "diferencial_3", "informacoes_adicionais"]);
-const camposDaRaiz = () => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).filter((c) => c.tipo !== "upload" && c.tipo !== "horarios" && !c.quando && !SO_A_DONA_RESPONDE.has(c.chave));
+/**
+ * Campos que dependem de outro ficam de fora do rascunho (quase todos são o "qual?" de um "Outro"), menos estes:
+ * a equipe costuma saber e a dona só precisa conferir. Só ficam se o rascunho trouxer também a resposta que os pede.
+ */
+const CONDICIONAIS_QUE_ENTRAM = new Set(["valor_da_avaliacao"]);
+const camposDaRaiz = () => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).filter((c) => c.tipo !== "upload" && c.tipo !== "horarios" && (!c.quando || CONDICIONAIS_QUE_ENTRAM.has(c.chave)) && !SO_A_DONA_RESPONDE.has(c.chave));
 const grupo = (chave: string) => ESQUEMA_ONBOARDING.flatMap((s) => s.grupos).find((g) => g.chave === chave)!;
 
 const texto = { type: "string" };
-const evidencia = { fonte: { type: "string", enum: [...FONTES] }, trecho: { type: "string" } };
+const evidencia = { fonte: { type: "string", enum: [...FONTES] }, trecho: { type: "string" }, incerto: { type: "boolean" } };
 const objeto = (props: Record<string, unknown>) => ({ type: "object", additionalProperties: false, required: Object.keys(props), properties: props });
 
 export function esquemaDoRascunho() {
@@ -147,17 +153,21 @@ Recebe o que foi lido das fontes do negócio (site, arquivos, textos colados, an
 
 REGRAS
 - Nunca invente nem deduza por achar provável. Se a fonte não diz, o campo fica de fora: ele será perguntado ao dono na entrevista.
+- Só vale o que a fonte diz COM TODAS AS LETRAS sobre aquele campo. Exemplos reais de dedução proibida: "em menos de cinco anos construiu uma clientela" fala de crescimento, não diz há quanto tempo o negócio existe (o campo fica de fora, ou usa-se a frase que diz desde quando ela atua); "fui recebida pela Milena" numa avaliação dá o nome de uma pessoa, não a função dela (o nome entra, a especialidade fica vazia). Função, cargo e especialidade de uma pessoa só entram quando a fonte os escreve.
+- "incerto": true quando a própria fonte mostra dúvida sobre aquela informação ("a confirmar", "acho que", "não tenho certeza", "por volta de", "ordem de grandeza", "pode ter mudado", ou uma seção de coisas a confirmar). A informação entra mesmo assim, com o valor que a fonte acredita, e o dono é avisado para conferir. Caso contrário, false.
+- Quando duas fontes se contradizem, valem as anotações da equipe da Lexia (fonte "lexia"): é quem conhece o negócio de perto. Entre as outras, vale a mais específica.
 - Cada item traz "fonte" (de onde saiu) e "trecho" (até 12 palavras copiadas da fonte, só o bastante para achar o lugar).
 - Nunca escolha a opção "Outro": se nenhuma opção serve, o campo fica de fora.
 - Escolhas e preferências do dono (posicionamento, tom, emojis, regras de atendimento, como responder) só entram quando estão escritas nas anotações da equipe da Lexia. Nunca as deduza do site, de prêmios, de avaliações ou do estilo dos textos. Anotações da equipe da Lexia têm fonte "lexia".
-- Copie preços, durações e nomes exatamente como estão. Não some, não converta moeda, não arredonde.
+- Copie preços, durações e nomes exatamente como estão. Não some, não converta moeda, não arredonde. "duracao_media" é só o tempo do atendimento ("45 minutos"): tempo de recuperação, de cicatrização ou de duração do resultado não entram nesse campo.
+- Campos que dependem de outro (ex.: o valor da avaliação só existe se a avaliação é paga) só entram quando a fonte os diz; em campos de número, só o número ("30").
 - Campos com opções: use exatamente o texto de uma das opções (em "valor"; se for de escolher várias, em "lista"). Se nenhuma opção corresponder ao que a fonte diz, deixe o campo de fora.
 - Campos de texto: "valor" com a informação, "lista" vazia.
 - Serviços: um item por serviço realmente oferecido. Cada técnica ou procedimento que a fonte cita pelo nome é um serviço separado (se a fonte diz que a sobrancelha pode ser feita em microblading, shadow ou hybrid, são três serviços; "também fazemos tintura, laminação e design" são mais três). O nome de uma categoria ou de uma seção do site ("Sobrancelhas", "Lábios", "Estética avançada") não é um serviço: liste o que está dentro dela. O que a fonte diz da categoria (duração, descrição) vale para cada serviço dela. O mesmo serviço citado em fontes diferentes, ou com nomes parecidos ("Hybrid" e "Hybrid Brows", "Lamination" e "Brow Lamination"), é UM item só: use o nome mais completo e junte o que cada fonte diz. Uma descrição genérica das anotações ("procedimentos de ticket mais baixo", "os injetáveis") não é um serviço, e uma faixa de preço dita por alto para vários serviços não é o preço de nenhum deles. Campos que a fonte não traz ficam com texto vazio. "tipo_de_preco" é um de: ${grupo("servicos").campos.find((c) => c.chave === "tipo_de_preco")!.opcoes!.join(" | ")} (ou vazio se a fonte não deixa claro).
 - Perguntas frequentes e objeções: só as que aparecem de fato nas fontes (seção de FAQ, comentários, avaliações, anotações), com a resposta que a fonte dá. Sem resposta na fonte, deixe a resposta vazia.
 - Horários: uma linha por dia em que abre, no formato HH:MM.
 - "resumo": duas frases para a equipe da Lexia sobre o que foi encontrado e o que mais faltou.
-- Escreva em português do Brasil. Não traduza nomes próprios nem nomes de serviços.
+- Escreva em português do Brasil, UM idioma só: se a fonte está em inglês ou espanhol, escreva em português o que ela diz (descrições, cuidados, perguntas frequentes e respostas), sem misturar frases em dois idiomas e sem repetir a mesma pergunta em duas línguas. Só nomes próprios e nomes de serviços ficam como o negócio usa, sem tradução entre parênteses ("Lip and Facial Fillers", não "Lip and Facial Fillers (preenchimento labial e facial)"). Quando duas fontes dão nomes diferentes ao mesmo serviço, o outro nome pode ir entre parênteses ("Powder Brows (Shadow)").
 
 CAMPOS DA RAIZ (use a chave exata)
 ${linhas.join("\n")}`;
@@ -165,13 +175,13 @@ ${linhas.join("\n")}`;
 
 export type RascunhoBruto = {
   resumo: string;
-  campos: { chave: string; valor: string; lista: string[]; fonte: Fonte; trecho: string }[];
-  horarios: { dia: string; abre: string; fecha: string; fonte: Fonte; trecho: string }[];
-  servicos: (Record<string, string> & { fonte: Fonte; trecho: string })[];
-  profissionais: (Record<string, string> & { fonte: Fonte; trecho: string })[];
-  faqs: (Record<string, string> & { fonte: Fonte; trecho: string })[];
-  objecoes: (Record<string, string> & { fonte: Fonte; trecho: string })[];
-  promocoes: (Record<string, string> & { fonte: Fonte; trecho: string })[];
+  campos: { chave: string; valor: string; lista: string[]; fonte: Fonte; trecho: string; incerto?: boolean }[];
+  horarios: { dia: string; abre: string; fecha: string; fonte: Fonte; trecho: string; incerto?: boolean }[];
+  servicos: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[];
+  profissionais: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[];
+  faqs: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[];
+  objecoes: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[];
+  promocoes: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[];
 };
 
 export type FontesLidas = { etapa1: Etapa1; site: string; arquivos: { nome: string; texto: string }[] };
@@ -323,7 +333,8 @@ export function juntarSugestoes(itens: ItemNovo[], s: Sugestoes): ItemNovo[] {
 // ------------------------------------------------------------------ do rascunho para o caderno
 
 const limpo = (v: unknown) => String(v ?? "").trim();
-const ev = (x: { fonte: Fonte; trecho: string }) => ({ trecho: limpo(x.trecho).slice(0, 400) });
+/** "a_confirmar" é a dúvida que a própria fonte mostrou: a tela avisa a dona para conferir (Arthur, 17/11/2026). */
+const ev = (x: { fonte: Fonte; trecho: string; incerto?: boolean }) => ({ trecho: limpo(x.trecho).slice(0, 400), ...(x.incerto === true ? { a_confirmar: true } : {}) });
 
 /** Só passa o que bate com o esquema: opção que não existe ou campo vazio ficam de fora. */
 export function valorValido(campo: CampoOnboarding, valor: string, lista: string[]): unknown | undefined {
@@ -335,7 +346,11 @@ export function valorValido(campo: CampoOnboarding, valor: string, lista: string
   if (!v) return undefined;
   // "Outro" sem dizer qual não é informação: fica para a conversa.
   if (campo.opcoes?.length) return campo.opcoes.includes(v) && !/^outro/i.test(v) ? v : undefined;
-  if (campo.tipo === "number") return /\d/.test(v) ? v : undefined;
+  // Campo de número guarda só o número ("30 dólares" vira "30"); com mais de um número no texto, fica como veio.
+  if (campo.tipo === "number") {
+    const numeros = v.match(/\d+(?:[.,]\d+)*/g) ?? [];
+    return numeros.length === 1 ? numeros[0] : numeros.length ? v : undefined;
+  }
   return v;
 }
 
@@ -356,6 +371,9 @@ export function rascunhoParaCaderno(r: RascunhoBruto): { linhas: NovaLinha[]; it
     vistos.add(c.chave);
     linhas.push({ campo: c.chave, valor, estado: "rascunho", fonte: c.fonte, evidencia: ev(c) });
   }
+  // Um campo que depende de outro só fica se o rascunho também trouxe a resposta que o pede.
+  const valores = Object.fromEntries(linhas.map((l) => [l.campo, l.valor]));
+  for (let i = linhas.length - 1; i >= 0; i--) if (!seAplica(raiz.get(linhas[i].campo)?.quando, valores)) linhas.splice(i, 1);
   const hora = /^([01]?\d|2[0-3]):[0-5]\d$/;
   const horarios = (r.horarios ?? []).filter((h) => (DIAS as readonly string[]).includes(h.dia) && hora.test(limpo(h.abre)) && hora.test(limpo(h.fecha)));
   if (horarios.length) {
@@ -364,7 +382,7 @@ export function rascunhoParaCaderno(r: RascunhoBruto): { linhas: NovaLinha[]; it
     if (!vistos.has("dias_de_funcionamento")) linhas.push({ campo: "dias_de_funcionamento", valor: DIAS.filter((d) => porDia[d]), estado: "rascunho", fonte: horarios[0].fonte, evidencia: ev(horarios[0]) });
   }
   const itens: ItemNovo[] = [];
-  const doGrupo = (chave: ItemNovo["grupo"], lista: (Record<string, string> & { fonte: Fonte; trecho: string })[] | undefined, nomeDe: string) => {
+  const doGrupo = (chave: ItemNovo["grupo"], lista: (Record<string, string> & { fonte: Fonte; trecho: string; incerto?: boolean })[] | undefined, nomeDe: string) => {
     const campos = new Map(grupo(chave).campos.map((c) => [c.chave, c]));
     const nomes = new Set<string>();
     for (const x of lista ?? []) {

@@ -167,7 +167,7 @@ export async function criarItem(admin: Admin, clienteSlug: string, onboardingId:
 export async function lerLinhas(admin: Admin, clienteSlug: string, onboardingId: string): Promise<LinhaDoCaderno[]> {
   const { data, error } = await admin
     .from("lexia_onboarding_campos_atual")
-    .select("campo, item_id, valor, estado, fonte, perguntas")
+    .select("campo, item_id, valor, estado, fonte, perguntas, evidencia")
     .eq("cliente_slug", clienteSlug)
     .eq("onboarding_id", onboardingId);
   if (error) throw new Error(`caderno: ${error.message}`);

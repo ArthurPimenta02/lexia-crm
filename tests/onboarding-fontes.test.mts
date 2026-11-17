@@ -78,7 +78,7 @@ test("o formato pedido à IA só aceita chaves que existem e nunca pede arquivos
   for (const k of chaves) {
     const c = raiz.get(k);
     assert.ok(c, k);
-    assert.ok(c.tipo !== "upload" && !c.quando, k);
+    assert.ok(c.tipo !== "upload" && (!c.quando || k === "valor_da_avaliacao"), k);
   }
 });
 
@@ -140,4 +140,20 @@ test("perguntas frequentes e objeções sugeridas: rascunho 'recomendacao', sem 
   assert.equal(faqs.length, 1 + MAXIMO_DE_FAQS);
   assert.equal(objecoes.length, MAXIMO_DE_OBJECOES);
   assert.deepEqual(objecoes[0].linhas.map((l) => [l.campo, l.estado, l.fonte]), [["objecao", "rascunho", "recomendacao"], ["como_responder", "rascunho", "recomendacao"]]);
+});
+
+test("dúvida da fonte vira aviso de conferir; o valor da avaliação só fica se o rascunho disser que ela vira crédito", () => {
+  const paga = { chave: "avaliacao_paga", valor: "Paga", lista: [], fonte: "lexia" as const, trecho: "a avaliação custa", incerto: false };
+  const credito = { chave: "avaliacao_vira_credito", valor: "Sim", lista: [], fonte: "lexia" as const, trecho: "é abatido", incerto: false };
+  const valor = { chave: "valor_da_avaliacao", valor: "30 dólares", lista: [], fonte: "lexia" as const, trecho: "acreditamos que 30", incerto: true };
+  const com = rascunhoParaCaderno({ ...vazio, campos: [paga, valor, credito] }).linhas;
+  assert.deepEqual(com.map((l) => l.campo).sort(), ["avaliacao_paga", "avaliacao_vira_credito", "valor_da_avaliacao"]);
+  assert.equal(com.find((l) => l.campo === "valor_da_avaliacao")!.evidencia!.a_confirmar, true);
+  assert.equal(com.find((l) => l.campo === "valor_da_avaliacao")!.valor, "30");
+  assert.equal(com.find((l) => l.campo === "avaliacao_paga")!.evidencia!.a_confirmar, undefined);
+  assert.ok(com.every((l) => l.estado === "rascunho"));
+  const sem = rascunhoParaCaderno({ ...vazio, campos: [paga, valor] }).linhas;
+  assert.deepEqual(sem.map((l) => l.campo), ["avaliacao_paga"]);
+  const item = rascunhoParaCaderno({ ...vazio, servicos: [{ nome: "Harmonização", descricao_e_indicacao: "Full face", fonte: "lexia", trecho: "está começando", incerto: true } as never] }).itens[0];
+  assert.ok(item.linhas.every((l) => l.evidencia!.a_confirmar === true));
 });
