@@ -21,7 +21,7 @@ import {
   listarArquivos,
   type Achado,
 } from "@/lib/onboarding/dados";
-import { lerArquivo, lerSite, pedirRascunho, rascunhoParaCaderno } from "@/lib/onboarding/fontes";
+import { juntarTextos, lerArquivo, lerSite, pedirRascunho, pedirTextosDosServicos, rascunhoParaCaderno, servicosParaEscrever } from "@/lib/onboarding/fontes";
 import { chaveDoCliente, custoUsd, type Uso } from "@/lib/onboarding/ia";
 
 export type ResultadoDoRascunho = { ok: true; custoUsd: number } | { ok: false; erro: string };
@@ -29,8 +29,8 @@ export type ResultadoDoRascunho = { ok: true; custoUsd: number } | { ok: false; 
 const agora = () => new Date().toISOString();
 
 /** As peças que falam com o mundo de fora. Trocam-se nos testes; em produção são as verdadeiras. */
-export type Pecas = { chave: typeof chaveDoCliente; site: typeof lerSite; arquivo: typeof lerArquivo; rascunho: typeof pedirRascunho };
-const PECAS: Pecas = { chave: chaveDoCliente, site: lerSite, arquivo: lerArquivo, rascunho: pedirRascunho };
+export type Pecas = { chave: typeof chaveDoCliente; site: typeof lerSite; arquivo: typeof lerArquivo; rascunho: typeof pedirRascunho; textos: typeof pedirTextosDosServicos };
+const PECAS: Pecas = { chave: chaveDoCliente, site: lerSite, arquivo: lerArquivo, rascunho: pedirRascunho, textos: pedirTextosDosServicos };
 
 export async function gerarRascunho(admin: SupabaseClient, clienteSlug: string, feitoPor: string | null, pecas: Pecas = PECAS): Promise<ResultadoDoRascunho> {
   const onb = await abrirOnboarding(admin, clienteSlug);
@@ -75,7 +75,22 @@ export async function gerarRascunho(admin: SupabaseClient, clienteSlug: string, 
     // 4) rascunho
     const { rascunho, uso } = await pecas.rascunho(ia, { etapa1: onb.etapa1, site, arquivos: lidos });
     usos.push(uso);
-    const { linhas, itens } = rascunhoParaCaderno(rascunho);
+    const { linhas, itens: achados } = rascunhoParaCaderno(rascunho);
+    // 4b) os textos de cada serviço que as fontes não trazem: a Lexia escreve, a dona confere na conversa.
+    //     Se esta parte falhar, o rascunho segue sem ela: os textos passam a ser perguntados, nada se perde.
+    let itens = achados;
+    const paraEscrever = servicosParaEscrever(achados);
+    if (paraEscrever.length) {
+      try {
+        const r = await pecas.textos(ia, { tipoDeNegocio: onb.etapa1.tipo_de_negocio ?? "", servicos: paraEscrever });
+        usos.push(r.uso);
+        itens = juntarTextos(achados, r.textos);
+        const escritos = itens.filter((item, n) => item.linhas.length > achados[n].linhas.length).length;
+        fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: true, detalhe: `Rascunho escrito pela Lexia para ${escritos} de ${paraEscrever.length} serviços`, em: agora() });
+      } catch (e) {
+        fontes.push({ fonte: "lexia", titulo: "Textos dos serviços", ok: false, detalhe: `Não consegui escrever os textos dos serviços (${e instanceof Error ? e.message : "erro"}). A conversa pergunta um a um.`, em: agora() });
+      }
+    }
 
     // 5) gravar: sai o rascunho anterior (itens marcados como removidos), entra o novo
     const antigos = (await lerItens(admin, clienteSlug, onb.id)).filter((i) => !i.removido);

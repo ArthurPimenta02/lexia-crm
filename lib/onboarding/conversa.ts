@@ -39,6 +39,8 @@ export type CampoDoCartao = {
   opcoes?: string[];
   recomendado?: string | string[];
   ajuda?: string;
+  /** Informação de saúde: a tela pede para conferir com atenção. */
+  atencao?: boolean;
   /** O que o rascunho achou (só nos campos por confirmar). */
   valor?: unknown;
   fonte?: string;
@@ -49,6 +51,7 @@ export type Cartao =
   | { tipo: "confirmar"; campos: CampoDoCartao[] }
   | { tipo: "lista"; grupo: GrupoQueRepete; itens: { id: string; nome: string }[] }
   | { tipo: "itens"; grupo: GrupoQueRepete; obrigatorio: boolean }
+  | { tipo: "tabela"; grupo: GrupoQueRepete; linhas: { itemId: string; nome: string; campos: CampoDoCartao[] }[] }
   | { tipo: "item"; grupo: GrupoQueRepete; itemId: string; nome: string; confirmar: CampoDoCartao[]; cartoes: CampoDoCartao[]; faltam: CampoDoCartao[] }
   | { tipo: "cartoes"; secao: string; titulo: string; campos: CampoDoCartao[] }
   | { tipo: "pergunta"; secao: string; titulo: string; campos: CampoDoCartao[] }
@@ -148,6 +151,7 @@ const paraCartao = (c: CampoNoCaderno): CampoDoCartao => ({
   ...(c.campo.opcoes ? { opcoes: c.campo.opcoes } : {}),
   ...(c.campo.recomendado !== undefined ? { recomendado: c.campo.recomendado } : {}),
   ...(c.campo.ajuda ? { ajuda: c.campo.ajuda } : {}),
+  ...(c.campo.atencao ? { atencao: true } : {}),
   ...(c.situacao === "por_confirmar" && c.linha ? { valor: c.linha.valor, fonte: c.linha.fonte } : {}),
 });
 
@@ -164,6 +168,8 @@ export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
       return { tipo: "lista", grupo: passo.grupo, itens: passo.itens.map((i) => ({ id: i.id, nome: nomeDoItem(i.id, passo.grupo, linhas) })) };
     case "itens":
       return { tipo: "itens", grupo: passo.grupo, obrigatorio: passo.obrigatorio };
+    case "tabela":
+      return { tipo: "tabela", grupo: passo.grupo, linhas: passo.linhas.map((l) => ({ itemId: l.itemId, nome: nomeDoItem(l.itemId, passo.grupo, linhas), campos: l.campos.map(paraCartao) })) };
     case "item": {
       // O nome do item é o título do cartão: não se confirma à parte (a lista já o confirmou).
       const semNome = (cs: CampoNoCaderno[]) => cs.filter((c) => c.campo.chave !== NOME_DO_ITEM[passo.grupo]);
@@ -182,6 +188,7 @@ export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
 function camposDoPasso(passo: Passo): CampoNoCaderno[] {
   if (passo.tipo === "confirmar" || passo.tipo === "cartoes" || passo.tipo === "pergunta") return passo.campos;
   if (passo.tipo === "item") return [...passo.confirmar, ...passo.cartoes, ...passo.faltam];
+  if (passo.tipo === "tabela") return passo.linhas.flatMap((l) => l.campos);
   return [];
 }
 
@@ -260,7 +267,10 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
       return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
+    case "tabela":
+      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Preencha o que souber; se o preço de algum depende de avaliação, é só escolher isso na linha dele.";
     case "item":
+      if (!cartao.faltam.length) return `${cartao.nome || "Este item"}: deixei um rascunho pronto. Confira e corrija no próprio campo o que for diferente aí.`;
       return complemento
         ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está na lista abaixo.`
         : `Agora me conta sobre ${cartao.nome || "este item"}: o que eu preciso saber está na lista abaixo. Pode escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez.`;
@@ -275,7 +285,9 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
 
 async function falar(ia: Inteligencia, c: ContextoDaFala): Promise<string> {
   // Cartões de toque não precisam de IA para serem apresentados (resposta na hora), salvo se ela perguntou algo.
-  const simples = (c.passo.tipo === "confirmar" || c.passo.tipo === "cartoes" || c.passo.tipo === "lista") && !c.duvida;
+  // Também o serviço em que só há rascunho para conferir: nada a perguntar, é só apresentar.
+  const soConferir = c.passo.tipo === "item" && !c.passo.faltam.length && !c.anotado.length && !c.paraALexia.length;
+  const simples = (c.passo.tipo === "confirmar" || c.passo.tipo === "cartoes" || c.passo.tipo === "lista" || c.passo.tipo === "tabela" || soConferir) && !c.duvida;
   if (simples) return falaPadrao(c.passo, c.complemento);
   try {
     const texto = (await ia.falar(c)).trim();
@@ -312,6 +324,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const andamento: Andamento = { ...ANDAMENTO_VAZIO, ...(await repo.andamento()) };
   andamento.listas = [...andamento.listas];
   andamento.gruposPerguntados = [...andamento.gruposPerguntados];
+  andamento.tabelas = [...(andamento.tabelas ?? [])];
   const caderno = montarCaderno(linhas, itens);
   const passo = proximoPasso(caderno, itens, andamento);
   const doPasso = camposDoPasso(passo);
@@ -437,6 +450,8 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   andamento.semResposta = nenhumaDasPerguntas ? idDoPasso : undefined;
   const naoConta = primeiraVezSemResposta || (semResposta && (!!duvida || (!limpo(resposta.texto) && resposta.tipoDoArquivo === "arquivo")));
   if (passo.tipo === "itens" && naoConta) andamento.gruposPerguntados.pop();
+  // A tabela mostra-se uma vez: o que ficar em branco é perguntado depois, no serviço a que pertence.
+  if (passo.tipo === "tabela" && !naoConta) andamento.tabelas.push(passo.grupo);
   for (const c of naoConta ? [] : doPasso) {
     const k = chave(c.campo.chave, c.itemId);
     if (resolvidas.has(k)) continue;

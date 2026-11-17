@@ -23,6 +23,8 @@ export type CampoOnboarding = {
   quando?: Condicao;
   recomendado?: string | string[];
   novo?: boolean;
+  /** Informação de saúde: a tela pede para conferir com atenção. */
+  atencao?: boolean;
 };
 export type GrupoOnboarding = { chave: GrupoQueRepete; titulo: string; obrigatorio: boolean; ajuda?: string; campos: CampoOnboarding[] };
 export type SecaoOnboarding = { chave: string; titulo: string; novo?: boolean; campos: CampoOnboarding[]; grupos: GrupoOnboarding[] };
@@ -582,7 +584,51 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
   {
     "chave": "servicos",
     "titulo": "Serviços",
-    "campos": [],
+    "campos": [
+      {
+        "chave": "avaliacao_paga",
+        "pergunta": "A avaliação é paga ou gratuita?",
+        "tipo": "radio",
+        "opcoes": [
+          "Gratuita",
+          "Paga",
+          "Não tem avaliação",
+          "Depende do serviço"
+        ],
+        "obrigatorio": true,
+        "modo": "cartao",
+        "novo": true
+      },
+      {
+        "chave": "avaliacao_por_servico",
+        "pergunta": "Em quais serviços a avaliação é paga e em quais é gratuita?",
+        "tipo": "long",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "novo": true,
+        "quando": {
+          "campo": "avaliacao_paga",
+          "valor": "Depende do serviço"
+        }
+      },
+      {
+        "chave": "servicos_prioritarios",
+        "pergunta": "Quais são os serviços que você mais quer vender?",
+        "tipo": "long",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "ajuda": "O agente prioriza esses quando fizer sentido para o cliente.",
+        "novo": true
+      },
+      {
+        "chave": "se_acharem_caro",
+        "pergunta": "Quando a cliente acha caro, o que você oferece no lugar? Se mudar de um serviço para outro, conte.",
+        "tipo": "long",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "novo": true
+      }
+    ],
     "grupos": [
       {
         "chave": "servicos",
@@ -664,14 +710,16 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "pergunta": "Preparo antes e cuidados depois",
             "tipo": "long",
             "obrigatorio": false,
-            "modo": "conversa"
+            "modo": "conversa",
+            "atencao": true
           },
           {
             "chave": "contraindicacoes",
             "pergunta": "Contraindicações que o agente deve conhecer",
             "tipo": "long",
             "obrigatorio": false,
-            "modo": "conversa"
+            "modo": "conversa",
+            "atencao": true
           },
           {
             "chave": "numero_de_sessoes",
@@ -681,52 +729,11 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "modo": "conversa"
           },
           {
-            "chave": "prioridade_de_venda",
-            "pergunta": "É um dos serviços que você mais quer vender?",
-            "tipo": "radio",
-            "obrigatorio": true,
-            "modo": "conversa",
-            "opcoes": [
-              "Sim",
-              "Não"
-            ],
-            "ajuda": "O agente prioriza esses quando fizer sentido para o cliente."
-          },
-          {
             "chave": "para_quem_indicar",
             "pergunta": "Para quem você indica este serviço?",
             "tipo": "long",
             "obrigatorio": true,
             "modo": "conversa",
-            "novo": true
-          },
-          {
-            "chave": "se_acharem_caro",
-            "pergunta": "Quando a cliente acha caro, o que você oferece no lugar?",
-            "tipo": "long",
-            "obrigatorio": true,
-            "modo": "conversa",
-            "novo": true
-          },
-          {
-            "chave": "profissional",
-            "pergunta": "Qual profissional faz este serviço?",
-            "tipo": "text",
-            "obrigatorio": false,
-            "modo": "conversa",
-            "novo": true
-          },
-          {
-            "chave": "avaliacao_paga",
-            "pergunta": "A avaliação deste serviço é paga ou gratuita?",
-            "tipo": "radio",
-            "opcoes": [
-              "Gratuita",
-              "Paga",
-              "Não tem avaliação"
-            ],
-            "obrigatorio": true,
-            "modo": "cartao",
             "novo": true
           },
           {
@@ -1144,7 +1151,7 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           },
           {
             "chave": "especialidade",
-            "pergunta": "Especialidade",
+            "pergunta": "O que essa pessoa faz e quais serviços atende",
             "tipo": "text",
             "obrigatorio": true,
             "modo": "conversa"

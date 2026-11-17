@@ -74,7 +74,7 @@ function Opcoes({ campo, valor, mudar }: { campo: CampoDoCartao; valor: unknown;
         return (
           <button
             aria-checked={marcada}
-            className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${marcada ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)] font-medium text-[var(--ds-acao)]" : "border-[var(--ds-borda)] text-foreground hover:bg-muted"}`}
+            className={`flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition ${marcada ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)] font-medium text-[var(--ds-acao)]" : "border-[var(--ds-linha-forte)] text-foreground hover:bg-muted"}`}
             key={o}
             onClick={() => {
               if (!varias) return mudar(marcada ? undefined : o);
@@ -139,13 +139,22 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <p className="min-w-0 text-[0.8125rem] font-medium text-foreground">{campo.pergunta}</p>
+        <p className="min-w-0 text-[0.8125rem] font-medium text-foreground">
+          {campo.pergunta}
+          {confirmar && campo.fonte === "recomendacao" ? <span className="ds-selo ml-2 align-middle">{t("Rascunho da Lexia")}</span> : null}
+        </p>
         {confirmar ? (
           <button className="shrink-0 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline" onClick={() => mudar(descartado ? campo.valor : null)} type="button">
             {descartado ? t("Desfazer") : t("Não é isso")}
           </button>
         ) : null}
       </div>
+      {confirmar && campo.atencao && !descartado ? (
+        <p className="flex items-start gap-1.5 text-[0.8125rem] leading-relaxed text-[var(--ds-alerta)]">
+          <AlertCircle aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {t("Informação de saúde: confira com atenção antes de continuar.")}
+        </p>
+      ) : null}
       {descartado ? (
         <p className="text-[0.8125rem] text-muted-foreground">{t("Sem problema, eu pergunto isso na conversa.")}</p>
       ) : campo.tipo === "horarios" ? (
@@ -169,10 +178,45 @@ function estadoInicial(c: Cartao): EstadoDoCartao {
   const valores: Record<string, unknown> = {};
   const confirmar = c.tipo === "confirmar" ? c.campos : c.tipo === "item" ? c.confirmar : [];
   for (const f of confirmar) valores[k(f)] = f.valor;
+  // Na tabela, o que as fontes acharam já vem escrito na linha do serviço.
+  if (c.tipo === "tabela") for (const f of c.linhas.flatMap((l) => l.campos)) if (f.valor !== undefined && f.valor !== null) valores[k(f)] = f.valor;
   return { valores, manter: new Set(c.tipo === "lista" ? c.itens.map((i) => i.id) : []), novos: [] };
 }
 
 const vazio = (v: unknown) => v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+
+// ------------------------------------------------------------------ a tabela dos serviços (preço e duração)
+
+type LinhaDaTabela = Extract<Cartao, { tipo: "tabela" }>["linhas"][number];
+const semValor = (opcao: unknown) => /orçamento|avalia/i.test(String(opcao ?? ""));
+const rotuloCurto = (opcao: string) => opcao.split(" (")[0].split(" — ")[0];
+
+/** O tipo de preço de uma linha: o que ela escolheu ou, se só escreveu o valor, "preço fixo" (a primeira opção). */
+function tipoDaLinha(l: LinhaDaTabela, valores: Record<string, unknown>): string | undefined {
+  const tipo = l.campos.find((f) => f.campo === "tipo_de_preco");
+  if (!tipo) return undefined;
+  const escolhido = valores[k(tipo)];
+  if (typeof escolhido === "string" && escolhido) return escolhido;
+  const valor = l.campos.find((f) => f.campo === "valor");
+  return valor && !vazio(valores[k(valor)]) ? tipo.opcoes?.[0] : undefined;
+}
+
+/** O que segue da tabela para o servidor: só as células preenchidas (o que ficar em branco é perguntado depois). */
+function valoresDaTabela(linhas: LinhaDaTabela[], valores: Record<string, unknown>) {
+  const out: { campo: string; itemId: string | null; valor: unknown }[] = [];
+  for (const l of linhas) {
+    const tipo = tipoDaLinha(l, valores);
+    for (const f of l.campos) {
+      if (f.campo === "tipo_de_preco") {
+        if (tipo) out.push({ campo: f.campo, itemId: f.itemId, valor: tipo });
+      } else if (f.campo === "valor") {
+        if (!semValor(tipo) && !vazio(valores[k(f)])) out.push({ campo: f.campo, itemId: f.itemId, valor: String(valores[k(f)]).trim() });
+      } else if (!vazio(valores[k(f)])) out.push({ campo: f.campo, itemId: f.itemId, valor: String(valores[k(f)]).trim() });
+    }
+  }
+  return out.filter((v) => v.valor !== "");
+}
+const linhaCompleta = (l: LinhaDaTabela, valores: Record<string, unknown>) => l.campos.every((f) => (f.campo === "tipo_de_preco" ? !!tipoDaLinha(l, valores) : f.campo === "valor" ? semValor(tipoDaLinha(l, valores)) || !vazio(valores[k(f)]) : !vazio(valores[k(f)])));
 
 function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Cartao; estado: EstadoDoCartao; mudar: (e: EstadoDoCartao) => void; ocupado: boolean; enviar: (e: Partial<Envio>) => void }) {
   const { t } = useIdioma();
@@ -277,6 +321,50 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
         <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({ lista: { manter: [...estado.manter], novos: novo.trim() ? [...estado.novos, novo.trim()] : estado.novos } })} type="button">
           {t("Esta é a lista, continuar")}
         </button>
+      </div>
+    );
+  }
+
+  if (cartao.tipo === "tabela") {
+    const emBranco = cartao.linhas.filter((l) => !linhaCompleta(l, estado.valores)).length;
+    return (
+      <div className="ds-cartao flex flex-col gap-4 p-4">
+        <p className="ds-sobretitulo">{t("Preço e duração")}</p>
+        <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
+          {cartao.linhas.map((l) => {
+            const tipo = l.campos.find((f) => f.campo === "tipo_de_preco");
+            const valor = l.campos.find((f) => f.campo === "valor");
+            const duracao = l.campos.find((f) => f.campo === "duracao_media");
+            const tipoAtual = tipoDaLinha(l, estado.valores);
+            return (
+              <li className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0" key={l.itemId}>
+                <p className="min-w-0 text-sm font-medium text-foreground">{l.nome || t("(sem nome)")}</p>
+                <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                  {tipo ? (
+                    <select aria-label={t("Tipo de preço")} className="ds-campo col-span-2 sm:col-span-1" onChange={(e) => set(tipo, e.target.value || undefined)} value={typeof estado.valores[k(tipo)] === "string" ? (estado.valores[k(tipo)] as string) : ""}>
+                      <option value="">{rotuloCurto(tipo.opcoes?.[0] ?? "")}</option>
+                      {(tipo.opcoes ?? []).slice(1).filter((o) => !/^outro/i.test(o)).map((o) => (
+                        <option key={o} value={o}>{rotuloCurto(o)}</option>
+                      ))}
+                    </select>
+                  ) : null}
+                  {valor ? (
+                    <input aria-label={t("Preço")} className="ds-campo disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, e.target.value)} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Preço")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
+                  ) : null}
+                  {duracao ? (
+                    <input aria-label={t("Duração")} className="ds-campo" onChange={(e) => set(duracao, e.target.value)} placeholder={t("Duração (ex.: 1h30)")} value={String(estado.valores[k(duracao)] ?? "")} />
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="ds-botao ds-botao-primario" disabled={ocupado || !valoresDaTabela(cartao.linhas, estado.valores).length} onClick={() => enviar({})} type="button">
+            {t("Enviar a tabela")}
+          </button>
+          {emBranco > 0 ? <span className="text-[0.8125rem] text-muted-foreground">{t("{n} em branco: o que faltar eu pergunto depois", { n: emBranco })}</span> : null}
+        </div>
       </div>
     );
   }
@@ -438,7 +526,10 @@ export function ConversaOnboarding({
       cartao?.tipo === "item" && !extra.pular
         ? [...cartao.confirmar, ...cartao.cartoes].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
         : [];
-    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores: extra.valores ?? (doItem.length ? doItem : undefined) };
+    // A tabela vai inteira com o que estiver preenchido, mesmo quando ela responde por texto ou áudio.
+    const daTabela = cartao?.tipo === "tabela" && !extra.pular ? valoresDaTabela(cartao.linhas, estadoDoCartao.valores) : [];
+    const doCartao = [...doItem, ...daTabela];
+    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores: extra.valores ?? (doCartao.length ? doCartao : undefined) };
     if (!envio.texto && !envio.arquivo && !envio.valores?.length && !envio.lista && !envio.pular && !envio.nenhum) return;
     setTexto("");
     guardarRascunho(chaveDoRascunho, "");

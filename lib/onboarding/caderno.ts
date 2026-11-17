@@ -84,6 +84,9 @@ function situacaoDe(linha: LinhaDoCaderno | null): Situacao {
  * O caderno inteiro: todos os campos que se aplicam, cada um com a sua
  * situação. Campos de grupo aparecem uma vez por item ainda ativo.
  */
+/** As linhas de que cada caderno foi montado: a tabela dos serviços precisa de ver a linha de um campo que ainda não se aplica. */
+const LINHAS_DE = new WeakMap<CampoNoCaderno[], LinhaDoCaderno[]>();
+
 export function montarCaderno(
   linhas: LinhaDoCaderno[],
   itens: ItemDoCaderno[],
@@ -118,6 +121,7 @@ export function montarCaderno(
       }
     }
   }
+  LINHAS_DE.set(out, linhas);
   return out;
 }
 
@@ -169,6 +173,8 @@ export type Passo =
   | { tipo: "lista"; grupo: GrupoQueRepete; itens: ItemDoCaderno[] }
   /** O grupo está vazio: ela conta quais são (os serviços, as perguntas que mais recebe…). */
   | { tipo: "itens"; grupo: GrupoQueRepete; obrigatorio: boolean }
+  /** Preço e duração de todos os serviços numa tabela só, em vez de uma pergunta por serviço. Mostra-se uma vez. */
+  | { tipo: "tabela"; grupo: GrupoQueRepete; linhas: { itemId: string; campos: CampoNoCaderno[] }[] }
   /** Um item de cada vez (um serviço inteiro): confirma o que se achou, escolhe os cartões e conta o que falta. */
   | { tipo: "item"; grupo: GrupoQueRepete; itemId: string; confirmar: CampoNoCaderno[]; cartoes: CampoNoCaderno[]; faltam: CampoNoCaderno[] }
   /** Escolhas rápidas de uma seção. */
@@ -183,6 +189,8 @@ export type Andamento = {
   gruposPerguntados: GrupoQueRepete[];
   /** O passo em que ela já respondeu uma vez sem tocar em nenhuma das perguntas (essa vez não contou como tentativa). */
   semResposta?: string;
+  /** Grupos cuja tabela (preço e duração dos serviços) já foi mostrada. Mostra-se uma vez só. */
+  tabelas?: GrupoQueRepete[];
 };
 export const ANDAMENTO_VAZIO: Andamento = { listas: [], gruposPerguntados: [] };
 
@@ -225,6 +233,10 @@ export function proximoPasso(
       return null;
     }
     if (!andamento.listas.includes(grupo)) return { tipo: "lista", grupo, itens: ativos };
+    if (grupo === "servicos" && !(andamento.tabelas ?? []).includes(grupo)) {
+      const linhas = ativos.map((item) => ({ itemId: item.id, campos: camposDaTabela(item, caderno, esquema).filter(aberto) })).filter((l) => l.campos.length);
+      if (linhas.length) return { tipo: "tabela", grupo, linhas };
+    }
     for (const item of ativos) {
       const campos = caderno.filter((c) => c.itemId === item.id && aberto(c));
       if (!campos.length) continue;
@@ -259,6 +271,33 @@ export function proximoPasso(
     if (passo) return passo;
   }
   return { tipo: "fim" };
+}
+
+/** O que se preenche na tabela dos serviços (um serviço por linha). */
+export const CAMPOS_DA_TABELA = ["tipo_de_preco", "valor", "duracao_media"];
+
+/**
+ * Os campos da tabela para um serviço. O "valor" só existe no caderno depois de o "tipo de preço" ser
+ * respondido; na tabela os dois preenchem-se juntos, por isso ele entra mesmo antes disso.
+ */
+function camposDaTabela(item: ItemDoCaderno, caderno: CampoNoCaderno[], esquema: SecaoOnboarding[]): CampoNoCaderno[] {
+  const doItem = caderno.filter((c) => c.itemId === item.id);
+  const out: CampoNoCaderno[] = [];
+  for (const chave of CAMPOS_DA_TABELA) {
+    const existente = doItem.find((c) => c.campo.chave === chave);
+    if (existente) {
+      out.push(existente);
+      continue;
+    }
+    const campo = campoDoEsquema(chave, item.grupo, esquema);
+    const deQueDepende = campo?.quando && !("algum" in campo.quando) ? doItem.find((c) => c.campo.chave === (campo.quando as CondicaoSimples).campo) : undefined;
+    const semResposta = deQueDepende && (deQueDepende.linha?.valor === undefined || deQueDepende.linha?.valor === null);
+    if (!campo || !semResposta) continue;
+    // Ela pode já ter dito o preço sem dizer o tipo (ou as fontes tê-lo achado): nesse caso a célula não vem em branco.
+    const linha = (LINHAS_DE.get(caderno) ?? []).find((l) => l.item_id === item.id && l.campo === chave) ?? null;
+    out.push({ secao: deQueDepende.secao, grupo: item.grupo, itemId: item.id, campo, linha, situacao: situacaoDe(linha) });
+  }
+  return out;
 }
 
 /** Os campos que um passo pergunta em conversa (os que contam para o teto de duas perguntas). */

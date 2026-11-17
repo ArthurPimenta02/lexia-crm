@@ -182,7 +182,7 @@ export function Etapa1Form({
         <div className="flex min-w-0 flex-col gap-3">
           <h2 className="ds-titulo-3 text-foreground">{t("Tabela de preços e materiais")}</h2>
           <label
-            className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--ds-borda)] px-4 py-6 text-center aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+            className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--ds-linha-forte)] px-4 py-6 text-center aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
             aria-disabled={liberada}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
@@ -192,6 +192,7 @@ export function Etapa1Form({
           >
             <Upload aria-hidden="true" className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">{t("Arraste fotos, PDFs ou prints. Pode ser a foto da tabela na parede.")}</span>
+            <span className="max-w-prose text-[0.8125rem] leading-relaxed text-muted-foreground">{t("Peça à cliente a tabela de preços e as folhas de cuidados antes e depois de cada procedimento: com elas a conversa fica bem mais curta.")}</span>
             <span className="ds-botao ds-botao-secundario">{t("Escolher arquivos")}</span>
             <input accept={ACEITA} className="sr-only" disabled={liberada} multiple onChange={(e) => { void enviarArquivos(e.target.files); e.target.value = ""; }} type="file" />
           </label>
@@ -286,7 +287,7 @@ export function Etapa1Form({
 
             <details className="group min-w-0">
               <summary className="cursor-pointer text-sm font-medium text-[var(--ds-acao)]">{t("Ver o rascunho completo")}</summary>
-              <div className="mt-3 flex max-h-[32rem] flex-col gap-5 overflow-y-auto rounded-xl border border-[var(--ds-borda)] p-4">
+              <div className="mt-3 flex max-h-[32rem] flex-col gap-5 overflow-y-auto rounded-xl border border-[var(--ds-linha-forte)] p-4">
                 {secoes.map((s) => (
                   <section className="min-w-0" key={s}>
                     <h3 className="ds-sobretitulo">{s}</h3>

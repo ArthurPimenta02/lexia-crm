@@ -11,11 +11,11 @@ export function PassosOnboarding({ atual, itens }: { atual: number; itens: { not
         return (
           <li
             aria-current={ativa ? "step" : undefined}
-            className={`flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 sm:gap-3 sm:px-3.5 sm:py-3 ${ativa ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)]" : "border-[var(--ds-borda)]"} ${!ativa && !feita ? "opacity-60" : ""}`}
+            className={`flex min-w-0 items-center gap-2 rounded-xl border px-2.5 py-2 sm:gap-3 sm:px-3.5 sm:py-3 ${ativa ? "border-[var(--ds-acao)] bg-[var(--ds-acao-fundo)]" : "border-[var(--ds-linha-forte)]"} ${!ativa && !feita ? "opacity-60" : ""}`}
             key={item.titulo}
           >
             <span
-              className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums ${feita || ativa ? "bg-[var(--ds-acao)] text-[var(--ds-acao-texto)]" : "border border-[var(--ds-borda)] text-muted-foreground"}`}
+              className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums ${feita || ativa ? "bg-[var(--ds-acao)] text-[var(--ds-acao-texto)]" : "border border-[var(--ds-linha-forte)] text-muted-foreground"}`}
             >
               {feita ? <Check aria-hidden="true" size={13} strokeWidth={3} /> : n}
             </span>
