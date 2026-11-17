@@ -139,7 +139,7 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <p className="min-w-0 text-[0.8125rem] font-medium text-foreground">
+        <p className="min-w-0 text-sm font-semibold text-foreground">
           {campo.pergunta}
           {confirmar && campo.fonte === "recomendacao" ? <span className="ds-selo ml-2 align-middle">{t("Rascunho da Lexia")}</span> : null}
         </p>
@@ -443,35 +443,61 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
       <div className="ds-cartao flex flex-col gap-4 p-4">
         <p className="ds-titulo-3 text-foreground">{cartao.nome}</p>
         {cartao.faltam.length ? (
-          <div>
-            <p className="ds-sobretitulo">{t("O que eu preciso saber")}</p>
-            <ul className="mt-2 flex flex-col gap-1 text-sm leading-relaxed text-foreground">
-              {cartao.faltam.map((f) => (
-                <li className="flex gap-2" key={k(f)}>
-                  <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ds-texto-3)]" />
-                  <span className="min-w-0">{f.pergunta}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col gap-4">
+            <p className="ds-sobretitulo">{t("Falta só isto")}</p>
+            {cartao.faltam.map((f) => (
+              <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+            ))}
           </div>
         ) : null}
-        {cartao.confirmar.map((f) => (
-          <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
-        ))}
         {cartao.cartoes.map((f) => (
           <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
-        {cartao.faltam.length ? (
-          cartao.confirmar.length || cartao.cartoes.length ? <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("O que marcar aqui vai junto com a sua resposta. Responda por texto ou áudio aí embaixo.")}</p> : null
-        ) : (
-          <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({})} type="button">
-            {t("Está certo, continuar")}
+        {cartao.confirmar.length ? (
+          <div className="flex flex-col gap-4">
+            {cartao.faltam.length || cartao.cartoes.length ? <p className="ds-sobretitulo">{t("Já preenchido: confira")}</p> : null}
+            {cartao.confirmar.map((f) => (
+              <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+            ))}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
+            {cartao.faltam.length ? t("Continuar") : t("Está certo, continuar")}
           </button>
-        )}
+          {cartao.faltam.length ? (
+            <>
+              <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
+                {t("Não sei agora")}
+              </button>
+              <span className="text-[0.8125rem] text-muted-foreground">{t("Se preferir, responda por áudio ou texto aí embaixo.")}</span>
+            </>
+          ) : null}
+        </div>
       </div>
     );
   }
   return null;
+}
+
+/** O nome curto de um passo já respondido, para o histórico. */
+function tituloDoPasso(p: Cartao, t: (s: string, v?: Record<string, string | number>) => string): string {
+  const grupos: Record<string, string> = { servicos: t("Serviços"), profissionais: t("Profissionais"), faqs: t("Perguntas frequentes"), objecoes: t("Objeções"), promocoes: t("Promoções") };
+  switch (p.tipo) {
+    case "confirmar":
+      return t("Dados do negócio conferidos");
+    case "lista":
+    case "itens":
+      return grupos[p.grupo] ?? t("Lista conferida");
+    case "tabela":
+      return t("Preço e duração");
+    case "item":
+      return p.nome || t("Respondido");
+    case "cartoes":
+      return p.titulo || t("Escolhas");
+    default:
+      return t("Respondido");
+  }
 }
 
 // ------------------------------------------------------------------ a tela
@@ -593,7 +619,7 @@ export function ConversaOnboarding({
     if (enviando || pendente?.erro) return;
     const doItem =
       cartao?.tipo === "item" && !extra.pular
-        ? [...cartao.confirmar, ...cartao.cartoes].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
+        ? [...cartao.confirmar, ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
         : [];
     // A tabela vai inteira com o que estiver preenchido, mesmo quando ela responde por texto ou áudio.
     const daTabela = cartao?.tipo === "tabela" && !extra.pular ? valoresDaTabela(cartao.linhas, estadoDoCartao.valores) : [];
@@ -674,8 +700,22 @@ export function ConversaOnboarding({
     <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <section className="flex min-w-0 flex-col gap-4">
         <ol aria-live="polite" className="flex flex-col gap-3">
-          {mensagens.map((m) => {
+          {mensagens.map((m, i) => {
             const minha = m.autor === "cliente";
+            // Um passo já respondido no cartão ocupa uma linha só: o que fica à vista é a pergunta de agora.
+            const seguinte = mensagens[i + 1];
+            const anterior = mensagens[i - 1];
+            const passoDe = (x?: MensagemDaConversa) => (x?.autor === "entrevistadora" ? ((x.dados ?? {}) as { passo?: Cartao }).passo : undefined);
+            if (minha && !m.conteudo && passoDe(anterior)) return null;
+            if (!minha && passoDe(m) && seguinte?.autor === "cliente" && !seguinte.conteudo) {
+              const d = (seguinte.dados ?? {}) as { pular?: boolean; nenhum?: boolean };
+              return (
+                <li className="flex items-center gap-2 px-1 text-[0.8125rem] text-muted-foreground" key={m.id}>
+                  <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[var(--ds-acao)]" />
+                  <span className="min-w-0 truncate">{tituloDoPasso(passoDe(m)!, t)}{d.pular ? ` · ${t("Não sei agora")}` : d.nenhum ? ` · ${t("Não tenho")}` : ""}</span>
+                </li>
+              );
+            }
             const dados = (m.dados ?? {}) as { valores?: unknown[]; lista?: unknown; pular?: boolean; nenhum?: boolean };
             const soCartao = minha && !m.conteudo;
             return (
@@ -775,7 +815,7 @@ export function ConversaOnboarding({
                 )}
               </div>
             )}
-            {pedeTexto && gravando === null ? (
+            {pedeTexto && cartao?.tipo !== "item" && gravando === null ? (
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem]">
                 <button className="text-muted-foreground underline-offset-2 hover:underline" disabled={bloqueado} onClick={() => enviar({ pular: true })} type="button">
                   {t("Não sei agora")}

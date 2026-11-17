@@ -276,6 +276,8 @@ const QUAIS_SAO: Record<GrupoQueRepete, string> = {
 };
 const PRINCIPAIS: Record<GrupoQueRepete, string> = { servicos: "os serviços principais", profissionais: "quem atende", faqs: "as perguntas mais comuns", objecoes: "as objeções mais comuns", promocoes: "as promoções principais" };
 
+export const MAIS_CONFERENCIA = "Mais um pouco do que eu encontrei. Confere também?";
+
 /** A fala de reserva, quando a IA não responde: seca, mas correta, e a conversa não para. */
 export function falaPadrao(cartao: Cartao, complemento: boolean): string {
   switch (cartao.tipo) {
@@ -291,8 +293,8 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
     case "item":
       if (!cartao.faltam.length) return `${cartao.nome || "Este item"}: deixei um rascunho pronto. Confira e corrija no próprio campo o que for diferente aí.`;
       return complemento
-        ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está na lista abaixo.`
-        : `Agora me conta sobre ${cartao.nome || "este item"}: o que eu preciso saber está na lista abaixo. Pode escrever ou, se for mais fácil, gravar um áudio contando tudo de uma vez.`;
+        ? `Sobre ${cartao.nome || "este item"}, ficou faltando só o que está no cartão abaixo.`
+        : `Agora ${cartao.nome || "este item"}. Preencha no cartão abaixo o que falta ou, se for mais fácil, grave um áudio contando tudo de uma vez.`;
     case "cartoes":
       if (cartao.secao === SECAO_DAS_RECOMENDADAS) return "Para estas escolhas, já deixei marcado o que costuma funcionar melhor. Dá uma olhada: o que você quiser diferente, é só tocar em Mudar. O que estiver bom fica como está.";
       return "Agora algumas escolhas rápidas, é só tocar. As que costumam funcionar melhor estão sinalizadas como recomendadas: você pode marcar todas de uma vez e mudar o que quiser.";
@@ -325,7 +327,7 @@ export async function abrirConversa(repo: Repositorio, ia: Inteligencia, nomeDaC
   if (existentes.length) return { mensagens: existentes, progresso: progressoDe(linhas, itens, proximoPasso(montarCaderno(linhas, itens), itens, andamento).tipo === "fim") };
   const passo = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
   const cartao = cartaoDoPasso(passo, linhas);
-  const ola = `Oi${nomeDaCliente ? `, ${nomeDaCliente.split(" ")[0]}` : ""}! Eu sou a Lia, da Lexia. Vou te fazer algumas perguntas para montar a sua assistente do jeito que você atende. Pode responder por áudio, por texto ou mandar arquivos, e dá para parar e voltar quando quiser: fica tudo salvo.`;
+  const ola = `Oi${nomeDaCliente ? `, ${nomeDaCliente.split(" ")[0]}` : ""}! Eu sou a Lia, da Lexia. Vou montar a sua assistente com você. Dá para parar e voltar quando quiser: fica tudo salvo.`;
   const fala = await falar(ia, { nomeDaCliente, passo: cartao, complemento: false, anotado: [], paraALexia: [], duvida: "", ultimas: [] });
   const m = await repo.gravarDaEntrevistadora(`${ola}\n\n${fala}`, cartao);
   return { mensagens: [m], progresso: progressoDe(linhas, itens, passo.tipo === "fim") };
@@ -496,7 +498,9 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const seguinte = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
   const cartao = cartaoDoPasso(seguinte, linhas);
   const mesmoPasso = (seguinte.tipo === "item" && passo.tipo === "item" && seguinte.itemId === passo.itemId) || (seguinte.tipo === "itens" && passo.tipo === "itens" && seguinte.grupo === passo.grupo) || (seguinte.tipo === "pergunta" && passo.tipo === "pergunta" && seguinte.campos.some((c) => perguntados.has(chave(c.campo.chave, c.itemId))));
-  const fala = await falar(ia, { nomeDaCliente, passo: cartao, complemento: mesmoPasso, anotado, paraALexia, duvida, ultimas: ultimasDe([...anteriores, recebida]) });
+  // Vários cartões de conferência seguidos: a segunda fala não repete a primeira.
+  const maisConferencia = passo.tipo === "confirmar" && seguinte.tipo === "confirmar" && !duvida;
+  const fala = maisConferencia ? MAIS_CONFERENCIA : await falar(ia, { nomeDaCliente, passo: cartao, complemento: mesmoPasso, anotado, paraALexia, duvida, ultimas: ultimasDe([...anteriores, recebida]) });
   await repo.gravarDaEntrevistadora(fala, cartao);
   if (seguinte.tipo === "fim") await repo.terminar();
   return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, seguinte.tipo === "fim") };
