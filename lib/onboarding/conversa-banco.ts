@@ -2,8 +2,8 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { ANDAMENTO_VAZIO, type Andamento } from "@/lib/onboarding/caderno";
-import type { Cartao, MensagemDaConversa, Repositorio, Resposta } from "@/lib/onboarding/conversa";
+import type { Andamento } from "@/lib/onboarding/caderno";
+import { andamentoDoCursor, type Cartao, type MensagemDaConversa, type Repositorio, type Resposta } from "@/lib/onboarding/conversa";
 import { acrescentarLinhas, criarItem, lerItens, lerLinhas } from "@/lib/onboarding/dados";
 
 const COLUNAS = "id, autor, tipo, conteudo, dados, criado_em, processada_em";
@@ -26,7 +26,7 @@ export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, o
       const { data, error } = await admin.from("lexia_onboardings").select("cursor").eq("cliente_slug", clienteSlug).eq("id", onboardingId).maybeSingle();
       falhar("andamento", error);
       const c = ((data as { cursor: Partial<Andamento> | null } | null)?.cursor ?? {}) as Partial<Andamento>;
-      return { listas: c.listas ?? ANDAMENTO_VAZIO.listas, gruposPerguntados: c.gruposPerguntados ?? ANDAMENTO_VAZIO.gruposPerguntados, ...(c.semResposta ? { semResposta: c.semResposta } : {}) };
+      return andamentoDoCursor(c);
     },
     async gravarAndamento(a: Andamento) {
       const { error } = await admin.from("lexia_onboardings").update({ cursor: a, atualizado_em: new Date().toISOString() }).eq("cliente_slug", clienteSlug).eq("id", onboardingId);

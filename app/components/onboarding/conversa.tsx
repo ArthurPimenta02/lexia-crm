@@ -177,7 +177,7 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
 }
 
 /** Um rascunho já preenchido, fechado: mostra o começo do texto e abre para editar. */
-function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown; abrir: () => void }) {
+function Resumo({ campo, valor, abrir, editado }: { campo: CampoDoCartao; valor: unknown; abrir: () => void; editado?: boolean }) {
   const { t } = useIdioma();
   const texto = valor === null ? t("Sem problema, eu pergunto isso na conversa.") : Array.isArray(valor) ? valor.join(", ") : String(valor ?? "");
   return (
@@ -185,6 +185,7 @@ function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown;
       <div className="min-w-0">
         <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm font-semibold text-foreground">
           {campo.pergunta}
+          {editado ? <span className="flex items-center gap-1 text-[0.75rem] font-normal text-[var(--ds-acao)]"><Check aria-hidden="true" className="h-3 w-3" />{t("editado por você")}</span> : null}
           {campo.atencao ? <span className="flex items-center gap-1 text-[0.75rem] font-normal text-[var(--ds-alerta)]"><AlertCircle aria-hidden="true" className="h-3 w-3" />{t("saúde: confira")}</span> : null}
         </p>
         <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-relaxed text-muted-foreground">{texto}</p>
@@ -493,7 +494,17 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             <div className="flex flex-col divide-y divide-[var(--ds-linha)]">
               {achados.map((f) => (
                 <div className="py-3 first:pt-0 last:pb-0" key={k(f)}>
-                  {abertos.has(k(f)) ? <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} /> : <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} valor={estado.valores[k(f)]} />}
+                  {abertos.has(k(f)) ? (
+                    <div className="flex flex-col gap-2">
+                      <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+                      <button className="ds-botao ds-botao-secundario self-start" onClick={() => setAbertos(new Set([...abertos].filter((x) => x !== k(f))))} type="button">
+                        <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                        {t("Salvar")}
+                      </button>
+                    </div>
+                  ) : (
+                    <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} editado={JSON.stringify(estado.valores[k(f)]) !== JSON.stringify(f.valor)} valor={estado.valores[k(f)]} />
+                  )}
                 </div>
               ))}
             </div>
@@ -505,7 +516,17 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             <div className="flex flex-col divide-y divide-[var(--ds-linha)]">
               {sugeridos.map((f) => (
                 <div className="py-3 first:pt-0 last:pb-0" key={k(f)}>
-                  {abertos.has(k(f)) ? <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} /> : <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} valor={estado.valores[k(f)]} />}
+                  {abertos.has(k(f)) ? (
+                    <div className="flex flex-col gap-2">
+                      <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+                      <button className="ds-botao ds-botao-secundario self-start" onClick={() => setAbertos(new Set([...abertos].filter((x) => x !== k(f))))} type="button">
+                        <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                        {t("Salvar")}
+                      </button>
+                    </div>
+                  ) : (
+                    <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} editado={JSON.stringify(estado.valores[k(f)]) !== JSON.stringify(f.valor)} valor={estado.valores[k(f)]} />
+                  )}
                 </div>
               ))}
             </div>

@@ -49,6 +49,7 @@ REGRAS
 - Campos de várias opções: só devolva "respondido" se TUDO o que ela citou couber em opções. Se uma parte ficar ambígua (ela disse "cartão" e as opções separam crédito e débito), devolva estado "vago": ela escolhe depois num cartão, e nada se perde.
 - Campos de texto: "valor" com as palavras dela, organizadas e sem perder nenhum detalhe (preços, prazos, exceções, nomes). Não resuma demais e não troque os termos que ela usa. Preços e durações exatamente como ela disse.
 - estado "respondido": ela respondeu. "vago": ela tocou no assunto mas não deu a informação ("depende", "varia", "depois eu vejo"). "nao_se_aplica": ela disse que isso não existe no negócio dela ("não trabalho com sinal", "não tenho promoção").
+- Quando o passo traz um campo já preenchido (um rascunho em "confirmar", com "valor") e ela corrige ou complementa esse ponto, devolva o TEXTO FINAL do campo: o rascunho já com a correção ou o acréscimo dela, sem perder o que continua valendo. Ex.: rascunho "Indicado para quem tem sobrancelhas ralas" e ela diz "indica também para qualquer pessoa que perguntar" → "Indicado para quem tem sobrancelhas ralas ou com falhas, e também para qualquer pessoa que pergunte pelo serviço." Se ela só disse que gostou ou que está certo, não inclua o campo.
 - Se ela não falou de um campo, não o inclua.
 - Horário de funcionamento: use "horarios", uma linha por dia que abre, no formato HH:MM de 24 horas.
 - "duvida": se ela fez uma pergunta para a entrevistadora ("o que é handoff?", "pra que serve isso?"), copie a pergunta; senão, "".

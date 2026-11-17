@@ -109,12 +109,23 @@ export type ContextoDaExtracao = {
   texto: string;
 };
 
+/**
+ * O andamento, como está guardado no banco. TODOS os campos têm de voltar: a 17/11/2026 a leitura deixava
+ * "tabelas" de fora e, depois da tabela dos serviços, o servidor achava que o passo ainda era a tabela
+ * enquanto a tela mostrava o serviço: a resposta dela era conferida contra o passo errado e não mudava nada.
+ */
+export function andamentoDoCursor(c: Partial<Andamento> | null | undefined): Andamento {
+  return { listas: [...(c?.listas ?? [])], gruposPerguntados: [...(c?.gruposPerguntados ?? [])], tabelas: [...(c?.tabelas ?? [])], ...(c?.semResposta ? { semResposta: c.semResposta } : {}) };
+}
+
 export type ContextoDaFala = {
   nomeDaCliente: string;
   passo: Cartao;
   /** Segunda vez neste passo: só falta um complemento. */
   complemento: boolean;
   anotado: string[];
+  /** Rascunhos que ela corrigiu por texto ou áudio: a fala mostra como ficou, para ela ver que valeu. */
+  atualizado?: { rotulo: string; valor: string }[];
   paraALexia: string[];
   duvida: string;
   ultimas: { autor: string; texto: string }[];
@@ -338,17 +349,21 @@ async function falar(ia: Inteligencia, c: ContextoDaFala): Promise<string> {
   // O passo de um item (serviço, profissional) é sempre apresentado pelo código: curto, igual de um para o outro
   // e dizendo exatamente o que contar (a IA enumerava tudo o que estava no cartão e a fala virava um parágrafo).
   const simples = (c.passo.tipo === "confirmar" || c.passo.tipo === "cartoes" || c.passo.tipo === "lista" || c.passo.tipo === "tabela" || c.passo.tipo === "item") && !c.duvida;
+  // Quando ela corrigiu um rascunho por áudio ou texto, a fala começa mostrando como ficou: ela vê que valeu.
+  const curto = (x: string) => (x.length > 260 ? `${x.slice(0, 257).trimEnd()}…` : x);
+  const mudou = (c.atualizado ?? []).slice(0, 3).map((a) => `Atualizei ${a.rotulo} com o que você falou. Ficou assim: "${curto(a.valor)}"`).join("\n");
+  const comMudanca = (fala: string) => (mudou ? `${mudou}\n\n${fala}` : fala);
   if (simples) {
-    const antes = c.passo.tipo === "item" ? [c.anotado.length ? "Anotei." : "", c.paraALexia.length ? "O que ficou em aberto eu deixo para a equipe da Lexia ver com você." : ""].filter(Boolean).join(" ") : "";
-    return [antes, falaPadrao(c.passo, c.complemento)].filter(Boolean).join(" ");
+    const antes = c.passo.tipo === "item" ? [!mudou && c.anotado.length ? "Anotei." : "", c.paraALexia.length ? "O que ficou em aberto eu deixo para a equipe da Lexia ver com você." : ""].filter(Boolean).join(" ") : "";
+    return comMudanca([antes, falaPadrao(c.passo, c.complemento)].filter(Boolean).join(" "));
   }
   try {
     const texto = (await ia.falar(c)).trim();
-    if (texto) return texto;
+    if (texto) return comMudanca(texto);
   } catch {
     // cai para a fala de reserva
   }
-  return falaPadrao(c.passo, c.complemento);
+  return comMudanca(falaPadrao(c.passo, c.complemento));
 }
 
 /** Abre a conversa (uma vez só): a apresentação e o primeiro passo. */
@@ -412,12 +427,17 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
     : null;
 
   // 3) o que veio nos cartões
+  // O cartão manda junto os rascunhos em que ela não mexeu. Se ela falou desse mesmo campo no áudio ou no texto,
+  // vale o que ela disse: o rascunho intacto não passa por cima.
+  const ditos = new Set((extraido?.campos ?? []).filter((e) => e.estado === "respondido").map((e) => chave(e.chave, e.item ? (refs.get(e.item)?.id ?? "?") : null)));
+  const atualizado: { rotulo: string; valor: string }[] = [];
   for (const v of resposta.valores ?? []) {
     const c = noPasso.get(chave(String(v.campo), v.itemId ?? null));
     if (!c || resolvidas.has(chave(c.campo.chave, c.itemId))) continue;
     if (v.valor === null) continue; // "não é isso": fica por responder e segue para a conversa
     const valor = conferir(c.campo, v.valor);
     if (valor === undefined) continue;
+    if (c.situacao === "por_confirmar" && igual(valor, c.linha?.valor) && ditos.has(chave(c.campo.chave, c.itemId))) continue;
     anotar(c, valor, c.situacao === "por_confirmar" && igual(valor, c.linha?.valor) ? "confirmado" : "respondido");
   }
   // Lista sem resposta no cartão (ela escreveu ou falou em vez de tocar): ficam todos, e o que ela
@@ -461,6 +481,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
       }
       const valor = conferir(alvo.campo, e.bruto);
       if (valor === undefined || e.estado === "vago") continue;
+      if (alvo.situacao === "por_confirmar" && typeof valor === "string") atualizado.push({ rotulo: ROTULO[alvo.campo.chave] ?? alvo.campo.pergunta.replace(/[?.]$/, ""), valor });
       anotar(alvo, valor, "respondido");
     }
 
@@ -531,7 +552,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const mesmoPasso = (seguinte.tipo === "item" && passo.tipo === "item" && seguinte.itemId === passo.itemId) || (seguinte.tipo === "itens" && passo.tipo === "itens" && seguinte.grupo === passo.grupo) || (seguinte.tipo === "pergunta" && passo.tipo === "pergunta" && seguinte.campos.some((c) => perguntados.has(chave(c.campo.chave, c.itemId))));
   // Vários cartões de conferência seguidos: a segunda fala não repete a primeira.
   const maisConferencia = passo.tipo === "confirmar" && seguinte.tipo === "confirmar" && !duvida;
-  const fala = maisConferencia ? MAIS_CONFERENCIA : await falar(ia, { nomeDaCliente, passo: cartao, complemento: mesmoPasso, anotado, paraALexia, duvida, ultimas: ultimasDe([...anteriores, recebida]) });
+  const fala = maisConferencia ? MAIS_CONFERENCIA : await falar(ia, { nomeDaCliente, passo: cartao, complemento: mesmoPasso, anotado, atualizado, paraALexia, duvida, ultimas: ultimasDe([...anteriores, recebida]) });
   await repo.gravarDaEntrevistadora(fala, cartao);
   if (seguinte.tipo === "fim") await repo.terminar();
   return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, seguinte.tipo === "fim") };
