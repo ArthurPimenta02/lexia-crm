@@ -346,6 +346,10 @@ Etapa 2 (conversa):
   serviços pergunta-se uma vez, na raiz da seção `servicos` (`avaliacao_paga`,
   `servicos_prioritarios`, `se_acharem_caro`); quem faz cada serviço responde-se em cada
   profissional. Um serviço em que só há rascunho para conferir fecha num toque, sem chamada de IA.
+- Escolhas com recomendação vão todas juntas, uma vez, num passo `cartoes` com `secao: "recomendadas"`
+  (a recomendada já vem marcada e à vista; o que ela não escolher volta na seção a que pertence).
+  Nos grupos curtos (perguntas frequentes, objeções, profissionais, promoções) o rascunho de cada
+  item confere-se na própria `lista` (`detalhes`), num cartão só, em vez de um turno por item.
 - Onde ficam os dados: tudo o que é da entrevista (respostas, mensagens, arquivos, áudios) fica
   no Supabase **central**, nas tabelas `lexia_onboarding*` e no bucket `onboarding`, sempre com
   `cliente_slug`. Nada é escrito no Supabase do cliente antes da aprovação (Etapa 3, por construir).
@@ -382,6 +386,9 @@ Etapa 1:
   na conversa (a tela marca "Rascunho da Lexia" e pede atenção nos campos de saúde, `atencao` no
   esquema). Preço e duração nunca são escritos pela IA. Se a chamada falhar, o rascunho segue sem
   ela e os textos são perguntados.
+- Em paralelo, `pedirSugestoes` prepara até 8 perguntas frequentes e 6 objeções comuns do ramo, com
+  resposta sugerida (mesma fonte `recomendacao`). A instrução proíbe inventar fatos do negócio
+  (preço, pagamento, horário, política): pergunta cuja resposta dependa disso não é sugerida.
 
 ### API do Analista Lexia
 

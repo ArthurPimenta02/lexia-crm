@@ -170,7 +170,7 @@ export type Passo =
   /** O que as fontes e a Lexia já preencheram sobre o negócio: ela confirma ou corrige. */
   | { tipo: "confirmar"; campos: CampoNoCaderno[] }
   /** A lista de itens que o rascunho achou (os serviços, por exemplo): tira os que não faz, acrescenta os que faltam. */
-  | { tipo: "lista"; grupo: GrupoQueRepete; itens: ItemDoCaderno[] }
+  | { tipo: "lista"; grupo: GrupoQueRepete; itens: ItemDoCaderno[]; detalhes: { itemId: string; campos: CampoNoCaderno[] }[] }
   /** O grupo está vazio: ela conta quais são (os serviços, as perguntas que mais recebe…). */
   | { tipo: "itens"; grupo: GrupoQueRepete; obrigatorio: boolean }
   /** Preço e duração de todos os serviços numa tabela só, em vez de uma pergunta por serviço. Mostra-se uma vez. */
@@ -197,6 +197,9 @@ export const ANDAMENTO_VAZIO: Andamento = { listas: [], gruposPerguntados: [] };
 export const LOTE_DE_CONFIRMACAO = 8;
 export const LOTE_DE_CARTOES = 5;
 export const LOTE_DE_PERGUNTAS = 3;
+/** O passo que junta as escolhas com recomendação (não é uma seção do esquema). */
+export const SECAO_DAS_RECOMENDADAS = "recomendadas";
+const MINIMO_PARA_JUNTAR = 3;
 
 const GRUPOS_PRIMEIRO: GrupoQueRepete[] = ["servicos", "profissionais"];
 const GRUPOS_DEPOIS: GrupoQueRepete[] = ["faqs", "objecoes", "promocoes"];
@@ -232,7 +235,13 @@ export function proximoPasso(
       if (vezes < (definicao.obrigatorio ? MAXIMO_DE_PERGUNTAS : 1)) return { tipo: "itens", grupo, obrigatorio: definicao.obrigatorio };
       return null;
     }
-    if (!andamento.listas.includes(grupo)) return { tipo: "lista", grupo, itens: ativos };
+    if (!andamento.listas.includes(grupo)) {
+      // Nos grupos curtos (perguntas frequentes, objeções, profissionais, promoções) o rascunho de cada item
+      // confere-se na própria lista, num cartão só, em vez de um turno por item. Os serviços têm passos próprios.
+      const nome = definicao.campos[0]?.chave;
+      const detalhes = grupo === "servicos" ? [] : ativos.map((item) => ({ itemId: item.id, campos: caderno.filter((c) => c.itemId === item.id && c.situacao === "por_confirmar" && c.campo.chave !== nome) })).filter((d) => d.campos.length);
+      return { tipo: "lista", grupo, itens: ativos, detalhes };
+    }
     if (grupo === "servicos" && !(andamento.tabelas ?? []).includes(grupo)) {
       const linhas = ativos.map((item) => ({ itemId: item.id, campos: camposDaTabela(item, caderno, esquema).filter(aberto) })).filter((l) => l.campos.length);
       if (linhas.length) return { tipo: "tabela", grupo, linhas };
@@ -258,6 +267,10 @@ export function proximoPasso(
   }
 
   const emFalta = caderno.filter((c) => !c.grupo && c.situacao === "falta");
+  // As escolhas que têm uma recomendação vão todas juntas, uma vez: ela vê o que está sendo aceito e muda o que quiser.
+  // Só entram as que nunca lhe foram mostradas; o que ficar por escolher volta depois, na seção a que pertence.
+  const recomendadas = emFalta.filter((c) => c.campo.modo === "cartao" && c.campo.recomendado !== undefined && !c.linha);
+  if (recomendadas.length >= MINIMO_PARA_JUNTAR) return { tipo: "cartoes", secao: SECAO_DAS_RECOMENDADAS, campos: recomendadas };
   for (const secao of esquema) {
     const daSecao = emFalta.filter((c) => c.secao === secao.chave);
     const cartoes = daSecao.filter((c) => c.campo.modo === "cartao");

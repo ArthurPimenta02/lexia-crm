@@ -153,7 +153,7 @@ REGRAS
 - Copie preços, durações e nomes exatamente como estão. Não some, não converta moeda, não arredonde.
 - Campos com opções: use exatamente o texto de uma das opções (em "valor"; se for de escolher várias, em "lista"). Se nenhuma opção corresponder ao que a fonte diz, deixe o campo de fora.
 - Campos de texto: "valor" com a informação, "lista" vazia.
-- Serviços: um item por serviço realmente oferecido. Campos que a fonte não traz ficam com texto vazio. "tipo_de_preco" é um de: ${grupo("servicos").campos.find((c) => c.chave === "tipo_de_preco")!.opcoes!.join(" | ")} (ou vazio se a fonte não deixa claro).
+- Serviços: um item por serviço realmente oferecido. Cada técnica ou procedimento que a fonte cita pelo nome é um serviço separado (se a fonte diz que a sobrancelha pode ser feita em microblading, shadow ou hybrid, são três serviços; "também fazemos tintura, laminação e design" são mais três). O nome de uma categoria ou de uma seção do site ("Sobrancelhas", "Lábios", "Estética avançada") não é um serviço: liste o que está dentro dela. O que a fonte diz da categoria (duração, descrição) vale para cada serviço dela. Campos que a fonte não traz ficam com texto vazio. "tipo_de_preco" é um de: ${grupo("servicos").campos.find((c) => c.chave === "tipo_de_preco")!.opcoes!.join(" | ")} (ou vazio se a fonte não deixa claro).
 - Perguntas frequentes e objeções: só as que aparecem de fato nas fontes (seção de FAQ, comentários, avaliações, anotações), com a resposta que a fonte dá. Sem resposta na fonte, deixe a resposta vazia.
 - Horários: uma linha por dia em que abre, no formato HH:MM.
 - "resumo": duas frases para a equipe da Lexia sobre o que foi encontrado e o que mais faltou.
@@ -251,6 +251,63 @@ export function juntarTextos(itens: ItemNovo[], textos: TextosDeUmServico[]): It
     const novas = TEXTOS_DO_SERVICO.filter((k) => !ja.has(k) && limpo(escrito[k])).map((k) => ({ campo: k as string, valor: limpo(escrito[k]).slice(0, 2000), estado: "rascunho" as const, fonte: "recomendacao" as const, evidencia: { escrito_pela_lexia: true } }));
     return novas.length ? { ...item, linhas: [...item.linhas, ...novas] } : item;
   });
+}
+
+// ------------------------------------------------------------------ perguntas frequentes e objeções sugeridas pela Lexia
+
+export const MAXIMO_DE_FAQS = 8;
+export const MAXIMO_DE_OBJECOES = 6;
+export type Sugestoes = { faqs: { pergunta: string; resposta: string }[]; objecoes: { objecao: string; como_responder: string }[] };
+
+function instrucoesDasSugestoes(): string {
+  return `Você prepara sugestões para o onboarding de um negócio que vai ter uma assistente de atendimento com IA. A dona vai ler cada sugestão, corrigir a resposta, apagar as que não valem e acrescentar as dela: o seu rascunho poupa o tempo dela, não substitui a palavra dela.
+
+Você recebe o tipo de negócio, os serviços, as perguntas frequentes e objeções que as fontes já trouxeram, e o texto das fontes do negócio.
+
+O QUE ESCREVER
+- "faqs": as perguntas que clientes deste tipo de negócio mais fazem pelo WhatsApp antes de marcar (dói? quanto tempo dura o resultado? como é a recuperação? posso fazer se...? quantas sessões?), cada uma com a resposta que uma boa atendente daria, em 1 a 3 frases.
+- "objecoes": as objeções que mais aparecem neste tipo de negócio (está caro, vou pensar, tenho medo de dor, tenho medo de ficar artificial, já tive uma experiência ruim), cada uma com uma sugestão de como responder, em 1 a 3 frases, acolhendo primeiro e sem pressionar.
+
+REGRAS
+- No máximo ${MAXIMO_DE_FAQS} perguntas frequentes e ${MAXIMO_DE_OBJECOES} objeções. Menos, se não houver tantas que façam sentido.
+- Não repita o que já está em "ja_existem".
+- As respostas só podem usar o que as fontes dizem e o que é conhecimento comum e amplamente aceito sobre os procedimentos. NUNCA invente um fato do negócio: preço, desconto, parcelamento, forma de pagamento, horário, endereço, estacionamento, prazo, garantia, política de cancelamento. Se a resposta a uma pergunta depende de um fato desses que as fontes não trazem, não inclua essa pergunta: ela é feita à dona em outro momento.
+- Nunca prometa resultado. Nunca cite marca, produto ou aparelho que as fontes não citaram.
+- Na resposta a "está caro", não invente desconto nem condição: sugira explicar o que está incluído e o valor do resultado, e deixe o resto para a dona completar.
+- Escreva como a atendente falaria com a cliente: português do Brasil, simples, caloroso, sem linguagem de propaganda. Não traduza o nome dos serviços.`;
+}
+
+const esquemaDasSugestoes = () => objeto({ faqs: { type: "array", items: objeto({ pergunta: texto, resposta: texto }) }, objecoes: { type: "array", items: objeto({ objecao: texto, como_responder: texto }) } });
+
+export async function pedirSugestoes(ia: ChaveDeIa, pedido: { tipoDeNegocio: string; servicos: string[]; jaExistem: { faqs: string[]; objecoes: string[] }; fontes: string }): Promise<{ sugestoes: Sugestoes; uso: Uso }> {
+  const r = await perguntar(ia, {
+    sistema: instrucoesDasSugestoes(),
+    conteudo: [{ type: "text", text: `${JSON.stringify({ tipo_de_negocio: pedido.tipoDeNegocio, servicos: pedido.servicos, ja_existem: pedido.jaExistem })}
+
+# FONTES DO NEGÓCIO
+${pedido.fontes.slice(0, 60_000)}` }],
+    esquema: esquemaDasSugestoes(),
+    maxTokens: 8000,
+    semPensar: true,
+  });
+  return { sugestoes: JSON.parse(r.texto) as Sugestoes, uso: r.uso };
+}
+
+/** Junta as sugestões aos itens do rascunho: sem repetir o que as fontes já trouxeram, e dentro do teto. */
+export function juntarSugestoes(itens: ItemNovo[], s: Sugestoes): ItemNovo[] {
+  const norma = (x: string) => limpo(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const ja = new Set(itens.map((i) => `${i.grupo}|${norma(i.nome)}`));
+  const linha = (campo: string, valor: string) => ({ campo, valor: limpo(valor).slice(0, 2000), estado: "rascunho" as const, fonte: "recomendacao" as const, evidencia: { escrito_pela_lexia: true } });
+  const novos: ItemNovo[] = [];
+  const entra = (grupo: "faqs" | "objecoes", nome: string, campoDoNome: string, campoDaResposta: string, resposta: string, teto: number) => {
+    const k = `${grupo}|${norma(nome)}`;
+    if (!limpo(nome) || !limpo(resposta) || ja.has(k) || novos.filter((n) => n.grupo === grupo).length >= teto) return;
+    ja.add(k);
+    novos.push({ grupo, nome: limpo(nome).slice(0, 300), linhas: [linha(campoDoNome, limpo(nome).slice(0, 300)), linha(campoDaResposta, resposta)] });
+  };
+  for (const f of s.faqs ?? []) entra("faqs", f.pergunta, "pergunta", "resposta", f.resposta, MAXIMO_DE_FAQS);
+  for (const o of s.objecoes ?? []) entra("objecoes", o.objecao, "objecao", "como_responder", o.como_responder, MAXIMO_DE_OBJECOES);
+  return [...itens, ...novos];
 }
 
 // ------------------------------------------------------------------ do rascunho para o caderno

@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { ESQUEMA_ONBOARDING } from "../lib/onboarding/esquema";
-import { enderecoPublico, esquemaDoRascunho, juntarTextos, rascunhoParaCaderno, servicosParaEscrever, textoDoHtml, valorValido, type RascunhoBruto } from "../lib/onboarding/fontes";
+import { enderecoPublico, esquemaDoRascunho, juntarSugestoes, juntarTextos, MAXIMO_DE_FAQS, MAXIMO_DE_OBJECOES, rascunhoParaCaderno, servicosParaEscrever, textoDoHtml, valorValido, type RascunhoBruto } from "../lib/onboarding/fontes";
 
 const campo = (chave: string) => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).find((c) => c.chave === chave)!;
 const vazio: RascunhoBruto = { resumo: "", campos: [], horarios: [], servicos: [], profissionais: [], faqs: [], objecoes: [], promocoes: [] };
@@ -125,4 +125,19 @@ test("textos escritos pela Lexia: entram como rascunho 'recomendacao', nunca por
   assert.equal(de(0, "valor"), undefined, "a Lexia nunca escreve preço");
   assert.deepEqual(juntos[1], itens[1], "serviço que a IA não reconheceu fica como estava");
   assert.deepEqual(juntos[2], itens[2], "o que não é serviço não recebe texto");
+});
+
+test("perguntas frequentes e objeções sugeridas: rascunho 'recomendacao', sem repetir o que as fontes trouxeram, sem resposta vazia e dentro do teto", () => {
+  const { itens } = rascunhoParaCaderno({ ...vazio, faqs: [{ pergunta: "Dói?", resposta: "Quase nada.", fonte: "site", trecho: "" }] });
+  const juntos = juntarSugestoes(itens, {
+    faqs: [{ pergunta: "dói?!", resposta: "repetida" }, { pergunta: "Sem resposta?", resposta: " " }, ...Array.from({ length: 12 }, (_, n) => ({ pergunta: `Pergunta ${n}`, resposta: `Resposta ${n}` }))],
+    objecoes: Array.from({ length: 9 }, (_, n) => ({ objecao: `Objeção ${n}`, como_responder: `Resposta ${n}` })),
+  });
+  const faqs = juntos.filter((x) => x.grupo === "faqs"), objecoes = juntos.filter((x) => x.grupo === "objecoes");
+  assert.equal(faqs.filter((x) => /d[oó]i/i.test(x.nome)).length, 1, "a pergunta que a fonte já trazia não se repete");
+  assert.equal(faqs[0].linhas.find((l) => l.campo === "resposta")!.valor, "Quase nada.", "a resposta da fonte fica");
+  assert.ok(!faqs.some((x) => x.nome === "Sem resposta?"), "sugestão sem resposta não entra");
+  assert.equal(faqs.length, 1 + MAXIMO_DE_FAQS);
+  assert.equal(objecoes.length, MAXIMO_DE_OBJECOES);
+  assert.deepEqual(objecoes[0].linhas.map((l) => [l.campo, l.estado, l.fonte]), [["objecao", "rascunho", "recomendacao"], ["como_responder", "rascunho", "recomendacao"]]);
 });
