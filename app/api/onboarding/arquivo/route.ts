@@ -1,9 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import { acessoAoOnboarding } from "@/lib/onboarding/acesso";
-import { abrirOnboarding, BUCKET_ONBOARDING, pastaDoCliente, registarArquivo, TAMANHO_MAXIMO_ARQUIVO } from "@/lib/onboarding/dados";
+import { chaveDoGemini, transcrever } from "@/lib/onboarding/audio";
+import { abrirOnboarding, BUCKET_ONBOARDING, gravarTextoDoArquivo, listarArquivos, pastaDoCliente, registarArquivo, TAMANHO_MAXIMO_ARQUIVO } from "@/lib/onboarding/dados";
 
 export const dynamic = "force-dynamic";
+// Transcrever um áudio comprido leva tempo.
+export const maxDuration = 300;
 
 /** Na conversa entram também os áudios gravados na tela. O teto do áudio é o que o transcritor aceita de uma vez. */
 const AUDIO: Record<string, string> = { "audio/webm": "webm", "audio/mp4": "m4a", "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/aac": "aac", "audio/wav": "wav", "audio/x-m4a": "m4a" };
@@ -22,6 +25,27 @@ export async function POST(request: Request) {
   const acesso = await acessoAoOnboarding(corpo.cliente);
   if (!acesso) return Response.json({ erro: "Acesso não autorizado." }, { status: 403 });
   const { admin, clienteSlug: slug } = acesso;
+
+  // `transcrever`: o áudio que ela gravou DENTRO de um campo. Devolve o texto para a tela escrever no campo; a
+  // resposta só entra no caderno quando ela toca em continuar. O áudio fica guardado, com a transcrição.
+  if (corpo.passo === "transcrever") {
+    const onb = await abrirOnboarding(admin, slug);
+    const arquivo = (await listarArquivos(admin, slug, onb.id)).find((a) => a.id === corpo.arquivoId && a.origem === "conversa");
+    if (!arquivo || !(arquivo.mime ?? "").toLowerCase().startsWith("audio/")) return Response.json({ erro: "Áudio não encontrado." }, { status: 400 });
+    if (arquivo.texto_em) return Response.json({ texto: arquivo.texto ?? "" });
+    try {
+      const chave = await chaveDoGemini(admin);
+      if (!chave) throw new Error("falta a chave de transcrição");
+      const { data, error } = await admin.storage.from(BUCKET_ONBOARDING).download(arquivo.caminho);
+      if (error || !data) throw new Error("não consegui abrir o áudio");
+      const texto = await transcrever(chave, Buffer.from(await data.arrayBuffer()), (arquivo.mime ?? "").toLowerCase());
+      await gravarTextoDoArquivo(admin, slug, arquivo.id, texto);
+      return Response.json({ texto });
+    } catch (e) {
+      console.error("[onboarding] transcrever no campo", slug, arquivo.id, e);
+      return Response.json({ erro: "Seu áudio está salvo, mas não consegui ouvir agora. Tente de novo." }, { status: 502 });
+    }
+  }
 
   const mime = String(corpo.mime ?? "").toLowerCase().split(";")[0];
   const tamanho = Number(corpo.tamanho ?? 0);

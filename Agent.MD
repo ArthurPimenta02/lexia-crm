@@ -384,6 +384,12 @@ Etapa 1:
   linha só no histórico; no cartão de um serviço, o que falta responde-se no próprio cartão e há
   sempre "Continuar" e "Não sei agora" (antes só dava para seguir por texto ou áudio); cartões de
   conferência seguidos não repetem a mesma fala. "Provas sociais" saiu do esquema (143 campos).
+- Áudio dentro de cada campo (17/11/2026): todo campo de texto dos cartões tem "Responder por áudio".
+  O áudio sobe pelo mesmo caminho (`preparar`/`registar`) e `POST /api/onboarding/arquivo` com
+  `passo: "transcrever"` devolve o texto, que a tela escreve no campo (acrescenta, nunca apaga); só
+  entra no caderno quando ela toca em continuar. As perguntas abertas e os grupos vazios viraram
+  cartões com campo e microfone; a caixa de mensagem de baixo fica recolhida em "Enviar um arquivo ou
+  tirar uma dúvida com a Lia". A fala atual da Lia aparece em balão de destaque com o beija-flor.
 - Fidelidade do rascunho (17/11/2026): só vale o que a fonte diz com todas as letras (função de uma
   pessoa e tempo de negócio não se deduzem); quando duas fontes se contradizem, valem as anotações
   da equipe; os textos saem só em português, com o nome do serviço como o negócio usa. Quando a

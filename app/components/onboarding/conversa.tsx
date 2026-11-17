@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Check, FileText, Loader2, Mic, Paperclip, RotateCcw, Send, Square, X } from "lucide-react";
 
 import { useIdioma } from "@/app/components/idioma";
@@ -50,6 +50,100 @@ function guardarRascunho(chave: string, texto: string) {
     // sem armazenamento local: a tela funciona na mesma
   }
 }
+
+// ------------------------------------------------------------------ o microfone de cada campo
+
+/** Sobe o áudio e devolve a transcrição. `null` = esta tela não transcreve (prévia, só leitura). */
+const Transcritor = createContext<((blob: Blob, mime: string) => Promise<string>) | null>(null);
+
+/**
+ * Gravar a resposta de UM campo: ela fala, o áudio é transcrito e o texto aparece no campo, onde ela lê e corrige
+ * antes de continuar (Arthur, 17/11/2026: é por áudio que a dona vai responder, e em cada pergunta).
+ */
+function MicDoCampo({ aoTexto }: { aoTexto: (texto: string) => void }) {
+  const { t } = useIdioma();
+  const transcrever = useContext(Transcritor);
+  const [segundos, setSegundos] = useState<number | null>(null);
+  const [ouvindo, setOuvindo] = useState(false);
+  const [falha, setFalha] = useState<string | null>(null);
+  const gravador = useRef<MediaRecorder | null>(null);
+  const relogio = useRef<ReturnType<typeof setInterval> | null>(null);
+  const entregar = useRef(aoTexto);
+  useEffect(() => {
+    entregar.current = aoTexto;
+  });
+  useEffect(() => () => {
+    if (relogio.current) clearInterval(relogio.current);
+    if (gravador.current?.state === "recording") gravador.current.stop();
+  }, []);
+  // 10 minutos por áudio: é o que o transcritor ouve de uma vez.
+  useEffect(() => {
+    if (segundos !== null && segundos >= 600) gravador.current?.stop();
+  }, [segundos]);
+  if (!transcrever) return null;
+
+  async function alternar() {
+    if (segundos !== null) return gravador.current?.stop();
+    setFalha(null);
+    try {
+      const fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus"].find((m) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(m)) ?? "";
+      const g = new MediaRecorder(fluxo, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 32000 });
+      const pedacos: Blob[] = [];
+      g.ondataavailable = (e) => {
+        if (e.data.size) pedacos.push(e.data);
+      };
+      g.onstop = async () => {
+        fluxo.getTracks().forEach((f) => f.stop());
+        if (relogio.current) clearInterval(relogio.current);
+        setSegundos(null);
+        const tipo = (g.mimeType || mime || "audio/webm").split(";")[0];
+        const blob = new Blob(pedacos, { type: tipo });
+        if (blob.size <= 1000) return;
+        setOuvindo(true);
+        try {
+          const texto = (await transcrever!(blob, tipo)).trim();
+          if (texto) entregar.current(texto);
+          else setFalha(t("Não ouvi nada nesse áudio. Tente gravar de novo."));
+        } catch (e) {
+          setFalha(e instanceof Error ? e.message : t("Não consegui ouvir o áudio. Tente de novo."));
+        } finally {
+          setOuvindo(false);
+        }
+      };
+      gravador.current = g;
+      g.start(1000);
+      setSegundos(0);
+      relogio.current = setInterval(() => setSegundos((x) => (x === null ? null : x + 1)), 1000);
+    } catch {
+      setFalha(t("Não consegui usar o microfone. Libere o microfone no navegador ou responda por texto."));
+    }
+  }
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {ouvindo ? (
+        <span className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground"><Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />{t("Escrevendo o que você falou…")}</span>
+      ) : segundos !== null ? (
+        <button className="ds-botao ds-botao-primario min-h-9 px-3 text-[0.8125rem]" onClick={() => void alternar()} type="button">
+          <span aria-hidden="true" className="h-2 w-2 animate-pulse rounded-full bg-[var(--ds-perigo)]" />
+          <span className="tabular-nums">{tempo(segundos)}</span>
+          <Square aria-hidden="true" className="h-3 w-3" />
+          {t("Parar e escrever")}
+        </button>
+      ) : (
+        <button className="ds-botao ds-botao-secundario min-h-9 px-3 text-[0.8125rem]" onClick={() => void alternar()} type="button">
+          <Mic aria-hidden="true" className="h-3.5 w-3.5" />
+          {t("Responder por áudio")}
+        </button>
+      )}
+      {falha ? <span className="text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">{falha}</span> : null}
+    </div>
+  );
+}
+
+/** O que ela falou entra no fim do que já está escrito (nunca apaga o que lá está). */
+const juntarFala = (atual: unknown, fala: string) => (String(atual ?? "").trim() ? `${String(atual).trim()}\n${fala}` : fala);
 
 // ------------------------------------------------------------------ campos dos cartões
 
@@ -169,9 +263,15 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
       ) : campo.opcoes?.length ? (
         <Opcoes campo={campo} mudar={mudar} valor={valor} />
       ) : campo.tipo === "long" || String(valor ?? "").length > 70 ? (
-        <textarea className="ds-campo min-h-20 py-2 leading-relaxed" onChange={(e) => mudar(e.target.value)} value={String(valor ?? "")} />
+        <>
+          <textarea className="ds-campo min-h-20 py-2 leading-relaxed" onChange={(e) => mudar(e.target.value)} placeholder={t("Fale no microfone ou escreva aqui")} value={String(valor ?? "")} />
+          <MicDoCampo aoTexto={(fala) => mudar(juntarFala(valor, fala))} />
+        </>
       ) : (
-        <input className="ds-campo" onChange={(e) => mudar(e.target.value)} value={String(valor ?? "")} />
+        <>
+          <input className="ds-campo" onChange={(e) => mudar(e.target.value)} value={String(valor ?? "")} />
+          {campo.tipo === "number" || campo.tipo === "time" ? null : <MicDoCampo aoTexto={(fala) => mudar(juntarFala(valor, fala))} />}
+        </>
       )}
     </div>
   );
@@ -464,6 +564,46 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     );
   }
 
+  if (cartao.tipo === "pergunta") {
+    return (
+      <div className="ds-cartao flex flex-col gap-5 p-4">
+        {cartao.campos.map((f) => (
+          <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+        ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="ds-botao ds-botao-primario" disabled={ocupado || !valoresDe(cartao.campos).length} onClick={() => enviar({ valores: valoresDe(cartao.campos) })} type="button">
+            {t("Enviar")}
+          </button>
+          <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
+            {t("Não sei agora")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (cartao.tipo === "itens") {
+    return (
+      <div className="ds-cartao flex flex-col gap-3 p-4">
+        <textarea className="ds-campo min-h-28 py-2 leading-relaxed" onChange={(e) => setNovo(e.target.value)} placeholder={t("Fale no microfone ou escreva aqui")} value={novo} />
+        <MicDoCampo aoTexto={(fala) => setNovo(juntarFala(novo, fala))} />
+        <div className="flex flex-wrap items-center gap-3">
+          <button className="ds-botao ds-botao-primario" disabled={ocupado || !novo.trim()} onClick={() => enviar({ texto: novo.trim() })} type="button">
+            {t("Enviar")}
+          </button>
+          <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
+            {t("Não sei agora")}
+          </button>
+          {!cartao.obrigatorio ? (
+            <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ nenhum: true })} type="button">
+              {t("Não tenho")}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   if (cartao.tipo === "item") {
     // Três coisas diferentes: o que se marca com um toque, o que já veio das fontes dela (confere) e o que a
     // Lexia só sugeriu (isso é ela que conta; a sugestão fica fechada e só vale se ela abrir e aceitar).
@@ -474,7 +614,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const tipo = tocar.find((f) => f.campo === "tipo_de_preco");
     const tipoAtual = tipo ? (estado.valores[k(tipo)] as string | undefined) : undefined;
     const pedeAudio = contar.length > 0;
-    if (!tocar.length && !achados.length && !sugeridos.length) return null;
+    if (!tocar.length && !contar.length && !achados.length && !sugeridos.length) return null;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
         {tocar.map((f) =>
@@ -489,6 +629,9 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             <Campo campo={f.campo === "tipo_de_preco" ? { ...f, pergunta: t("Como é o preço deste serviço?"), opcoes: (f.opcoes ?? []).filter((o) => !/^outro/i.test(o)) } : f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
           ),
         )}
+        {contar.map((f) => (
+          <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
+        ))}
         {achados.length ? (
           <div className="flex flex-col gap-3">
             <p className="ds-sobretitulo">{t("O que eu já achei")}</p>
@@ -537,7 +680,11 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
           <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
             {pedeAudio ? t("Enviar") : t("Está certo, continuar")}
           </button>
-          <span className="text-[0.8125rem] text-muted-foreground">{t("Se preferir, responda por áudio ou texto aí embaixo.")}</span>
+          {pedeAudio || tocar.length ? (
+            <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
+              {t("Não sei agora")}
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -586,6 +733,7 @@ export function ConversaOnboarding({
   const [pendente, setPendente] = useState<(Envio & { erro?: string }) | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [gravando, setGravando] = useState<number | null>(null);
+  const [falarComALia, setFalarComALia] = useState(false);
   const [estadoDoCartao, setEstadoDoCartao] = useState<EstadoDoCartao>({ valores: {}, manter: new Set(), novos: [] });
   const gravador = useRef<MediaRecorder | null>(null);
   const relogio = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -638,6 +786,26 @@ export function ConversaOnboarding({
   useEffect(() => {
     fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [mensagens, pendente, enviando]);
+
+  const transcrever = useCallback(
+    async (blob: Blob, mime: string) => {
+      const base = { cliente: clienteSlug, origem: "conversa", nome: "audio", mime, tamanho: blob.size };
+      const pedir = async (corpo: Record<string, unknown>) => {
+        const r = await fetch("/api/onboarding/arquivo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) });
+        const j = (await r.json().catch(() => ({}))) as { caminho?: string; token?: string; id?: string; texto?: string; erro?: string };
+        if (!r.ok) throw new Error(j.erro ?? t("Não consegui ouvir o áudio. Tente de novo."));
+        return j;
+      };
+      const p = await pedir({ ...base, passo: "preparar" });
+      if (!p.caminho || !p.token) throw new Error(t("Não foi possível enviar o arquivo."));
+      const { error } = await createClient().storage.from("onboarding").uploadToSignedUrl(p.caminho, p.token, blob, { contentType: mime });
+      if (error) throw new Error(t("Não foi possível enviar o arquivo."));
+      const reg = await pedir({ ...base, passo: "registar", caminho: p.caminho });
+      if (!reg.id) throw new Error(t("Não foi possível enviar o arquivo."));
+      return (await pedir({ cliente: clienteSlug, passo: "transcrever", arquivoId: reg.id })).texto ?? "";
+    },
+    [clienteSlug, t],
+  );
 
   const mandar = useCallback(
     async (envio: Envio) => {
@@ -789,10 +957,10 @@ export function ConversaOnboarding({
   }
 
   const podeResponder = !somenteLeitura && !terminou;
-  const pedeTexto = cartao?.tipo === "item" ? cartao.faltam.length > 0 : cartao?.tipo === "pergunta" || cartao?.tipo === "itens";
   const bloqueado = enviando || !!pendente?.erro;
 
   return (
+    <Transcritor.Provider value={podeResponder ? transcrever : null}>
     <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
       <section className="flex min-w-0 flex-col gap-4">
         <ol aria-live="polite" className="flex flex-col gap-3">
@@ -858,8 +1026,13 @@ export function ConversaOnboarding({
 
         {podeResponder && cartao && !pendente ? <CartaoAtivo cartao={cartao} enviar={enviar} estado={estadoDoCartao} mudar={setEstadoDoCartao} ocupado={bloqueado} /> : null}
 
-        {podeResponder ? (
-          <div className="ds-cartao sticky bottom-3 flex flex-col gap-2 p-3">
+        {podeResponder && !falarComALia && gravando === null && !texto.trim() ? (
+          <button className="self-start px-1 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline" onClick={() => setFalarComALia(true)} type="button">
+            {t("Enviar um arquivo ou tirar uma dúvida com a Lia")}
+          </button>
+        ) : null}
+        {podeResponder && (falarComALia || gravando !== null || texto.trim()) ? (
+          <div className="ds-cartao flex flex-col gap-2 p-3">
             {falha ? <p className="text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">{falha}</p> : null}
             {gravando !== null ? (
               <div className="flex items-center gap-3">
@@ -900,7 +1073,7 @@ export function ConversaOnboarding({
                       enviar({});
                     }
                   }}
-                  placeholder={pedeTexto ? t("Grave um áudio ou escreva aqui com detalhes") : t("Se quiser, escreva algo a mais")}
+                  placeholder={t("Escreva a sua dúvida, ou anexe um arquivo (tabela de preços, PDF, foto)")}
                   rows={1}
                   value={texto}
                 />
@@ -915,18 +1088,6 @@ export function ConversaOnboarding({
                 )}
               </div>
             )}
-            {pedeTexto && gravando === null ? (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem]">
-                <button className="text-muted-foreground underline-offset-2 hover:underline" disabled={bloqueado} onClick={() => enviar({ pular: true })} type="button">
-                  {t("Não sei agora")}
-                </button>
-                {cartao?.tipo === "itens" && !cartao.obrigatorio ? (
-                  <button className="text-muted-foreground underline-offset-2 hover:underline" disabled={bloqueado} onClick={() => enviar({ nenhum: true })} type="button">
-                    {t("Não tenho")}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         ) : null}
         <div ref={fim} />
@@ -962,5 +1123,6 @@ export function ConversaOnboarding({
         <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("Tudo fica salvo a cada resposta. Pode fechar e voltar quando quiser: a conversa continua de onde parou.")}</p>
       </aside>
     </div>
+    </Transcritor.Provider>
   );
 }

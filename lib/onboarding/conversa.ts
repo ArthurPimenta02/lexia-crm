@@ -315,7 +315,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
       if (cartao.itens.some((i) => i.campos?.length)) return `${LISTA_SUGERIDA[cartao.grupo]} Corrija o que for diferente aí, desmarque o que não vale e acrescente o que estiver faltando.`;
       return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
-      return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
+      return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Fala no microfone abaixo ou escreve.` : `${QUAIS_SAO[cartao.grupo]} Fala no microfone abaixo ou escreve.`;
     case "tabela":
       return "Agora o preço e a duração de cada serviço, tudo de uma vez. Digita o preço em cada linha; se algum depende de avaliação, escolhe isso na linha dele.";
     case "item": {
@@ -325,11 +325,11 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
       const sugestoes = cartao.confirmar.some((c) => c.fonte === "recomendacao");
       const achados = cartao.confirmar.some((c) => c.fonte !== "recomendacao");
       const partes = [complemento ? `Sobre ${nome}, ficou faltando só isto.` : `Agora ${nome}.`];
-      if (contar.length) partes.push(`Me manda um áudio, ou escreve com detalhes, contando:\n${contar.map((x) => `• ${x}`).join("\n")}`);
+      if (contar.length) partes.push(`Me conta com detalhes, falando no microfone de cada pergunta abaixo ou escrevendo:\n${contar.map((x) => `• ${x}`).join("\n")}`);
       const fim = [
         tocar.length ? `Marca abaixo ${emLista(tocar)}.` : "",
         // O que já existe aparece sempre: ela confere, corrige no campo ou explica melhor por áudio.
-        complemento || (!sugestoes && !achados) ? "" : sugestoes ? "Deixei abaixo uma sugestão para o resto: confere, corrige no campo ou me manda um áudio explicando melhor." : "O que eu já achei está abaixo: confere e corrige se precisar.",
+        complemento || (!sugestoes && !achados) ? "" : sugestoes ? "Deixei abaixo uma sugestão para o resto: confere e, se quiser mudar, toca em Ver e editar para corrigir escrevendo ou falando." : "O que eu já achei está abaixo: confere e corrige se precisar.",
       ].filter(Boolean).join(" ");
       return [partes.join(" "), fim].filter(Boolean).join(contar.length ? "\n" : " ");
     }
