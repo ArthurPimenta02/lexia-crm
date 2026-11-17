@@ -39,7 +39,8 @@ export function montarFicha(linhas: LinhaDoCaderno[], itens: ItemDoCaderno[]): S
     tipo: c.campo.tipo,
     ...(c.campo.opcoesDe ? { opcoesDe: c.campo.opcoesDe, opcoes: opcoesDe(c.campo.opcoesDe) } : c.campo.opcoes ? { opcoes: c.campo.opcoes } : {}),
     ...(c.campo.atencao ? { atencao: true } : {}),
-    valor: c.linha?.estado === "pulado" || c.linha?.estado === "nao_se_aplica" ? null : (c.linha?.valor ?? null),
+    // "Não sei agora" sobre um rascunho guarda o rascunho: a ficha mostra-o (antes aparecia vazio e sem aviso).
+    valor: c.linha?.estado === "nao_se_aplica" ? null : (c.linha?.valor ?? null),
     aberto: c.linha?.estado !== "nao_se_aplica" && vazio(c.linha?.valor),
   });
   return ESQUEMA_ONBOARDING.map((s) => ({
