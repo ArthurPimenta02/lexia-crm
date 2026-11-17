@@ -30,7 +30,7 @@ export type GrupoOnboarding = { chave: GrupoQueRepete; titulo: string; obrigator
 export type SecaoOnboarding = { chave: string; titulo: string; novo?: boolean; campos: CampoOnboarding[]; grupos: GrupoOnboarding[] };
 export type GrupoQueRepete = "servicos" | "profissionais" | "faqs" | "objecoes" | "promocoes";
 
-/** 13 seções, 143 campos. */
+/** 13 seções, 144 campos. */
 export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
   {
     "chave": "sobre_o_negocio",
@@ -746,6 +746,19 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "quando": {
               "campo": "tipo_de_preco",
               "diferenteDe": "Preço fixo"
+            }
+          },
+          {
+            "chave": "faixa_de_preco",
+            "pergunta": "Faixa de preço para dar uma noção (mínimo e máximo)",
+            "tipo": "text",
+            "obrigatorio": false,
+            "modo": "conversa",
+            "novo": true,
+            "ajuda": "Quem pergunta o preço costuma precisar de uma noção para marcar a avaliação. Ex.: 300 a 600.",
+            "quando": {
+              "campo": "tipo_de_preco",
+              "valor": "Sob orçamento — só após avaliação presencial"
             }
           }
         ]

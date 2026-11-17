@@ -14,6 +14,7 @@
  * nos testes são duplos em memória.
  */
 import {
+  seAplica,
   ANDAMENTO_VAZIO,
   SECAO_DAS_RECOMENDADAS,
   campoDoEsquema,
@@ -302,6 +303,7 @@ const ROTULO: Record<string, string> = {
   numero_de_sessoes: "quantas sessões costuma levar",
   tipo_de_preco: "como é o preço",
   valor: "o preço",
+  faixa_de_preco: "uma faixa de preço (mínimo e máximo), para dar uma noção a quem pergunta",
   duracao_media: "quanto tempo leva",
   variacao_de_preco: "como o preço varia",
   motivo_da_avaliacao: "por que o preço depende de avaliação",
@@ -323,7 +325,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Fala no microfone abaixo ou escreve.` : `${QUAIS_SAO[cartao.grupo]} Fala no microfone abaixo ou escreve.`;
     case "tabela":
-      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Em cada linha, digita o preço e toca no relógio para escolher o tempo. Se o preço de algum só sai depois de avaliar, toca em \"Só após avaliação\" na linha dele.";
+      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Em cada linha, digita o preço e toca no relógio para escolher o tempo. Se o preço de algum só sai depois de avaliar, toca em \"Só após avaliação\" na linha dele e, se puder, coloca um mínimo e um máximo.";
     case "item": {
       const nome = cartao.nome || "este item";
       const contar = cartao.faltam.filter((c) => !c.opcoes?.length && c.campo !== "valor").map(rotuloCurto);
@@ -438,8 +440,16 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   // vale o que ela disse: o rascunho intacto não passa por cima.
   const ditos = new Set((extraido?.campos ?? []).filter((e) => e.estado === "respondido").map((e) => chave(e.chave, e.item ? (refs.get(e.item)?.id ?? "?") : null)));
   const atualizado: { rotulo: string; valor: string }[] = [];
+  const mandados = new Map((resposta.valores ?? []).map((v) => [chave(String(v.campo), v.itemId ?? null), v.valor]));
   for (const v of resposta.valores ?? []) {
-    const c = noPasso.get(chave(String(v.campo), v.itemId ?? null));
+    let c = noPasso.get(chave(String(v.campo), v.itemId ?? null));
+    // O preço (ou a faixa) vem no MESMO cartão em que ela escolhe o tipo de preço do serviço: ainda não está no
+    // passo, mas vale, desde que a resposta de que depende venha junto e o peça. Assim não há uma tela só para o preço.
+    if (!c && passo.tipo === "item" && (v.itemId ?? null) === passo.itemId) {
+      const candidato = condicional(String(v.campo), itens.find((i) => i.id === passo.itemId) ?? null, linhas);
+      const q = candidato?.campo.quando;
+      if (candidato && q && !("algum" in q) && noPasso.has(chave(q.campo, passo.itemId)) && seAplica(q, { [q.campo]: mandados.get(chave(q.campo, passo.itemId)) })) c = candidato;
+    }
     if (!c || resolvidas.has(chave(c.campo.chave, c.itemId))) continue;
     if (v.valor === null) continue; // "não é isso": fica por responder e segue para a conversa
     const valor = conferir(c.campo, v.valor);
