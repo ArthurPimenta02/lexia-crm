@@ -136,6 +136,9 @@ export type Inteligencia = {
   falar(c: ContextoDaFala): Promise<string>;
 };
 
+/** Como a entrevista estava ANTES de um turno: é para aqui que o "voltar" regressa. */
+export type PontoDeRetorno = { mensagem: string; andamento: Andamento; itens: { id: string; removido: boolean }[] };
+
 export type Repositorio = {
   linhas(): Promise<LinhaDoCaderno[]>;
   itens(): Promise<ItemDoCaderno[]>;
@@ -147,7 +150,10 @@ export type Repositorio = {
   /** Grava a mensagem da cliente. Se o `idDoAparelho` já existe, devolve a que lá está. */
   gravarDaCliente(r: Resposta): Promise<MensagemDaConversa>;
   marcarProcessada(id: string): Promise<void>;
-  gravarDaEntrevistadora(texto: string, cartao: Cartao): Promise<MensagemDaConversa>;
+  /** `volta` é o ponto de retorno do turno que esta fala fecha (para o "voltar à pergunta anterior"). */
+  gravarDaEntrevistadora(texto: string, cartao: Cartao, volta?: PontoDeRetorno): Promise<MensagemDaConversa>;
+  /** Desfaz um turno: as linhas que ele escreveu, os itens que criou ou tirou, e as duas mensagens (a dela e a fala seguinte). */
+  desfazer(d: { linhasDaMensagem: string; apagarItens: string[]; restaurarItens: string[]; apagarMensagens: string[] }): Promise<void>;
   mensagens(): Promise<MensagemDaConversa[]>;
   terminar(): Promise<void>;
 };
@@ -317,7 +323,7 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Fala no microfone abaixo ou escreve.` : `${QUAIS_SAO[cartao.grupo]} Fala no microfone abaixo ou escreve.`;
     case "tabela":
-      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Digita o preço em cada linha; se algum depende de avaliação, escolhe isso na linha dele.";
+      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Em cada linha, digita o preço e toca no relógio para escolher o tempo. Se o preço de algum só sai depois de avaliar, toca em \"Só após avaliação\" na linha dele.";
     case "item": {
       const nome = cartao.nome || "este item";
       const contar = cartao.faltam.filter((c) => !c.opcoes?.length && c.campo !== "valor").map(rotuloCurto);
@@ -393,6 +399,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   andamento.listas = [...andamento.listas];
   andamento.gruposPerguntados = [...andamento.gruposPerguntados];
   andamento.tabelas = [...(andamento.tabelas ?? [])];
+  const volta: PontoDeRetorno = { mensagem: recebida.id, andamento: JSON.parse(JSON.stringify(andamento)) as Andamento, itens: itens.map((i) => ({ id: i.id, removido: i.removido })) };
   const caderno = montarCaderno(linhas, itens);
   const passo = proximoPasso(caderno, itens, andamento);
   const doPasso = camposDoPasso(passo);
@@ -553,7 +560,37 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   // Vários cartões de conferência seguidos: a segunda fala não repete a primeira.
   const maisConferencia = passo.tipo === "confirmar" && seguinte.tipo === "confirmar" && !duvida;
   const fala = maisConferencia ? MAIS_CONFERENCIA : await falar(ia, { nomeDaCliente, passo: cartao, complemento: mesmoPasso, anotado, atualizado, paraALexia, duvida, ultimas: ultimasDe([...anteriores, recebida]) });
-  await repo.gravarDaEntrevistadora(fala, cartao);
+  await repo.gravarDaEntrevistadora(fala, cartao, volta);
   if (seguinte.tipo === "fim") await repo.terminar();
   return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, seguinte.tipo === "fim") };
 }
+
+/**
+ * Voltar à pergunta anterior: desfaz o ÚLTIMO turno (o que ela respondeu e a fala que veio a seguir) e a tela
+ * mostra de novo o passo anterior, para ela responder outra vez. Só o último turno, e só os feitos desde que o
+ * ponto de retorno passou a ser guardado. Os áudios e arquivos enviados continuam guardados.
+ */
+export async function voltar(repo: Repositorio): Promise<ResultadoDoTurno | null> {
+  const msgs = await repo.mensagens();
+  const fala = msgs.at(-1);
+  const dela = msgs.at(-2);
+  const volta = fala?.autor === "entrevistadora" ? (fala.dados as { volta?: PontoDeRetorno }).volta : undefined;
+  if (!fala || !dela || !volta || dela.autor !== "cliente" || volta.mensagem !== dela.id) return null;
+  const agora = await repo.itens();
+  const antes = new Map(volta.itens.map((i) => [i.id, i]));
+  await repo.desfazer({
+    linhasDaMensagem: dela.id,
+    apagarItens: agora.filter((i) => !antes.has(i.id)).map((i) => i.id),
+    restaurarItens: agora.filter((i) => i.removido && antes.get(i.id)?.removido === false).map((i) => i.id),
+    apagarMensagens: [dela.id, fala.id],
+  });
+  await repo.gravarAndamento(andamentoDoCursor(volta.andamento));
+  const [linhas, itens, andamento] = await Promise.all([repo.linhas(), repo.itens(), repo.andamento()]);
+  return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, proximoPasso(montarCaderno(linhas, itens), itens, andamento).tipo === "fim") };
+}
+
+/** A última fala pode ser desfeita? (a tela mostra o "voltar" só nesse caso) */
+export const podeVoltar = (msgs: MensagemDaConversa[]) => {
+  const fala = msgs.at(-1);
+  return !!fala && fala.autor === "entrevistadora" && !!(fala.dados as { volta?: PontoDeRetorno }).volta && msgs.at(-2)?.autor === "cliente";
+};

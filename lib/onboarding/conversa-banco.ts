@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Andamento } from "@/lib/onboarding/caderno";
-import { andamentoDoCursor, type Cartao, type MensagemDaConversa, type Repositorio, type Resposta } from "@/lib/onboarding/conversa";
+import { andamentoDoCursor, type Cartao, type MensagemDaConversa, type PontoDeRetorno, type Repositorio, type Resposta } from "@/lib/onboarding/conversa";
 import { acrescentarLinhas, criarItem, lerItens, lerLinhas } from "@/lib/onboarding/dados";
 
 const COLUNAS = "id, autor, tipo, conteudo, dados, criado_em, processada_em";
@@ -73,9 +73,28 @@ export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, o
       const { error } = await mensagens().update({ processada_em: new Date().toISOString() }).eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).eq("id", id);
       falhar("mensagem", error);
     },
-    async gravarDaEntrevistadora(texto: string, cartao: Cartao) {
+    async desfazer(d) {
+      const base = <T extends { eq(c: string, v: string): T }>(q: T) => q.eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId);
+      {
+        const { error } = await base(admin.from("lexia_onboarding_campos").delete()).eq("evidencia->>mensagem", d.linhasDaMensagem);
+        falhar("voltar (linhas)", error);
+      }
+      if (d.apagarItens.length) {
+        const a = await base(admin.from("lexia_onboarding_campos").delete()).in("item_id", d.apagarItens);
+        falhar("voltar (linhas dos itens)", a.error);
+        const b = await base(admin.from("lexia_onboarding_itens").delete()).in("id", d.apagarItens);
+        falhar("voltar (itens)", b.error);
+      }
+      if (d.restaurarItens.length) {
+        const { error } = await base(admin.from("lexia_onboarding_itens").update({ removido_em: null })).in("id", d.restaurarItens);
+        falhar("voltar (itens tirados)", error);
+      }
+      const { error } = await mensagens().delete().eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).in("id", d.apagarMensagens);
+      falhar("voltar (mensagens)", error);
+    },
+    async gravarDaEntrevistadora(texto: string, cartao: Cartao, volta?: PontoDeRetorno) {
       const { data, error } = await mensagens()
-        .insert({ onboarding_id: onboardingId, cliente_slug: clienteSlug, autor: "entrevistadora", tipo: "texto", conteudo: texto, dados: { passo: cartao }, processada_em: new Date().toISOString() })
+        .insert({ onboarding_id: onboardingId, cliente_slug: clienteSlug, autor: "entrevistadora", tipo: "texto", conteudo: texto, dados: { passo: cartao, ...(volta ? { volta } : {}) }, processada_em: new Date().toISOString() })
         .select(COLUNAS)
         .single();
       if (error || !data) throw new Error(`mensagem: ${error?.message ?? "não gravada"}`);
