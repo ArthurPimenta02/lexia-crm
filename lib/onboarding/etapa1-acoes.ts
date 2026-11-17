@@ -32,6 +32,8 @@ export async function salvarEtapa1De(acesso: AcessoAoOnboarding | null, formData
     idiomas: formData.getAll("idiomas").map(String).filter((i) => IDIOMAS.includes(i)),
     notas: texto(formData, "notas", 20_000),
     texto_colado: texto(formData, "texto_colado", 60_000),
+    // Só um link de WhatsApp; qualquer outra coisa fica de fora.
+    whatsapp_grupo: /^https:\/\/(chat\.whatsapp\.com|wa\.me|api\.whatsapp\.com)\//.test(texto(formData, "whatsapp_grupo", 300)) ? texto(formData, "whatsapp_grupo", 300) : "",
   };
   try {
     const onb = await abrirOnboarding(acesso.admin, acesso.clienteSlug);

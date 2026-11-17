@@ -31,6 +31,8 @@ export type Etapa1 = {
   notas?: string;
   /** Texto colado à mão (bio, posts, respostas): o plano B quando uma fonte não se deixa ler. */
   texto_colado?: string;
+  /** Link do grupo de WhatsApp com a cliente: aparece na tela de depois do envio ("precisa de alguma alteração?"). */
+  whatsapp_grupo?: string;
 };
 
 export type Onboarding = {

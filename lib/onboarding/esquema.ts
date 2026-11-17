@@ -21,6 +21,8 @@ export type CampoOnboarding = {
   opcoes?: string[];
   ajuda?: string;
   quando?: Condicao;
+  /** As opções vêm dos itens de um grupo (os serviços que cada profissional faz saem da lista de serviços). */
+  opcoesDe?: GrupoQueRepete;
   recomendado?: string | string[];
   novo?: boolean;
   /** Informação de saúde: a tela pede para conferir com atenção. */
@@ -30,7 +32,7 @@ export type GrupoOnboarding = { chave: GrupoQueRepete; titulo: string; obrigator
 export type SecaoOnboarding = { chave: string; titulo: string; novo?: boolean; campos: CampoOnboarding[]; grupos: GrupoOnboarding[] };
 export type GrupoQueRepete = "servicos" | "profissionais" | "faqs" | "objecoes" | "promocoes";
 
-/** 13 seções, 144 campos. */
+/** 13 seções, 140 campos. */
 export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
   {
     "chave": "sobre_o_negocio",
@@ -612,6 +614,18 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         }
       },
       {
+        "chave": "duracao_da_avaliacao",
+        "pergunta": "Quanto tempo dura a avaliação?",
+        "tipo": "duracao",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "novo": true,
+        "quando": {
+          "campo": "avaliacao_paga",
+          "diferenteDe": "Não tem avaliação"
+        }
+      },
+      {
         "chave": "servicos_prioritarios",
         "pergunta": "Quais são os serviços que você mais quer vender?",
         "tipo": "long",
@@ -693,7 +707,7 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           {
             "chave": "duracao_media",
             "pergunta": "Duração média",
-            "tipo": "text",
+            "tipo": "duracao",
             "obrigatorio": true,
             "modo": "fonte"
           },
@@ -821,7 +835,6 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           "Cash App",
           "Apple Pay / Google Pay",
           "Cheque",
-          "PIX",
           "Outro"
         ]
       },
@@ -930,58 +943,6 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
     "titulo": "Agendamento",
     "campos": [
       {
-        "chave": "sistema_de_agendamento",
-        "pergunta": "Como os agendamentos funcionam hoje?",
-        "tipo": "radio",
-        "obrigatorio": true,
-        "modo": "lexia",
-        "opcoes": [
-          "Google Calendar",
-          "Outro sistema (qual?)",
-          "Agenda de papel / WhatsApp mesmo"
-        ]
-      },
-      {
-        "chave": "outro_sistema",
-        "pergunta": "Qual sistema?",
-        "tipo": "text",
-        "obrigatorio": true,
-        "modo": "lexia",
-        "quando": {
-          "campo": "sistema_de_agendamento",
-          "valor": "Outro sistema (qual?)"
-        }
-      },
-      {
-        "chave": "email_google_calendar",
-        "pergunta": "E-mail da conta Google Calendar",
-        "tipo": "email",
-        "obrigatorio": true,
-        "modo": "lexia",
-        "quando": {
-          "campo": "sistema_de_agendamento",
-          "valor": "Google Calendar"
-        }
-      },
-      {
-        "chave": "quantidade_de_profissionais",
-        "pergunta": "Quantos profissionais atendem?",
-        "tipo": "number",
-        "obrigatorio": true,
-        "modo": "conversa"
-      },
-      {
-        "chave": "agendas_separadas",
-        "pergunta": "Cada um tem agenda separada?",
-        "tipo": "radio",
-        "obrigatorio": false,
-        "modo": "conversa",
-        "opcoes": [
-          "Sim",
-          "Não"
-        ]
-      },
-      {
         "chave": "intervalo_entre_atendimentos",
         "pergunta": "Intervalo entre atendimentos (buffer)",
         "tipo": "radio",
@@ -1017,7 +978,8 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           "1 dia",
           "2 dias",
           "Outro"
-        ]
+        ],
+        "recomendado": "1 dia"
       },
       {
         "chave": "outro_antecedencia_minima",
@@ -1032,7 +994,7 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
       },
       {
         "chave": "antecedencia_maxima",
-        "pergunta": "Antecedência máxima",
+        "pergunta": "Até quantos dias à frente a cliente pode marcar? (antecedência máxima)",
         "tipo": "radio",
         "obrigatorio": true,
         "modo": "cartao",
@@ -1081,36 +1043,6 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         }
       },
       {
-        "chave": "politica_de_cancelamento",
-        "pergunta": "Política de cancelamento/remarcação",
-        "tipo": "long",
-        "obrigatorio": true,
-        "modo": "conversa",
-        "ajuda": "Ex.: remarcar até 24h antes sem custo."
-      },
-      {
-        "chave": "sinal_antecipado",
-        "pergunta": "Exige pagamento antecipado/sinal para confirmar?",
-        "tipo": "radio",
-        "obrigatorio": true,
-        "modo": "conversa",
-        "opcoes": [
-          "Sim — quanto e como",
-          "Não"
-        ]
-      },
-      {
-        "chave": "sinal_detalhes",
-        "pergunta": "Quanto e como",
-        "tipo": "text",
-        "obrigatorio": true,
-        "modo": "conversa",
-        "quando": {
-          "campo": "sinal_antecipado",
-          "valor": "Sim — quanto e como"
-        }
-      },
-      {
         "chave": "lembretes",
         "pergunta": "Lembretes automáticos de agendamento",
         "tipo": "multi",
@@ -1138,14 +1070,6 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           "campo": "lembretes",
           "valor": "Outro"
         }
-      },
-      {
-        "chave": "mensagem_de_confirmacao",
-        "pergunta": "Mensagem de confirmação de agendamento",
-        "tipo": "long",
-        "obrigatorio": false,
-        "modo": "conversa",
-        "ajuda": "Se deixar em branco, usamos um modelo padrão."
       }
     ],
     "grupos": [
@@ -1162,11 +1086,28 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "modo": "conversa"
           },
           {
-            "chave": "especialidade",
-            "pergunta": "O que essa pessoa faz e quais serviços atende",
-            "tipo": "text",
+            "chave": "servicos_que_atende",
+            "pergunta": "Quais serviços essa pessoa faz?",
+            "tipo": "multi",
+            "opcoesDe": "servicos",
             "obrigatorio": true,
+            "modo": "conversa",
+            "novo": true
+          },
+          {
+            "chave": "especialidade",
+            "pergunta": "Algo a acrescentar sobre o que essa pessoa faz? (opcional)",
+            "tipo": "long",
+            "obrigatorio": false,
             "modo": "conversa"
+          },
+          {
+            "chave": "horario_do_profissional",
+            "pergunta": "Em que dias e horários essa pessoa atende?",
+            "tipo": "horarios",
+            "obrigatorio": false,
+            "modo": "conversa",
+            "novo": true
           }
         ]
       }
@@ -1365,11 +1306,11 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "obrigatorio": true,
         "modo": "cartao",
         "opcoes": [
-          "Pausar e só voltar se o cliente mandar nova mensagem depois de um tempo (recomendado)",
+          "Pausar e voltar depois de 1 hora, se o cliente mandar nova mensagem (recomendado)",
           "Pausar até a equipe liberar",
           "Outro"
         ],
-        "recomendado": "Pausar e só voltar se o cliente mandar nova mensagem depois de um tempo (recomendado)"
+        "recomendado": "Pausar e voltar depois de 1 hora, se o cliente mandar nova mensagem (recomendado)"
       },
       {
         "chave": "outro_retomada_apos_humano",
@@ -1668,12 +1609,16 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "novo": true
       },
       {
-        "chave": "atraso_e_falta",
-        "pergunta": "O que acontece quando a cliente atrasa ou falta?",
-        "tipo": "long",
+        "chave": "outro_agenda_cheia_e_pressa",
+        "pergunta": "Outro (especifique)",
+        "tipo": "text",
         "obrigatorio": true,
         "modo": "conversa",
-        "novo": true
+        "novo": true,
+        "quando": {
+          "campo": "agenda_cheia_e_pressa",
+          "valor": "Outro"
+        }
       },
       {
         "chave": "agente_cancela_e_remarca",
@@ -1704,20 +1649,46 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "novo": true
       },
       {
-        "chave": "urgencia_pos_procedimento",
-        "pergunta": "Cliente com problema ou urgência depois de um procedimento: o que fazer?",
+        "chave": "outro_saude_e_gravidez",
+        "pergunta": "Outro (especifique)",
+        "tipo": "text",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "novo": true,
+        "quando": {
+          "campo": "saude_e_gravidez",
+          "valor": "Outro"
+        }
+      },
+      {
+        "chave": "politica_de_cancelamento",
+        "pergunta": "Política de cancelamento/remarcação",
         "tipo": "long",
         "obrigatorio": true,
         "modo": "conversa",
-        "novo": true
+        "ajuda": "Ex.: remarcar até 24h antes sem custo."
       },
       {
-        "chave": "regra_que_estranham",
-        "pergunta": "Tem alguma regra daqui que cliente novo sempre estranha?",
-        "tipo": "long",
-        "obrigatorio": false,
+        "chave": "sinal_antecipado",
+        "pergunta": "Exige pagamento antecipado/sinal para confirmar?",
+        "tipo": "radio",
+        "obrigatorio": true,
         "modo": "conversa",
-        "novo": true
+        "opcoes": [
+          "Sim — quanto e como",
+          "Não"
+        ]
+      },
+      {
+        "chave": "sinal_detalhes",
+        "pergunta": "Quanto e como",
+        "tipo": "text",
+        "obrigatorio": true,
+        "modo": "conversa",
+        "quando": {
+          "campo": "sinal_antecipado",
+          "valor": "Sim — quanto e como"
+        }
       }
     ]
   }

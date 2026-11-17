@@ -4,10 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { liberarConversa, salvarEtapa1 } from "@/app/admin/clientes/[slug]/onboarding/actions";
 import { ConversaOnboarding } from "@/app/components/onboarding/conversa";
 import { Etapa1Form } from "@/app/components/onboarding/etapa1-form";
+import { FichaDoAgente } from "@/app/components/onboarding/revisao";
 import { CabecalhoTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { dadosDaEtapa1 } from "@/lib/onboarding/etapa1-tela";
+import { fichaDe } from "@/lib/onboarding/revisao";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -28,6 +30,7 @@ export default async function OnboardingDoClientePage({ params }: { params: Prom
   const nome = (cliente as { nome: string | null }).nome ?? slug;
   const dados = await dadosDaEtapa1(admin, slug);
   const naEtapa1 = dados.estado === "etapa1" || dados.estado === "preparando";
+  const ficha = naEtapa1 ? [] : await fichaDe({ admin, clienteSlug: slug });
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
@@ -44,8 +47,18 @@ export default async function OnboardingDoClientePage({ params }: { params: Prom
       {naEtapa1 ? (
         <Etapa1Form {...dados} clienteSlug={slug} liberar={liberarConversa.bind(null, slug)} salvarAcao={salvarEtapa1.bind(null, slug)} />
       ) : (
-        // A equipe acompanha a conversa, sem responder no lugar da cliente.
-        <ConversaOnboarding clienteSlug={slug} somenteLeitura />
+        <>
+          {/* Tudo o que a cliente ensinou até agora, para a equipe montar o agente (só leitura). */}
+          <div className="flex min-w-0 flex-col gap-3">
+            <h2 className="ds-titulo-3 text-foreground">
+              {dados.estado === "aprovado" ? t("Ficha enviada pela cliente") : dados.estado === "revisao" ? t("Ficha em revisão pela cliente") : t("Ficha até agora")}
+            </h2>
+            <FichaDoAgente ficha={ficha} />
+          </div>
+          {/* A equipe acompanha a conversa, sem responder no lugar da cliente. */}
+          <h2 className="ds-titulo-3 text-foreground">{t("Conversa")}</h2>
+          <ConversaOnboarding clienteSlug={slug} somenteLeitura />
+        </>
       )}
     </main>
   );

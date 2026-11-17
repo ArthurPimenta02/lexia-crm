@@ -275,8 +275,9 @@ export function juntarTextos(itens: ItemNovo[], textos: TextosDeUmServico[]): It
 
 // ------------------------------------------------------------------ perguntas frequentes e objeções sugeridas pela Lexia
 
-export const MAXIMO_DE_FAQS = 8;
-export const MAXIMO_DE_OBJECOES = 6;
+/** Poucas e boas: a dona acrescenta as dela (Arthur, 17/11/2026). O teto conta com as que as fontes já trouxeram. */
+export const MAXIMO_DE_FAQS = 6;
+export const MAXIMO_DE_OBJECOES = 4;
 export type Sugestoes = { faqs: { pergunta: string; resposta: string }[]; objecoes: { objecao: string; como_responder: string }[] };
 
 function instrucoesDasSugestoes(): string {
@@ -321,7 +322,7 @@ export function juntarSugestoes(itens: ItemNovo[], s: Sugestoes): ItemNovo[] {
   const novos: ItemNovo[] = [];
   const entra = (grupo: "faqs" | "objecoes", nome: string, campoDoNome: string, campoDaResposta: string, resposta: string, teto: number) => {
     const k = `${grupo}|${norma(nome)}`;
-    if (!limpo(nome) || !limpo(resposta) || ja.has(k) || novos.filter((n) => n.grupo === grupo).length >= teto) return;
+    if (!limpo(nome) || !limpo(resposta) || ja.has(k) || itens.filter((n) => n.grupo === grupo).length + novos.filter((n) => n.grupo === grupo).length >= teto) return;
     ja.add(k);
     novos.push({ grupo, nome: limpo(nome).slice(0, 300), linhas: [linha(campoDoNome, limpo(nome).slice(0, 300)), linha(campoDaResposta, resposta)] });
   };

@@ -6,6 +6,7 @@ import { AlertCircle, ArrowLeft, Check, Clock, FileText, Loader2, Mic, Paperclip
 import { useIdioma } from "@/app/components/idioma";
 import { Mascote } from "@/app/components/mascote";
 import type { CampoDoCartao, Cartao, MensagemDaConversa, Progresso } from "@/lib/onboarding/conversa";
+import { ESQUEMA_ONBOARDING, type CampoOnboarding } from "@/lib/onboarding/esquema";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -145,6 +146,22 @@ function MicDoCampo({ aoTexto }: { aoTexto: (texto: string) => void }) {
 /** O que ela falou entra no fim do que já está escrito (nunca apaga o que lá está). */
 const juntarFala = (atual: unknown, fala: string) => (String(atual ?? "").trim() ? `${String(atual).trim()}\n${fala}` : fala);
 
+// ------------------------------------------------------------------ o texto que abre ao escolher "Outro"
+
+/** Para cada campo, os campos de texto que dependem de uma opção dele ("Outro", "Texto próprio"). */
+const FILHOS = (() => {
+  const mapa = new Map<string, { opcao: string; campo: CampoOnboarding }[]>();
+  for (const lista of ESQUEMA_ONBOARDING.flatMap((s) => [s.campos, ...s.grupos.map((g) => g.campos)]))
+    for (const c of lista)
+      for (const q of c.quando ? ("algum" in c.quando ? c.quando.algum : [c.quando]) : [])
+        if (q.valor !== undefined && c.tipo !== "number") mapa.set(q.campo, [...(mapa.get(q.campo) ?? []), { opcao: q.valor, campo: c }]);
+  return mapa;
+})();
+/** Os filhos que a resposta atual de um campo abre. */
+const filhosDe = (campo: string, valor: unknown) => (FILHOS.get(campo) ?? []).filter((f) => /^(outr[oa]\b|texto próprio)/i.test(f.opcao) && (Array.isArray(valor) ? valor.includes(f.opcao) : valor === f.opcao));
+/** O estado do cartão, para os campos que abrem dentro de outro (ficam guardados com a chave `item|campo`). */
+const Dependentes = createContext<{ valores: Record<string, unknown>; mudar: (chave: string, v: unknown) => void } | null>(null);
+
 // ------------------------------------------------------------------ campos dos cartões
 
 function Opcoes({ campo, valor, mudar }: { campo: CampoDoCartao; valor: unknown; mudar: (v: unknown) => void }) {
@@ -152,7 +169,7 @@ function Opcoes({ campo, valor, mudar }: { campo: CampoDoCartao; valor: unknown;
   const varias = campo.tipo === "multi";
   const marcadas = new Set<string>(varias ? (Array.isArray(valor) ? (valor as string[]) : []) : typeof valor === "string" ? [valor] : []);
   const recomendadas = new Set<string>([campo.recomendado ?? []].flat());
-  if ((campo.opcoes?.length ?? 0) > 10) {
+  if (!varias && (campo.opcoes?.length ?? 0) > 10) {
     return (
       <select className="ds-campo" onChange={(e) => mudar(e.target.value || undefined)} value={typeof valor === "string" ? valor : ""}>
         <option value="">{t("Escolher…")}</option>
@@ -228,8 +245,9 @@ function Horarios({ valor, mudar }: { valor: unknown; mudar: (v: unknown) => voi
   );
 }
 
-function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor: unknown; mudar: (v: unknown) => void; confirmar: boolean }) {
+export function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor: unknown; mudar: (v: unknown) => void; confirmar: boolean }) {
   const { t } = useIdioma();
+  const dependentes = useContext(Dependentes);
   const descartado = valor === null;
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
@@ -260,8 +278,25 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
         <p className="text-[0.8125rem] text-muted-foreground">{t("Sem problema, eu pergunto isso na conversa.")}</p>
       ) : campo.tipo === "horarios" ? (
         <Horarios mudar={mudar} valor={valor} />
+      ) : campo.tipo === "duracao" ? (
+        <div className="max-w-xs"><Duracao mudar={(v) => mudar(v)} valor={String(valor ?? "")} /></div>
       ) : campo.opcoes?.length ? (
-        <Opcoes campo={campo} mudar={mudar} valor={valor} />
+        <>
+          <Opcoes campo={campo} mudar={mudar} valor={valor} />
+          {dependentes
+            ? filhosDe(campo.campo, valor).map((f) => {
+                const chave = `${campo.itemId ?? ""}|${f.campo.chave}`;
+                return (
+                  <div className="flex min-w-0 flex-col gap-1.5" key={chave}>
+                    <textarea aria-label={f.campo.pergunta} autoFocus className="ds-campo min-h-20 py-2 leading-relaxed" onChange={(e) => dependentes.mudar(chave, e.target.value)} placeholder={t("Escreva aqui como você quer")} value={String(dependentes.valores[chave] ?? "")} />
+                    <MicDoCampo aoTexto={(fala) => dependentes.mudar(chave, juntarFala(dependentes.valores[chave], fala))} />
+                  </div>
+                );
+              })
+            : null}
+        </>
+      ) : campo.opcoesDe ? (
+        <p className="text-[0.8125rem] text-muted-foreground">{t("Ainda não há serviços na lista.")}</p>
       ) : campo.tipo === "long" || String(valor ?? "").length > 70 ? (
         <>
           <textarea className="ds-campo min-h-20 py-2 leading-relaxed" onChange={(e) => mudar(e.target.value)} placeholder={t("Fale no microfone ou escreva aqui")} value={String(valor ?? "")} />
@@ -419,12 +454,14 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   const [novo, setNovo] = useState("");
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const set = (f: CampoDoCartao, v: unknown) => mudar({ ...estado, valores: { ...estado.valores, [k(f)]: v } });
+  // Os dias de funcionamento saem do horário de cada dia: não se escolhem duas vezes.
+  const semDias = (campos: CampoDoCartao[]) => (campos.some((f) => f.campo === "horario_por_dia") ? campos.filter((f) => f.campo !== "dias_de_funcionamento") : campos);
   const valoresDe = (campos: CampoDoCartao[]) => campos.filter((f) => !vazio(estado.valores[k(f)]) || estado.valores[k(f)] === null).map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estado.valores[k(f)] }));
 
   if (cartao.tipo === "confirmar") {
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        {cartao.campos.map((f) => (
+        {semDias(cartao.campos).map((f) => (
           <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
         <button className="ds-botao ds-botao-primario self-start" disabled={ocupado} onClick={() => enviar({ valores: valoresDe(cartao.campos) })} type="button">
@@ -493,7 +530,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             {t("Marcar as recomendadas")}
           </button>
         ) : null}
-        {cartao.campos.map((f) => (
+        {semDias(cartao.campos).map((f) => (
           <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
         <div className="flex flex-wrap items-center gap-3">
@@ -566,7 +603,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
                 acrescentar();
               }
             }}
-            placeholder={t("Acrescentar um que faltou")}
+            placeholder={cartao.grupo === "profissionais" ? t("Nome de outra pessoa que atende") : t("Acrescentar um que faltou")}
             value={novo}
           />
           <button className="ds-botao ds-botao-secundario shrink-0" disabled={!novo.trim()} onClick={acrescentar} type="button">
@@ -585,10 +622,13 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
         {cartao.linhas.some((l) => semValor(tipoDaLinha(l, estado.valores))) ? (
-          <p className="flex items-start gap-2 rounded-xl bg-[var(--ds-acao-fundo)] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-foreground">
-            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ds-acao)]" />
-            {t("Quem pergunta o preço costuma precisar de pelo menos uma noção para marcar a avaliação. Se você tiver um mínimo e um máximo, coloque na linha do serviço: isso ajuda a fechar mais agendamentos.")}
-          </p>
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-[var(--ds-alerta)] bg-[color-mix(in_oklab,var(--ds-alerta)_10%,var(--ds-superficie))] px-4 py-3.5">
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--ds-alerta)]" />
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-foreground">{t("Coloque uma faixa de preço: isso traz mais agendamentos")}</p>
+              <p className="mt-1 text-sm leading-relaxed text-foreground">{t("Quem pergunta o preço costuma precisar de pelo menos uma noção para marcar a avaliação. Se você tiver um mínimo e um máximo, coloque na linha do serviço: isso ajuda a fechar mais agendamentos.")}</p>
+            </div>
+          </div>
         ) : null}
         <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
           {cartao.linhas.map((l) => {
@@ -649,7 +689,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   if (cartao.tipo === "pergunta") {
     return (
       <div className="ds-cartao flex flex-col gap-5 p-4">
-        {cartao.campos.map((f) => (
+        {semDias(cartao.campos).map((f) => (
           <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
         <div className="flex flex-wrap items-center gap-3">
@@ -996,7 +1036,25 @@ export function ConversaOnboarding({
     // A tabela vai inteira com o que estiver preenchido, mesmo quando ela responde por texto ou áudio.
     const daTabela = cartao?.tipo === "tabela" && !extra.pular ? valoresDaTabela(cartao.linhas, estadoDoCartao.valores) : [];
     const doCartao = [...doItem, ...daTabela];
-    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores: extra.valores ?? (doCartao.length ? doCartao : undefined) };
+    let valores = extra.valores ?? (doCartao.length ? doCartao : undefined);
+    if (valores && !extra.pular) {
+      valores = [...valores];
+      // O texto que abriu ao escolher "Outro" / "Texto próprio" vai junto com a escolha.
+      for (const v of [...valores]) {
+        for (const f of filhosDe(v.campo, v.valor)) {
+          const escrito = String(estadoDoCartao.valores[`${v.itemId ?? ""}|${f.campo.chave}`] ?? "").trim();
+          if (escrito && !valores.some((x) => x.campo === f.campo.chave && x.itemId === v.itemId)) valores.push({ campo: f.campo.chave, itemId: v.itemId, valor: escrito });
+        }
+      }
+      // Os dias de funcionamento saem do horário de cada dia (não se escolhem duas vezes).
+      const horario = valores.find((v) => v.campo === "horario_por_dia" && !v.itemId);
+      const pedeDias = cartao && "campos" in cartao && cartao.campos.some((f) => f.campo === "dias_de_funcionamento");
+      if (horario && pedeDias && horario.valor && typeof horario.valor === "object") {
+        const dias = DIAS.filter((d) => d in (horario.valor as Record<string, unknown>));
+        valores = [...valores.filter((v) => v.campo !== "dias_de_funcionamento"), { campo: "dias_de_funcionamento", itemId: null, valor: dias }];
+      }
+    }
+    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores };
     if (!envio.texto && !envio.arquivo && !envio.valores?.length && !envio.lista && !envio.pular && !envio.nenhum) return;
     setTexto("");
     guardarRascunho(chaveDoRascunho, "");
@@ -1162,7 +1220,16 @@ export function ConversaOnboarding({
           </button>
         ) : null}
         {falha && !falarComALia ? <p className="px-1 text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">{falha}</p> : null}
-        {podeResponder && cartao && !pendente ? <CartaoAtivo cartao={cartao} enviar={enviar} estado={estadoDoCartao} mudar={setEstadoDoCartao} ocupado={bloqueado} /> : null}
+        {terminou && !somenteLeitura ? (
+          <button className="ds-botao ds-botao-primario self-start" onClick={() => window.location.reload()} type="button">
+            {t("Revisar e enviar")}
+          </button>
+        ) : null}
+        {podeResponder && cartao && !pendente ? (
+          <Dependentes.Provider value={{ valores: estadoDoCartao.valores, mudar: (chave, v) => setEstadoDoCartao((e) => ({ ...e, valores: { ...e.valores, [chave]: v } })) }}>
+            <CartaoAtivo cartao={cartao} enviar={enviar} estado={estadoDoCartao} mudar={setEstadoDoCartao} ocupado={bloqueado} />
+          </Dependentes.Provider>
+        ) : null}
 
         {podeResponder && !falarComALia && gravando === null && !texto.trim() ? (
           <button className="self-start px-1 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline" onClick={() => setFalarComALia(true)} type="button">

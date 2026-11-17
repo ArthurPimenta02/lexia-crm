@@ -396,6 +396,20 @@ Etapa 1:
   andamento e as duas mensagens) sem IA; é a ÚNICA operação que apaga linhas do diário. Áudios e
   arquivos continuam guardados. Tabela dos serviços: tipo de preço em três botões, preço só com
   número e duração escolhida num seletor de horas e minutos.
+- Etapa 3 (17/11/2026): quando a conversa termina (estado `revisao`) a tela mostra a FICHA
+  (`lib/onboarding/ficha.ts`, tudo o que foi ensinado, por seção) com "Editar" em cada linha
+  (`salvarNaRevisao`: entra no diário como resposta dela, só em `revisao`) e "Enviar para a equipe"
+  (`enviarParaAEquipe`: estado `aprovado`, `aprovado_em`/`aprovado_por`). Depois do envio a tela é
+  "Seu agente está sendo treinado", com a ficha em leitura e o link do grupo de WhatsApp
+  (`etapa1.whatsapp_grupo`, preenchido pela equipe na Etapa 1). Nada é escrito no Supabase do
+  cliente: os dados ficam na base central e a equipe vê a ficha em
+  `/admin/clientes/<slug>/onboarding`.
+- Perguntas (17/11/2026): escolher "Outro"/"Texto próprio" abre o texto no mesmo cartão (o campo
+  dependente mandado junto é aceito pelo servidor); os serviços de cada profissional escolhem-se da
+  lista de serviços (`opcoesDe`); os dias de funcionamento saem do horário de cada dia; saíram do
+  esquema o sistema de agenda, o e-mail do Google Calendar, a mensagem de confirmação e três regras
+  da casa; entrou a duração da avaliação; sugestões limitadas a 6 perguntas frequentes e 4 objeções
+  no total (140 campos).
 - Fidelidade do rascunho (17/11/2026): só vale o que a fonte diz com todas as letras (função de uma
   pessoa e tempo de negócio não se deduzem); quando duas fontes se contradizem, valem as anotações
   da equipe; os textos saem só em português, com o nome do serviço como o negócio usa. Quando a
