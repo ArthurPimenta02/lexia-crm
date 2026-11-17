@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { montarCaderno, resumir, type Andamento, type ItemDoCaderno, type LinhaDoCaderno } from "../lib/onboarding/caderno";
-import { abrirConversa, turno, type Cartao, type ContextoDaExtracao, type Extracao, type Inteligencia, type MensagemDaConversa, type Repositorio, type Resposta } from "../lib/onboarding/conversa";
+import { abrirConversa, andamentoDoCursor, turno, type Cartao, type ContextoDaExtracao, type Extracao, type Inteligencia, type MensagemDaConversa, type Repositorio, type Resposta } from "../lib/onboarding/conversa";
 import type { NovaLinha } from "../lib/onboarding/dados";
 
 function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
@@ -34,7 +34,7 @@ function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
       return [...ultimo.values()].map((l): LinhaDoCaderno => ({ campo: l.campo, item_id: l.itemId ?? null, valor: l.valor, estado: l.estado, fonte: l.fonte, perguntas: l.perguntas ?? 0 }));
     },
     async itens() { return itens.map((i) => ({ ...i })); },
-    async andamento() { return JSON.parse(JSON.stringify(andamento)); },
+    async andamento() { return andamentoDoCursor(JSON.parse(JSON.stringify(andamento))); },
     async gravarAndamento(a) { andamento = JSON.parse(JSON.stringify(a)); },
     async acrescentarLinhas(ls) { acrescentar(ls); },
     async criarItem(grupo, ordem) { const id = `${grupo}-${itens.length + 1}`; itens.push({ id, grupo, ordem, removido: false }); return id; },
@@ -363,4 +363,33 @@ test("entrevista inteira: termina sempre, nada é perguntado mais de duas vezes 
       assert.equal(r.podeAprovar, false);
     }
   }
+});
+
+test("o andamento volta inteiro do banco: depois da tabela, o passo do servidor é o serviço que a tela mostra", () => {
+  const lido = andamentoDoCursor({ listas: ["servicos"], gruposPerguntados: ["faqs"], tabelas: ["servicos"], semResposta: "item:s1" });
+  assert.deepEqual(lido, { listas: ["servicos"], gruposPerguntados: ["faqs"], tabelas: ["servicos"], semResposta: "item:s1" });
+  assert.deepEqual(andamentoDoCursor(null), { listas: [], gruposPerguntados: [], tabelas: [] });
+});
+
+test("áudio que corrige um rascunho: vale o que ela disse (não o rascunho que o cartão mandou junto) e a fala mostra como ficou", async () => {
+  const b = banco({
+    itens: [servico("s1")],
+    linhas: [
+      { campo: "nome", itemId: "s1", valor: "Microblading", estado: "confirmado", fonte: "cliente" },
+      ...["tipo_de_preco:Preço fixo", "valor:650", "duracao_media:2h"].map((x) => ({ campo: x.split(":")[0], itemId: "s1", valor: x.split(":")[1], estado: "respondido" as const, fonte: "cliente" as const })),
+      ...["descricao_e_indicacao", "para_quem_indicar", "preparo_e_cuidados", "contraindicacoes", "numero_de_sessoes"].map((campo) => ({ campo, itemId: "s1", valor: `rascunho de ${campo}`, estado: "rascunho" as const, fonte: "recomendacao" as const })),
+    ],
+  });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
+  const novo = "Para quem tem falhas e também para qualquer pessoa que pergunte pelo serviço.";
+  const i: Inteligencia = { async extrair() { return { ...NADA, campos: [{ chave: "para_quem_indicar", item: "servicos#1", valor: novo, lista: [], estado: "respondido" }] }; }, async falar() { return "fala da IA"; } };
+  await abrirConversa(b.repo, i, "");
+  const c = b.ultimoCartao();
+  if (c.tipo !== "item") return assert.fail("era para ser o serviço");
+  // A tela manda o áudio junto com todos os rascunhos do cartão, intactos.
+  await turno(b.repo, i, msg({ texto: "indica também para qualquer pessoa que perguntar", valores: c.confirmar.map((f) => ({ campo: f.campo, itemId: "s1", valor: f.valor })) }), "");
+  assert.deepEqual([(await atual(b, "para_quem_indicar", "s1"))!.estado, (await atual(b, "para_quem_indicar", "s1"))!.valor], ["respondido", novo]);
+  assert.equal((await atual(b, "contraindicacoes", "s1"))!.estado, "confirmado", "os outros rascunhos ficam confirmados");
+  const fala = b.msgs.at(-1)!.conteudo;
+  assert.match(fala, /Atualizei para quem você indica com o que você falou\. Ficou assim: "Para quem tem falhas/);
 });
