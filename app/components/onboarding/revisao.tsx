@@ -34,7 +34,7 @@ function texto(v: unknown): string {
   return String(v);
 }
 
-function Linha({ campo, salvar }: { campo: CampoDaFicha; salvar?: Salvar }) {
+function Linha({ campo, salvar, compacta = false }: { campo: CampoDaFicha; salvar?: Salvar; compacta?: boolean }) {
   const { t } = useIdioma();
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -76,8 +76,8 @@ function Linha({ campo, salvar }: { campo: CampoDaFicha; salvar?: Salvar }) {
   return (
     <div className="flex min-w-0 items-start justify-between gap-3 py-3">
       <div className="min-w-0">
-        <p className="text-[0.8125rem] text-muted-foreground">{campo.pergunta}</p>
-        {mostrado ? (
+        <p className={compacta ? "text-sm text-foreground" : "text-[0.8125rem] text-muted-foreground"}>{campo.pergunta}</p>
+        {compacta && !mostrado ? null : mostrado ? (
           <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">{mostrado}</p>
         ) : (
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-[var(--ds-alerta)]"><AlertCircle aria-hidden="true" className="h-3.5 w-3.5" />{t("Ainda sem resposta")}</p>
@@ -154,38 +154,27 @@ export function FichaDoAgente({ ficha, salvar }: { ficha: SecaoDaFicha[]; salvar
             {t("{f} de {n} informações preenchidas", { f: feitos, n: todos.length })}
             {comFalta.length ? ` · ${t("{a} sem resposta em {s} áreas", { a: todos.length - feitos, s: comFalta.length })}` : ""}
           </p>
-          <ul className="mt-3 flex min-w-0 flex-wrap gap-2">
-            {ficha.map((s) => {
-              const cs = camposDe(s);
-              const ok = cs.filter((c) => !c.aberto).length;
-              return (
-                <li className="flex min-w-0 items-center gap-2 rounded-full border border-[var(--ds-linha)] py-1 pl-1 pr-3" key={s.chave}>
-                  <Anel espessura={3.5} feitos={ok} tamanho={26} total={cs.length}>{ok === cs.length ? <Check aria-hidden="true" className="h-3 w-3 text-[var(--ds-acao)]" /> : null}</Anel>
-                  <span className="min-w-0 truncate text-[0.8125rem] text-foreground">{s.titulo}</span>
-                  {ok < cs.length ? <span className="text-[0.75rem] font-medium tabular-nums text-[var(--ds-alerta)]">{cs.length - ok}</span> : null}
-                </li>
-              );
-            })}
-          </ul>
         </div>
       </section>
 
       {/* O que ficou sem resposta, tudo junto: não é preciso procurar abrindo área por área. */}
       {comFalta.length ? (
-        <section className="ds-cartao min-w-0 border-2 border-[color-mix(in_oklab,var(--ds-alerta)_45%,transparent)] px-5 py-4">
+        <section className="ds-cartao min-w-0 px-5 py-4">
           <p className="flex items-center gap-2 text-base font-semibold text-foreground"><AlertCircle aria-hidden="true" className="h-4 w-4 text-[var(--ds-alerta)]" />{t("O que ficou sem resposta")}</p>
           <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">{salvar ? t("Responda aqui mesmo, ou envie assim: a equipe vê com você depois.") : t("A equipe da Lexia vê estes pontos com a cliente.")}</p>
-          <div className="mt-2 flex flex-col">
-            {comFalta.map((s) => (
-              <div className="min-w-0 border-t border-[var(--ds-linha)] pt-2 first:border-t-0" key={s.chave}>
-                <p className="ds-sobretitulo pt-1">{s.titulo}</p>
-                <div className="divide-y divide-[var(--ds-linha)]">
-                  {camposDe(s).filter((c) => c.aberto).map((c) => (
-                    <Linha campo={c.itemId && nomeDoItem.get(c.itemId) ? { ...c, pergunta: `${nomeDoItem.get(c.itemId)} · ${c.pergunta}` } : c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="mt-2 divide-y divide-[var(--ds-linha)]">
+            {comFalta.map((s) => {
+              const faltam = camposDe(s).filter((c) => c.aberto);
+              return (
+                <Dobra aberta={comFalta.length === 1} key={s.chave} nota={t("{a} sem resposta", { a: faltam.length })} titulo={s.titulo}>
+                  <div className="divide-y divide-[var(--ds-linha)] pl-3">
+                    {faltam.map((c) => (
+                      <Linha campo={c.itemId && nomeDoItem.get(c.itemId) ? { ...c, pergunta: `${nomeDoItem.get(c.itemId)} · ${c.pergunta}` } : c} compacta key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
+                    ))}
+                  </div>
+                </Dobra>
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -200,7 +189,7 @@ export function FichaDoAgente({ ficha, salvar }: { ficha: SecaoDaFicha[]; salvar
               <Dobra
                 alerta={ok < cs.length ? t("{a} sem resposta", { a: cs.length - ok }) : undefined}
                 antes={<Anel feitos={ok} total={cs.length}><span className="text-[0.75rem] font-semibold tabular-nums text-foreground">{cs.length ? Math.round((ok / cs.length) * 100) : 100}%</span></Anel>}
-                nota={[...itens, t("{n} informações", { n: cs.length })].join(" · ")}
+                nota={itens.length ? itens.join(" · ") : t("{n} informações", { n: cs.length })}
                 titulo={s.titulo}
               >
                 {s.campos.length ? (
