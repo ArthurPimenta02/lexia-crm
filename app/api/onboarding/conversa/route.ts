@@ -1,6 +1,6 @@
 import { acessoAoOnboarding } from "@/lib/onboarding/acesso";
 import { chaveDoGemini, transcrever } from "@/lib/onboarding/audio";
-import { abrirConversa, turno, type Resposta } from "@/lib/onboarding/conversa";
+import { abrirConversa, turno, voltar, type Resposta } from "@/lib/onboarding/conversa";
 import { repositorioDoBanco } from "@/lib/onboarding/conversa-banco";
 import { BUCKET_ONBOARDING, gravarTextoDoArquivo, lerLinhas, lerOnboarding, listarArquivos } from "@/lib/onboarding/dados";
 import { inteligenciaReal } from "@/lib/onboarding/entrevistadora";
@@ -46,6 +46,18 @@ export async function POST(request: Request) {
   if ("falha" in c) return c.falha;
   if (c.onb.estado !== "conversa") return erro("A conversa já terminou.", 409);
   const { admin, clienteSlug, userId } = c.acesso;
+
+  // Voltar à pergunta anterior: desfaz o último turno, sem IA.
+  if (corpo.voltar === true) {
+    try {
+      const r = await voltar(repositorioDoBanco(admin, clienteSlug, c.onb.id, userId));
+      if (!r) return erro("Não dá para voltar mais do que isso.", 409);
+      return Response.json({ ...r, estado: "conversa" });
+    } catch (e) {
+      console.error("[onboarding] voltar", clienteSlug, e);
+      return erro("Não consegui voltar agora. Tente de novo.", 502);
+    }
+  }
 
   const idDoAparelho = String(corpo.idDoAparelho ?? "");
   if (!/^[A-Za-z0-9_-]{8,80}$/.test(idDoAparelho)) return erro("Mensagem inválida.", 400);

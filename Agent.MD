@@ -390,6 +390,12 @@ Etapa 1:
   entra no caderno quando ela toca em continuar. As perguntas abertas e os grupos vazios viraram
   cartões com campo e microfone; a caixa de mensagem de baixo fica recolhida em "Enviar um arquivo ou
   tirar uma dúvida com a Lia". A fala atual da Lia aparece em balão de destaque com o beija-flor.
+- Voltar à pergunta anterior (17/11/2026): cada fala da Lia guarda em `dados.volta` o ponto de retorno
+  do turno que a gerou (andamento e itens de antes). `POST /api/onboarding/conversa` com
+  `voltar: true` desfaz o último turno (linhas com `evidencia.mensagem`, itens criados ou tirados,
+  andamento e as duas mensagens) sem IA; é a ÚNICA operação que apaga linhas do diário. Áudios e
+  arquivos continuam guardados. Tabela dos serviços: tipo de preço em três botões, preço só com
+  número e duração escolhida num seletor de horas e minutos.
 - Fidelidade do rascunho (17/11/2026): só vale o que a fonte diz com todas as letras (função de uma
   pessoa e tempo de negócio não se deduzem); quando duas fontes se contradizem, valem as anotações
   da equipe; os textos saem só em português, com o nome do serviço como o negócio usa. Quando a

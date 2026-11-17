@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, Check, FileText, Loader2, Mic, Paperclip, RotateCcw, Send, Square, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, Clock, FileText, Loader2, Mic, Paperclip, RotateCcw, Send, Square, X } from "lucide-react";
 
 import { useIdioma } from "@/app/components/idioma";
 import { Mascote } from "@/app/components/mascote";
@@ -321,7 +321,6 @@ const vazio = (v: unknown) => v === undefined || v === "" || (Array.isArray(v) &
 
 type LinhaDaTabela = Extract<Cartao, { tipo: "tabela" }>["linhas"][number];
 const semValor = (opcao: unknown) => /orçamento|avalia/i.test(String(opcao ?? ""));
-const rotuloCurto = (opcao: string) => opcao.split(" (")[0].split(" — ")[0];
 
 /** O tipo de preço de uma linha: o que ela escolheu ou, se só escreveu o valor, "preço fixo" (a primeira opção). */
 function tipoDaLinha(l: LinhaDaTabela, valores: Record<string, unknown>): string | undefined {
@@ -349,6 +348,66 @@ function valoresDaTabela(linhas: LinhaDaTabela[], valores: Record<string, unknow
   return out.filter((v) => v.valor !== "");
 }
 const linhaCompleta = (l: LinhaDaTabela, valores: Record<string, unknown>) => l.campos.every((f) => (f.campo === "tipo_de_preco" ? !!tipoDaLinha(l, valores) : f.campo === "valor" ? semValor(tipoDaLinha(l, valores)) || !vazio(valores[k(f)]) : !vazio(valores[k(f)])));
+
+/** "1h45" a partir de horas e minutos (e de volta, para abrir o seletor já no valor que lá está). */
+const formatarDuracao = (h: number, m: number) => (h && m ? `${h}h${String(m).padStart(2, "0")}` : h ? `${h}h` : m ? `${m} min` : "");
+function lerDuracao(v: string): { h: number; m: number } | null {
+  const x = v.trim().toLowerCase();
+  const hm = /^(\d{1,2})\s*h(?:oras?)?\s*(?:e\s*)?(\d{1,2})?\s*(?:min(?:utos)?)?$/.exec(x);
+  if (hm) return { h: Number(hm[1]), m: Number(hm[2] ?? 0) };
+  const m = /^(\d{1,3})\s*min(?:utos)?$/.exec(x);
+  return m ? { h: Math.floor(Number(m[1]) / 60), m: Number(m[1]) % 60 } : null;
+}
+
+/**
+ * Escolher a duração com dois toques (horas e minutos), em vez de escrever "1h45min".
+ * Uma duração que as fontes trouxeram em texto ("2 a 3 horas") aparece como está e continua valendo até ela escolher outra.
+ */
+function Duracao({ valor, mudar }: { valor: string; mudar: (v: string) => void }) {
+  const { t } = useIdioma();
+  const [aberto, setAberto] = useState(false);
+  const atual = lerDuracao(valor) ?? { h: -1, m: -1 };
+  const escolher = (h: number, m: number) => mudar(formatarDuracao(Math.max(h, 0), Math.max(m, 0)));
+  const pastilha = (marcada: boolean) => `flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm tabular-nums transition ${marcada ? "bg-[var(--ds-acao)] font-medium text-[var(--ds-acao-texto)]" : "text-foreground hover:bg-muted"}`;
+  return (
+    <div className="relative min-w-0">
+      <button aria-expanded={aberto} aria-label={t("Duração")} className={`ds-campo flex w-full items-center justify-between gap-2 text-left ${valor ? "" : "text-muted-foreground"}`} onClick={() => setAberto(!aberto)} type="button">
+        <span className="min-w-0 truncate">{valor || t("Quanto tempo leva?")}</span>
+        <Clock aria-hidden="true" className="h-4 w-4 shrink-0 opacity-60" />
+      </button>
+      {aberto ? (
+        <>
+          <button aria-label={t("Fechar")} className="fixed inset-0 z-30 cursor-default" onClick={() => setAberto(false)} type="button" />
+          <div className="ds-cartao absolute right-0 top-full z-40 mt-2 flex w-64 max-w-[calc(100vw-2rem)] flex-col gap-3 p-3" role="dialog">
+            <div>
+              <p className="ds-sobretitulo mb-1.5">{t("Horas")}</p>
+              <div className="flex flex-wrap gap-1">
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((h) => (
+                  <button className={pastilha(atual.h === h)} key={h} onClick={() => escolher(h, atual.m)} type="button">{h}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="ds-sobretitulo mb-1.5">{t("Minutos")}</p>
+              <div className="flex flex-wrap gap-1">
+                {[0, 15, 30, 45].map((m) => (
+                  <button className={pastilha(atual.m === m)} key={m} onClick={() => escolher(atual.h, m)} type="button">{String(m).padStart(2, "0")}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 border-t border-[var(--ds-linha)] pt-2">
+              <span className="min-w-0 truncate text-sm font-medium text-foreground">{valor || "—"}</span>
+              <button className="ds-botao ds-botao-primario min-h-9 px-3 text-[0.8125rem]" onClick={() => setAberto(false)} type="button">{t("Pronto")}</button>
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+const ROTULO_DO_TIPO = (opcao: string) => (/orçamento|avalia/i.test(opcao) ? "Só após avaliação" : /partir/i.test(opcao) ? "A partir de" : "Preço fixo");
+const soNumero = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 12);
 
 function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Cartao; estado: EstadoDoCartao; mudar: (e: EstadoDoCartao) => void; ocupado: boolean; enviar: (e: Partial<Envio>) => void }) {
   const { t } = useIdioma();
@@ -520,11 +579,6 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const emBranco = cartao.linhas.filter((l) => !linhaCompleta(l, estado.valores)).length;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        <div aria-hidden="true" className="hidden min-w-0 grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[0.75rem] font-medium text-muted-foreground sm:grid">
-          <span>{t("Como é o preço")}</span>
-          <span>{t("Preço")}</span>
-          <span>{t("Duração")}</span>
-        </div>
         <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
           {cartao.linhas.map((l) => {
             const tipo = l.campos.find((f) => f.campo === "tipo_de_preco");
@@ -532,23 +586,22 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             const duracao = l.campos.find((f) => f.campo === "duracao_media");
             const tipoAtual = tipoDaLinha(l, estado.valores);
             return (
-              <li className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0" key={l.itemId}>
-                <p className="min-w-0 text-sm font-medium text-foreground">{l.nome || t("(sem nome)")}</p>
-                <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                  {tipo ? (
-                    <select aria-label={t("Tipo de preço")} className="ds-campo col-span-2 sm:col-span-1" onChange={(e) => set(tipo, e.target.value || undefined)} value={typeof estado.valores[k(tipo)] === "string" ? (estado.valores[k(tipo)] as string) : ""}>
-                      <option value="">{rotuloCurto(tipo.opcoes?.[0] ?? "")}</option>
-                      {(tipo.opcoes ?? []).slice(1).filter((o) => !/^outro/i.test(o)).map((o) => (
-                        <option key={o} value={o}>{rotuloCurto(o)}</option>
-                      ))}
-                    </select>
-                  ) : null}
+              <li className="flex min-w-0 flex-col gap-2.5 py-4 first:pt-0 last:pb-0" key={l.itemId}>
+                <p className="min-w-0 text-sm font-semibold text-foreground">{l.nome || t("(sem nome)")}</p>
+                {tipo ? (
+                  <div aria-label={t("Tipo de preço")} className="flex min-w-0 flex-wrap gap-1 self-start rounded-xl bg-muted p-1" role="radiogroup">
+                    {(tipo.opcoes ?? []).filter((o) => !/^outro/i.test(o)).map((o) => (
+                      <button aria-checked={tipoAtual === o} className={`min-h-8 rounded-lg px-3 text-[0.8125rem] transition ${tipoAtual === o ? "bg-[var(--ds-superficie)] font-medium text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`} key={o} onClick={() => set(tipo, o)} role="radio" type="button">
+                        {t(ROTULO_DO_TIPO(o))}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="grid min-w-0 grid-cols-2 gap-2 sm:max-w-md">
                   {valor ? (
-                    <input aria-label={t("Preço")} className="ds-campo disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, e.target.value)} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Digite o preço (ex.: 650)")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
+                    <input aria-label={t("Preço")} className="ds-campo tabular-nums disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, soNumero(e.target.value))} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Preço (só o número)")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
                   ) : null}
-                  {duracao ? (
-                    <input aria-label={t("Duração")} className="ds-campo" onChange={(e) => set(duracao, e.target.value)} placeholder={t("Duração (ex.: 1h30)")} value={String(estado.valores[k(duracao)] ?? "")} />
-                  ) : null}
+                  {duracao ? <Duracao mudar={(v) => set(duracao, v)} valor={String(estado.valores[k(duracao)] ?? "")} /> : null}
                 </div>
               </li>
             );
@@ -787,6 +840,23 @@ export function ConversaOnboarding({
     fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [mensagens, pendente, enviando]);
 
+  /** Voltar à pergunta anterior: o servidor desfaz o último turno e devolve a conversa como estava. */
+  const voltar = useCallback(async () => {
+    setEnviando(true);
+    setFalha(null);
+    try {
+      const r = await fetch("/api/onboarding/conversa", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cliente: clienteSlug, voltar: true }) });
+      const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
+      if (!r.ok || !j.mensagens) throw new Error(j.erro ?? t("Não consegui voltar agora. Tente de novo."));
+      setMensagens(j.mensagens);
+      setProgresso(j.progresso ?? null);
+    } catch (e) {
+      setFalha(e instanceof Error ? e.message : t("Não consegui voltar agora. Tente de novo."));
+    } finally {
+      setEnviando(false);
+    }
+  }, [clienteSlug, t]);
+
   const transcrever = useCallback(
     async (blob: Blob, mime: string) => {
       const base = { cliente: clienteSlug, origem: "conversa", nome: "audio", mime, tamanho: blob.size };
@@ -1024,6 +1094,13 @@ export function ConversaOnboarding({
           ) : null}
         </ol>
 
+        {podeResponder && !pendente && mensagens.at(-1)?.autor === "entrevistadora" && (mensagens.at(-1)!.dados as { volta?: unknown }).volta && mensagens.at(-2)?.autor === "cliente" ? (
+          <button className="flex items-center gap-1.5 self-start px-1 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50" disabled={bloqueado} onClick={() => void voltar()} type="button">
+            <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+            {t("Voltar à pergunta anterior")}
+          </button>
+        ) : null}
+        {falha && !falarComALia ? <p className="px-1 text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">{falha}</p> : null}
         {podeResponder && cartao && !pendente ? <CartaoAtivo cartao={cartao} enviar={enviar} estado={estadoDoCartao} mudar={setEstadoDoCartao} ocupado={bloqueado} /> : null}
 
         {podeResponder && !falarComALia && gravando === null && !texto.trim() ? (

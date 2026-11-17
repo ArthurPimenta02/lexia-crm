@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { montarCaderno, resumir, type Andamento, type ItemDoCaderno, type LinhaDoCaderno } from "../lib/onboarding/caderno";
-import { abrirConversa, andamentoDoCursor, turno, type Cartao, type ContextoDaExtracao, type Extracao, type Inteligencia, type MensagemDaConversa, type Repositorio, type Resposta } from "../lib/onboarding/conversa";
+import { abrirConversa, andamentoDoCursor, turno, voltar, type Cartao, type ContextoDaExtracao, type Extracao, type Inteligencia, type MensagemDaConversa, type Repositorio, type Resposta } from "../lib/onboarding/conversa";
 import type { NovaLinha } from "../lib/onboarding/dados";
 
 function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
@@ -24,6 +24,7 @@ function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
   const msgs: MensagemDaConversa[] = [];
   let andamento: Andamento = { listas: [], gruposPerguntados: [] };
   let n = 0;
+  let nMsg = 0;
   let terminou = false;
   const acrescentar = (ls: NovaLinha[]) => { for (const l of ls) diario.push({ ...l, n: ++n }); };
   acrescentar(inicio.linhas ?? []);
@@ -42,13 +43,19 @@ function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
     async gravarDaCliente(r) {
       const ja = msgs.find((m) => m.dados.idDoAparelho === r.idDoAparelho);
       if (ja) return ja;
-      const m: MensagemDaConversa = { id: `m${msgs.length + 1}`, autor: "cliente", tipo: "texto", conteudo: r.texto ?? r.textoDoArquivo ?? "", dados: { idDoAparelho: r.idDoAparelho }, criado_em: "", processada_em: null };
+      const m: MensagemDaConversa = { id: `m${++nMsg}`, autor: "cliente", tipo: "texto", conteudo: r.texto ?? r.textoDoArquivo ?? "", dados: { idDoAparelho: r.idDoAparelho }, criado_em: "", processada_em: null };
       msgs.push(m);
       return m;
     },
     async marcarProcessada(id) { msgs.find((m) => m.id === id)!.processada_em = "agora"; },
-    async gravarDaEntrevistadora(texto, cartao) {
-      const m: MensagemDaConversa = { id: `m${msgs.length + 1}`, autor: "entrevistadora", tipo: "texto", conteudo: texto, dados: { passo: cartao }, criado_em: "", processada_em: "agora" };
+    async desfazer(d) {
+      for (let i = diario.length - 1; i >= 0; i--) if ((diario[i].evidencia as { mensagem?: string } | undefined)?.mensagem === d.linhasDaMensagem || d.apagarItens.includes(String(diario[i].itemId))) diario.splice(i, 1);
+      for (let i = itens.length - 1; i >= 0; i--) if (d.apagarItens.includes(itens[i].id)) itens.splice(i, 1);
+      for (const i of itens) if (d.restaurarItens.includes(i.id)) i.removido = false;
+      for (let i = msgs.length - 1; i >= 0; i--) if (d.apagarMensagens.includes(msgs[i].id)) msgs.splice(i, 1);
+    },
+    async gravarDaEntrevistadora(texto, cartao, volta) {
+      const m: MensagemDaConversa = { id: `m${++nMsg}`, autor: "entrevistadora", tipo: "texto", conteudo: texto, dados: { passo: cartao, ...(volta ? { volta } : {}) }, criado_em: "", processada_em: "agora" };
       msgs.push(m);
       return m;
     },
@@ -392,4 +399,35 @@ test("áudio que corrige um rascunho: vale o que ela disse (não o rascunho que 
   assert.equal((await atual(b, "contraindicacoes", "s1"))!.estado, "confirmado", "os outros rascunhos ficam confirmados");
   const fala = b.msgs.at(-1)!.conteudo;
   assert.match(fala, /Atualizei para quem você indica com o que você falou\. Ficou assim: "Para quem tem falhas/);
+});
+
+test("voltar à pergunta anterior: desfaz o último turno inteiro (linhas, itens, andamento, mensagens) e só o último", async () => {
+  const b = banco({
+    itens: [servico("s1"), servico("s2", 1)],
+    linhas: [
+      { campo: "nome", itemId: "s1", valor: "Microblading", estado: "rascunho", fonte: "site" },
+      { campo: "nome", itemId: "s2", valor: "Lash Lifting", estado: "rascunho", fonte: "site" },
+    ],
+  });
+  const i: Inteligencia = { async extrair() { return NADA; }, async falar() { return "fala"; } };
+  await abrirConversa(b.repo, i, "");
+  const lista = b.ultimoCartao();
+  assert.equal(lista.tipo, "lista");
+  assert.equal(await voltar(b.repo), null, "na abertura não há para onde voltar");
+  const antes = { linhas: JSON.stringify(await b.repo.linhas()), itens: JSON.stringify(await b.repo.itens()), andamento: JSON.stringify(await b.repo.andamento()), msgs: b.msgs.length };
+  // Ela tira um serviço e acrescenta outro; o passo seguinte é a tabela.
+  await turno(b.repo, i, msg({ lista: { manter: ["s1"], novos: ["Brow Lamination"] } }), "");
+  assert.equal(b.ultimoCartao().tipo, "tabela");
+  assert.equal((await b.repo.itens()).length, 3);
+  const r = await voltar(b.repo);
+  assert.ok(r, "o último turno pode ser desfeito");
+  assert.equal(JSON.stringify(await b.repo.linhas()), antes.linhas, "as respostas desse turno saem");
+  assert.equal(JSON.stringify(await b.repo.itens()), antes.itens, "o serviço acrescentado sai e o tirado volta");
+  assert.equal(JSON.stringify(await b.repo.andamento()), antes.andamento, "a lista volta a poder ser mostrada");
+  assert.equal(b.msgs.length, antes.msgs);
+  assert.equal(b.ultimoCartao().tipo, "lista", "a tela mostra de novo o passo anterior");
+  assert.equal(await voltar(b.repo), null, "só o último turno: não volta duas vezes seguidas");
+  // E a conversa continua normalmente depois de voltar.
+  await turno(b.repo, i, msg({ lista: { manter: ["s1", "s2"], novos: [] } }), "");
+  assert.equal(b.ultimoCartao().tipo, "tabela");
 });
