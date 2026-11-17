@@ -198,7 +198,7 @@ function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown;
 
 // ------------------------------------------------------------------ o cartão ativo
 
-type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[]; sugestoes?: boolean };
+type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[] };
 
 function estadoInicial(c: Cartao): EstadoDoCartao {
   const valores: Record<string, unknown> = {};
@@ -471,7 +471,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const sugeridos = cartao.confirmar.filter((f) => f.fonte === "recomendacao");
     const tipo = tocar.find((f) => f.campo === "tipo_de_preco");
     const tipoAtual = tipo ? (estado.valores[k(tipo)] as string | undefined) : undefined;
-    const pedeAudio = contar.length > 0 || (sugeridos.length > 0 && !estado.sugestoes);
+    const pedeAudio = contar.length > 0;
     if (!tocar.length && !achados.length && !sugeridos.length) return null;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
@@ -499,25 +499,23 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             </div>
           </div>
         ) : null}
-        {sugeridos.length && estado.sugestoes ? (
-          <div className="flex flex-col gap-4">
+        {sugeridos.length ? (
+          <div className="flex flex-col gap-3">
             <p className="ds-sobretitulo">{t("Sugestão da Lexia: confira e corrija")}</p>
-            {sugeridos.map((f) => (
-              <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
-            ))}
+            <div className="flex flex-col divide-y divide-[var(--ds-linha)]">
+              {sugeridos.map((f) => (
+                <div className="py-3 first:pt-0 last:pb-0" key={k(f)}>
+                  {abertos.has(k(f)) ? <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} /> : <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} valor={estado.valores[k(f)]} />}
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          {!pedeAudio || tocar.some((f) => !vazio(estado.valores[k(f)])) ? (
-            <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
-              {pedeAudio ? t("Enviar") : t("Está certo, continuar")}
-            </button>
-          ) : null}
-          {sugeridos.length && !estado.sugestoes ? (
-            <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => mudar({ ...estado, sugestoes: true })} type="button">
-              {t("Prefiro partir de uma sugestão")}
-            </button>
-          ) : null}
+          <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
+            {pedeAudio ? t("Enviar") : t("Está certo, continuar")}
+          </button>
+          <span className="text-[0.8125rem] text-muted-foreground">{t("Se preferir, responda por áudio ou texto aí embaixo.")}</span>
         </div>
       </div>
     );
@@ -664,7 +662,7 @@ export function ConversaOnboarding({
     if (enviando || pendente?.erro) return;
     const doItem =
       cartao?.tipo === "item" && !extra.pular
-        ? [...cartao.confirmar.filter((f) => f.fonte !== "recomendacao" || estadoDoCartao.sugestoes), ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
+        ? [...cartao.confirmar, ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
         : [];
     // Só o preço, sem dizer o tipo: é preço fixo (a primeira opção), como na tabela. Preço que depende de avaliação não leva valor.
     if (cartao?.tipo === "item") {
@@ -769,7 +767,7 @@ export function ConversaOnboarding({
   }
 
   const podeResponder = !somenteLeitura && !terminou;
-  const pedeTexto = cartao?.tipo === "item" ? cartao.faltam.length > 0 || cartao.confirmar.some((f) => f.fonte === "recomendacao") : cartao?.tipo === "pergunta" || cartao?.tipo === "itens";
+  const pedeTexto = cartao?.tipo === "item" ? cartao.faltam.length > 0 : cartao?.tipo === "pergunta" || cartao?.tipo === "itens";
   const bloqueado = enviando || !!pendente?.erro;
 
   return (

@@ -309,15 +309,17 @@ export function falaPadrao(cartao: Cartao, complemento: boolean): string {
       return "Agora o preço e a duração de cada serviço, tudo de uma vez. Digita o preço em cada linha; se algum depende de avaliação, escolhe isso na linha dele.";
     case "item": {
       const nome = cartao.nome || "este item";
-      // O que ela precisa contar: o que falta e o que só a Lexia sugeriu (isso é ela que diz, com as palavras dela).
-      const pedir = [...cartao.faltam, ...cartao.confirmar.filter((c) => c.fonte === "recomendacao")];
-      const contar = pedir.filter((c) => !c.opcoes?.length && c.campo !== "valor").map(rotuloCurto);
-      const tocar = pedir.filter((c) => c.opcoes?.length || c.campo === "valor").map(rotuloCurto);
+      const contar = cartao.faltam.filter((c) => !c.opcoes?.length && c.campo !== "valor").map(rotuloCurto);
+      const tocar = cartao.faltam.filter((c) => c.opcoes?.length || c.campo === "valor").map(rotuloCurto);
+      const sugestoes = cartao.confirmar.some((c) => c.fonte === "recomendacao");
       const achados = cartao.confirmar.some((c) => c.fonte !== "recomendacao");
-      if (!pedir.length && !cartao.cartoes.length) return `${nome}: já achei tudo nas suas fontes. Confere abaixo e toca em continuar.`;
       const partes = [complemento ? `Sobre ${nome}, ficou faltando só isto.` : `Agora ${nome}.`];
       if (contar.length) partes.push(`Me manda um áudio, ou escreve com detalhes, contando:\n${contar.map((x) => `• ${x}`).join("\n")}`);
-      const fim = [tocar.length ? `Marca abaixo ${emLista(tocar)}.` : "", achados && !complemento ? "O que eu já achei está abaixo, só para conferir." : ""].filter(Boolean).join(" ");
+      const fim = [
+        tocar.length ? `Marca abaixo ${emLista(tocar)}.` : "",
+        // O que já existe aparece sempre: ela confere, corrige no campo ou explica melhor por áudio.
+        complemento || (!sugestoes && !achados) ? "" : sugestoes ? "Deixei abaixo uma sugestão para o resto: confere, corrige no campo ou me manda um áudio explicando melhor." : "O que eu já achei está abaixo: confere e corrige se precisar.",
+      ].filter(Boolean).join(" ");
       return [partes.join(" "), fim].filter(Boolean).join(contar.length ? "\n" : " ");
     }
     case "cartoes":
