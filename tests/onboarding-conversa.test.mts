@@ -212,8 +212,8 @@ test("tabela dos serviços: preço e duração de todos de uma vez; aparece uma 
   const c = b.ultimoCartao();
   assert.ok(c.tipo === "tabela" && c.linhas.length === 3);
   if (c.tipo !== "tabela") return;
-  assert.deepEqual(c.linhas[0].campos.map((f) => f.campo), ["tipo_de_preco", "valor", "duracao_media"], "o preço entra na tabela mesmo antes de o tipo de preço ser respondido");
-  assert.equal(c.linhas[0].campos[2].valor, "2 horas", "o que as fontes acharam vem escrito na linha");
+  assert.deepEqual(c.linhas[0].campos.map((f) => f.campo), ["tipo_de_preco", "valor", "faixa_de_preco", "duracao_media"], "o preço entra na tabela mesmo antes de o tipo de preço ser respondido");
+  assert.equal(c.linhas[0].campos.find((f) => f.campo === "duracao_media")!.valor, "2 horas", "o que as fontes acharam vem escrito na linha");
   const i = ia();
   await turno(b.repo, i, msg({ valores: [
     { campo: "tipo_de_preco", itemId: "s1", valor: "Preço fixo" }, { campo: "valor", itemId: "s1", valor: "650" }, { campo: "duracao_media", itemId: "s1", valor: "2 horas" },
@@ -430,4 +430,30 @@ test("voltar à pergunta anterior: desfaz o último turno inteiro (linhas, itens
   // E a conversa continua normalmente depois de voltar.
   await turno(b.repo, i, msg({ lista: { manter: ["s1", "s2"], novos: [] } }), "");
   assert.equal(b.ultimoCartao().tipo, "tabela");
+});
+
+test("no serviço, o preço vem no mesmo cartão do tipo de preço: entra de uma vez e não há um passo só para ele", async () => {
+  const b = banco({
+    itens: [servico("s1"), servico("s2", 1)],
+    linhas: [
+      { campo: "nome", itemId: "s1", valor: "Microblading", estado: "confirmado", fonte: "cliente" },
+      { campo: "nome", itemId: "s2", valor: "SOS Brows", estado: "confirmado", fonte: "cliente" },
+      ...["s1", "s2"].flatMap((id) => ["duracao_media", "descricao_e_indicacao", "para_quem_indicar", "preparo_e_cuidados", "contraindicacoes", "numero_de_sessoes"].map((campo) => ({ campo, itemId: id, valor: "x", estado: "respondido" as const, fonte: "cliente" as const }))),
+    ],
+  });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
+  const i = ia();
+  await abrirConversa(b.repo, i, "");
+  let c = b.ultimoCartao();
+  assert.ok(c.tipo === "item" && c.itemId === "s1" && c.faltam.map((f) => f.campo).join() === "tipo_de_preco", JSON.stringify(c));
+  await turno(b.repo, i, msg({ valores: [{ campo: "tipo_de_preco", itemId: "s1", valor: "Preço fixo" }, { campo: "valor", itemId: "s1", valor: "650" }] }), "");
+  assert.deepEqual([(await atual(b, "valor", "s1"))!.estado, (await atual(b, "valor", "s1"))!.valor], ["respondido", "650"]);
+  c = b.ultimoCartao();
+  assert.ok(c.tipo === "item" && c.itemId === "s2", "o serviço fecha num turno só e segue para o próximo");
+  // Só após avaliação: a faixa (opcional) entra junto; um preço mandado por engano não entra.
+  await turno(b.repo, i, msg({ valores: [{ campo: "tipo_de_preco", itemId: "s2", valor: "Sob orçamento — só após avaliação presencial" }, { campo: "faixa_de_preco", itemId: "s2", valor: "300 a 600" }, { campo: "valor", itemId: "s2", valor: "999" }] }), "");
+  assert.equal((await atual(b, "faixa_de_preco", "s2"))!.valor, "300 a 600");
+  assert.equal(await atual(b, "valor", "s2"), undefined, "preço não vale quando só sai depois da avaliação");
+  // Um campo que não depende de nada mandado junto não entra por esta porta.
+  assert.equal(await atual(b, "valor", "s1").then((l) => l!.valor), "650");
 });

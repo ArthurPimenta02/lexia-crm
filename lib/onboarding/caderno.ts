@@ -288,7 +288,7 @@ export function proximoPasso(
 }
 
 /** O que se preenche na tabela dos serviços (um serviço por linha). */
-export const CAMPOS_DA_TABELA = ["tipo_de_preco", "valor", "duracao_media"];
+export const CAMPOS_DA_TABELA = ["tipo_de_preco", "valor", "faixa_de_preco", "duracao_media"];
 
 /**
  * Os campos da tabela para um serviço. O "valor" só existe no caderno depois de o "tipo de preço" ser

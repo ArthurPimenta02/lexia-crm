@@ -342,12 +342,14 @@ function valoresDaTabela(linhas: LinhaDaTabela[], valores: Record<string, unknow
         if (tipo) out.push({ campo: f.campo, itemId: f.itemId, valor: tipo });
       } else if (f.campo === "valor") {
         if (!semValor(tipo) && !vazio(valores[k(f)])) out.push({ campo: f.campo, itemId: f.itemId, valor: String(valores[k(f)]).trim() });
+      } else if (f.campo === "faixa_de_preco") {
+        if (semValor(tipo) && !vazio(valores[k(f)])) out.push({ campo: f.campo, itemId: f.itemId, valor: String(valores[k(f)]).trim() });
       } else if (!vazio(valores[k(f)])) out.push({ campo: f.campo, itemId: f.itemId, valor: String(valores[k(f)]).trim() });
     }
   }
   return out.filter((v) => v.valor !== "");
 }
-const linhaCompleta = (l: LinhaDaTabela, valores: Record<string, unknown>) => l.campos.every((f) => (f.campo === "tipo_de_preco" ? !!tipoDaLinha(l, valores) : f.campo === "valor" ? semValor(tipoDaLinha(l, valores)) || !vazio(valores[k(f)]) : !vazio(valores[k(f)])));
+const linhaCompleta = (l: LinhaDaTabela, valores: Record<string, unknown>) => l.campos.every((f) => (f.campo === "faixa_de_preco" ? true : f.campo === "tipo_de_preco" ? !!tipoDaLinha(l, valores) : f.campo === "valor" ? semValor(tipoDaLinha(l, valores)) || !vazio(valores[k(f)]) : !vazio(valores[k(f)])));
 
 /** "1h45" a partir de horas e minutos (e de volta, para abrir o seletor já no valor que lá está). */
 const formatarDuracao = (h: number, m: number) => (h && m ? `${h}h${String(m).padStart(2, "0")}` : h ? `${h}h` : m ? `${m} min` : "");
@@ -405,6 +407,9 @@ function Duracao({ valor, mudar }: { valor: string; mudar: (v: string) => void }
     </div>
   );
 }
+
+/** "300 a 600" a partir do mínimo e do máximo (só um deles também vale). */
+const faixaDe = (min: string, max: string) => (min && max ? `${min} a ${max}` : min ? `a partir de ${min}` : max ? `até ${max}` : "");
 
 const ROTULO_DO_TIPO = (opcao: string) => (/orçamento|avalia/i.test(opcao) ? "Só após avaliação" : /partir/i.test(opcao) ? "A partir de" : "Preço fixo");
 const soNumero = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 12);
@@ -579,12 +584,27 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const emBranco = cartao.linhas.filter((l) => !linhaCompleta(l, estado.valores)).length;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
+        {cartao.linhas.some((l) => semValor(tipoDaLinha(l, estado.valores))) ? (
+          <p className="flex items-start gap-2 rounded-xl bg-[var(--ds-acao-fundo)] px-3.5 py-3 text-[0.8125rem] leading-relaxed text-foreground">
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ds-acao)]" />
+            {t("Quem pergunta o preço costuma precisar de pelo menos uma noção para marcar a avaliação. Se você tiver um mínimo e um máximo, coloque na linha do serviço: isso ajuda a fechar mais agendamentos.")}
+          </p>
+        ) : null}
         <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
           {cartao.linhas.map((l) => {
             const tipo = l.campos.find((f) => f.campo === "tipo_de_preco");
             const valor = l.campos.find((f) => f.campo === "valor");
             const duracao = l.campos.find((f) => f.campo === "duracao_media");
+            const faixa = l.campos.find((f) => f.campo === "faixa_de_preco");
             const tipoAtual = tipoDaLinha(l, estado.valores);
+            const min = faixa ? String(estado.valores[`${k(faixa)}#min`] ?? "") : "";
+            const max = faixa ? String(estado.valores[`${k(faixa)}#max`] ?? "") : "";
+            const mudarFaixa = (qual: "min" | "max", v: string) => {
+              if (!faixa) return;
+              const novoMin = qual === "min" ? soNumero(v) : min;
+              const novoMax = qual === "max" ? soNumero(v) : max;
+              mudar({ ...estado, valores: { ...estado.valores, [`${k(faixa)}#min`]: novoMin, [`${k(faixa)}#max`]: novoMax, [k(faixa)]: faixaDe(novoMin, novoMax) } });
+            };
             return (
               <li className="flex min-w-0 flex-col gap-2.5 py-4 first:pt-0 last:pb-0" key={l.itemId}>
                 <p className="min-w-0 text-sm font-semibold text-foreground">{l.nome || t("(sem nome)")}</p>
@@ -598,7 +618,16 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
                   </div>
                 ) : null}
                 <div className="grid min-w-0 grid-cols-2 gap-2 sm:max-w-md">
-                  {valor ? (
+                  {faixa && semValor(tipoAtual) ? (
+                    <div className="col-span-2 flex min-w-0 flex-col gap-1.5">
+                      <p className="text-[0.8125rem] text-muted-foreground">{t("Se tiver, coloque um mínimo e um máximo (opcional)")}</p>
+                      <div className="grid min-w-0 grid-cols-2 gap-2">
+                        <input aria-label={t("Preço mínimo")} className="ds-campo tabular-nums" inputMode="decimal" onChange={(e) => mudarFaixa("min", e.target.value)} placeholder={t("Mínimo")} value={min} />
+                        <input aria-label={t("Preço máximo")} className="ds-campo tabular-nums" inputMode="decimal" onChange={(e) => mudarFaixa("max", e.target.value)} placeholder={t("Máximo")} value={max} />
+                      </div>
+                    </div>
+                  ) : null}
+                  {valor && !(faixa && semValor(tipoAtual)) ? (
                     <input aria-label={t("Preço")} className="ds-campo tabular-nums disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, soNumero(e.target.value))} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Preço (só o número)")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
                   ) : null}
                   {duracao ? <Duracao mudar={(v) => set(duracao, v)} valor={String(estado.valores[k(duracao)] ?? "")} /> : null}
@@ -667,6 +696,15 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const tipo = tocar.find((f) => f.campo === "tipo_de_preco");
     const tipoAtual = tipo ? (estado.valores[k(tipo)] as string | undefined) : undefined;
     const pedeAudio = contar.length > 0;
+    // Com o tipo de preço por escolher, o preço (ou a faixa) preenche-se aqui mesmo, sem uma tela só para ele.
+    const precoJunto = !!tipo && !tocar.some((f) => f.campo === "valor");
+    const kPreco = `${cartao.itemId}|valor`;
+    const kFaixa = `${cartao.itemId}|faixa_de_preco`;
+    const pontas = { min: String(estado.valores[`${kFaixa}#min`] ?? ""), max: String(estado.valores[`${kFaixa}#max`] ?? "") };
+    const mudarFaixa = (qual: "min" | "max", v: string) => {
+      const novas = { ...pontas, [qual]: soNumero(v) };
+      mudar({ ...estado, valores: { ...estado.valores, [`${kFaixa}#min`]: novas.min, [`${kFaixa}#max`]: novas.max, [kFaixa]: faixaDe(novas.min, novas.max) } });
+    };
     if (!tocar.length && !contar.length && !achados.length && !sugeridos.length) return null;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
@@ -682,6 +720,22 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
             <Campo campo={f.campo === "tipo_de_preco" ? { ...f, pergunta: t("Como é o preço deste serviço?"), opcoes: (f.opcoes ?? []).filter((o) => !/^outro/i.test(o)) } : f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
           ),
         )}
+        {precoJunto && tipoAtual && !semValor(tipoAtual) ? (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">{/partir/i.test(tipoAtual) ? t("A partir de quanto?") : t("Quanto custa?")}</p>
+            <input aria-label={t("Preço")} className="ds-campo max-w-xs tabular-nums" inputMode="decimal" onChange={(e) => mudar({ ...estado, valores: { ...estado.valores, [kPreco]: soNumero(e.target.value) } })} placeholder={t("Preço (só o número)")} value={String(estado.valores[kPreco] ?? "")} />
+          </div>
+        ) : null}
+        {precoJunto && semValor(tipoAtual) ? (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">{t("Tem um mínimo e um máximo? (opcional)")}</p>
+            <p className="text-[0.8125rem] leading-relaxed text-muted-foreground">{t("Quem pergunta o preço costuma precisar de pelo menos uma noção para marcar a avaliação. Uma faixa ajuda a fechar mais agendamentos.")}</p>
+            <div className="grid max-w-xs min-w-0 grid-cols-2 gap-2">
+              <input aria-label={t("Preço mínimo")} className="ds-campo tabular-nums" inputMode="decimal" onChange={(e) => mudarFaixa("min", e.target.value)} placeholder={t("Mínimo")} value={pontas.min} />
+              <input aria-label={t("Preço máximo")} className="ds-campo tabular-nums" inputMode="decimal" onChange={(e) => mudarFaixa("max", e.target.value)} placeholder={t("Máximo")} value={pontas.max} />
+            </div>
+          </div>
+        ) : null}
         {contar.map((f) => (
           <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
@@ -927,6 +981,13 @@ export function ConversaOnboarding({
     // Só o preço, sem dizer o tipo: é preço fixo (a primeira opção), como na tabela. Preço que depende de avaliação não leva valor.
     if (cartao?.tipo === "item") {
       const tipo = cartao.faltam.find((f) => f.campo === "tipo_de_preco");
+      // O preço e a faixa preenchidos junto com o tipo de preço (não são campos do passo: vão à parte).
+      if (tipo) {
+        const escolhido = estadoDoCartao.valores[k(tipo)];
+        const junto = (campo: string) => String(estadoDoCartao.valores[`${cartao.itemId}|${campo}`] ?? "").trim();
+        if (!cartao.faltam.some((f) => f.campo === "valor") && junto("valor") && !semValor(escolhido)) doItem.push({ campo: "valor", itemId: cartao.itemId, valor: junto("valor") });
+        if (semValor(escolhido) && junto("faixa_de_preco")) doItem.push({ campo: "faixa_de_preco", itemId: cartao.itemId, valor: junto("faixa_de_preco") });
+      }
       const temPreco = doItem.some((v) => v.campo === "valor");
       const temTipo = doItem.find((v) => v.campo === "tipo_de_preco");
       if (tipo && temPreco && !temTipo && tipo.opcoes?.[0]) doItem.push({ campo: tipo.campo, itemId: tipo.itemId, valor: tipo.opcoes[0] });
