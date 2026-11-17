@@ -191,6 +191,68 @@ export async function pedirRascunho(ia: ChaveDeIa, fontes: FontesLidas): Promise
   return { rascunho: JSON.parse(r.texto) as RascunhoBruto, uso: r.uso };
 }
 
+// ------------------------------------------------------------------ os textos de cada serviço, escritos pela Lexia
+
+/**
+ * O que a Lexia ESCREVE para cada serviço quando as fontes não trazem (Arthur, 17/11/2026: a dona não pode
+ * gastar horas a explicar quinze serviços; ler e corrigir é muito mais rápido do que explicar do zero).
+ * Entra como rascunho com a fonte "recomendacao": nunca conta como resposta até ela confirmar.
+ * Preço e duração ficam de fora de propósito: ou vêm de um arquivo dela, ou ela preenche.
+ */
+export const TEXTOS_DO_SERVICO = ["descricao_e_indicacao", "para_quem_indicar", "preparo_e_cuidados", "contraindicacoes", "numero_de_sessoes"] as const;
+export type TextosDeUmServico = { n: number } & Record<(typeof TEXTOS_DO_SERVICO)[number], string>;
+
+const esquemaDosTextos = () => objeto({ servicos: { type: "array", items: objeto({ n: { type: "integer" }, ...Object.fromEntries(TEXTOS_DO_SERVICO.map((k) => [k, texto])) }) } });
+
+function instrucoesDosTextos(): string {
+  return `Você escreve o rascunho dos textos de cada serviço de um negócio que vai ter uma assistente de atendimento com IA. A dona do negócio vai ler cada texto e corrigir o que for diferente no negócio dela: o seu rascunho poupa o tempo dela, não substitui a palavra dela.
+
+Você recebe o tipo de negócio e a lista de serviços, cada um com um número "n" e com o que as fontes do negócio já disseram sobre ele.
+
+O QUE ESCREVER, POR SERVIÇO
+- descricao_e_indicacao: o que é o serviço e como é feito, em 2 ou 3 frases, do jeito que uma atendente explicaria para uma cliente.
+- para_quem_indicar: para quem costuma ser indicado, em 1 ou 2 frases.
+- preparo_e_cuidados: o preparo antes e os cuidados depois que são prática comum neste procedimento, em frases curtas.
+- contraindicacoes: as contraindicações amplamente reconhecidas para este procedimento, em uma frase ou lista curta.
+- numero_de_sessoes: o número típico de sessões (ex.: "1 sessão e um retoque", "sessão única").
+
+REGRAS
+- Se o serviço já traz um desses campos preenchido pelas fontes, devolva esse campo VAZIO: o texto da fonte vale mais do que o seu.
+- O NOME BASTA quando é um procedimento conhecido do ramo (ex.: "Eyebrow Lamination", "Nanoblading", "Laser Tattoo Removal", "Limpeza de pele"): escreva os cinco campos mesmo que as fontes só tragam o nome. Quando as fontes disserem algo sobre o serviço, use isso como base.
+- Complete só com o que é prática comum e amplamente aceita para aquele procedimento.
+- Só devolva TODOS os campos vazios quando você não sabe o que é o serviço: nome próprio criado pelo negócio, pacote, combinação ou nome ambíguo. Nesse caso a dona será perguntada, e um campo vazio é melhor do que um texto errado.
+- "numero_de_sessoes" também vale para procedimentos que se repetem: diga o habitual (ex.: "1 sessão, com manutenção a cada 4 a 6 meses").
+- Nunca escreva preço, duração do atendimento, desconto, garantia ou promessa de resultado. Nunca cite marca, produto, aparelho ou técnica que as fontes não citaram.
+- Um campo que não faz sentido para o serviço (ex.: contraindicações de uma consultoria) fica vazio.
+- Devolva um item para cada serviço recebido, com o mesmo "n".
+- Português do Brasil, simples e direto, sem linguagem de propaganda. Não traduza o nome dos serviços.`;
+}
+
+export async function pedirTextosDosServicos(ia: ChaveDeIa, pedido: { tipoDeNegocio: string; servicos: { n: number; nome: string; dasFontes: Record<string, string> }[] }): Promise<{ textos: TextosDeUmServico[]; uso: Uso }> {
+  const r = await perguntar(ia, { sistema: instrucoesDosTextos(), conteudo: [{ type: "text", text: JSON.stringify({ tipo_de_negocio: pedido.tipoDeNegocio, servicos: pedido.servicos }) }], esquema: esquemaDosTextos(), maxTokens: 16000, semPensar: true });
+  return { textos: (JSON.parse(r.texto) as { servicos: TextosDeUmServico[] }).servicos ?? [], uso: r.uso };
+}
+
+/** Os serviços do rascunho, no formato que se manda a quem escreve os textos (o "n" é a posição na lista). */
+export function servicosParaEscrever(itens: ItemNovo[]): { n: number; nome: string; dasFontes: Record<string, string> }[] {
+  return itens
+    .map((item, n) => ({ item, n }))
+    .filter(({ item }) => item.grupo === "servicos")
+    .map(({ item, n }) => ({ n, nome: item.nome, dasFontes: Object.fromEntries(item.linhas.filter((l) => l.campo !== "nome" && typeof l.valor === "string").map((l) => [l.campo, l.valor as string])) }));
+}
+
+/** Junta os textos escritos pela Lexia aos serviços do rascunho, sem nunca passar por cima do que veio de uma fonte. */
+export function juntarTextos(itens: ItemNovo[], textos: TextosDeUmServico[]): ItemNovo[] {
+  const porN = new Map(textos.map((x) => [x.n, x]));
+  return itens.map((item, n) => {
+    const escrito = item.grupo === "servicos" ? porN.get(n) : undefined;
+    if (!escrito) return item;
+    const ja = new Set(item.linhas.map((l) => l.campo));
+    const novas = TEXTOS_DO_SERVICO.filter((k) => !ja.has(k) && limpo(escrito[k])).map((k) => ({ campo: k as string, valor: limpo(escrito[k]).slice(0, 2000), estado: "rascunho" as const, fonte: "recomendacao" as const, evidencia: { escrito_pela_lexia: true } }));
+    return novas.length ? { ...item, linhas: [...item.linhas, ...novas] } : item;
+  });
+}
+
 // ------------------------------------------------------------------ do rascunho para o caderno
 
 const limpo = (v: unknown) => String(v ?? "").trim();

@@ -114,7 +114,7 @@ test("a mensagem é gravada antes da IA; se a IA falha, nada fica a meio e reenv
 
 test("um áudio responde vários campos do serviço; o que faltar ganha UM complemento e depois vira pendência", async () => {
   const b = comServico();
-  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
   const i = ia(() => ({ ...NADA, campos: [
     { chave: "valor", item: "servicos#1", valor: "US$ 600", lista: [], estado: "respondido" },
     { chave: "duracao_media", item: "servicos#1", valor: "2 horas", lista: [], estado: "respondido" },
@@ -135,7 +135,7 @@ test("um áudio responde vários campos do serviço; o que faltar ganha UM compl
 
 test("'está tudo certo' não gasta uma tentativa: a primeira resposta que não toca nas perguntas não conta; a segunda seguida conta", async () => {
   const b = comServico();
-  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
   await turno(b.repo, ia(), msg({ texto: "está tudo certo" }), "");
   assert.equal(await atual(b, "contraindicacoes", "s1"), undefined, "nenhuma pergunta foi contada");
   const c1 = b.ultimoCartao();
@@ -148,7 +148,7 @@ test("'está tudo certo' não gasta uma tentativa: a primeira resposta que não 
 
 test("o código confere o que a IA devolve: opção inexistente, item desconhecido e campo já respondido ficam de fora", async () => {
   const b = comServico();
-  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
   await b.repo.acrescentarLinhas([{ campo: "nome_do_agente", valor: "Bia", estado: "respondido", fonte: "cliente" }]);
   await turno(b.repo, ia(() => ({ ...NADA, campos: [
     { chave: "tipo_de_preco", item: "servicos#1", valor: "Baratinho", lista: [], estado: "respondido" },
@@ -166,7 +166,7 @@ test("o código confere o que a IA devolve: opção inexistente, item desconheci
 
 test("uma dúvida dela não gasta uma pergunta; 'não sei agora' manda para a Lexia", async () => {
   const b = comServico();
-  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
   await turno(b.repo, ia(() => ({ ...NADA, duvida: "o que é contraindicação?" })), msg({ texto: "o que é contraindicação?" }), "");
   assert.equal(b.diario.length, 1, "nada foi contado como pergunta");
   const antes = b.ultimoCartao();
@@ -187,7 +187,74 @@ test("lista de serviços: tira os que ela não faz, acrescenta os que faltam e c
   assert.equal((await atual(b, "nome", "s1"))!.estado, "confirmado");
   assert.equal((await atual(b, "nome", ativos[1].id))!.valor, "Lip Blush");
   const c = b.ultimoCartao();
-  assert.equal(c.tipo === "item" && c.nome, "Microblading", "passa ao primeiro serviço, e a lista não volta");
+  assert.equal(c.tipo === "tabela" && c.linhas.map((l) => l.nome).join(), "Microblading,Lip Blush", "passa à tabela de preço e duração, e a lista não volta");
+});
+
+test("tabela dos serviços: preço e duração de todos de uma vez; aparece uma vez só e o que ficou em branco é perguntado no serviço", async () => {
+  const b = banco({
+    itens: [servico("s1", 0), servico("s2", 1), servico("s3", 2)],
+    linhas: [
+      { campo: "nome", itemId: "s1", valor: "Microblading", estado: "confirmado", fonte: "cliente" },
+      { campo: "nome", itemId: "s2", valor: "Lash Lifting", estado: "confirmado", fonte: "cliente" },
+      { campo: "nome", itemId: "s3", valor: "Botox", estado: "confirmado", fonte: "cliente" },
+      rascunho("duracao_media", "2 horas", "s1"),
+    ],
+  });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [] });
+  await abrirConversa(b.repo, ia(), "");
+  const c = b.ultimoCartao();
+  assert.ok(c.tipo === "tabela" && c.linhas.length === 3);
+  if (c.tipo !== "tabela") return;
+  assert.deepEqual(c.linhas[0].campos.map((f) => f.campo), ["tipo_de_preco", "valor", "duracao_media"], "o preço entra na tabela mesmo antes de o tipo de preço ser respondido");
+  assert.equal(c.linhas[0].campos[2].valor, "2 horas", "o que as fontes acharam vem escrito na linha");
+  const i = ia();
+  await turno(b.repo, i, msg({ valores: [
+    { campo: "tipo_de_preco", itemId: "s1", valor: "Preço fixo" }, { campo: "valor", itemId: "s1", valor: "650" }, { campo: "duracao_media", itemId: "s1", valor: "2 horas" },
+    { campo: "tipo_de_preco", itemId: "s2", valor: "Sob orçamento — só após avaliação presencial" }, { campo: "duracao_media", itemId: "s2", valor: "1h" },
+    { campo: "tipo_de_preco", itemId: "s3", valor: "Inventado" },
+  ] }), "");
+  assert.equal(i.chamadas.length, 0, "tabela respondida no cartão não passa pela IA");
+  assert.deepEqual([(await atual(b, "valor", "s1"))!.valor, (await atual(b, "valor", "s1"))!.estado], ["650", "respondido"]);
+  assert.equal((await atual(b, "duracao_media", "s1"))!.estado, "confirmado", "igual ao rascunho: confirmado");
+  assert.equal((await atual(b, "tipo_de_preco", "s2"))!.estado, "respondido");
+  assert.notEqual((await atual(b, "tipo_de_preco", "s3"))?.estado, "respondido", "opção que não existe não entra");
+  assert.deepEqual(b.andamento().tabelas, ["servicos"]);
+  // a tabela não volta; o Botox, que ficou em branco, é perguntado no passo dele (uma vez mais, nunca uma terceira)
+  const vistos: string[] = [];
+  for (let n = 0; n < 12 && b.ultimoCartao().tipo !== "fim"; n++) {
+    const p = b.ultimoCartao();
+    assert.notEqual(p.tipo, "tabela", "a tabela apareceu de novo");
+    if (p.tipo !== "item" || p.grupo !== "servicos") break;
+    vistos.push(`${p.nome}:${p.faltam.map((f) => f.campo).filter((x) => ["tipo_de_preco", "valor", "duracao_media"].includes(x)).join("+")}`);
+    await turno(b.repo, ia(), msg({ pular: true }), "");
+  }
+  assert.ok(vistos.includes("Botox:tipo_de_preco+duracao_media"), `o que ficou em branco na tabela tem de ser perguntado no serviço: ${vistos.join(" | ")}`);
+  assert.ok(vistos.some((v) => v === "Microblading:"), "o que ela preencheu na tabela não volta");
+});
+
+test("serviço só com rascunho da Lexia: conferir é um toque, sem chamar a IA, e o que ela corrige fica como resposta dela", async () => {
+  const b = banco({
+    itens: [servico("s1")],
+    linhas: [
+      { campo: "nome", itemId: "s1", valor: "Microblading", estado: "confirmado", fonte: "cliente" },
+      ...["tipo_de_preco:Preço fixo", "valor:650", "duracao_media:2h", "motivo_da_avaliacao:x"].slice(0, 3).map((x) => ({ campo: x.split(":")[0], itemId: "s1", valor: x.split(":")[1], estado: "respondido" as const, fonte: "cliente" as const })),
+      ...["descricao_e_indicacao", "para_quem_indicar", "preparo_e_cuidados", "contraindicacoes", "numero_de_sessoes"].map((campo) => ({ campo, itemId: "s1", valor: `rascunho de ${campo}`, estado: "rascunho" as const, fonte: "recomendacao" as const })),
+    ],
+  });
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
+  let falas = 0;
+  const i: Inteligencia = { async extrair() { return NADA; }, async falar() { falas++; return "fala da IA"; } };
+  await abrirConversa(b.repo, i, "");
+  const c = b.ultimoCartao();
+  assert.ok(c.tipo === "item" && c.faltam.length === 0 && c.confirmar.length === 5, JSON.stringify(c));
+  assert.equal(falas, 0, "apresentar um rascunho para conferir não precisa de IA");
+  if (c.tipo !== "item") return;
+  assert.ok(c.confirmar.every((f) => f.fonte === "recomendacao"), "a tela sabe que foi a Lexia que escreveu");
+  assert.deepEqual(c.confirmar.filter((f) => f.atencao).map((f) => f.campo).sort(), ["contraindicacoes", "preparo_e_cuidados"], "informação de saúde vem marcada para conferir com atenção");
+  await turno(b.repo, i, msg({ valores: c.confirmar.map((f) => ({ campo: f.campo, itemId: "s1", valor: f.campo === "contraindicacoes" ? "Gestantes e quem usa isotretinoína" : f.valor })) }), "");
+  assert.equal((await atual(b, "para_quem_indicar", "s1"))!.estado, "confirmado");
+  assert.deepEqual([(await atual(b, "contraindicacoes", "s1"))!.estado, (await atual(b, "contraindicacoes", "s1"))!.valor], ["respondido", "Gestantes e quem usa isotretinoína"]);
+  assert.ok(!(b.ultimoCartao().tipo === "item" && (b.ultimoCartao() as { itemId: string }).itemId === "s1"), "o serviço fica fechado num turno só");
 });
 
 test("grupo vazio: ela conta quais são e eles entram como itens; itens repetidos não duplicam", async () => {
@@ -200,7 +267,8 @@ test("grupo vazio: ela conta quais são e eles entram como itens; itens repetido
   assert.equal(ativos.length, 1);
   assert.equal((await atual(b, "valor", ativos[0].id))!.valor, "US$ 12 por unidade");
   const c = b.ultimoCartao();
-  assert.equal(c.tipo, "item", "ela acabou de dizer os serviços: não se pede para conferir a lista");
+  assert.equal(c.tipo, "tabela", "ela acabou de dizer os serviços: não se pede para conferir a lista");
+  assert.ok(c.tipo === "tabela" && !c.linhas[0].campos.some((f) => f.campo === "valor"), "o preço que ela já disse não volta na tabela");
 });
 
 test("entrevista inteira: termina sempre, nada é perguntado mais de duas vezes e o que ela respondeu fica resolvido", async () => {

@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { ESQUEMA_ONBOARDING } from "../lib/onboarding/esquema";
-import { enderecoPublico, esquemaDoRascunho, rascunhoParaCaderno, textoDoHtml, valorValido, type RascunhoBruto } from "../lib/onboarding/fontes";
+import { enderecoPublico, esquemaDoRascunho, juntarTextos, rascunhoParaCaderno, servicosParaEscrever, textoDoHtml, valorValido, type RascunhoBruto } from "../lib/onboarding/fontes";
 
 const campo = (chave: string) => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).find((c) => c.chave === chave)!;
 const vazio: RascunhoBruto = { resumo: "", campos: [], horarios: [], servicos: [], profissionais: [], faqs: [], objecoes: [], promocoes: [] };
@@ -98,4 +98,31 @@ test("diferenciais e observações finais não saem das fontes: é a dona que re
   for (const k of ["diferencial_1", "diferencial_2", "diferencial_3", "informacoes_adicionais"]) assert.ok(!chaves.includes(k), k);
   const r = rascunhoParaCaderno({ ...vazio, campos: [{ chave: "diferencial_1", valor: "Boston's #1", lista: [], fonte: "site", trecho: "" }] });
   assert.deepEqual(r.linhas, []);
+});
+
+test("textos escritos pela Lexia: entram como rascunho 'recomendacao', nunca por cima do que veio de uma fonte, e vazio fica de fora", () => {
+  const { itens } = rascunhoParaCaderno({
+    resumo: "", campos: [], horarios: [], profissionais: [{ nome: "Jessica", especialidade: "PMU", fonte: "site", trecho: "" }], faqs: [], objecoes: [], promocoes: [],
+    servicos: [
+      { nome: "Microblading", tipo_de_preco: "", valor: "", duracao_media: "2 horas", descricao_e_indicacao: "Texto do site.", preparo_e_cuidados: "", contraindicacoes: "", numero_de_sessoes: "", fonte: "site", trecho: "" },
+      { nome: "Pacote Jessica Glow", tipo_de_preco: "", valor: "", duracao_media: "", descricao_e_indicacao: "", preparo_e_cuidados: "", contraindicacoes: "", numero_de_sessoes: "", fonte: "site", trecho: "" },
+    ],
+  });
+  const pedido = servicosParaEscrever(itens);
+  assert.deepEqual(pedido.map((p) => [p.n, p.nome]), [[0, "Microblading"], [1, "Pacote Jessica Glow"]], "só serviços, com a posição na lista");
+  assert.equal(pedido[0].dasFontes.descricao_e_indicacao, "Texto do site.");
+  const vazio = { descricao_e_indicacao: "", para_quem_indicar: "", preparo_e_cuidados: "", contraindicacoes: "", numero_de_sessoes: "" };
+  const juntos = juntarTextos(itens, [
+    { n: 0, descricao_e_indicacao: "Texto da Lexia por cima", para_quem_indicar: "Quem tem falhas na sobrancelha.", preparo_e_cuidados: "Evitar álcool na véspera.", contraindicacoes: "Gestantes.", numero_de_sessoes: " " },
+    { n: 1, ...vazio },
+    { n: 2, ...vazio, para_quem_indicar: "não é serviço" },
+    { n: 9, ...vazio, para_quem_indicar: "não existe" },
+  ]);
+  const de = (n: number, campo: string) => juntos[n].linhas.find((l) => l.campo === campo);
+  assert.equal(de(0, "descricao_e_indicacao")!.valor, "Texto do site.", "o texto da fonte vale mais do que o da Lexia");
+  assert.deepEqual([de(0, "contraindicacoes")!.estado, de(0, "contraindicacoes")!.fonte], ["rascunho", "recomendacao"]);
+  assert.equal(de(0, "numero_de_sessoes"), undefined, "campo vazio fica de fora: será perguntado");
+  assert.equal(de(0, "valor"), undefined, "a Lexia nunca escreve preço");
+  assert.deepEqual(juntos[1], itens[1], "serviço que a IA não reconheceu fica como estava");
+  assert.deepEqual(juntos[2], itens[2], "o que não é serviço não recebe texto");
 });

@@ -95,7 +95,8 @@ function entrevistar(linhas: LinhaDoCaderno[], itens: ItemDoCaderno[], responder
       if (p.obrigatorio) { itens.push({ id: `${p.grupo}-novo`, grupo: p.grupo, ordem: 0, removido: false }); andamento.listas.push(p.grupo); }
       continue;
     }
-    const alvos = p.tipo === "item" ? [...p.confirmar, ...p.cartoes, ...p.faltam] : p.campos;
+    if (p.tipo === "tabela") andamento.tabelas = [...(andamento.tabelas ?? []), p.grupo];
+    const alvos = p.tipo === "item" ? [...p.confirmar, ...p.cartoes, ...p.faltam] : p.tipo === "tabela" ? p.linhas.flatMap((l) => l.campos) : p.campos;
     assert.ok(alvos.length > 0, `passo ${p.tipo} vazio`);
     for (const a of alvos) {
       pedidos.push(`${a.itemId ?? ""}|${a.campo.chave}`);
@@ -160,7 +161,9 @@ test("a ordem: confirmar o negócio, conferir a lista de serviços, um serviço 
   linhas.push(linha("endereco_completo", "Rua X", "confirmado"));
   const p2 = proximoPasso(montarCaderno(linhas, itens), itens);
   assert.equal(p2.tipo, "lista");
-  const andamento: Andamento = { listas: ["servicos"], gruposPerguntados: [] };
+  const pTabela = proximoPasso(montarCaderno(linhas, itens), itens, { listas: ["servicos"], gruposPerguntados: [] });
+  assert.equal(pTabela.tipo, "tabela", "depois da lista vem a tabela de preço e duração, uma vez");
+  const andamento: Andamento = { listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] };
   const p3 = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
   assert.equal(p3.tipo, "item");
   if (p3.tipo === "item") {
@@ -178,6 +181,17 @@ test("a ordem: confirmar o negócio, conferir a lista de serviços, um serviço 
   assert.deepEqual(proximoPasso(montarCaderno([], []), [], { listas: [], gruposPerguntados: ["servicos"] }), { tipo: "itens", grupo: "servicos", obrigatorio: true });
   const p5 = proximoPasso(montarCaderno([], []), [], { listas: [], gruposPerguntados: ["servicos", "servicos"] });
   assert.ok(!(p5.tipo === "itens" && p5.grupo === "servicos"), "terceira pergunta pelos serviços");
+});
+
+test("o que valia para todos os serviços pergunta-se uma vez, no negócio, e não em cada serviço", () => {
+  const doServico = ESQUEMA_ONBOARDING.flatMap((s) => s.grupos).find((g) => g.chave === "servicos")!.campos.map((c) => c.chave);
+  const daRaiz = ESQUEMA_ONBOARDING.flatMap((s) => s.campos).map((c) => c.chave);
+  for (const k of ["prioridade_de_venda", "se_acharem_caro", "avaliacao_paga", "profissional"]) assert.ok(!doServico.includes(k), `${k} voltou a ser perguntado em cada serviço`);
+  for (const k of ["servicos_prioritarios", "se_acharem_caro", "avaliacao_paga"]) assert.ok(daRaiz.includes(k), `${k} deixou de ser perguntado`);
+  // quinze serviços não podem custar quinze vezes as mesmas perguntas: o caderno cresce pouco por serviço
+  const itens = Array.from({ length: 15 }, (_, n) => servico(`s${n}`, n));
+  const porServico = montarCaderno([], itens).filter((c) => c.itemId === "s0").length;
+  assert.ok(porServico <= 8, `cada serviço abre ${porServico} campos`);
 });
 
 test("arquivos não são perguntas do caderno", () => {

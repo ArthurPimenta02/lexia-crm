@@ -340,6 +340,15 @@ Etapa 2 (conversa):
   Gemini (`gemini-2.5-flash`) com a chave da conexão global `ia` da Lexia (`audio.ts`).
 - O andamento que não se vê no caderno (listas conferidas, grupos já perguntados) vive em
   `lexia_onboardings.cursor`. Quando o caderno diz "fim", o estado passa a `revisao`.
+- Serviços (2026-11-17, para a entrevista caber em cerca de 1 hora): depois da lista vem o passo
+  `tabela` (preço, tipo de preço e duração de todos os serviços num cartão só; mostra-se uma vez,
+  `cursor.tabelas`; o que ficar em branco é perguntado no serviço). O que valia para todos os
+  serviços pergunta-se uma vez, na raiz da seção `servicos` (`avaliacao_paga`,
+  `servicos_prioritarios`, `se_acharem_caro`); quem faz cada serviço responde-se em cada
+  profissional. Um serviço em que só há rascunho para conferir fecha num toque, sem chamada de IA.
+- Onde ficam os dados: tudo o que é da entrevista (respostas, mensagens, arquivos, áudios) fica
+  no Supabase **central**, nas tabelas `lexia_onboarding*` e no bucket `onboarding`, sempre com
+  `cliente_slug`. Nada é escrito no Supabase do cliente antes da aprovação (Etapa 3, por construir).
 - A equipe acompanha a conversa em `/admin/clientes/<slug>/onboarding`, só leitura.
 
 Etapa 1:
@@ -367,6 +376,12 @@ Etapa 1:
 - A IA é o Claude (`claude-sonnet-5`) com a chave do **próprio cliente** (conexão `ia`:
   `anthropic_api_key` e `anthropic_base_url`). Sem ela a tela avisa e não gera.
 - Instagram e Google não se deixam ler por fora: entram por "Texto colado" ou por prints.
+- Depois do rascunho das fontes, uma segunda chamada (`pedirTextosDosServicos`) escreve os textos
+  de cada serviço que as fontes não trazem (descrição, para quem indicar, preparo e cuidados,
+  contraindicações, nº de sessões). Entram como `rascunho` com fonte `recomendacao`: a dona confere
+  na conversa (a tela marca "Rascunho da Lexia" e pede atenção nos campos de saúde, `atencao` no
+  esquema). Preço e duração nunca são escritos pela IA. Se a chamada falhar, o rascunho segue sem
+  ela e os textos são perguntados.
 
 ### API do Analista Lexia
 
