@@ -176,6 +176,37 @@ function Campo({ campo, valor, mudar, confirmar }: { campo: CampoDoCartao; valor
   );
 }
 
+/** A instrução do cartão: uma frase que diz exatamente o que fazer agora. */
+function OQueFazer({ children }: { children: React.ReactNode }) {
+  const { t } = useIdioma();
+  return (
+    <div className="rounded-xl bg-[var(--ds-acao-fundo)] px-3.5 py-3">
+      <p className="ds-sobretitulo text-[var(--ds-acao)]">{t("O que fazer agora")}</p>
+      <p className="mt-1 text-sm font-medium leading-relaxed text-foreground">{children}</p>
+    </div>
+  );
+}
+
+/** Um rascunho já preenchido, fechado: mostra o começo do texto e abre para editar. */
+function Resumo({ campo, valor, abrir }: { campo: CampoDoCartao; valor: unknown; abrir: () => void }) {
+  const { t } = useIdioma();
+  const texto = valor === null ? t("Sem problema, eu pergunto isso na conversa.") : Array.isArray(valor) ? valor.join(", ") : String(valor ?? "");
+  return (
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm font-semibold text-foreground">
+          {campo.pergunta}
+          {campo.atencao ? <span className="flex items-center gap-1 text-[0.75rem] font-normal text-[var(--ds-alerta)]"><AlertCircle aria-hidden="true" className="h-3 w-3" />{t("saúde: confira")}</span> : null}
+        </p>
+        <p className="mt-0.5 line-clamp-2 text-[0.8125rem] leading-relaxed text-muted-foreground">{texto}</p>
+      </div>
+      <button className="shrink-0 text-[0.8125rem] font-medium text-[var(--ds-acao)] underline-offset-2 hover:underline" onClick={abrir} type="button">
+        {t("Ver e editar")}
+      </button>
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ o cartão ativo
 
 type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[] };
@@ -238,6 +269,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   if (cartao.tipo === "confirmar") {
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
+        <OQueFazer>{t("Leia os dados abaixo. Se algo estiver errado, corrija no próprio campo. Depois toque em \"Está certo, continuar\".")}</OQueFazer>
         {cartao.campos.map((f) => (
           <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
         ))}
@@ -398,7 +430,12 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
     const emBranco = cartao.linhas.filter((l) => !linhaCompleta(l, estado.valores)).length;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
-        <p className="ds-sobretitulo">{t("Preço e duração")}</p>
+        <OQueFazer>{t("Digite o preço e a duração de cada serviço. Se o preço de algum depende de avaliação, escolha isso na linha dele. Depois toque em \"Enviar a tabela\".")}</OQueFazer>
+        <div aria-hidden="true" className="hidden min-w-0 grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[0.75rem] font-medium text-muted-foreground sm:grid">
+          <span>{t("Como é o preço")}</span>
+          <span>{t("Preço")}</span>
+          <span>{t("Duração")}</span>
+        </div>
         <ul className="flex flex-col divide-y divide-[var(--ds-linha)]">
           {cartao.linhas.map((l) => {
             const tipo = l.campos.find((f) => f.campo === "tipo_de_preco");
@@ -418,7 +455,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
                     </select>
                   ) : null}
                   {valor ? (
-                    <input aria-label={t("Preço")} className="ds-campo disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, e.target.value)} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Preço")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
+                    <input aria-label={t("Preço")} className="ds-campo disabled:opacity-50" disabled={semValor(tipoAtual)} inputMode="decimal" onChange={(e) => set(valor, e.target.value)} placeholder={semValor(tipoAtual) ? t("Depois da avaliação") : t("Digite o preço (ex.: 650)")} value={semValor(tipoAtual) ? "" : String(estado.valores[k(valor)] ?? "")} />
                   ) : null}
                   {duracao ? (
                     <input aria-label={t("Duração")} className="ds-campo" onChange={(e) => set(duracao, e.target.value)} placeholder={t("Duração (ex.: 1h30)")} value={String(estado.valores[k(duracao)] ?? "")} />
@@ -432,40 +469,64 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
           <button className="ds-botao ds-botao-primario" disabled={ocupado || !valoresDaTabela(cartao.linhas, estado.valores).length} onClick={() => enviar({})} type="button">
             {t("Enviar a tabela")}
           </button>
-          {emBranco > 0 ? <span className="text-[0.8125rem] text-muted-foreground">{t("{n} em branco: o que faltar eu pergunto depois", { n: emBranco })}</span> : null}
+          {emBranco > 0 ? <span className="flex items-center gap-1.5 text-[0.8125rem] text-[var(--ds-alerta)]"><AlertCircle aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />{t("{n} em branco: o que faltar eu pergunto depois", { n: emBranco })}</span> : null}
         </div>
       </div>
     );
   }
 
   if (cartao.tipo === "item") {
+    const tipo = cartao.faltam.find((f) => f.campo === "tipo_de_preco");
+    const preco = cartao.faltam.find((f) => f.campo === "valor");
+    const outros = cartao.faltam.filter((f) => f !== tipo && f !== preco);
+    const tipoAtual = tipo ? (estado.valores[k(tipo)] as string | undefined) : undefined;
+    const temFalta = cartao.faltam.length > 0 || cartao.cartoes.length > 0;
     return (
       <div className="ds-cartao flex flex-col gap-4 p-4">
         <p className="ds-titulo-3 text-foreground">{cartao.nome}</p>
-        {cartao.faltam.length ? (
+        <OQueFazer>
+          {preco
+            ? t("Digite o preço deste serviço e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
+            : tipo
+              ? t("Escolha como é o preço deste serviço e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
+            : temFalta
+              ? t("Responda o que está em \"Falta só isto\" e toque em \"Continuar\". O resto já está preenchido: só mexa se estiver errado.")
+              : t("Já está tudo preenchido. Dê uma olhada: se estiver certo, toque em \"Está certo, continuar\".")}
+        </OQueFazer>
+        {temFalta ? (
           <div className="flex flex-col gap-4">
             <p className="ds-sobretitulo">{t("Falta só isto")}</p>
-            {cartao.faltam.map((f) => (
+            {tipo || preco ? (
+              <div className="flex min-w-0 flex-col gap-2">
+                <p className="text-sm font-semibold text-foreground">{preco ? t("Quanto custa?") : t("Como é o preço deste serviço?")}</p>
+                {tipo ? <Opcoes campo={{ ...tipo, opcoes: (tipo.opcoes ?? []).filter((o) => !/^outro/i.test(o)) }} mudar={(v) => set(tipo, v)} valor={estado.valores[k(tipo)]} /> : null}
+                {preco && !semValor(tipoAtual) ? (
+                  <input aria-label={t("Preço")} className="ds-campo max-w-xs" inputMode="decimal" onChange={(e) => set(preco, e.target.value)} placeholder={t("Digite o preço (ex.: 650)")} value={String(estado.valores[k(preco)] ?? "")} />
+                ) : null}
+              </div>
+            ) : null}
+            {[...outros, ...cartao.cartoes].map((f) => (
               <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
             ))}
           </div>
         ) : null}
-        {cartao.cartoes.map((f) => (
-          <Campo campo={f} confirmar={false} key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
-        ))}
         {cartao.confirmar.length ? (
-          <div className="flex flex-col gap-4">
-            {cartao.faltam.length || cartao.cartoes.length ? <p className="ds-sobretitulo">{t("Já preenchido: confira")}</p> : null}
-            {cartao.confirmar.map((f) => (
-              <Campo campo={f} confirmar key={k(f)} mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} />
-            ))}
+          <div className="flex flex-col gap-3">
+            <p className="ds-sobretitulo">{t("Já preenchido")}</p>
+            <div className="flex flex-col divide-y divide-[var(--ds-linha)]">
+              {cartao.confirmar.map((f) => (
+                <div className="py-3 first:pt-0 last:pb-0" key={k(f)}>
+                  {abertos.has(k(f)) ? <Campo campo={f} confirmar mudar={(v) => set(f, v)} valor={estado.valores[k(f)]} /> : <Resumo abrir={() => setAbertos(new Set([...abertos, k(f)]))} campo={f} valor={estado.valores[k(f)]} />}
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <button className="ds-botao ds-botao-primario" disabled={ocupado} onClick={() => enviar({})} type="button">
-            {cartao.faltam.length ? t("Continuar") : t("Está certo, continuar")}
+            {temFalta ? t("Continuar") : t("Está certo, continuar")}
           </button>
-          {cartao.faltam.length ? (
+          {temFalta ? (
             <>
               <button className="ds-botao ds-botao-secundario" disabled={ocupado} onClick={() => enviar({ pular: true })} type="button">
                 {t("Não sei agora")}
@@ -621,6 +682,14 @@ export function ConversaOnboarding({
       cartao?.tipo === "item" && !extra.pular
         ? [...cartao.confirmar, ...cartao.cartoes, ...cartao.faltam].filter((f) => estadoDoCartao.valores[k(f)] !== undefined && estadoDoCartao.valores[k(f)] !== "").map((f) => ({ campo: f.campo, itemId: f.itemId, valor: estadoDoCartao.valores[k(f)] }))
         : [];
+    // Só o preço, sem dizer o tipo: é preço fixo (a primeira opção), como na tabela. Preço que depende de avaliação não leva valor.
+    if (cartao?.tipo === "item") {
+      const tipo = cartao.faltam.find((f) => f.campo === "tipo_de_preco");
+      const temPreco = doItem.some((v) => v.campo === "valor");
+      const temTipo = doItem.find((v) => v.campo === "tipo_de_preco");
+      if (tipo && temPreco && !temTipo && tipo.opcoes?.[0]) doItem.push({ campo: tipo.campo, itemId: tipo.itemId, valor: tipo.opcoes[0] });
+      if (temTipo && semValor(temTipo.valor)) doItem.splice(0, doItem.length, ...doItem.filter((v) => v.campo !== "valor"));
+    }
     // A tabela vai inteira com o que estiver preenchido, mesmo quando ela responde por texto ou áudio.
     const daTabela = cartao?.tipo === "tabela" && !extra.pular ? valoresDaTabela(cartao.linhas, estadoDoCartao.valores) : [];
     const doCartao = [...doItem, ...daTabela];

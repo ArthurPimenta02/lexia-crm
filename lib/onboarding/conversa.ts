@@ -282,14 +282,14 @@ export const MAIS_CONFERENCIA = "Mais um pouco do que eu encontrei. Confere tamb
 export function falaPadrao(cartao: Cartao, complemento: boolean): string {
   switch (cartao.tipo) {
     case "confirmar":
-      return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim? O que estiver errado, é só corrigir no próprio campo.";
+      return "Olha o que eu já encontrei sobre o seu negócio. Confere pra mim?";
     case "lista":
       if (cartao.itens.some((i) => i.campos?.length)) return `${LISTA_SUGERIDA[cartao.grupo]} Corrija o que for diferente aí, desmarque o que não vale e acrescente o que estiver faltando.`;
       return `${LISTA_ACHADA[cartao.grupo]} Desmarca o que não vale e acrescenta o que estiver faltando.`;
     case "itens":
       return complemento ? `Consegue me contar pelo menos ${PRINCIPAIS[cartao.grupo]}? Pode escrever ou, se for mais fácil, gravar um áudio.` : `${QUAIS_SAO[cartao.grupo]} Pode escrever ou, se for mais fácil, gravar um áudio.`;
     case "tabela":
-      return "Agora o preço e a duração de cada serviço, tudo de uma vez. Preencha o que souber; se o preço de algum depende de avaliação, é só escolher isso na linha dele.";
+      return "Agora o preço e a duração de cada serviço, tudo de uma vez.";
     case "item":
       if (!cartao.faltam.length) return `${cartao.nome || "Este item"}: deixei um rascunho pronto. Confira e corrija no próprio campo o que for diferente aí.`;
       return complemento
