@@ -93,14 +93,36 @@ function Linha({ campo, salvar }: { campo: CampoDaFicha; salvar?: Salvar }) {
   );
 }
 
-function Dobra({ titulo, nota, aberta = false, children }: { titulo: string; nota?: string; aberta?: boolean; children: React.ReactNode }) {
+/** Anel de progresso: a parte preenchida em Jade; o resto, em cor de alerta quando falta algo. */
+function Anel({ feitos, total, tamanho = 56, espessura = 6, children }: { feitos: number; total: number; tamanho?: number; espessura?: number; children?: React.ReactNode }) {
+  const r = (tamanho - espessura) / 2;
+  const volta = 2 * Math.PI * r;
+  const parte = total ? feitos / total : 1;
+  return (
+    <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: tamanho, height: tamanho }}>
+      <svg aria-hidden="true" className="-rotate-90" height={tamanho} width={tamanho}>
+        <circle cx={tamanho / 2} cy={tamanho / 2} fill="none" r={r} stroke={parte < 1 ? "color-mix(in oklab, var(--ds-alerta) 55%, transparent)" : "var(--ds-linha)"} strokeWidth={espessura} />
+        <circle cx={tamanho / 2} cy={tamanho / 2} fill="none" r={r} stroke="var(--ds-acao)" strokeDasharray={`${volta * parte} ${volta}`} strokeLinecap="round" strokeWidth={espessura} />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center">{children}</span>
+    </span>
+  );
+}
+
+const camposDe = (s: SecaoDaFicha) => [...s.campos, ...s.grupos.flatMap((g) => g.itens.flatMap((i) => i.campos))];
+
+function Dobra({ titulo, nota, aberta = false, antes, alerta, children }: { titulo: string; nota?: string; aberta?: boolean; antes?: React.ReactNode; alerta?: string; children: React.ReactNode }) {
   const [aberto, setAberto] = useState(aberta);
   return (
     <div className="min-w-0">
       <button aria-expanded={aberto} className="flex w-full min-w-0 items-center justify-between gap-3 py-3 text-left" onClick={() => setAberto(!aberto)} type="button">
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-foreground">{titulo}</span>
-          {nota ? <span className="block text-[0.8125rem] text-muted-foreground">{nota}</span> : null}
+        <span className="flex min-w-0 items-center gap-3">
+          {antes}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-foreground">{titulo}</span>
+            {nota ? <span className="block text-[0.8125rem] text-muted-foreground">{nota}</span> : null}
+            {alerta ? <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-[color-mix(in_oklab,var(--ds-alerta)_14%,transparent)] px-2 py-0.5 text-[0.75rem] font-medium text-[var(--ds-alerta)]"><AlertCircle aria-hidden="true" className="h-3 w-3" />{alerta}</span> : null}
+          </span>
         </span>
         <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${aberto ? "rotate-180" : ""}`} />
       </button>
@@ -111,44 +133,107 @@ function Dobra({ titulo, nota, aberta = false, children }: { titulo: string; not
 
 export function FichaDoAgente({ ficha, salvar }: { ficha: SecaoDaFicha[]; salvar?: Salvar }) {
   const { t } = useIdioma();
-  const nota = (campos: CampoDaFicha[]) => {
-    const abertos = campos.filter((c) => c.aberto).length;
-    return abertos ? t("{n} informações · {a} sem resposta", { n: campos.length, a: abertos }) : t("{n} informações", { n: campos.length });
-  };
+  const todos = ficha.flatMap(camposDe);
+  const feitos = todos.filter((c) => !c.aberto).length;
+  const comFalta = ficha.filter((s) => camposDe(s).some((c) => c.aberto));
+  const pct = todos.length ? Math.round((feitos / todos.length) * 100) : 100;
+  const nomeDoItem = new Map(ficha.flatMap((s) => s.grupos.flatMap((g) => g.itens.map((i) => [i.id, i.nome] as const))));
   return (
-    <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
-      {ficha.map((s) => {
-        const todos = [...s.campos, ...s.grupos.flatMap((g) => g.itens.flatMap((i) => i.campos))];
-        return (
-          <section className="ds-cartao min-w-0 px-5 py-2" key={s.chave}>
-            <Dobra nota={[...s.grupos.filter((g) => g.itens.length).map((g) => `${g.itens.length} ${g.titulo.toLowerCase()}`), nota(todos)].join(" · ")} titulo={s.titulo}>
-              {s.campos.length ? (
+    <div className="flex min-w-0 flex-col gap-4">
+      {/* O retrato de tudo: quanto está preenchido e em que áreas falta algo. */}
+      <section className="ds-cartao flex min-w-0 flex-col gap-5 p-5 sm:flex-row sm:items-center">
+        <Anel espessura={12} feitos={feitos} tamanho={132} total={todos.length}>
+          <span className="text-center">
+            <span className="block text-3xl font-semibold tabular-nums tracking-tight text-foreground">{pct}%</span>
+            <span className="block text-[0.6875rem] uppercase tracking-wide text-muted-foreground">{t("preenchida")}</span>
+          </span>
+        </Anel>
+        <div className="min-w-0 flex-1">
+          <p className="ds-titulo-3 text-foreground">{comFalta.length ? t("Falta pouco") : t("Ficha completa")}</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            {t("{f} de {n} informações preenchidas", { f: feitos, n: todos.length })}
+            {comFalta.length ? ` · ${t("{a} sem resposta em {s} áreas", { a: todos.length - feitos, s: comFalta.length })}` : ""}
+          </p>
+          <ul className="mt-3 flex min-w-0 flex-wrap gap-2">
+            {ficha.map((s) => {
+              const cs = camposDe(s);
+              const ok = cs.filter((c) => !c.aberto).length;
+              return (
+                <li className="flex min-w-0 items-center gap-2 rounded-full border border-[var(--ds-linha)] py-1 pl-1 pr-3" key={s.chave}>
+                  <Anel espessura={3.5} feitos={ok} tamanho={26} total={cs.length}>{ok === cs.length ? <Check aria-hidden="true" className="h-3 w-3 text-[var(--ds-acao)]" /> : null}</Anel>
+                  <span className="min-w-0 truncate text-[0.8125rem] text-foreground">{s.titulo}</span>
+                  {ok < cs.length ? <span className="text-[0.75rem] font-medium tabular-nums text-[var(--ds-alerta)]">{cs.length - ok}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+
+      {/* O que ficou sem resposta, tudo junto: não é preciso procurar abrindo área por área. */}
+      {comFalta.length ? (
+        <section className="ds-cartao min-w-0 border-2 border-[color-mix(in_oklab,var(--ds-alerta)_45%,transparent)] px-5 py-4">
+          <p className="flex items-center gap-2 text-base font-semibold text-foreground"><AlertCircle aria-hidden="true" className="h-4 w-4 text-[var(--ds-alerta)]" />{t("O que ficou sem resposta")}</p>
+          <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">{salvar ? t("Responda aqui mesmo, ou envie assim: a equipe vê com você depois.") : t("A equipe da Lexia vê estes pontos com a cliente.")}</p>
+          <div className="mt-2 flex flex-col">
+            {comFalta.map((s) => (
+              <div className="min-w-0 border-t border-[var(--ds-linha)] pt-2 first:border-t-0" key={s.chave}>
+                <p className="ds-sobretitulo pt-1">{s.titulo}</p>
                 <div className="divide-y divide-[var(--ds-linha)]">
-                  {s.campos.map((c) => (
-                    <Linha campo={c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
+                  {camposDe(s).filter((c) => c.aberto).map((c) => (
+                    <Linha campo={c.itemId && nomeDoItem.get(c.itemId) ? { ...c, pergunta: `${nomeDoItem.get(c.itemId)} · ${c.pergunta}` } : c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
                   ))}
                 </div>
-              ) : null}
-              {s.grupos.filter((g) => g.itens.length).map((g) => (
-                <div className="mt-2" key={g.chave}>
-                  <p className="ds-sobretitulo pt-2">{g.titulo}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:items-start">
+        {ficha.map((s) => {
+          const cs = camposDe(s);
+          const ok = cs.filter((c) => !c.aberto).length;
+          const itens = s.grupos.filter((g) => g.itens.length).map((g) => `${g.itens.length} ${g.titulo.toLowerCase()}`);
+          return (
+            <section className="ds-cartao min-w-0 px-5 py-2" key={s.chave}>
+              <Dobra
+                alerta={ok < cs.length ? t("{a} sem resposta", { a: cs.length - ok }) : undefined}
+                antes={<Anel feitos={ok} total={cs.length}><span className="text-[0.75rem] font-semibold tabular-nums text-foreground">{cs.length ? Math.round((ok / cs.length) * 100) : 100}%</span></Anel>}
+                nota={[...itens, t("{n} informações", { n: cs.length })].join(" · ")}
+                titulo={s.titulo}
+              >
+                {s.campos.length ? (
                   <div className="divide-y divide-[var(--ds-linha)]">
-                    {g.itens.map((i) => (
-                      <Dobra key={i.id} nota={i.campos.length ? nota(i.campos) : undefined} titulo={i.nome || t("(sem nome)")}>
-                        <div className="divide-y divide-[var(--ds-linha)] pl-3">
-                          {i.campos.map((c) => (
-                            <Linha campo={c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
-                          ))}
-                        </div>
-                      </Dobra>
+                    {s.campos.map((c) => (
+                      <Linha campo={c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
                     ))}
                   </div>
-                </div>
-              ))}
-            </Dobra>
-          </section>
-        );
-      })}
+                ) : null}
+                {s.grupos.filter((g) => g.itens.length).map((g) => (
+                  <div className="mt-2" key={g.chave}>
+                    <p className="ds-sobretitulo pt-2">{g.titulo}</p>
+                    <div className="divide-y divide-[var(--ds-linha)]">
+                      {g.itens.map((i) => {
+                        const faltam = i.campos.filter((c) => c.aberto).length;
+                        return (
+                          <Dobra alerta={faltam ? t("{a} sem resposta", { a: faltam }) : undefined} key={i.id} nota={i.campos.length ? t("{n} informações", { n: i.campos.length }) : undefined} titulo={i.nome || t("(sem nome)")}>
+                            <div className="divide-y divide-[var(--ds-linha)] pl-3">
+                              {i.campos.map((c) => (
+                                <Linha campo={c} key={`${c.itemId ?? ""}|${c.campo}`} salvar={salvar} />
+                              ))}
+                            </div>
+                          </Dobra>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </Dobra>
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
