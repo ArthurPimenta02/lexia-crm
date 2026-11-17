@@ -160,6 +160,10 @@ export function Etapa1Form({
             </div>
           </div>
 
+          <Campo ajuda={t("(aparece para a cliente depois que ela envia a ficha)")} rotulo={t("Link do grupo de WhatsApp com a cliente")}>
+            <input className="ds-campo" defaultValue={etapa1.whatsapp_grupo ?? ""} name="whatsapp_grupo" placeholder="https://chat.whatsapp.com/..." />
+          </Campo>
+
           <Campo rotulo={t("O que a Lexia já sabe da cliente")}>
             <textarea
               className="ds-campo min-h-36 py-2.5 leading-relaxed"

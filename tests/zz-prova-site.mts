@@ -1,0 +1,11 @@
+import { lerSite } from "../lib/onboarding/fontes";
+import { createAdminClient } from "../lib/supabase/admin";
+import { lerItens, lerLinhas, lerOnboarding } from "../lib/onboarding/dados";
+const admin = createAdminClient(), S = "jessica_beauty";
+const onb = (await lerOnboarding(admin, S))!;
+const ls = await lerLinhas(admin, S, onb.id);
+console.log("NOMES:", ls.filter((l) => l.campo === "nome").map((l) => l.valor));
+console.log("RESUMO:", onb.achados?.resumo);
+const r = await lerSite("https://www.jessicabruns.com/");
+const i = r.texto.indexOf("/services"); console.log(r.texto.slice(i, i + 3500));
+console.log("COLADO menciona:", ["Nanoblading", "Lamination", "Tinting", "Laser", "Powder", "Wax"].map((k) => `${k}:${(onb.etapa1.texto_colado ?? "").includes(k)}`).join(" "));

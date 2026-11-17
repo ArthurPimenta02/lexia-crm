@@ -39,6 +39,8 @@ export type CampoDoCartao = {
   pergunta: string;
   tipo: string;
   opcoes?: string[];
+  /** As opções são os itens de um grupo (preenchidas em `cartaoDoPasso`). */
+  opcoesDe?: string;
   recomendado?: string | string[];
   ajuda?: string;
   /** Informação de saúde: a tela pede para conferir com atenção. */
@@ -170,6 +172,7 @@ const paraCartao = (c: CampoNoCaderno): CampoDoCartao => ({
   pergunta: c.campo.pergunta,
   tipo: c.campo.tipo,
   ...(c.campo.opcoes ? { opcoes: c.campo.opcoes } : {}),
+  ...(c.campo.opcoesDe ? { opcoesDe: c.campo.opcoesDe } : {}),
   ...(c.campo.recomendado !== undefined ? { recomendado: c.campo.recomendado } : {}),
   ...(c.campo.ajuda ? { ajuda: c.campo.ajuda } : {}),
   ...(c.campo.atencao ? { atencao: true } : {}),
@@ -181,7 +184,25 @@ export function nomeDoItem(itemId: string, grupo: GrupoQueRepete, linhas: LinhaD
   return typeof l?.valor === "string" ? l.valor : "";
 }
 
-export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
+/**
+ * O cartão do passo. Os campos cujas opções vêm de um grupo (os serviços que cada profissional faz) recebem
+ * aqui as opções: os nomes dos itens ativos desse grupo.
+ */
+export function cartaoDoPasso(passo: Passo, linhas: LinhaDoCaderno[], itens: ItemDoCaderno[] = []): Cartao {
+  const cartao = cartaoSemOpcoes(passo, linhas);
+  const nomes = (g: GrupoQueRepete) => [...new Set(itens.filter((i) => i.grupo === g && !i.removido).map((i) => nomeDoItem(i.id, g, linhas)).filter(Boolean))];
+  const completar = (x: unknown): void => {
+    if (Array.isArray(x)) return x.forEach(completar);
+    if (!x || typeof x !== "object") return;
+    const o = x as Record<string, unknown>;
+    if (typeof o.campo === "string" && typeof o.opcoesDe === "string") o.opcoes = nomes(o.opcoesDe as GrupoQueRepete);
+    else Object.values(o).forEach(completar);
+  };
+  completar(cartao);
+  return cartao;
+}
+
+function cartaoSemOpcoes(passo: Passo, linhas: LinhaDoCaderno[]): Cartao {
   switch (passo.tipo) {
     case "confirmar":
       return { tipo: "confirmar", campos: passo.campos.map(paraCartao) };
@@ -236,7 +257,8 @@ export function conferir(campo: CampoOnboarding, valor: unknown): unknown | unde
   }
   if (campo.tipo === "multi") {
     const lista = (Array.isArray(valor) ? valor : limpo(valor).split(/[;,]/)).map(limpo).filter(Boolean);
-    const boas = [...new Set(lista)].filter((x) => campo.opcoes?.includes(x));
+    // Opções que vêm de um grupo (os serviços): valem os nomes que a tela mandou, sem lista fixa.
+    const boas = [...new Set(lista)].filter((x) => (campo.opcoesDe ? x.length <= 300 : campo.opcoes?.includes(x))).slice(0, 80);
     return boas.length ? boas : undefined;
   }
   const v = limpo(Array.isArray(valor) ? valor[0] : valor).slice(0, 6000);
@@ -380,7 +402,7 @@ export async function abrirConversa(repo: Repositorio, ia: Inteligencia, nomeDaC
   const [linhas, itens, andamento] = await Promise.all([repo.linhas(), repo.itens(), repo.andamento()]);
   if (existentes.length) return { mensagens: existentes, progresso: progressoDe(linhas, itens, proximoPasso(montarCaderno(linhas, itens), itens, andamento).tipo === "fim") };
   const passo = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
-  const cartao = cartaoDoPasso(passo, linhas);
+  const cartao = cartaoDoPasso(passo, linhas, itens);
   const ola = `Oi${nomeDaCliente ? `, ${nomeDaCliente.split(" ")[0]}` : ""}! Eu sou a Lia, da Lexia. Vou montar a sua assistente com você. Dá para parar e voltar quando quiser: fica tudo salvo.`;
   const fala = await falar(ia, { nomeDaCliente, passo: cartao, complemento: false, anotado: [], paraALexia: [], duvida: "", ultimas: [] });
   const m = await repo.gravarDaEntrevistadora(`${ola}\n\n${fala}`, cartao);
@@ -432,7 +454,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
     return { ref, grupo: i.grupo, nome: nomeDoItem(i.id, i.grupo, linhas) };
   });
   const extraido = texto
-    ? await ia.extrair({ passo: cartaoDoPasso(passo, linhas), itens: listaDeItens, raizEmAberto: caderno.filter((c) => !c.grupo && (c.situacao === "falta" || c.situacao === "por_confirmar")).map((c) => c.campo.chave), ultimas: ultimasDe(anteriores.filter((m) => m.id !== recebida.id)), texto })
+    ? await ia.extrair({ passo: cartaoDoPasso(passo, linhas, itens), itens: listaDeItens, raizEmAberto: caderno.filter((c) => !c.grupo && (c.situacao === "falta" || c.situacao === "por_confirmar")).map((c) => c.campo.chave), ultimas: ultimasDe(anteriores.filter((m) => m.id !== recebida.id)), texto })
     : null;
 
   // 3) o que veio nos cartões
@@ -443,12 +465,15 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   const mandados = new Map((resposta.valores ?? []).map((v) => [chave(String(v.campo), v.itemId ?? null), v.valor]));
   for (const v of resposta.valores ?? []) {
     let c = noPasso.get(chave(String(v.campo), v.itemId ?? null));
-    // O preço (ou a faixa) vem no MESMO cartão em que ela escolhe o tipo de preço do serviço: ainda não está no
-    // passo, mas vale, desde que a resposta de que depende venha junto e o peça. Assim não há uma tela só para o preço.
-    if (!c && passo.tipo === "item" && (v.itemId ?? null) === passo.itemId) {
-      const candidato = condicional(String(v.campo), itens.find((i) => i.id === passo.itemId) ?? null, linhas);
+    // Um campo que depende de outro e vem no MESMO cartão (o preço junto do tipo de preço, o texto que abre ao
+    // escolher "Outro"): ainda não está no passo, mas vale, desde que a resposta de que depende venha junto e o peça.
+    if (!c) {
+      const idDoItem = v.itemId ?? null;
+      const candidato = condicional(String(v.campo), idDoItem ? (itens.find((i) => i.id === idDoItem) ?? null) : null, linhas);
       const q = candidato?.campo.quando;
-      if (candidato && q && !("algum" in q) && noPasso.has(chave(q.campo, passo.itemId)) && seAplica(q, { [q.campo]: mandados.get(chave(q.campo, passo.itemId)) })) c = candidato;
+      const pais = q ? ("algum" in q ? q.algum : [q]).map((x) => x.campo) : [];
+      const juntos = Object.fromEntries(pais.map((p) => [p, mandados.get(chave(p, idDoItem))]));
+      if (candidato && q && (!idDoItem || itens.some((i) => i.id === idDoItem)) && pais.some((p) => noPasso.has(chave(p, idDoItem)) && mandados.has(chave(p, idDoItem))) && seAplica(q, juntos)) c = candidato;
     }
     if (!c || resolvidas.has(chave(c.campo.chave, c.itemId))) continue;
     if (v.valor === null) continue; // "não é isso": fica por responder e segue para a conversa
@@ -565,7 +590,7 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   await repo.marcarProcessada(recebida.id);
   [linhas, itens] = await Promise.all([repo.linhas(), repo.itens()]);
   const seguinte = proximoPasso(montarCaderno(linhas, itens), itens, andamento);
-  const cartao = cartaoDoPasso(seguinte, linhas);
+  const cartao = cartaoDoPasso(seguinte, linhas, itens);
   const mesmoPasso = (seguinte.tipo === "item" && passo.tipo === "item" && seguinte.itemId === passo.itemId) || (seguinte.tipo === "itens" && passo.tipo === "itens" && seguinte.grupo === passo.grupo) || (seguinte.tipo === "pergunta" && passo.tipo === "pergunta" && seguinte.campos.some((c) => perguntados.has(chave(c.campo.chave, c.itemId))));
   // Vários cartões de conferência seguidos: a segunda fala não repete a primeira.
   const maisConferencia = passo.tipo === "confirmar" && seguinte.tipo === "confirmar" && !duvida;

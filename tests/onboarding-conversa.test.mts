@@ -345,7 +345,7 @@ test("entrevista inteira: termina sempre, nada é perguntado mais de duas vezes 
       const ref = p.tipo === "item" ? c.itens.find((x) => x.nome === p.nome)?.ref ?? "" : "";
       const campos = p.tipo === "item" ? p.faltam : p.tipo === "pergunta" ? p.campos : [];
       const horarios = campos.some((f) => f.campo === "horario_por_dia") ? [{ dia: "Seg", abre: "9:00", fecha: "18:00" }] : [];
-      return { ...NADA, horarios, campos: campos.filter((f) => f.campo !== "horario_por_dia").map((f) => ({ chave: f.campo, item: ref, valor: f.opcoes?.[0] ?? "resposta", lista: f.tipo === "multi" ? [f.opcoes![0]] : [], estado: "respondido" as const })) };
+      return { ...NADA, horarios, campos: campos.filter((f) => f.campo !== "horario_por_dia").map((f) => ({ chave: f.campo, item: ref, valor: f.opcoes?.[0] ?? "resposta", lista: f.tipo === "multi" ? [f.opcoes?.[0] ?? "Microblading"] : [], estado: "respondido" as const })) };
     });
     await abrirConversa(b.repo, i, "Jessica");
     let turnos = 0;
@@ -456,4 +456,16 @@ test("no serviço, o preço vem no mesmo cartão do tipo de preço: entra de uma
   assert.equal(await atual(b, "valor", "s2"), undefined, "preço não vale quando só sai depois da avaliação");
   // Um campo que não depende de nada mandado junto não entra por esta porta.
   assert.equal(await atual(b, "valor", "s1").then((l) => l!.valor), "650");
+});
+
+test("escolher 'Outro' e escrever no mesmo cartão: o texto entra junto; sem a escolha que o pede, não entra", async () => {
+  const b = banco({ linhas: [rascunho("posicionamento", "Equilíbrio")] });
+  const i = ia();
+  await abrirConversa(b.repo, i, "");
+  const c = b.ultimoCartao();
+  assert.ok(c.tipo === "confirmar" && c.campos.some((f) => f.campo === "posicionamento"));
+  await turno(b.repo, i, msg({ valores: [{ campo: "posicionamento", itemId: null, valor: "Outro" }, { campo: "outro_posicionamento", itemId: null, valor: "Boutique, por indicação" }, { campo: "outro_emojis", itemId: null, valor: "não devia entrar" }] }), "");
+  assert.equal((await atual(b, "posicionamento"))!.valor, "Outro");
+  assert.deepEqual([(await atual(b, "outro_posicionamento"))!.estado, (await atual(b, "outro_posicionamento"))!.valor], ["respondido", "Boutique, por indicação"]);
+  assert.equal(await atual(b, "outro_emojis"), undefined, "campo que depende de outra resposta, não mandada, fica de fora");
 });

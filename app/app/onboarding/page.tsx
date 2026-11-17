@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
 
-import { liberarConversa, salvarEtapa1 } from "@/app/app/onboarding/actions";
+import { enviarFichaParaAEquipe, liberarConversa, salvarCampoDaRevisao, salvarEtapa1 } from "@/app/app/onboarding/actions";
 import { ConversaOnboarding } from "@/app/components/onboarding/conversa";
 import { Etapa1Form } from "@/app/components/onboarding/etapa1-form";
 import { PassosOnboarding } from "@/app/components/onboarding/passos";
-import { CabecalhoTela, VazioTela } from "@/app/components/tela";
+import { AgenteEmTreino, RevisaoOnboarding } from "@/app/components/onboarding/revisao";
+import { CabecalhoTela } from "@/app/components/tela";
 import { exigirEcra, temOPainelInteiro } from "@/lib/auth/ecras";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { dadosDaEtapa1 } from "@/lib/onboarding/etapa1-tela";
+import { fichaDe } from "@/lib/onboarding/revisao";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -35,6 +37,7 @@ export default async function OnboardingPage() {
   const nome = (cliente as { nome: string | null } | null)?.nome ?? slug;
   const naEtapa1 = dados.estado === "etapa1" || dados.estado === "preparando";
   const etapa = naEtapa1 ? 1 : dados.estado === "conversa" ? 2 : 3;
+  const ficha = etapa === 3 ? await fichaDe({ admin, clienteSlug: slug }) : [];
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -55,10 +58,10 @@ export default async function OnboardingPage() {
         <Etapa1Form {...dados} liberar={liberarConversa} salvarAcao={salvarEtapa1} />
       ) : etapa === 2 ? (
         <ConversaOnboarding />
+      ) : dados.estado === "aprovado" ? (
+        <AgenteEmTreino ficha={ficha} whatsapp={dados.etapa1.whatsapp_grupo} />
       ) : (
-        <div className="ds-cartao">
-          <VazioTela texto={t("A conversa terminou e está tudo guardado. A revisão é o próximo passo e abre aqui.")} titulo={t("A revisão abre em breve")} />
-        </div>
+        <RevisaoOnboarding enviar={enviarFichaParaAEquipe} ficha={ficha} salvar={salvarCampoDaRevisao} />
       )}
     </div>
   );
