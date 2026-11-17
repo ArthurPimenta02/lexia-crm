@@ -34,6 +34,7 @@ export type LinhaDoCaderno = {
   estado: EstadoDaLinha;
   fonte: string;
   perguntas: number;
+  evidencia?: Record<string, unknown> | null;
 };
 
 export type ItemDoCaderno = { id: string; grupo: GrupoQueRepete; ordem: number; removido: boolean };

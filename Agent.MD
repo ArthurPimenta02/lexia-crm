@@ -380,6 +380,12 @@ Etapa 1:
 - A IA é o Claude (`claude-sonnet-5`) com a chave do **próprio cliente** (conexão `ia`:
   `anthropic_api_key` e `anthropic_base_url`). Sem ela a tela avisa e não gera.
 - Instagram e Google não se deixam ler por fora: entram por "Texto colado" ou por prints.
+- Fidelidade do rascunho (17/11/2026): só vale o que a fonte diz com todas as letras (função de uma
+  pessoa e tempo de negócio não se deduzem); quando duas fontes se contradizem, valem as anotações
+  da equipe; os textos saem só em português, com o nome do serviço como o negócio usa. Quando a
+  própria fonte mostra dúvida, a IA marca `incerto` e a linha guarda `evidencia.a_confirmar`: a tela
+  avisa a dona para conferir. Campos condicionais ficam de fora, menos `valor_da_avaliacao`, que só
+  fica se o rascunho também disser que a avaliação vira crédito.
 - Depois do rascunho das fontes, uma segunda chamada (`pedirTextosDosServicos`) escreve os textos
   de cada serviço que as fontes não trazem (descrição, para quem indicar, preparo e cuidados,
   contraindicações, nº de sessões). Entram como `rascunho` com fonte `recomendacao`: a dona confere
