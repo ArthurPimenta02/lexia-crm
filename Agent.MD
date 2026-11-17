@@ -380,6 +380,10 @@ Etapa 1:
 - A IA é o Claude (`claude-sonnet-5`) com a chave do **próprio cliente** (conexão `ia`:
   `anthropic_api_key` e `anthropic_base_url`). Sem ela a tela avisa e não gera.
 - Instagram e Google não se deixam ler por fora: entram por "Texto colado" ou por prints.
+- Tela da conversa (17/11/2026, depois do primeiro teste): um passo já respondido no cartão vira uma
+  linha só no histórico; no cartão de um serviço, o que falta responde-se no próprio cartão e há
+  sempre "Continuar" e "Não sei agora" (antes só dava para seguir por texto ou áudio); cartões de
+  conferência seguidos não repetem a mesma fala. "Provas sociais" saiu do esquema (143 campos).
 - Fidelidade do rascunho (17/11/2026): só vale o que a fonte diz com todas as letras (função de uma
   pessoa e tempo de negócio não se deduzem); quando duas fontes se contradizem, valem as anotações
   da equipe; os textos saem só em português, com o nome do serviço como o negócio usa. Quando a

@@ -30,7 +30,7 @@ export type GrupoOnboarding = { chave: GrupoQueRepete; titulo: string; obrigator
 export type SecaoOnboarding = { chave: string; titulo: string; novo?: boolean; campos: CampoOnboarding[]; grupos: GrupoOnboarding[] };
 export type GrupoQueRepete = "servicos" | "profissionais" | "faqs" | "objecoes" | "promocoes";
 
-/** 13 seções, 145 campos. */
+/** 13 seções, 143 campos. */
 export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
   {
     "chave": "sobre_o_negocio",
@@ -889,19 +889,18 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
       },
       {
         "chave": "avaliacao_vira_credito",
-        "pergunta": "Existe política de \"valor da avaliação vira crédito no tratamento\"?",
+        "pergunta": "O valor da avaliação é abatido do procedimento quando a cliente fecha?",
         "tipo": "radio",
         "obrigatorio": false,
         "modo": "conversa",
         "opcoes": [
           "Sim",
           "Não"
-        ],
-        "ajuda": "Ex.: avaliação de $40 que é abatida no primeiro serviço."
+        ]
       },
       {
         "chave": "valor_da_avaliacao",
-        "pergunta": "Valor da avaliação",
+        "pergunta": "Quanto custa a avaliação?",
         "tipo": "number",
         "obrigatorio": true,
         "modo": "conversa",
@@ -1377,21 +1376,6 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
     "chave": "faqs_e_objecoes",
     "titulo": "FAQs e objeções",
     "campos": [
-      {
-        "chave": "provas_sociais",
-        "pergunta": "Provas sociais",
-        "tipo": "upload",
-        "obrigatorio": false,
-        "modo": "fonte",
-        "ajuda": "Antes/depois (com autorização da cliente), prints de avaliações, nº de clientes atendidas. O agente usa com bom senso para gerar confiança."
-      },
-      {
-        "chave": "texto_provas_sociais",
-        "pergunta": "Provas sociais — texto",
-        "tipo": "long",
-        "obrigatorio": false,
-        "modo": "fonte"
-      },
       {
         "chave": "comparacao_concorrentes",
         "pergunta": "Como responder se compararem com concorrentes?",
