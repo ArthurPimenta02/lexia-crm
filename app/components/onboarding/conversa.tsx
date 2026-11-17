@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, Check, FileText, Loader2, Mic, Paperclip, RotateCcw, Send, Square, X } from "lucide-react";
 
 import { useIdioma } from "@/app/components/idioma";
+import { Mascote } from "@/app/components/mascote";
 import type { CampoDoCartao, Cartao, MensagemDaConversa, Progresso } from "@/lib/onboarding/conversa";
 import { createClient } from "@/lib/supabase/client";
 
@@ -803,6 +804,18 @@ export function ConversaOnboarding({
             if (minha && !m.conteudo && passoDe(anterior)) return null;
             // O passo respondido só no cartão sai da conversa e vai para a lista "Já feito", ao lado.
             if (!minha && passoDe(m) && seguinte?.autor === "cliente" && !seguinte.conteudo) return null;
+            // A fala de agora (a última da Lia, ainda sem resposta) é a instrução do passo: vai em destaque, com o beija-flor.
+            if (!minha && i === mensagens.length - 1 && !pendente) {
+              return (
+                <li className="balao-lia" key={m.id}>
+                  <Mascote className="balao-lia-ave" pose={i === 0 ? "ola" : "piscadinha"} tamanho={72} />
+                  <div className="balao-lia-corpo text-foreground">
+                    <span className="balao-lia-nome">{t("Lia")}</span>
+                    <p className="balao-lia-texto">{m.conteudo}</p>
+                  </div>
+                </li>
+              );
+            }
             const dados = (m.dados ?? {}) as { valores?: unknown[]; lista?: unknown; pular?: boolean; nenhum?: boolean };
             const soCartao = minha && !m.conteudo;
             return (
