@@ -50,6 +50,7 @@ export function MenuDoCliente({
         { label: t("Área de testes"), href: `/admin/area-testes${c}` },
         { label: t("Analista Lexia"), href: `/admin/analista${c}` },
         { label: t("Controle do agente"), href: `/admin/turnos${c}` },
+        { label: t("Funil do agente"), href: `/admin/funil${c}` },
         { label: t("Conexões"), href: `/admin/conexoes${c}` },
         { label: t("Bloqueios"), href: `/admin/bloqueios${c}` },
       ],
