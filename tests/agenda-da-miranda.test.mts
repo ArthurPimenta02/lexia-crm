@@ -39,6 +39,13 @@ const SEGREDO = "b".repeat(40);
 /** Uma quarta-feira, longe de mudanças de hora em Boston. */
 const DIA = "2026-11-18";
 
+/*
+ * O relógio fica parado antes do DIA. Sem isto o teste rebentava sozinho no
+ * próprio dia 18/11/2026: a marcação passava a "Esta hora já passou." e todos
+ * os testes que esperam zero avisos falhavam sem nada no código ter mudado.
+ */
+mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-10T12:00:00.000Z") });
+
 process.env.N8N_AGENDA_WEBHOOK_URL = URL_DO_N8N;
 process.env.N8N_AGENDA_WEBHOOK_SECRET = SEGREDO;
 

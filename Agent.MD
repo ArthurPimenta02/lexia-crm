@@ -304,6 +304,7 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 | `/admin/servicos` | Custo e margem por serviço com seleção explícita de cliente. | Sim |
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/turnos` | **Controle do agente** em código (Fase 18, redesenhada a 2026-11-01): métricas das últimas 24 h, conversas à esquerda, a conversa como no WhatsApp ao meio (na sombra, com o que o n8n enviou ao lado) e, à direita, o caminho da resposta escolhida desenhado por etapas como os nós do n8n (`lib/turnos/mapa.ts`; desenho em `app/admin/turnos/vista.tsx` e `fluxo.tsx`, sem acesso a dados). Detalhe técnico completo em `/admin/turnos/[id]`. Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
+| `/admin/funil` | **Funil dos agentes** (2026-11-18): as mesmas 6 etapas para todos (conversa, preço, horários, resumo, marcada, compareceu), por semana da 1.ª mensagem recebida, últimas 8 semanas, com a taxa de cada etapa sobre a anterior. `?cliente=<slug>` filtra; abre-se pela casa do cliente (Agente → Funil do agente). Só leitura, service_role, só `lexia_admin`. Definições na secção 14 ("Funil dos agentes"). | Não |
 | `/admin/followups` | **Follow-ups e lembretes** do agente em código (2026-11-02): follow-ups marcados (`lexia_followups`) e consultas a lembrar (tabela de marcações) lidos da base do cliente com a service_role dele (`<PREFIXO>_SUPABASE_URL`/`_SERVICE_ROLE_KEY`, hoje só Miranda); enviados lidos de `lexia_turnos` (rota followup/lembrete, modo produção). Só leitura; para parar um follow-up bloqueia-se o contacto em `/admin/bloqueios`. Só `lexia_admin`. | Sim |
 | `/admin/conexoes` | Conexões de cada agente (Fase 19): tokens de WhatsApp, Meta, Redis, bases, agenda; e as da Lexia (conta Google, IA de reserva). Segredos cifrados, nunca devolvidos ao navegador. Só `lexia_admin`. | Sim |
 | `/admin/bloqueios` | Contactos bloqueados por cliente (Fase 21): a agente em código não responde a quem está aqui. Adicionar (telefone ou IGSID/PSID) e desbloquear; o botão "Bloquear contacto" na conversa do admin grava o identificador da própria conversa. Só `lexia_admin`. | Sim |
@@ -1516,6 +1517,22 @@ Ranking das 6 maiores contagens pelo campo de serviço da tabela externa.
 ### Agendamentos por dia
 
 Usa a data marcada para atendimento (`inicio` ou `data_inicio`) no fuso do cliente, embora a entrada no período seja definida por `criado_em`.
+
+### Funil dos agentes (2026-11-18)
+
+Regras em `lib/funil/etapas.ts` (puro, testado em `tests/funil-etapas.test.mts`); leitura em `lib/funil/read.ts`; tela `/admin/funil`.
+
+- **Coorte:** conversas (`cliente_slug + identificador_conversa`, sem `teste:`) cuja 1.ª mensagem `recebida` caiu na janela (8 semanas, segunda a domingo no fuso do cliente). Conversas com recebida anterior à janela ficam de fora.
+- **"O agente":** mensagens `enviada` com origem diferente de `humano`, `painel_cliente` e `lembrete_agente`, depois da 1.ª recebida.
+- **1 Conversa:** houve pelo menos uma mensagem do agente. Taxa sobre quem escreveu.
+- **2 Preço:** uma mensagem do agente tem valor com moeda (`60€`, `US$ 40`, `R$ 150`, `40 dólares`). Detectado no texto.
+- **3 Horários:** uma mensagem do agente tem hora concreta (`15:30`, `9h`, `7 PM`; `24h` não conta). Detectado no texto; horário de funcionamento também conta (falso positivo aceite).
+- **4 Resumo:** pergunta de confirmação (`certo?`, `confirmo?`, `is that right?`, `does that look good?`…) a até 25 caracteres do `?`, com dia/hora na mesma mensagem ou na anterior do agente.
+- **5 Marcada:** linha de `lexia_agendamentos` (espelho do Google) do mesmo cliente cujo telefone casa pelos últimos 9 dígitos (`chaveTelefone`) com o da conversa (WhatsApp: do identificador; canais Meta: `lexia_contactos.telefone_digitos`), criada no Google a partir de 1 h antes da 1.ª mensagem. Canceladas contam como marcadas.
+- **6 Compareceu:** marcação ligada não cancelada cuja hora (`inicio`) já passou. Não há registo de faltas: é um teto, não presença confirmada. Taxa sobre as marcadas cuja hora já passou.
+- **Taxas:** etapa k sobre as conversas que chegaram à etapa k-1 (interseção; nunca passa de 100%). As contagens de cada etapa são independentes (uma conversa pode ser marcada sem o agente ter dito preço).
+- **Sem dado:** Claudia (marcada/compareceu — agenda do Google não espelhada) e Asteric (horários, resumo, marcada, compareceu — loja). Configuração em `CLIENTES_DO_FUNIL`.
+- **Limite medido a 18/11:** na Miranda, 17 marcações com telefone das 8 semanas não casam com nenhuma conversa nova (leads de Instagram ou outro número); a tela mostra esse número por cliente.
 
 ### Horários de pico
 
