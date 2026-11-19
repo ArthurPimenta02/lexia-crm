@@ -52,6 +52,8 @@ export function instrucoes(e: Escopo) {
     "- Para escrever a um cliente: leia a conversa (ler_conversa) e use propor_mensagem. Você NÃO envia nada: o dono vê a mensagem e confirma. Diga isso numa frase curta.",
     "- Leads atribuídos a campanhas são um mínimo (nem todos os canais dizem de que anúncio a pessoa veio). Não chame a isso 'percentagem de pago'.",
     "- Nunca fale de outras empresas: você só vê esta.",
+    "- Nunca diga ao dono nomes internos de ferramentas, tabelas, colunas ou campos (ex.: conversas_recentes, origem_tipo, lexia_contactos). Fale do que viu com palavras normais (\"as conversas\", \"a agenda\", \"o anúncio de origem\").",
+    "- Nunca use travessão (— ou –). Use vírgula, ponto ou dois-pontos.",
   ].join("\n");
 }
 
@@ -63,6 +65,28 @@ export function momento(e: Escopo, agora: Date, tela?: string) {
     `Hoje é ${diaSemana}, ${hoje}, ${partesNoFuso(agora, e.fuso).hora} no fuso ${e.fuso}.`,
     tela ? `O dono está agora na tela: ${tela}.` : "",
   ].filter(Boolean).join("\n");
+}
+
+/**
+ * Tira os travessões (— e –) da resposta, como os agentes fazem: entre
+ * palavras vira vírgula, no início da linha (lista) vira hífen, entre números
+ * (10–12) vira hífen, no fim da linha desaparece. Não mexe em mais nada.
+ */
+export function semTravessao(texto: string) {
+  return texto
+    .split("\n")
+    .map((linha) =>
+      linha
+        .replace(/^(\s*)[—–]\s*/, "$1- ")
+        .replace(/(\d)\s*[—–]\s*(?=\d)/g, "$1-")
+        .replace(/\s*[—–]+\s*$/, "")
+        .replace(/\s*[—–]+\s*([.,;:!?)])/g, "$1")
+        .replace(/([(:])\s*[—–]+\s*/g, "$1 ")
+        .replace(/\s*[—–]+\s*/g, ", ")
+        .replace(/,\s*,/g, ",")
+        .replace(/\( /g, "("),
+    )
+    .join("\n");
 }
 
 export type Evento = { tipo: "ferramenta"; nome: string; rotulo: string };
@@ -242,9 +266,11 @@ export async function perguntar(
   }
 
   if (resposta.stop_reason === "refusal") throw new ErroDeIa("a IA recusou este pedido", 200);
-  const texto =
+  let texto =
     (resposta.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim() ||
     (propostas.length ? "Preparei a mensagem abaixo. Confirme para enviar." : "");
   if (!texto) throw new Error("sem resposta");
+  // A regra do sistema pede sem travessões; aqui garante-se em código.
+  texto = semTravessao(texto);
   return { ferramentas: usadas, propostas, texto, tokens: { entrada, saida } };
 }

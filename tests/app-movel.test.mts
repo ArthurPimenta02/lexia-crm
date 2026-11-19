@@ -42,7 +42,7 @@ mock.module("@/lib/supabase/admin", { namedExports: { createAdminClient: () => b
 
 const { idiomaDoAparelho } = await import("@/lib/i18n/idiomas");
 const { destinoSeguro } = await import("@/lib/movel/destino");
-const { estadoDe, canalDe, telefoneLegivel } = await import("@/lib/movel/conversas");
+const { estadoDe, canalDe, telefoneLegivel, listarConversas, DIAS_DA_LISTA } = await import("@/lib/movel/conversas");
 const { duracaoCurta, quandoCurto, iniciais } = await import("@/lib/movel/formato");
 const { limitesDoDia, semanaDe } = await import("@/lib/movel/hoje");
 const { caminhoDoOriginal, parteSegura, tipoDaMidia } = await import("@/lib/movel/midia");
@@ -193,4 +193,24 @@ test("conta demo: hora local de Nova York vira o instante certo (com e sem horá
   assert.ok(ehContaDemo("clinica_teste"));
   assert.ok(!ehContaDemo("detail_by_cordeiro") && !ehContaDemo("miranda_skin_experts") && !ehContaDemo(null));
   assert.ok(SERVICOS_DEMO.every((s) => s.executores.length > 0));
+});
+
+test("app: a lista de conversas do iPhone continua com 14 dias; quem pede 60 vê 60", async () => {
+  const agora = new Date("2026-11-19T12:00:00Z");
+  const haDias = (d: number) => new Date(agora.getTime() - d * 86_400_000).toISOString();
+  base.substituir("lexia_mensagens", [
+    { cliente_slug: "empresa_a", conteudo: "antiga", criado_em: haDias(30), direccao: "recebida", id: "m1", identificador_conversa: "whatsapp:351910000001", origem: null, tipo: "texto" },
+    { cliente_slug: "empresa_a", conteudo: "olá", criado_em: haDias(3), direccao: "recebida", id: "m2", identificador_conversa: "whatsapp:351910000002", origem: null, tipo: "texto" },
+    { cliente_slug: "empresa_a", conteudo: "resposta", criado_em: haDias(2), direccao: "enviada", id: "m3", identificador_conversa: "whatsapp:351910000002", origem: "agente", tipo: "texto" },
+    { cliente_slug: "empresa_b", conteudo: "da B", criado_em: haDias(1), direccao: "recebida", id: "m4", identificador_conversa: "whatsapp:351910000003", origem: null, tipo: "texto" },
+  ]);
+  assert.equal(DIAS_DA_LISTA, 14);
+  const app = await listarConversas("empresa_a", agora);
+  assert.deepEqual(app.map((c) => c.conversa), ["whatsapp:351910000002"]);
+  // A prévia é a ÚLTIMA mensagem (a leitura vem da mais recente para a mais antiga).
+  assert.equal(app[0].previa, "resposta");
+  assert.equal(app[0].previaDe, "agente");
+  const sessenta = await listarConversas("empresa_a", agora, 60);
+  assert.deepEqual(sessenta.map((c) => c.conversa), ["whatsapp:351910000002", "whatsapp:351910000001"]);
+  base.substituir("lexia_mensagens", []);
 });

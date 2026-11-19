@@ -99,9 +99,17 @@ function previaDe(l: Linha) {
   return m?.displayType === "audio" ? "[audio]" : m?.displayType === "imagem" ? "[imagem]" : m?.displayType === "video" ? "[video]" : m?.displayType === "documento" ? "[documento]" : "";
 }
 
-export async function listarConversas(clienteSlug: string, agora = new Date()): Promise<ResumoConversa[]> {
+/**
+ * `dias`: a janela da lista. O app do iPhone usa sempre `DIAS_DA_LISTA` (14);
+ * o assistente do painel pede 60.
+ *
+ * Lê da mais recente para a mais antiga: se o teto de 12 000 linhas for
+ * atingido (janelas longas), o que fica de fora são as mensagens mais antigas,
+ * nunca as conversas de hoje.
+ */
+export async function listarConversas(clienteSlug: string, agora = new Date(), dias = DIAS_DA_LISTA): Promise<ResumoConversa[]> {
   const base = createAdminClient();
-  const desde = new Date(agora.getTime() - DIAS_DA_LISTA * 86_400_000).toISOString();
+  const desde = new Date(agora.getTime() - dias * 86_400_000).toISOString();
   const linhas: Linha[] = [];
   for (let de = 0; de < 12_000; de += 1000) {
     const { data, error } = await base
@@ -109,19 +117,22 @@ export async function listarConversas(clienteSlug: string, agora = new Date()): 
       .select("id, identificador_conversa, direccao, origem, tipo, criado_em")
       .eq("cliente_slug", clienteSlug)
       .gte("criado_em", desde)
-      .order("criado_em", { ascending: true })
+      .order("criado_em", { ascending: false })
       .range(de, de + 999);
     if (error) throw new Error("Não foi possível ler as conversas.");
     linhas.push(...((data ?? []) as Linha[]));
     if (!data || data.length < 1000) break;
   }
 
+  // As linhas vêm da mais recente para a mais antiga: as conversas ficam por
+  // ordem da última mensagem, e cada lista volta à ordem crescente.
   const porConversa = new Map<string, Linha[]>();
   for (const l of linhas) {
     const lista = porConversa.get(l.identificador_conversa) ?? [];
     lista.push(l);
     porConversa.set(l.identificador_conversa, lista);
   }
+  for (const lista of porConversa.values()) lista.reverse();
 
   const conversas = [...porConversa.keys()];
   // O texto só da última mensagem de cada conversa (é o que a lista mostra).
