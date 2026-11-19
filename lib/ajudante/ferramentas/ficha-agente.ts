@@ -11,16 +11,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * lexia_clientes. Só lê.
  *
  * Os interruptores só valem para os agentes que os leem de facto. Ex.: a lista
- * de espera do Detail liga-se no servidor do agente, não pela coluna do painel.
+ * de espera da Miranda e do Detail liga-se no servidor do agente, não pela coluna do painel.
  */
 
 type Interruptor = "followups_longos" | "lista_espera";
+type Fonte = true | { estado: string; nota: string };
 
-// Que interruptores do painel o agente de cada cliente lê, e o que dizer quando não lê.
-const LIDOS: Record<string, Partial<Record<Interruptor, true | string>>> = {
+// De onde vem cada interruptor: `true` = coluna de lexia_clientes que o agente lê; senão, o estado fixo no servidor.
+const NO_SERVIDOR = { estado: "ligado", nota: "ligado no servidor do agente (não segue o interruptor do painel)" };
+const LIDOS: Record<string, Partial<Record<Interruptor, Fonte>>> = {
   claudia_leite_spa: { followups_longos: true, lista_espera: true },
-  detail_by_cordeiro: { followups_longos: true, lista_espera: "o agente do Detail não lê este interruptor do painel: a lista de espera liga-se no servidor do agente (estado não confirmado)" },
-  miranda_skin_experts: { followups_longos: true, lista_espera: "a Miranda não tem lista de espera em produção" },
+  detail_by_cordeiro: { followups_longos: true, lista_espera: NO_SERVIDOR },
+  miranda_skin_experts: { followups_longos: true, lista_espera: NO_SERVIDOR },
 };
 
 const NOMES: Record<Interruptor, string> = {
@@ -54,7 +56,7 @@ export const fichaAgente = {
       const linha = await lerInterruptores(e.clienteSlug).catch(() => null);
       const interruptores = (Object.keys(lidos) as Interruptor[]).map((chave) => {
         const lido = lidos[chave];
-        if (lido !== true) return { interruptor: NOMES[chave], estado: "não se aplica", nota: lido };
+        if (lido !== true) return { interruptor: NOMES[chave], ...lido };
         if (!linha) return { interruptor: NOMES[chave], estado: "não foi possível ler agora" };
         return { interruptor: NOMES[chave], estado: linha[chave] === true ? "ligado" : "desligado" };
       });

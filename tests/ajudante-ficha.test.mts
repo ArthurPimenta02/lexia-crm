@@ -62,10 +62,13 @@ test("ficha: as regras que o analista mais precisa estão escritas (lembretes, p
   assert.match(mir, /entre 24 h e 2 h antes/);
   assert.match(mir, /confirma sozinha/);
   assert.match(mir, /silêncio para sempre/);
+  assert.match(mir, /remarca e cancela sozinha/);
+  assert.match(mir, /Lista de espera\n- Ligada/);
   const det = fichaDoAgente("detail_by_cordeiro")!;
   assert.match(det, /48 h antes/);
   assert.match(det, /Lembrete do sinal/);
   assert.match(det, /Nunca marca sozinho/);
+  assert.match(det, /Lista de espera\n- Ligada/);
   const cla = fichaDoAgente("claudia_leite_spa")!;
   assert.match(cla, /48 h antes/);
   assert.match(cla, /12 h antes/);
@@ -91,17 +94,18 @@ test("ferramenta: empresa sem ficha recebe uma mensagem clara e nenhuma ficha", 
 
 test("ferramenta: interruptores lidos de lexia_clientes, só os que o agente usa", async () => {
   const mir = await correr("miranda_skin_experts");
-  assert.deepEqual(mir.interruptores?.map((i) => i.estado), ["ligado", "não se aplica"]);
+  assert.deepEqual(mir.interruptores?.map((i) => i.estado), ["ligado", "ligado"]);
+  assert.match(mir.interruptores?.[1].nota ?? "", /servidor/);
   assert.equal(mir.modo_teste, undefined);
 
   const cla = await correr("claudia_leite_spa");
   assert.deepEqual(cla.interruptores?.map((i) => i.estado), ["desligado", "ligado"]);
   assert.match(cla.modo_teste ?? "", /modo de teste/);
 
-  // A lista de espera do Detail NÃO segue a coluna do painel: nunca dizer "desligado" só por ela estar false.
+  // A lista de espera da Miranda e do Detail NÃO segue a coluna do painel (que está false): está ligada no servidor.
   const det = await correr("detail_by_cordeiro");
   assert.equal(det.interruptores?.[0].estado, "ligado");
-  assert.equal(det.interruptores?.[1].estado, "não se aplica");
+  assert.equal(det.interruptores?.[1].estado, "ligado");
   assert.match(det.interruptores?.[1].nota ?? "", /servidor/);
 
   const jes = await correr("jessica_beauty");

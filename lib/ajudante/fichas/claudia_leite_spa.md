@@ -1,6 +1,6 @@
 # Como funciona a Carla, agente da Claudia Leite Spa
 
-Lido do código do agente a 19/11/2026. Horas no fuso de Nova Iorque.
+Lido do código do agente publicado (19/11/2026). Horas no fuso de Nova Iorque.
 A 19/11 a conta ainda estava em **modo de teste** no CRM.
 
 ## Canais e idiomas

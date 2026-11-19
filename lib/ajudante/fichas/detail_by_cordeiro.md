@@ -1,6 +1,6 @@
 # Como funciona o agente do Detail by Cordeiro
 
-Lido do código do agente em produção a 19/11/2026 (agente novo, ligado a 16/11). Horas no fuso de Lisboa.
+Lido do agente em produção a 19/11/2026 (versão publicada a 19/11). Horas no fuso de Lisboa.
 
 ## Canais e idiomas
 - Atende no WhatsApp, no Instagram e no Messenger.
@@ -14,10 +14,10 @@ Lido do código do agente em produção a 19/11/2026 (agente novo, ligado a 16/1
 - Martim: de segunda a sexta das 9h às 18h, e no sábado das 9h às 13h.
 - Roberto: de segunda a sexta das 9h às 17h.
 - Fechado aos domingos e nos feriados nacionais.
-- Almoço das 12h30 às 13h00. Há 15 minutos de margem no fim de cada serviço.
+- Almoço das 12h30 às 13h00; 15 minutos de margem no fim de cada serviço.
 - Marca de amanhã até 60 dias à frente. Pedido para hoje passa para o Martim.
 - Avaliações presenciais: 15 minutos, só com o Martim.
-- Respeita o que o cliente disse que não pode (ex.: "saio às 17h") e não oferece esses horários.
+- Respeita o que o cliente disse que não pode (ex.: "saio às 17h").
 
 ## Preço e sinal
 - O preço sai da tabela do Martim, pela categoria do carro. A IA nunca o calcula.
@@ -45,7 +45,7 @@ Lido do código do agente em produção a 19/11/2026 (agente novo, ligado a 16/1
 
 ## Remarcar e cancelar
 - **Remarcar**: o agente faz sozinho. Cria a marcação nova e só depois apaga a antiga.
-- **Cancelar**: passa para o Martim.
+- **Cancelar**: passa para o Martim. Mas quem diz que não vem e não tem data nova tem a marcação cancelada, e o Martim é avisado.
 
 ## Follow-up (quem parou de responder)
 - WhatsApp: 1 h, 24 h e 3 dias. Depois disso, a cadência depende da temperatura do lead (configurável, interruptor "follow-ups longos").
@@ -54,32 +54,26 @@ Lido do código do agente em produção a 19/11/2026 (agente novo, ligado a 16/1
   - Quente: mais um aos 3 dias e outro aos 7 dias.
   - Os de 3 e 7 dias saem devagar: no máximo 10 por dia, de segunda a sábado, das 10h às 18h.
 - Instagram e Messenger: 1 h e cerca de 23 h. Fechada a janela de 24 h da Meta, o Martim recebe um aviso para retomar à mão.
+- Quem adia ("vou pensar", "eu ligo"): no WhatsApp só recebe o follow-up de 3 dias; no Instagram e no Messenger, o de 24 h.
 - Não sai a quem já tem marcação na agenda, a quem está com o Martim nem a quem disse que não quer.
 - O follow-up nunca propõe horários. Cada um muda de abordagem e não repete a pergunta do anterior.
 
 ## Pausas
 - Quando passa a conversa ao Martim, o agente fica calado 24 h: o Martim assume. Escolha do Martim.
-- O agente não pausa por marcar nem por mandar lembrete.
+- Não pausa por marcar nem por mandar lembrete.
 - Antes de cada mensagem confere se o Martim entrou na conversa. Se entrou, o resto não sai.
 
 ## Passa para o Martim (lista fechada)
-- O cliente pediu o Martim.
-- Reclamação.
-- Cancelamento.
-- Não é cliente (ex.: fornecedor).
-- Pedido para hoje ou à porta.
-- Negociação de preço.
-- Recolha do carro.
+- O cliente pediu o Martim; reclamação; cancelamento; não é cliente (ex.: fornecedor).
+- Pedido para hoje ou à porta; negociação de preço; recolha do carro.
 
 Fora desta lista, o agente responde ele próprio.
 
 ## Lista de espera
-- Existe no código: quem queria um dia cheio é avisado se abrir vaga, uma pessoa de cada vez.
-- É ligada no servidor do agente, não pelo painel. O estado atual não foi confirmado.
+- Ligada (o liga/desliga fica no servidor do agente, não no painel).
+- Quem queria um dia cheio é avisado se abrir vaga nesse dia: uma pessoa de cada vez, por ordem de chegada, com 2 h para responder. A vaga não fica reservada.
 
 ## O que nunca faz
 - Dá desconto, diz um preço fora da tabela ou oferece horas que a agenda não deu.
 - Diz "marcado" antes de a marcação existir.
-- Fala como se fosse o Martim ("confirmo o valor").
-- Promete "vou confirmar e te digo".
-- Recebe pagamentos.
+- Fala como se fosse o Martim, promete "vou confirmar e te digo" ou recebe pagamentos.
