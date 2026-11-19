@@ -1,4 +1,4 @@
-import { modeloDoAjudante, perguntar, VERSAO_PROMPT } from "@/lib/ajudante/motor";
+import { mensagemDoErro, modeloDoAjudante, perguntar, VERSAO_PROMPT } from "@/lib/ajudante/motor";
 import { contextoDaEmpresa } from "@/lib/movel/empresa-do-pedido";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -15,6 +15,9 @@ export const maxDuration = 120;
  *
  * A empresa vem da sessão (contextoDaEmpresa: a Lexia pode indicar a da página).
  * Desligado até `AJUDANTE_LIGADO=1`, e no máximo 40 perguntas por pessoa por hora.
+ * A IA é o Claude com a chave Anthropic do PRÓPRIO cliente (conexão "ia"); sem ela
+ * o chat diz que o assistente não está ligado para esta conta. Os erros (sem chave,
+ * sem créditos, 429, 5xx) ficam em lexia_ai_execucoes.erro e chegam ao chat em texto simples.
  * As conversas ficam em lexia_ai_sessoes/lexia_ai_mensagens com contexto.tipo = "ajudante".
  */
 
@@ -32,7 +35,7 @@ export async function POST(request: Request) {
   const tela = typeof corpo.tela === "string" ? corpo.tela.slice(0, 80) : undefined;
   const base = createAdminClient();
 
-  // Limite por hora (protege a conta da OpenAI).
+  // Limite por hora (protege a conta de IA do cliente).
   const umaHora = new Date(Date.now() - 3600_000).toISOString();
   const { count } = await base.from("lexia_ai_execucoes").select("id", { count: "exact", head: true }).eq("criado_por", c.userId).eq("versao_prompt", VERSAO_PROMPT).gte("criado_em", umaHora);
   if ((count ?? 0) >= POR_HORA) return Response.json({ erro: c.t("Muitas perguntas nesta hora. Tente daqui a pouco.") }, { status: 429 });
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
         linha({ propostas: r.propostas, texto: r.texto, tipo: "resposta" });
       } catch (e) {
         if (execucao) await base.from("lexia_ai_execucoes").update({ concluido_em: new Date().toISOString(), duracao_ms: Date.now() - inicio, erro: e instanceof Error ? e.message.slice(0, 300) : "erro", status: "erro" }).eq("id", execucao.id);
-        linha({ erro: c.t("Não consegui responder agora. Tente de novo."), tipo: "erro" });
+        linha({ erro: c.t(mensagemDoErro(e)), tipo: "erro" });
       } finally {
         controlador.close();
       }

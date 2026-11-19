@@ -250,7 +250,7 @@ export const FERRAMENTAS: Record<string, Definicao> = {
   },
 };
 
-/** As definições no formato da OpenAI (Responses API, function tools com `strict`). */
-export function ferramentasOpenAI() {
-  return Object.entries(FERRAMENTAS).map(([name, f]) => ({ description: f.descricao, name, parameters: f.parametros, strict: true, type: "function" as const }));
+/** As definições no formato da Anthropic (Messages API: name, description, input_schema). Ordem fixa: fazem parte do prefixo em cache. */
+export function ferramentasAnthropic() {
+  return Object.entries(FERRAMENTAS).map(([name, f]) => ({ description: f.descricao, input_schema: f.parametros, name }));
 }
