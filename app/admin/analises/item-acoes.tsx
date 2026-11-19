@@ -54,7 +54,7 @@ export function ItemAcoes({ estado, id, nota }: { estado: string; id: string; no
         {opcoes.map((o) => (
           <button
             aria-pressed={atual === o.valor}
-            className="ds-segmento flex-1 sm:flex-none"
+            className="ds-segmento flex-1 whitespace-nowrap px-2.5 sm:flex-none sm:px-3"
             disabled={aGuardar}
             key={o.valor}
             onClick={() => mudar(o.valor)}

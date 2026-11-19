@@ -3,6 +3,7 @@
 import { ScanSearch, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { Segmentado } from "@/app/components/ds";
 import { useIdioma } from "@/app/components/idioma";
@@ -126,7 +127,8 @@ function JanelaPedido({
 
   const titulo = tipo === "geral" ? t("Nova análise geral") : t("Análise específica");
 
-  return (
+  // No body: o cabeçalho da tela tem animação (transform), que prenderia o `fixed` dentro dele.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
       <button aria-label={t("Fechar")} className="absolute inset-0 bg-foreground/30" onClick={fechar} tabIndex={-1} type="button" />
       <form
@@ -226,6 +228,7 @@ function JanelaPedido({
           </button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

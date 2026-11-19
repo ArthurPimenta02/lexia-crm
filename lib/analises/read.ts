@@ -87,7 +87,8 @@ export async function lerAnalises(
       .maybeSingle();
     selecionada = (antiga as Analise | null) ?? null;
   }
-  selecionada ??= analises[0] ?? null;
+  // Sem escolha: a última que já tem relatório (um pedido na fila ainda não tem nada para ver).
+  selecionada ??= analises.find((a) => a.estado === "concluida") ?? analises[0] ?? null;
 
   const ids = analises.map((a) => a.id);
   const desde = new Date(agora.getTime() - DIAS_DOS_REPETIDOS * 86_400_000).toISOString();

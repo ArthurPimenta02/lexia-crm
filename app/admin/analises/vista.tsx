@@ -216,7 +216,7 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
             </div>
           </div>
 
-          <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+          <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[18.5rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
             {/* Lista: no celular desliza na horizontal; no computador é a coluna da esquerda. */}
             <nav aria-label={t("Análises")} className="min-w-0 lg:col-start-1 lg:row-start-1">
               <p className="ds-sobretitulo mb-2 px-1">{t("Análises")}</p>
@@ -272,7 +272,7 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
               ) : null}
             </div>
 
-            <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+            <div className="min-w-0 self-start lg:col-start-1 lg:row-start-2">
               <PainelRepetidos fmtDia={fmtDia} nomeDe={nomeDe} r={r} repetidos={repetidos} t={t} />
             </div>
           </div>
