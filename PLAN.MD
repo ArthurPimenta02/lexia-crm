@@ -681,7 +681,7 @@ O plano só deve ser marcado como concluído quando a produção estiver verific
 - [x] Limitar chat a 12 perguntas por usuário a cada cinco minutos.
 - [x] Versionar migration, RLS restritiva e rollback destrutivo documentado.
 - [x] Documentar o projeto e o workflow em `docs/LEXIA_CRM_E_ANALISTA_N8N.md`.
-- [-] Manter temporariamente a classificação OpenAI direta e seus endpoints como rollback legado.
+- [x] Classificação passou da OpenAI para o Claude com a chave do próprio cliente (19/11/2026).
 
 ### Ativação pendente
 
@@ -710,7 +710,7 @@ O plano só deve ser marcado como concluído quando a produção estiver verific
 - [ ] Avaliar embeddings e pgvector somente depois do baseline; manter busca lexical até provar ganho.
 - [ ] Adicionar streaming da resposta sem perder auditoria e fontes.
 - [ ] Adicionar testes automatizados de isolamento, ferramentas, callback e timeout.
-- [ ] Remover o fluxo OpenAI direto somente após rollback e produção n8n serem validados.
+- [x] Fluxo OpenAI direto removido (19/11/2026): `lib/analyst/openai.ts`, `lib/analyst/chat.ts`, `/api/analista/chat`, SDK `openai`.
 
 Critério de aceite da V1:
 
