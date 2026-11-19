@@ -136,7 +136,7 @@ const limiteDuracaoMinutos = 60 * 24 * 14;
  */
 type JanelaDeTrabalho = (diaDaSemana: number) => number[] | null;
 
-const horarioPorCliente: Record<
+export const horarioPorCliente: Record<
   string,
   Record<string, JanelaDeTrabalho | undefined> | undefined
 > = {
