@@ -116,7 +116,7 @@ for (const slug of clientes) {
           origem_dados: { ...nova.origem_dados, recuperado_em: new Date().toISOString() }, origem_capturada_em: new Date().toISOString(),
         }),
       });
-      if (!r.ok) throw new Error(`PATCH ${f.id}: HTTP ${r.status}`);
+      if (!r.ok) throw new Error(`PATCH ${f.id}: HTTP ${r.status} ${await r.text()}`);
       escritas++;
     }
   }
