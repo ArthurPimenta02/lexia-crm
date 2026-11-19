@@ -80,7 +80,24 @@ function estadoInicial(): Record<string, Linha[]> {
         inicio: "2026-11-05T09:00:00.000Z",
         telefone_digitos: "932691606",
       },
+      // A marcação de um lead do Messenger sem nome de conta: o nome que ele
+      // deu ao marcar é o que a ficha mostra.
+      {
+        cliente_slug: A,
+        estado: "confirmado",
+        inicio: "2026-11-07T09:00:00.000Z",
+        // Escrito em maiúsculas, como chega muitas vezes: sai limpo.
+        nome_cliente: "JOÃO DINIZ",
+        telefone_digitos: "351919536197",
+      },
       // Uma marcação da OUTRA empresa, com o número que um lead de A escreveu.
+      {
+        cliente_slug: A,
+        estado: "confirmado",
+        inicio: "2026-11-08T09:00:00.000Z",
+        nome_cliente: null,
+        telefone_digitos: "351912000111",
+      },
       {
         cliente_slug: B,
         estado: "confirmado",
@@ -156,6 +173,45 @@ function estadoInicial(): Record<string, Linha[]> {
         nome: "Teste do painel",
         telefone: "1111111111111111",
       }),
+      // Sem nome de conta: o nome vem da conversa (ver os testes do nome).
+      contacto({
+        canal: "messenger",
+        id: "msg-marcou-sem-nome",
+        identificador_conversa: "messenger:30000000000000001",
+        telefone: "30000000000000001",
+      }),
+      contacto({
+        canal: "instagram",
+        id: "ig-resumo",
+        identificador_conversa: "instagram:30000000000000002",
+        telefone: "30000000000000002",
+      }),
+      contacto({
+        canal: "instagram",
+        id: "ig-apresentou",
+        identificador_conversa: "instagram:30000000000000003",
+        telefone: "30000000000000003",
+      }),
+      contacto({
+        canal: "instagram",
+        id: "ig-falsos",
+        identificador_conversa: "instagram:30000000000000004",
+        telefone: "30000000000000004",
+      }),
+      contacto({
+        canal: "instagram",
+        id: "ig-empresa",
+        identificador_conversa: "instagram:30000000000000005",
+        telefone: "30000000000000005",
+      }),
+      // Marcou sem nome na marcação, e só escreveu uma vez: o telefone basta
+      // para entrar em Todos.
+      contacto({
+        canal: "instagram",
+        id: "ig-marcou-anonimo",
+        identificador_conversa: "instagram:30000000000000006",
+        telefone: "30000000000000006",
+      }),
       // A outra empresa, com um lead do Instagram com nome.
       contacto({
         canal: "instagram",
@@ -167,6 +223,26 @@ function estadoInicial(): Record<string, Linha[]> {
       }),
     ],
     lexia_mensagens: [
+      // Deu o número (bate com a marcação de "João Diniz") e apresentou-se
+      // como Pedro: a marcação ganha, é a fonte mais forte.
+      mensagem("msg-marcou-sem-nome", "o meu número é 919 536 197"),
+      mensagem("msg-marcou-sem-nome", "Sou o Pedro Alves"),
+      mensagem("ig-resumo", "Quero marcar"),
+      mensagem(
+        "ig-resumo",
+        "A tua marcação está registada ✅\n\n📋 Lavagem\n👤 Rita Alegre 🦋\n\nEstá confirmada!",
+        A,
+        "enviada",
+      ),
+      mensagem("ig-apresentou", "Boa tarde. Sou João Silva."),
+      // Duas mensagens (entra em Todos) e nenhuma é um nome.
+      mensagem("ig-falsos", "sou de Lisboa"),
+      mensagem("ig-falsos", "Sou cliente vosso há anos"),
+      mensagem("ig-empresa", "O meu nome é EDS Construction"),
+      // A outra empresa a "dar um nome" a um contacto de A.
+      mensagem("ig-empresa", "O meu nome é Intruso Total", B),
+      // No WhatsApp a regra continua nome + número: apresentar-se não chega.
+      mensagem("wa-sem-nome", "Sou o Zé Manel"),
       mensagem("wa", "Olá"),
       mensagem("ig-marcou", "Quero marcar"),
       mensagem("ig-marcou", "o meu número é 932 691 606"),
@@ -174,6 +250,10 @@ function estadoInicial(): Record<string, Linha[]> {
       mensagem("ig-nif", "O meu NIF é 162929011"),
       mensagem("ig-numero-de-b", "liga para 961 452 907"),
       mensagem("msg-sem-nome", "Olá, vi o anúncio"),
+      // As respostas do agente não contam como "falou de verdade".
+      mensagem("msg-sem-nome", "Olá! Em que posso ajudar?", A, "enviada"),
+      mensagem("msg-sem-nome", "Ainda está por aí?", A, "enviada"),
+      mensagem("ig-marcou-anonimo", "912 000 111"),
       // O agente a repetir o número do outro lead não é o lead a dá-lo.
       mensagem("ig-sem-tel", "Confirmo o 932 691 606?", A, "enviada"),
       // Uma mensagem da outra empresa com o id de um contacto de A e um número
@@ -219,10 +299,16 @@ test("os leads do Instagram e do Messenger entram na lista, com e sem nome", asy
   const ids = clientes.map((cliente) => cliente.id).sort();
 
   assert.deepEqual(ids, [
+    "ig-apresentou",
+    "ig-empresa",
+    "ig-falsos",
     "ig-marcou",
+    "ig-marcou-anonimo",
     "ig-nif",
     "ig-numero-de-b",
+    "ig-resumo",
     "ig-sem-tel",
+    "msg-marcou-sem-nome",
     "msg-sem-nome",
     "wa",
   ]);
@@ -317,8 +403,14 @@ test("a contagem: quem fica de fora é contado, e fundidos e testes nem isso", a
   reiniciar();
   const { clientes, deFora } = await getClientes(A);
 
-  assert.equal(clientes.length, 6);
-  assert.deepEqual(deFora, { semConversa: 1, semNome: 1, semTelefoneReal: 0 });
+  assert.equal(clientes.length, 12);
+  assert.equal(clientes.filter((cliente) => !cliente.apenasNoFiltro).length, 10);
+  assert.deepEqual(deFora, {
+    semConversa: 1,
+    semNome: 1,
+    semTelefoneReal: 0,
+    soNoFiltroMeta: 2,
+  });
   assert.ok(!clientes.some((cliente) => cliente.id === "msg-junto"));
   assert.ok(!clientes.some((cliente) => cliente.id === "ig-teste"));
 });
@@ -332,7 +424,12 @@ test("a outra empresa só vê os seus, e todas as leituras dizem de que cliente 
     ["ig-b"],
   );
   assert.equal(clientes[0]?.telefone, "");
-  assert.deepEqual(deFora, { semConversa: 0, semNome: 0, semTelefoneReal: 0 });
+  assert.deepEqual(deFora, {
+    semConversa: 0,
+    semNome: 0,
+    semTelefoneReal: 0,
+    soNoFiltroMeta: 0,
+  });
 
   for (const registo of base.registos) {
     assert.ok(
@@ -342,4 +439,78 @@ test("a outra empresa só vê os seus, e todas as leituras dizem de que cliente 
       `${registo.operacao} em ${registo.tabela} correu sem o filtro do cliente`,
     );
   }
+});
+
+// ---------------------------------------------------------------------------
+// Decisão do Arthur (19/11): "Todos" só com quem falou de verdade, e o nome
+// que a pessoa deu na conversa quando a conta não tem nome.
+// ---------------------------------------------------------------------------
+
+async function porId() {
+  const { clientes } = await getClientes(A);
+
+  return new Map(clientes.map((cliente) => [cliente.id, cliente]));
+}
+
+test("quem só mandou uma mensagem, sem nome nem telefone, fica só no filtro da Meta", async () => {
+  reiniciar();
+  const fichas = await porId();
+
+  assert.equal(fichas.get("msg-sem-nome")?.apenasNoFiltro, true);
+  assert.equal(fichas.get("ig-empresa")?.apenasNoFiltro, true);
+  // Duas mensagens do cliente chegam, mesmo sem nome.
+  assert.equal(fichas.get("ig-falsos")?.apenasNoFiltro, false);
+  // Telefone dado ao marcar chega, mesmo com uma mensagem só.
+  assert.equal(fichas.get("msg-marcou-sem-nome")?.apenasNoFiltro, false);
+  assert.equal(fichas.get("ig-marcou-anonimo")?.apenasNoFiltro, false);
+  assert.equal(fichas.get("ig-marcou-anonimo")?.nome, "");
+  assert.equal(fichas.get("ig-marcou-anonimo")?.telefone, "351912000111");
+  // Nome chega: o da conta e o dado na conversa.
+  assert.equal(fichas.get("ig-sem-tel")?.apenasNoFiltro, false);
+  assert.equal(fichas.get("ig-resumo")?.apenasNoFiltro, false);
+  assert.equal(fichas.get("wa")?.apenasNoFiltro, false);
+});
+
+test("o nome da marcação ganha ao nome que a pessoa disse na mensagem", async () => {
+  reiniciar();
+  const ficha = (await porId()).get("msg-marcou-sem-nome");
+
+  assert.equal(ficha?.nome, "João Diniz");
+  assert.equal(ficha?.nomeFonte, "marcacao");
+  assert.equal(ficha?.telefone, "351919536197");
+});
+
+test("o nome do resumo do agente sai limpo, sem o emoji", async () => {
+  reiniciar();
+  const ficha = (await porId()).get("ig-resumo");
+
+  assert.equal(ficha?.nome, "Rita Alegre");
+  assert.equal(ficha?.nomeFonte, "resumo");
+});
+
+test("o nome que o cliente escreveu ('Sou João Silva.') vale quando não há melhor", async () => {
+  reiniciar();
+  const ficha = (await porId()).get("ig-apresentou");
+
+  assert.equal(ficha?.nome, "João Silva");
+  assert.equal(ficha?.nomeFonte, "mensagem");
+});
+
+test("'sou de Lisboa', 'sou cliente' e empresas não viram nome — nem os da outra empresa", async () => {
+  reiniciar();
+  const fichas = await porId();
+
+  for (const id of ["ig-falsos", "ig-empresa"]) {
+    assert.equal(fichas.get(id)?.nome, "", id);
+    assert.equal(fichas.get(id)?.nomeFonte, null, id);
+  }
+});
+
+test("o nome da conta nunca é trocado, e no WhatsApp apresentar-se não basta", async () => {
+  reiniciar();
+  const fichas = await porId();
+
+  assert.equal(fichas.get("ig-marcou")?.nome, "Daniel Ferreira");
+  assert.equal(fichas.get("ig-marcou")?.nomeFonte, "conta");
+  assert.ok(!fichas.has("wa-sem-nome"));
 });

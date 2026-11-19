@@ -1445,6 +1445,11 @@ function LinhaDoCliente({
             >
               {nome}
             </span>
+            {cliente.nomeFonte && cliente.nomeFonte !== "conta" ? (
+              <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+                {t("nome dado na conversa")}
+              </span>
+            ) : null}
             {marcada ? (
               <span className="ds-selo ds-selo-alerta shrink-0">
                 {t("duplicado")}
@@ -1618,13 +1623,20 @@ function FichaDoCliente({
               : t("Conta no {canal}", { canal: nomeDoCanal(cliente.canal) })}
           </dt>
           <dd className="mt-0.5 text-sm font-semibold break-words text-foreground">
-            {cliente.canal === "whatsapp"
-              ? nomeDoCanal(cliente.canal)
-              : cliente.nome || (
-                  <span className="font-normal text-muted-foreground">
-                    {t("sem nome público")}
-                  </span>
-                )}
+            {cliente.canal === "whatsapp" ? (
+              nomeDoCanal(cliente.canal)
+            ) : cliente.nomeFonte === "conta" ? (
+              cliente.nome
+            ) : (
+              <span className="font-normal text-muted-foreground">
+                {t("sem nome público")}
+              </span>
+            )}
+            {cliente.nomeFonte && cliente.nomeFonte !== "conta" ? (
+              <span className="block text-xs font-normal text-muted-foreground">
+                {t("{nome}: nome dado na conversa", { nome: cliente.nome })}
+              </span>
+            ) : null}
           </dd>
         </div>
         <div>
@@ -1796,7 +1808,7 @@ export function ClientesPanel({
   actionJuntar,
   actionSeparar,
   actionServico,
-  clientes,
+  clientes: todosOsClientes,
   deFora,
   executores,
   historicoLigado,
@@ -1836,6 +1848,17 @@ export function ClientesPanel({
   const { locale, t } = useIdioma();
   const [procura, setProcura] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
+
+  // A lista "Todos" deixa de fora quem só mandou a frase do anúncio e sumiu
+  // (decisão do Arthur, 19/11); essas fichas só se vêem no filtro da Meta.
+  const clientes = useMemo(
+    () => todosOsClientes.filter((cliente) => !cliente.apenasNoFiltro),
+    [todosOsClientes],
+  );
+  const daMeta = useMemo(
+    () => todosOsClientes.filter((cliente) => cliente.canal !== "whatsapp"),
+    [todosOsClientes],
+  );
   const [pagina, setPagina] = useState(0);
   const [aberto, setAberto] = useState<string | null>(null);
   const [aCriar, setACriar] = useState(false);
@@ -1869,7 +1892,7 @@ export function ClientesPanel({
     const alvo = procura.trim().toLowerCase();
     const digitos = alvo.replace(/\D/g, "");
 
-    return clientes.filter((cliente) => {
+    return (filtro === "meta" ? daMeta : clientes).filter((cliente) => {
       if (
         alvo !== "" &&
         !nomeVisivel(cliente, t, { locale, timeZone })
@@ -1888,9 +1911,6 @@ export function ClientesPanel({
         return !cliente.notas;
       }
 
-      if (filtro === "meta") {
-        return cliente.canal !== "whatsapp";
-      }
 
       if (filtro === "parados") {
         const dias = diasDesde(cliente.mensagemUltima);
@@ -1900,7 +1920,7 @@ export function ClientesPanel({
 
       return true;
     });
-  }, [clientes, duplicados, filtro, locale, procura, t, timeZone]);
+  }, [clientes, daMeta, duplicados, filtro, locale, procura, t, timeZone]);
 
   const paginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
   // A página pode ficar para lá do fim quando o filtro encolhe a lista.
@@ -1933,7 +1953,7 @@ export function ClientesPanel({
       rotulo: t("Sem notas"),
     },
     {
-      contagem: clientes.filter((cliente) => cliente.canal !== "whatsapp").length,
+      contagem: daMeta.length,
       id: "meta",
       rotulo: t("Instagram e Messenger"),
     },
@@ -1941,7 +1961,10 @@ export function ClientesPanel({
 
   const parados = chips.find((chip) => chip.id === "parados")?.contagem ?? 0;
   const deForaTotal =
-    deFora.semTelefoneReal + deFora.semNome + deFora.semConversa;
+    deFora.semTelefoneReal +
+    deFora.semNome +
+    deFora.semConversa +
+    deFora.soNoFiltroMeta;
 
   const botaoNovo = podeEditar ? (
     <button
@@ -2149,7 +2172,7 @@ export function ClientesPanel({
                     executores={executores}
                     moeda={moeda}
                     mostrarViatura={mostrarViatura}
-                    outros={clientes.filter((outro) => outro.id !== cliente.id)}
+                    outros={todosOsClientes.filter((outro) => outro.id !== cliente.id)}
                     podeEditar={podeEditar}
                     servicos={servicos}
                     timeZone={timeZone}
@@ -2163,7 +2186,7 @@ export function ClientesPanel({
             <span className="text-xs text-muted-foreground tabular-nums">
               {t("{n} de {total} clientes", {
                 n: filtrados.length,
-                total: clientes.length,
+                total: filtro === "meta" ? daMeta.length : clientes.length,
               })}
             </span>
             {paginas > 1 ? (
@@ -2200,6 +2223,22 @@ export function ClientesPanel({
         <AvisoLinha
           detalhe={
             <ul className="flex list-disc flex-col gap-1.5 pl-4">
+              {deFora.soNoFiltroMeta > 0 ? (
+                <li>
+                  {comNos(
+                    t(
+                      "{n} do Instagram ou do Messenger escreveram no máximo uma mensagem (quase sempre a frase pronta do anúncio), sem nome nem telefone. Não estão em Todos, mas aparecem no filtro Instagram e Messenger.",
+                    ),
+                    {
+                      n: (
+                        <span className="font-semibold">
+                          {deFora.soNoFiltroMeta}
+                        </span>
+                      ),
+                    },
+                  )}
+                </li>
+              ) : null}
               {deFora.semConversa > 0 ? (
                 <li>
                   {comNos(

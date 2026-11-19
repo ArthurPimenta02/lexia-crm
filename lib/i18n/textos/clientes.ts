@@ -238,6 +238,9 @@ const textos: TextosDaArea = {
     "{n} contatos não entram na lista. Ver por quê.": "{n} contactos não entram na lista. Ver porquê.",
 
     // Leads do Instagram e do Messenger na lista (19/11)
+    "{n} do Instagram ou do Messenger escreveram no máximo uma mensagem (quase sempre a frase pronta do anúncio), sem nome nem telefone. Não estão em Todos, mas aparecem no filtro Instagram e Messenger.": "{n} do Instagram ou do Messenger escreveram no máximo uma mensagem (quase sempre a frase pronta do anúncio), sem nome nem telefone. Não estão em Todos, mas aparecem no filtro Instagram e Messenger.",
+    "nome dado na conversa": "nome dado na conversa",
+    "{nome}: nome dado na conversa": "{nome}: nome dado na conversa",
     "Cliente do Messenger": "Cliente do Messenger",
     "Cliente sem nome": "Cliente sem nome",
     "{canal} (indicado)": "{canal} (indicado)",
@@ -494,6 +497,9 @@ const textos: TextosDaArea = {
     "{n} contatos não entram na lista. Ver por quê.": "{n} contactos no entran en la lista. Ver por qué.",
 
     // Leads do Instagram e do Messenger na lista (19/11)
+    "{n} do Instagram ou do Messenger escreveram no máximo uma mensagem (quase sempre a frase pronta do anúncio), sem nome nem telefone. Não estão em Todos, mas aparecem no filtro Instagram e Messenger.": "{n} de Instagram o Messenger escribieron como mucho un mensaje (casi siempre la frase predefinida del anuncio), sin nombre ni teléfono. No están en Todos, pero aparecen en el filtro Instagram y Messenger.",
+    "nome dado na conversa": "nombre dado en la conversación",
+    "{nome}: nome dado na conversa": "{nome}: nombre dado en la conversación",
     "Cliente do Messenger": "Cliente de Messenger",
     "Cliente sem nome": "Cliente sin nombre",
     "{canal} (indicado)": "{canal} (indicado)",
@@ -750,6 +756,9 @@ const textos: TextosDaArea = {
     "{n} contatos não entram na lista. Ver por quê.": "{n} contacts aren't on the list. See why.",
 
     // Leads do Instagram e do Messenger na lista (19/11)
+    "{n} do Instagram ou do Messenger escreveram no máximo uma mensagem (quase sempre a frase pronta do anúncio), sem nome nem telefone. Não estão em Todos, mas aparecem no filtro Instagram e Messenger.": "{n} from Instagram or Messenger wrote at most one message (usually the ad's preset text), with no name or phone. They're not in All, but they show up in the Instagram and Messenger filter.",
+    "nome dado na conversa": "name given in the chat",
+    "{nome}: nome dado na conversa": "{nome}: name given in the chat",
     "Cliente do Messenger": "Messenger customer",
     "Cliente sem nome": "Unnamed customer",
     "{canal} (indicado)": "{canal} (noted)",
