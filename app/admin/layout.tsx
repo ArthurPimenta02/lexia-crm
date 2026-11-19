@@ -18,6 +18,7 @@ const adminNavigation = [
   { label: "Visão geral", href: "/admin", icon: "dashboard" },
   { label: "Clientes", href: "/admin/clientes", icon: "clientes" },
   { label: "Controle do agente", href: "/admin/turnos", icon: "turnos" },
+  { label: "Análises das conversas", href: "/admin/analises", icon: "analises" },
   { label: "Conexões da Lexia", href: "/admin/conexoes", icon: "conexoes" },
 ];
 

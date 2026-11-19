@@ -7,6 +7,7 @@ import {
   Ban,
   CalendarDays,
   CircleDot,
+  FileSearch,
   FlaskConical,
   LayoutDashboard,
   LifeBuoy,
@@ -43,6 +44,7 @@ import { useIdioma } from "@/app/components/idioma";
 export const icones: Record<string, LucideIcon> = {
   agenda: CalendarDays,
   analista: Telescope,
+  analises: FileSearch,
   campanhas: Megaphone,
   clientes: Users,
   conversas: MessagesSquare,
