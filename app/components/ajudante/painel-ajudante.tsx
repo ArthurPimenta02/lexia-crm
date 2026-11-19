@@ -70,6 +70,7 @@ export function PainelAjudante({ cliente, modo, onFechar, tela, telaInteira }: {
                   ) : (
                     <p className="my-1.5" key={i}>{b.linhas.map((l, j) => <span key={j}>{j ? <br /> : null}{partesDe(l).map((p, k) => p.negrito ? <strong key={k}>{p.t}</strong> : <span key={k}>{p.t}</span>)}</span>)}</p>
                   ))}
+                  {!m.erro && /^#\s/.test(m.conteudo.trim()) ? <BotaoCopiar rotulo={t("Copiar relatório")} rotuloFeito={t("Copiado ✓")} texto={m.conteudo.trim()} /> : null}
                   {m.propostas.map((p, i) => (
                     <div className="mt-2 rounded-xl border border-border bg-background p-3" key={i}>
                       <p className="text-xs font-medium text-muted-foreground">{t("Mensagem para {nome}", { nome: p.nome || t("Cliente") })}</p>
@@ -111,5 +112,24 @@ export function PainelAjudante({ cliente, modo, onFechar, tela, telaInteira }: {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Copia o relatório (markdown) para colar no WhatsApp, email ou apresentação. */
+function BotaoCopiar({ rotulo, rotuloFeito, texto }: { rotulo: string; rotuloFeito: string; texto: string }) {
+  const [feito, setFeito] = useState(false);
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setFeito(true);
+      setTimeout(() => setFeito(false), 2000);
+    } catch {
+      // sem permissão de área de transferência: o texto continua selecionável na tela
+    }
+  };
+  return (
+    <button className="mt-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted" onClick={() => void copiar()} type="button">
+      {feito ? rotuloFeito : rotulo}
+    </button>
   );
 }
