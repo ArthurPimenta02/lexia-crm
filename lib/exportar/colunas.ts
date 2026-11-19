@@ -40,6 +40,18 @@ export function colunasDeClientes(
   return [
     { cabecalho: "Nome", valor: (c) => c.nome },
     { cabecalho: "Telefone", valor: (c) => c.telefone },
+    // No Instagram e no Messenger o número não é o da conversa: é o que a
+    // pessoa deu ao agente e bate com uma marcação. Quem lê a folha tem de
+    // saber qual dos dois é.
+    {
+      cabecalho: "Telefone (de onde)",
+      valor: (c) =>
+        c.telefoneOrigem === "contacto"
+          ? "conversa"
+          : c.telefoneOrigem === "marcacao"
+            ? "dado ao marcar"
+            : null,
+    },
     { cabecalho: "Canal", valor: (c) => c.canal },
     // Os canais juntos, para quem tem o mesmo cliente em WhatsApp e Instagram.
     { cabecalho: "Outros canais", valor: (c) => c.canais.join(", ") },
