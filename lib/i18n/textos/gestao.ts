@@ -335,7 +335,6 @@ const textos: TextosDaArea = {
     "Anthropic": "Anthropic",
     "Endereço da Anthropic (Cloudflare)": "Endereço da Anthropic (Cloudflare)",
     "O worker da Cloudflare que guarda o cache e economiza tokens.": "O worker da Cloudflare que guarda a cache e poupa tokens.",
-    "OpenAI": "OpenAI",
     "Google Gemini": "Google Gemini",
     // Redesenho das telas de admin (06/11/2026).
     "{n} inativos": "{n} inactivos",
@@ -716,7 +715,6 @@ const textos: TextosDaArea = {
     "Anthropic": "Anthropic",
     "Endereço da Anthropic (Cloudflare)": "Dirección de Anthropic (Cloudflare)",
     "O worker da Cloudflare que guarda o cache e economiza tokens.": "El worker de Cloudflare que guarda la caché y ahorra tokens.",
-    "OpenAI": "OpenAI",
     "Google Gemini": "Google Gemini",
     // Redesenho das telas de admin (06/11/2026).
     "{n} inativos": "{n} inactivos",
@@ -1097,7 +1095,6 @@ const textos: TextosDaArea = {
     "Anthropic": "Anthropic",
     "Endereço da Anthropic (Cloudflare)": "Anthropic address (Cloudflare)",
     "O worker da Cloudflare que guarda o cache e economiza tokens.": "The Cloudflare worker that keeps the cache and saves tokens.",
-    "OpenAI": "OpenAI",
     "Google Gemini": "Google Gemini",
     // Redesenho das telas de admin (06/11/2026).
     "{n} inativos": "{n} inactive",

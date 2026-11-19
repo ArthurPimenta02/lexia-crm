@@ -49,7 +49,7 @@ export default function PrivacyPage() {
       <h2>4. Service providers</h2>
       <p>
         We use trusted providers to run the service: cloud hosting and databases (Vercel, Supabase, our own virtual
-        server), AI model providers (such as OpenAI) to understand messages and write replies, Google Calendar when a
+        server), AI model providers (such as Anthropic) to understand messages and write replies, Google Calendar when a
         Client uses it for bookings, and Meta&apos;s APIs to receive and send messages. Providers process data only to
         provide their service to us, under confidentiality and data-protection obligations. Some providers are located
         outside the European Economic Area; in that case we rely on appropriate safeguards such as Standard Contractual

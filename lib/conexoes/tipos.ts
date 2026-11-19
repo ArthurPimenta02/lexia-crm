@@ -233,7 +233,6 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
         segredo: false,
         ajuda: "O worker da Cloudflare que guarda o cache e economiza tokens.",
       },
-      { nome: "openai_api_key", label: "OpenAI", segredo: true },
       { nome: "gemini_api_key", label: "Google Gemini", segredo: true },
     ],
   },

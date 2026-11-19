@@ -137,7 +137,7 @@ Clientes com a integração ativa: `miranda_skin_experts` e `detail_by_cordeiro`
 - Tailwind CSS 4.
 - Supabase JS `2.108.2`.
 - Supabase SSR `0.12.0`.
-- OpenAI SDK `7.21.0`, mantido para a implementação direta legada do Analista.
+- Sem SDK de IA: o Claude é chamado por HTTP direto à Messages API, com a chave Anthropic do próprio cliente (zero OpenAI desde 19/11/2026).
 - n8n como orquestrador ativo e assíncrono do Analista Lexia.
 - Lucide React `1.47.0` para iconografia da interface.
 - Node usado na auditoria: `24.14.1`.
@@ -228,7 +228,7 @@ app/
   api/analista/                      fila, status, ferramentas, callback e rotas legadas da IA
   login/                             login
 lib/
-  analyst/                           escopo, dados, orquestração n8n e implementação OpenAI legada
+  analyst/                           escopo, dados, orquestração n8n e classificador (Claude)
   auth/profile.ts                    resolução de usuário e perfil
   conversations/message-display.ts  ordenação e expansão visual de mensagens
   dashboard/date-range.ts            períodos e fusos
@@ -432,13 +432,12 @@ Etapa 1:
 
 | Rota | Método | Função |
 | --- | --- | --- |
-| `/api/analista/chat` | `POST` | Autentica, fixa o escopo, grava a pergunta e despacha uma execução assíncrona para o n8n. Retorna HTTP 202. |
 | `/api/analista/status` | `GET` | Permite ao navegador acompanhar exclusivamente uma execução do próprio usuário/tenant. |
 | `/api/analista/sessions` | `GET` | Lista ou abre sessões e informa se existe execução pendente. |
 | `/api/analista/n8n/tool` | `POST` | API server-to-server assinada com ferramentas somente leitura e escopo reconstruído da execução. |
 | `/api/analista/n8n/callback` | `POST` | Recebe resultado assinado, valida fontes, persiste a resposta e encerra a execução. |
 | `/api/analista/cron/classificar` | `POST` | Classificação agendada. Sem usuário logado: autoriza por `Authorization: Bearer LEXIA_CRON_SECRET` comparado em tempo constante. Chamada pelo n8n (Schedule Trigger + HTTP Request). |
-| `/api/analista/analyze` | `POST` | Legado: classificação direta via OpenAI; não é chamada pela página atual. |
+| `/api/analista/analyze` | `POST` | Classificação direta (Claude, chave do cliente); não é chamada pela página atual. |
 | `/api/analista/coverage` | `GET` | Legado: cobertura dos insights persistidos. |
 
 Corpo aceito por `/api/analista/cron/classificar`, todos opcionais: `cliente_slug`
@@ -447,27 +446,34 @@ Corpo aceito por `/api/analista/cron/classificar`, todos opcionais: `cliente_slu
 simultâneas, 1–6, padrão 4), `dias` (janela de histórico,
 1–366, padrão 90), `orcamento_ms` (corte de tempo, 5 000–54 000, padrão 50 000)
 e `apenas_medir: true` (mede a leitura do histórico e devolve a cobertura sem
-chamar a OpenAI, para separar lentidão de banco de lentidão de classificação).
+chamar a IA, para separar lentidão de banco de lentidão de classificação).
 
 A resposta traz `analyzed`, `failed`, `pending`, `skipped` (conversas que não
 couberam no orçamento), `skippedForTime` (clientes não iniciados), `durationMs`
-e o mesmo detalhamento por cliente em `clientes[]`. O orçamento é verificado
+e o mesmo detalhamento por cliente em `clientes[]`, cada um com `motivo`
+(`null` quando correu; "sem chave Anthropic do cliente (conexão 'ia')" quando
+o cliente foi saltado por não ter chave própria). O orçamento é verificado
 antes de cada conversa, não só entre clientes: a função devolve resultado
 parcial em vez de ser morta pelo `maxDuration` de 60 s da Vercel. Nenhuma
-transcrição sai da plataforma — o n8n apenas agenda, e a chamada à OpenAI
-continua em `lib/analyst/classifier.ts`.
+transcrição sai da plataforma além da IA do próprio cliente — o n8n apenas
+agenda, e a chamada ao Claude continua em `lib/analyst/classifier.ts`.
 
-No `classifyConversation`, modelos de raciocínio (`gpt-5*`, `o1`, `o3`, `o4`)
-recebem `reasoning.effort: "low"` e `max_output_tokens: 6000`. Em 22/09/2026 a
-classificação falhava com `Unterminated string in JSON`: os tokens de
-raciocínio saem do mesmo orçamento do JSON, e com o esforço padrão sobrava
-pouco para a resposta do schema. Ao trocar de modelo, conferir os dois valores
-juntos. Resposta cortada é detectada por `response.status === "incomplete"` e
-reportada com o motivo, em vez de estourar no `JSON.parse`.
+Desde 19/11/2026 o classificador é o Claude (antes era a OpenAI, que ficou sem
+créditos). Chave = conexão `ia` do PRÓPRIO cliente da conversa em
+`lexia_conexoes` (`chaveDoCliente`, a mesma do onboarding e do ajudante), no
+endereço base dele (cache da Cloudflare). Sem chave, o cliente é saltado com
+`motivo` e nenhuma IA é chamada; nunca há chave global. Modelo
+`ANALISTA_MODELO` (padrão `claude-haiku-4-5`: extração em massa com esquema
+fechado, metade do preço do Sonnet 5), sem raciocínio e sem `temperature`;
+`max_tokens: 6000`; saída estruturada por `output_config.format` (o esquema não
+leva `minimum`/`maximum`, a confiança é limitada a [0, 1] no código). Resposta
+cortada (`stop_reason: "max_tokens"`) ou recusa são reportadas com o motivo,
+em vez de estourar no `JSON.parse`. `versao_prompt` passou a
+`lexia_conversation_classifier_v2`.
 
 Medição em 22/09/2026 no `miranda_skin_experts`: uma conversa levou 20,9 s e
 duas levaram 42,1 s. A leitura do histórico é desprezível; o custo é a espera
-pela OpenAI, cerca de 21 s por conversa. Por isso o `analyzeConversationBatch`
+pela IA (então a OpenAI), cerca de 21 s por conversa. Por isso o `analyzeConversationBatch`
 processa as conversas em ondas paralelas de `concurrency` (padrão 4), e não
 uma a uma. Cada requisição tem `timeout` de 40 s, e uma onda nova só começa se
 o tempo restante cobrir a onda mais lenta já observada com 30% de folga — as
@@ -476,7 +482,7 @@ conversas que não couberem voltam em `skipped`, sem erro. `limite` acima de
 os dois valores iguais.
 
 O `orcamento_ms` é uma parede, não um aviso: o `timeout` de cada requisição à
-OpenAI é encurtado para o que sobra dele, então nenhuma chamada sobrevive ao
+IA é encurtado para o que sobra dele, então nenhuma chamada sobrevive ao
 prazo do ciclo. Um cliente novo só começa com pelo menos 20 s de folga, para
 não produzir uma rodada inteira de execuções abortadas. Em 23/09/2026 um ciclo
 com quatro clientes levou 47,9 s dos 60 s da rota, com a margem vindo dessas
@@ -885,9 +891,9 @@ AJUDANTE_MODELO              # opcional; padrão claude-sonnet-5
 AJUDANTE_ESFORCO             # opcional; low | medium | high (padrão low)
 ```
 
-Limite: 40 perguntas por pessoa por hora. O Analista antigo (n8n,
-`analyst-workspace.tsx`, `/api/analista/*`) continua no código, mas as páginas já
-não o abrem.
+Limite: 40 perguntas por pessoa por hora. O Analista antigo (n8n) perdeu a tela
+(`analyst-workspace.tsx`) e a rota de pergunta (`/api/analista/chat`), apagadas
+a 19/11/2026; as rotas `sessions`, `status` e `n8n/*` continuam no código.
 
 ### Analista Lexia (n8n ativo)
 
@@ -907,18 +913,15 @@ O workflow que cumpre esse contrato está versionado em
 esperadas em `n8n/README.md`. O export não contém segredos: as credenciais são
 referenciadas por nome e precisam existir no n8n antes da importação.
 
-### Analista Lexia (OpenAI direto, legado)
+### Classificador do Analista (Claude)
 
 ```text
-OPENAI_API_KEY
-OPENAI_ANALYST_MODEL                    # opcional; padrão gpt-5-mini
-OPENAI_ANALYST_CLASSIFIER_MODEL         # opcional; herda o modelo principal
+ANALISTA_MODELO              # opcional; padrão claude-haiku-4-5
 ```
 
-`OPENAI_API_KEY` não é usada pelo fluxo principal da página. Ela permanece
-necessária apenas para as rotas legadas de classificação direta. Deve existir
-somente no servidor e nunca usar prefixo `NEXT_PUBLIC_*`. O runtime precisa ser
-compatível com o SDK instalado e usar Node 22 ou superior.
+Não há chave de IA em variável de ambiente: a chave é a conexão `ia` de cada
+cliente em `/admin/conexoes`. As variáveis `OPENAI_*` deixaram de ser lidas
+(19/11/2026) e podem ser apagadas da Vercel.
 
 Regras:
 
@@ -1928,7 +1931,6 @@ Verificar:
 - O código do Analista está pronto para fila assíncrona, mas depende do workflow n8n publicado e das três variáveis novas.
 - O segredo compartilhado n8n ainda não usa assinatura HMAC com timestamp.
 - O disparo inicial do Analista ainda não possui chave idempotente própria.
-- A implementação direta OpenAI e as rotas legadas continuam no repositório até o novo fluxo ser validado em produção.
 - Não há orçamento mensal, alerta de custo ou retenção formal definidos para chamadas e histórico da IA.
 
 ### P2
@@ -2008,7 +2010,6 @@ Uma mudança só está pronta quando:
 | Apresentação das mensagens | `lib/conversations/message-display.ts` |
 | Escopo e autorização da IA | `lib/analyst/scope.ts` |
 | Métricas e ferramentas da IA | `lib/analyst/data.ts` |
-| Chat e guardrails da IA | `lib/analyst/chat.ts` |
 | Classificação qualitativa | `lib/analyst/classifier.ts` |
 | Histórico e auditoria da IA | `lexia_ai_sessoes`, `lexia_ai_mensagens`, `lexia_ai_execucoes` |
 | Insights por conversa | `lexia_conversation_insights` |
@@ -2061,7 +2062,7 @@ O Analista Lexia é um chat somente leitura para responder perguntas sobre desem
 
 ### Fluxo
 
-1. A página lista sessões recentes e envia a pergunta para `/api/analista/chat`.
+1. (Desligado a 19/11/2026: a tela e `/api/analista/chat` foram apagadas.) A página listava sessões recentes e enviava a pergunta para `/api/analista/chat`.
 2. O backend autentica novamente, fixa tenant/período/canal, grava pergunta e execução `iniciada` e envia um POST assinado ao n8n.
 3. O Webhook do n8n precisa responder imediatamente; o processamento continua fora da requisição da Vercel.
 4. O navegador acompanha a execução a cada 1,5 segundo em `/api/analista/status`; uma sessão recarregada retoma o polling pendente.
@@ -2115,7 +2116,7 @@ Não existe ferramenta de SQL arbitrário, mutação de agente, envio de mensage
 
 - A execução agora é uma fila assíncrona orquestrada pelo n8n; o orçamento e a cobertura da amostra qualitativa devem ser definidos no workflow.
 - A busca fornecida pela plataforma continua lexical. Embeddings e pgvector ficam para uma fase posterior.
-- `lexia_conversation_insights` e o classificador OpenAI direto permanecem como legado, mas não são chamados pela página atual.
+- `lexia_conversation_insights` é alimentada pelo classificador (Claude, chave do cliente) pelo cron; não é lida pela página atual.
 - A escolha de modelo passa a ser responsabilidade do workflow, preservando saída estruturada, isolamento e declaração de cobertura.
 - Falta definir orçamento, alertas de custo, retenção e processo de exclusão do histórico da IA.
 - Sem migration, workflow publicado ou variáveis n8n, a interface mostra erro e não inicia a análise.

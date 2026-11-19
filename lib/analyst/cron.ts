@@ -14,8 +14,8 @@ import type { AnalystScope } from "./types";
 /**
  * Classificação agendada.
  *
- * O n8n só agenda e chama; toda a leitura de conversa e a chamada à OpenAI
- * continuam dentro da plataforma. Nenhuma transcrição sai daqui.
+ * O n8n só agenda e chama; toda a leitura de conversa e a chamada ao Claude
+ * (com a chave do próprio cliente) continuam dentro da plataforma. Nenhuma transcrição sai daqui.
  */
 
 const defaultBatchLimit = 4;
@@ -24,7 +24,7 @@ const defaultLookbackDays = 90;
 const maxLookbackDays = 366;
 
 /**
- * Parede de tempo do ciclo, não apenas um aviso: nenhuma chamada à OpenAI
+ * Parede de tempo do ciclo, não apenas um aviso: nenhuma chamada à IA
  * pode terminar depois dela, porque o `timeout` de cada requisição é
  * encurtado para o que sobrar daqui. O limite declarado na rota é 60s, e os
  * segundos restantes cobrem o recálculo de cobertura e a resposta HTTP.
@@ -45,6 +45,8 @@ export type ClassificationClientResult = {
   coveragePercentage: number | null;
   durationMs: number;
   failed: number;
+  /** Por que o cliente foi saltado (ex.: sem chave Anthropic própria); null se correu. */
+  motivo: string | null;
   pending: number;
   skipped: number;
 };
@@ -168,7 +170,7 @@ export type ClassificationCycleInput = {
   /** Conversas classificadas em paralelo dentro de cada cliente. */
   concurrency?: number;
   /**
-   * Mede só a leitura do histórico e a cobertura, sem chamar a OpenAI.
+   * Mede só a leitura do histórico e a cobertura, sem chamar a IA.
    * Serve para separar "o banco está lento" de "a classificação está lenta"
    * quando o ciclo estoura o tempo de execução.
    */
@@ -234,6 +236,7 @@ export async function runClassificationCycle(
           coveragePercentage: coverage.coveragePercentage,
           durationMs: Date.now() - clientStartedAt,
           failed: 0,
+          motivo: null,
           pending: coverage.pendingConversations,
           skipped: 0,
         });
@@ -252,6 +255,7 @@ export async function runClassificationCycle(
         coveragePercentage: result.coverage.coveragePercentage,
         durationMs: Date.now() - clientStartedAt,
         failed: result.failed,
+        motivo: result.motivo,
         pending: result.pending,
         skipped: result.skipped,
       });
@@ -268,6 +272,7 @@ export async function runClassificationCycle(
         coveragePercentage: null,
         durationMs: Date.now() - clientStartedAt,
         failed: 1,
+        motivo: error instanceof Error ? error.message.slice(0, 200) : "erro",
         pending: 0,
         skipped: 0,
       });

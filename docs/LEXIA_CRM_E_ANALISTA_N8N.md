@@ -53,9 +53,10 @@ Produção: `https://app.uselexia.app`.
 - n8n para agentes, canais, automações e agora o Analista Lexia.
 - Vercel para hospedagem da aplicação.
 
-O SDK OpenAI permanece instalado porque existe uma implementação direta
-legada do analista. A página principal não usa mais essa implementação: o fluxo
-ativo é o n8n.
+Desde 19/11/2026 o painel não usa a OpenAI em lado nenhum (o SDK foi
+removido). O classificador de conversas usa o Claude com a chave Anthropic do
+próprio cliente; a tela antiga do analista n8n e `/api/analista/chat` foram
+apagadas (o assistente atual é o `/api/ajudante`).
 
 ## 4. Arquitetura geral
 
@@ -685,9 +686,8 @@ antes de chamar o callback.
 7. Respostas não JSON são transformadas em erro legível; o navegador não deve
    mais mostrar mensagens como `Unexpected token`.
 
-A página não chama mais `/api/analista/analyze` nem prepara classificações com
-a OpenAI diretamente. As rotas e o código antigos permanecem temporariamente
-como legado para rollback, mas não fazem parte do fluxo principal.
+A página não chama mais `/api/analista/analyze`. A classificação corre pelo
+cron, com o Claude e a chave do próprio cliente (sem chave, o cliente é saltado).
 
 ## 21. Segurança
 
@@ -850,7 +850,6 @@ usado após export e quando a exclusão do histórico for realmente desejada.
 - Ainda não existe monitoramento automático de execuções presas no n8n.
 - A autenticação usa segredo compartilhado; HMAC com timestamp é uma evolução.
 - O endpoint inicial ainda não tem chave idempotente de requisição.
-- A implementação OpenAI direta permanece no repositório como legado.
 - O projeto ainda precisa de Git remoto, baseline do banco, CI e testes
   automatizados, conforme `PLAN.MD`.
 - O pipeline omnichannel histórico não preservou todos os eventos como uma
