@@ -51,6 +51,9 @@ const origensCapturadas: Record<string, string> = {
   ctwa: "Anúncio para WhatsApp",
   instagram_ad: "Anúncio no Instagram",
   instagram_post: "Publicação no Instagram",
+  messenger_ad: "Anúncio no Messenger",
+  // Desde 19/11: a 1.ª mensagem foi a frase pronta do anúncio, sem id do anúncio.
+  anuncio: "Anúncio (pela frase do anúncio)",
   organico: "Orgânico",
 };
 

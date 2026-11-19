@@ -51,6 +51,7 @@ export type CaminhoDoReferral =
   | "message.referral"
   | "messaging.referral"
   | "postback.referral"
+  | "changes.messaging_referrals"
   | "whatsapp.messages.referral";
 
 export type AchadoDeReferral = {
@@ -133,6 +134,7 @@ export function extrairReferraisDoWebhook(corpo: unknown): AchadoDeReferral[] {
 
     recolherDoWhatsApp(entry, achados);
     recolherDoMessaging(entry, achados);
+    recolherDosChangesDoMessenger(entry, achados);
   }
 
   return achados;
@@ -202,6 +204,13 @@ function recolherDoMessaging(
     const remetente = objectoOuNulo(messaging.sender);
     const remetenteExternoId = remetente ? textoDe(remetente.id) : null;
     const message = objectoOuNulo(messaging.message);
+
+    // Um eco é a NOSSA mensagem a voltar: o "remetente" é a conta, não o lead.
+    // Um referral num eco não diz nada sobre de onde veio o cliente.
+    if (message?.is_echo === true) {
+      continue;
+    }
+
     const postback = objectoOuNulo(messaging.postback);
     const sitios: { caminho: CaminhoDoReferral; cru: unknown }[] = [
       { caminho: "message.referral", cru: message?.referral },
@@ -228,6 +237,42 @@ function recolherDoMessaging(
         remetenteExternoId,
       });
     }
+  }
+}
+
+/**
+ * O evento `messaging_referrals` no formato de `changes[]` (é assim que o botão
+ * "Testar" da app da Meta o entrega, 19/11/2026, e pode ser assim que chega de
+ * uma Página). Não é mensagem do cliente: só diz de que anúncio ele veio.
+ */
+function recolherDosChangesDoMessenger(
+  entry: Record<string, unknown>,
+  achados: AchadoDeReferral[],
+) {
+  for (const alteracao of listaDe(entry.changes)) {
+    const change = objectoOuNulo(alteracao);
+
+    if (!change || change.field !== "messaging_referrals") {
+      continue;
+    }
+
+    const valor = objectoOuNulo(change.value);
+    const referral = valor && objectoOuNulo(valor.referral);
+
+    if (!valor || !referral) {
+      continue;
+    }
+
+    const remetente = objectoOuNulo(valor.sender);
+
+    achados.push({
+      anuncioContexto: contextoDoAnuncio(referral.ads_context_data),
+      anuncioExternoId: idDeAnuncio(referral.ad_id),
+      caminho: "changes.messaging_referrals",
+      ctwaClid: null,
+      origemTipo: textoDe(referral.source),
+      remetenteExternoId: remetente ? textoDe(remetente.id) : null,
+    });
   }
 }
 
