@@ -73,7 +73,7 @@ export function FiltroTrilho({
   rotulo: string;
 }) {
   return (
-    <nav aria-label={rotulo} className="ds-trilho w-fit max-w-full self-start overflow-x-auto">
+    <nav aria-label={rotulo} className="ds-trilho w-fit max-w-full self-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {opcoes.map((o) => (
         <Link
           aria-current={o.ativo ? "page" : undefined}
