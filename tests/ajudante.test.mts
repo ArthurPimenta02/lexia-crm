@@ -27,9 +27,15 @@ mock.module("@/lib/supabase/admin", { namedExports: { createAdminClient: () => b
 mock.module("@/lib/campaigns/read", { namedExports: { getPainelCampanhas: async () => ({}) } });
 mock.module("@/lib/servicos/read", { namedExports: { getServicosAgendaveis: async () => [] } });
 const conversasLidas: { slug: string; conversa: string }[] = [];
+// A lista que o listarConversas falso devolve, e os pedidos que recebeu (empresa e dias).
+let listaFalsa: Record<string, unknown>[] = [];
+const listagens: { slug: string; dias: unknown }[] = [];
 mock.module("@/lib/movel/conversas", {
   namedExports: {
-    listarConversas: async () => [],
+    listarConversas: async (slug: string, _agora: Date, dias?: number) => {
+      listagens.push({ dias, slug });
+      return listaFalsa;
+    },
     lerConversa: async (slug: string, conversa: string) => {
       conversasLidas.push({ conversa, slug });
       return slug === "empresa_a" && conversa === "whatsapp:351911111111" ? { canal: "whatsapp", conversa, estado: "agente", mensagens: [], nome: "Cliente A", telefone: "351911111111", ultimaRecebida: null } : null;
@@ -60,7 +66,7 @@ globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
   return new Response(JSON.stringify(r.corpo), { headers: { "content-type": "application/json" }, status: r.status ?? 200 });
 }) as typeof fetch;
 
-const { perguntar, mensagemDoErro, SemChaveDeIa, modeloDoAjudante, VERSAO_PROMPT } = await import("@/lib/ajudante/motor");
+const { perguntar, mensagemDoErro, SemChaveDeIa, modeloDoAjudante, VERSAO_PROMPT, semTravessao, instrucoes } = await import("@/lib/ajudante/motor");
 const { periodo, ferramentasAnthropic, FERRAMENTAS } = await import("@/lib/ajudante/ferramentas");
 
 const escopo = { clienteNome: "Empresa A", clienteSlug: "empresa_a", fuso: "Europe/Lisbon", locale: "pt-PT" };
@@ -236,4 +242,64 @@ test("ajudante: o período pedido pelo modelo é limpo (ordem, datas inválidas,
   assert.deepEqual(periodo({ ate: "2026-11-01", de: "2026-11-05" }, "2026-11-05"), { ate: "2026-11-05", de: "2026-11-01" });
   assert.deepEqual(periodo({ ate: "ontem", de: "x" }, "2026-11-05"), { ate: "2026-11-05", de: "2026-10-30" });
   assert.deepEqual(periodo({ ate: "2026-11-05", de: "2025-01-01" }, "2026-11-05"), { ate: "2026-11-05", de: "2026-08-06" });
+});
+
+const conversaFalsa = (i: number) => ({ canal: "whatsapp", conversa: `whatsapp:35191000${String(i).padStart(4, "0")}`, esperaDesde: null, estado: i % 2 ? "agente" : "espera", nome: `Cliente ${i}`, previa: "olá", previaDe: "cliente", quando: "2026-11-01T10:00:00Z", telefone: null, temperatura: null });
+
+test("ajudante: conversas_recentes vê 60 dias, só desta empresa, e devolve no máximo 40", async () => {
+  listaFalsa = Array.from({ length: 100 }, (_, i) => conversaFalsa(i));
+  listagens.length = 0;
+  const r = (await FERRAMENTAS.conversas_recentes.executar(escopo, { estado: "", so_anuncio: false })).dados as Record<string, unknown>[];
+  assert.deepEqual(listagens, [{ dias: 60, slug: "empresa_a" }]);
+  assert.equal(r.length, 40);
+  assert.equal(r[0].nome, "Cliente 0");
+  // Sem o filtro de anúncio, a resposta não ganha campos (o custo não muda).
+  assert.deepEqual(Object.keys(r[0]).sort(), ["canal", "conversa", "estado", "nome", "quando", "ultima", "ultima_de"]);
+  const espera = (await FERRAMENTAS.conversas_recentes.executar(escopo, { estado: "espera", so_anuncio: false })).dados as Record<string, unknown>[];
+  assert.equal(espera.length, 40);
+  assert.ok(espera.every((c) => c.estado === "espera"));
+  assert.match(FERRAMENTAS.conversas_recentes.descricao, /últimos 60 dias/);
+});
+
+test("ajudante: conversas_recentes só de anúncio traz o anúncio e a campanha, desta empresa, no máximo 40", async () => {
+  listaFalsa = Array.from({ length: 100 }, (_, i) => conversaFalsa(i));
+  const contactos = [
+    // 50 de anúncio (as pares), uma delas com um anúncio que a sincronização nunca viu (fica o título).
+    ...Array.from({ length: 50 }, (_, k) => ({ cliente_slug: "empresa_a", identificador_conversa: conversaFalsa(k * 2).conversa, origem_source_id: k === 1 ? "ad-sumido" : "ad-1", origem_tipo: "anuncio", origem_titulo: k === 1 ? "Promo de novembro" : null })),
+    { cliente_slug: "empresa_a", identificador_conversa: conversaFalsa(1).conversa, origem_source_id: null, origem_tipo: "organico", origem_titulo: null },
+    // A mesma conversa noutra empresa diz que veio de anúncio: não pode contar.
+    { cliente_slug: "empresa_b", identificador_conversa: conversaFalsa(3).conversa, origem_source_id: "ad-b", origem_tipo: "anuncio", origem_titulo: null },
+  ];
+  base.substituir("lexia_contactos", contactos);
+  base.substituir("lexia_anuncios", [
+    { anuncio_externo_id: "ad-1", campanha_nome: "Black Friday", cliente_slug: "empresa_a", nome: "Vídeo do antes e depois", plataforma: "meta" },
+    { anuncio_externo_id: "ad-b", campanha_nome: "Campanha da B", cliente_slug: "empresa_b", nome: "Anúncio da B", plataforma: "meta" },
+  ]);
+  base.registos.length = 0;
+  const r = (await FERRAMENTAS.conversas_recentes.executar(escopo, { estado: "", so_anuncio: true })).dados as Record<string, unknown>[];
+  assert.equal(r.length, 40);
+  assert.ok(r.every((c) => Number(String(c.conversa).slice(-4)) % 2 === 0));
+  assert.deepEqual({ anuncio: r[0].anuncio, campanha: r[0].campanha }, { anuncio: "Vídeo do antes e depois", campanha: "Black Friday" });
+  assert.deepEqual({ anuncio: r[1].anuncio, campanha: r[1].campanha }, { anuncio: "Promo de novembro", campanha: null });
+  assert.ok(!JSON.stringify(r).includes("da B"));
+  for (const reg of base.registos.filter((x) => x.tabela === "lexia_contactos" || x.tabela === "lexia_anuncios")) {
+    assert.equal(reg.filtros.find((f) => f.coluna === "cliente_slug")?.valor, "empresa_a");
+  }
+  base.substituir("lexia_contactos", []);
+  base.substituir("lexia_anuncios", []);
+});
+
+test("ajudante: a resposta final sai sem travessão; o sistema proíbe travessão e nomes internos", async () => {
+  respostas = [fim("Tem 3 conversas — duas à espera.\n— Ana: das 10–12h\nBoa semana —")];
+  pedidos.length = 0;
+  const r = await perguntar(escopo, [], "Como está?", () => undefined);
+  assert.equal(r.texto, "Tem 3 conversas, duas à espera.\n- Ana: das 10-12h\nBoa semana");
+  assert.doesNotMatch(r.texto, /[—–]/);
+  assert.equal(semTravessao("Foi ótimo—mesmo. A Ana (a nova – sim) ligou."), "Foi ótimo, mesmo. A Ana (a nova, sim) ligou.");
+  // Sem travessão, o texto fica igual.
+  const limpo = "Hoje: 4 marcações, 2 à espera.\n- Ana às 10h";
+  assert.equal(semTravessao(limpo), limpo);
+  const sistema = instrucoes(escopo);
+  assert.match(sistema, /Nunca use travessão/);
+  assert.match(sistema, /nomes internos de ferramentas/);
 });

@@ -35,6 +35,9 @@ type Definicao = {
 };
 
 const MAX_DIAS = 92;
+/** O assistente vê 60 dias de conversas (o app do iPhone continua com 14), mas devolve no máximo 40. */
+export const DIAS_CONVERSAS = 60;
+export const MAX_CONVERSAS = 40;
 const diaOk = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 
 /** Período pedido pelo modelo, limpo: datas válidas, no máximo 92 dias, nunca invertido. */
@@ -57,6 +60,42 @@ const objeto = (props: Record<string, unknown>, obrigatorios: string[] = []) => 
   type: "object",
 });
 const DATA = { description: "Data AAAA-MM-DD no fuso da empresa", type: "string" };
+
+/**
+ * As conversas destas que vieram de anúncio, com o nome do anúncio e da
+ * campanha. Mesma regra da tela de campanhas e da ficha: a ficha
+ * (lexia_contactos) diz se veio de anúncio (`origem_tipo` diferente de
+ * orgânico) e o id do anúncio (`origem_source_id`); o nome vem de
+ * lexia_anuncios e, sem ele, do título que veio com a mensagem.
+ */
+async function origensDeAnuncio(clienteSlug: string, conversas: string[]) {
+  const base = createAdminClient();
+  const fichas: { identificador_conversa: string; origem_tipo: string | null; origem_source_id: string | null; origem_titulo: string | null }[] = [];
+  for (let i = 0; i < conversas.length; i += 200) {
+    const { data, error } = await base
+      .from("lexia_contactos")
+      .select("identificador_conversa, origem_tipo, origem_source_id, origem_titulo")
+      .eq("cliente_slug", clienteSlug)
+      .in("identificador_conversa", conversas.slice(i, i + 200))
+      .not("origem_tipo", "is", null)
+      .neq("origem_tipo", "organico");
+    if (error) throw new Error("origens");
+    fichas.push(...((data ?? []) as typeof fichas));
+  }
+  const ids = [...new Set(fichas.map((f) => f.origem_source_id?.trim()).filter((x): x is string => Boolean(x)))];
+  const anuncios = new Map<string, { nome: string | null; campanha_nome: string | null }>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await base.from("lexia_anuncios").select("anuncio_externo_id, nome, campanha_nome").eq("cliente_slug", clienteSlug).in("anuncio_externo_id", ids.slice(i, i + 200));
+    for (const x of data ?? []) anuncios.set(x.anuncio_externo_id as string, { campanha_nome: (x.campanha_nome as string | null) ?? null, nome: (x.nome as string | null) ?? null });
+  }
+  const origens = new Map<string, { anuncio: string | null; campanha: string | null }>();
+  for (const f of fichas) {
+    if (!f.origem_tipo || f.origem_tipo === "organico") continue;
+    const a = f.origem_source_id ? anuncios.get(f.origem_source_id.trim()) : undefined;
+    origens.set(f.identificador_conversa, { anuncio: a?.nome?.trim() || f.origem_titulo?.trim() || null, campanha: a?.campanha_nome?.trim() || null });
+  }
+  return origens;
+}
 
 export const FERRAMENTAS: Record<string, Definicao> = {
   resumo: {
@@ -127,13 +166,33 @@ export const FERRAMENTAS: Record<string, Definicao> = {
   },
 
   conversas_recentes: {
-    descricao: "As conversas dos últimos 14 dias, da mais recente para a mais antiga: nome, canal, estado (espera = cliente à espera de uma pessoa; comigo = a equipa assumiu; agente = o agente está a responder) e a última mensagem. Opcional: filtrar por estado.",
+    descricao: "As conversas dos últimos 60 dias (no máximo 40), da mais recente para a mais antiga: nome, canal, estado (espera = cliente à espera de uma pessoa; comigo = a equipa assumiu; agente = o agente está a responder) e a última mensagem. Opcional: filtrar por estado e/ou só as que vieram de anúncio (aí cada uma traz o nome do anúncio e da campanha de origem, quando se sabe).",
     executar: async (e, a) => {
       const estado = a.estado === "espera" || a.estado === "comigo" || a.estado === "agente" ? a.estado : null;
-      const lista = (await listarConversas(e.clienteSlug, new Date())).filter((c) => !estado || c.estado === estado).slice(0, 40);
-      return { dados: lista.map((c) => ({ canal: c.canal, conversa: c.conversa, estado: c.estado, nome: c.nome || telefoneLegivel(c.telefone) || "", quando: c.quando, ultima: c.previa, ultima_de: c.previaDe })) };
+      const soAnuncio = a.so_anuncio === true;
+      let lista = (await listarConversas(e.clienteSlug, new Date(), DIAS_CONVERSAS)).filter((c) => !estado || c.estado === estado);
+      const origens = soAnuncio ? await origensDeAnuncio(e.clienteSlug, lista.map((c) => c.conversa)) : null;
+      if (origens) lista = lista.filter((c) => origens.has(c.conversa));
+      return {
+        dados: lista.slice(0, MAX_CONVERSAS).map((c) => ({
+          canal: c.canal,
+          conversa: c.conversa,
+          estado: c.estado,
+          nome: c.nome || telefoneLegivel(c.telefone) || "",
+          quando: c.quando,
+          ultima: c.previa,
+          ultima_de: c.previaDe,
+          ...(origens ? origens.get(c.conversa) : {}),
+        })),
+      };
     },
-    parametros: objeto({ estado: { description: "espera, comigo ou agente (opcional)", enum: ["espera", "comigo", "agente", ""], type: "string" } }, ["estado"]),
+    parametros: objeto(
+      {
+        estado: { description: "espera, comigo ou agente (opcional)", enum: ["espera", "comigo", "agente", ""], type: "string" },
+        so_anuncio: { description: "true = só as conversas de pessoas que vieram de um anúncio", type: "boolean" },
+      },
+      ["estado", "so_anuncio"],
+    ),
     rotulo: "Vendo as conversas",
   },
 
