@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 /**
  * A "ficha técnica" do agente de cada cliente: como o agente daquele negócio
@@ -13,13 +12,15 @@ import { join } from "node:path";
 export const SLUGS_COM_FICHA = ["miranda_skin_experts", "detail_by_cordeiro", "claudia_leite_spa", "asteric", "jessica_beauty"] as const;
 export type SlugComFicha = (typeof SLUGS_COM_FICHA)[number];
 
-// URLs estáticas (uma por ficheiro) para o bundler copiar os .md com o código do servidor.
-const FICHEIROS: Record<SlugComFicha, URL> = {
-  asteric: new URL("./asteric.md", import.meta.url),
-  claudia_leite_spa: new URL("./claudia_leite_spa.md", import.meta.url),
-  detail_by_cordeiro: new URL("./detail_by_cordeiro.md", import.meta.url),
-  jessica_beauty: new URL("./jessica_beauty.md", import.meta.url),
-  miranda_skin_experts: new URL("./miranda_skin_experts.md", import.meta.url),
+// Uma leitura com caminho LITERAL por ficheiro: assim o bundler copia só estes
+// .md para o pacote do servidor (um readFileSync com caminho variável faz a
+// Vercel rastrear o projeto inteiro).
+const LER: Record<SlugComFicha, () => string> = {
+  asteric: () => readFileSync(new URL("./asteric.md", import.meta.url), "utf8"),
+  claudia_leite_spa: () => readFileSync(new URL("./claudia_leite_spa.md", import.meta.url), "utf8"),
+  detail_by_cordeiro: () => readFileSync(new URL("./detail_by_cordeiro.md", import.meta.url), "utf8"),
+  jessica_beauty: () => readFileSync(new URL("./jessica_beauty.md", import.meta.url), "utf8"),
+  miranda_skin_experts: () => readFileSync(new URL("./miranda_skin_experts.md", import.meta.url), "utf8"),
 };
 
 const temFicha = (slug: string): slug is SlugComFicha => (SLUGS_COM_FICHA as readonly string[]).includes(slug);
@@ -32,13 +33,10 @@ export function fichaDoAgente(slug: string): string | null {
   const guardada = cache.get(slug);
   if (guardada !== undefined) return guardada;
   let texto: string | null = null;
-  for (const ler of [() => readFileSync(FICHEIROS[slug], "utf8"), () => readFileSync(join(process.cwd(), "lib/ajudante/fichas", `${slug}.md`), "utf8")]) {
-    try {
-      texto = ler().trim();
-      break;
-    } catch {
-      // tenta o caminho seguinte
-    }
+  try {
+    texto = LER[slug]().trim();
+  } catch {
+    texto = null;
   }
   if (!texto) return null;
   cache.set(slug, texto);

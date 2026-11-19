@@ -21,6 +21,9 @@ type Saida = { dados: unknown };
 type Resultado = { erro?: string; linhas?: unknown[]; total?: number; mostradas?: number; truncado?: boolean };
 
 export const MAX_SQL = 8000;
+/** PostgREST quando a função não existe (PGRST202) ou o Postgres quando falta o schema/função (42883, 3F000). */
+const FALTA_FUNCAO = /PGRST202|42883|3F000|could not find the function|function .*does not exist|schema "?analista"? does not exist/i;
+export const INDISPONIVEL = "A consulta livre ainda não está ativada nesta conta. Não tente de novo: responda com as outras ferramentas e, se não der, diga ao dono com simplicidade que essa pergunta ainda não dá para responder aqui (sem falar em consultas, bases ou SQL).";
 /** O motor corta cada resultado em 60 000 caracteres; aqui fica-se bem abaixo e sem partir o JSON. */
 export const MAX_CARACTERES = 40_000;
 
@@ -62,6 +65,8 @@ export const consultaLivre = {
       const { data, error } = await createAdminClient().rpc("analista_consultar", { p_cliente: e.clienteSlug, p_sql: sql });
       if (error) {
         if (/statement timeout|canceling statement/i.test(error.message ?? "")) return { dados: { erro: "A consulta demorou demais (máx. 8 s). Filtre por datas ou agregue." } };
+        // A migração ainda não foi corrida (a função não existe): não é um erro do modelo nem da rede.
+        if (FALTA_FUNCAO.test(`${(error as { code?: string }).code ?? ""} ${error.message ?? ""}`)) return { dados: { erro: INDISPONIVEL, indisponivel: true } };
         throw new Error("consulta_livre");
       }
       const r = (data ?? {}) as Resultado;

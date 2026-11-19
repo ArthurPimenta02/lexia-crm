@@ -120,3 +120,12 @@ test("nenhuma vista expõe colunas sensíveis", () => {
     assert.ok(!new RegExp(`from public\\.${t}`).test(sql), t);
   }
 });
+
+test("sem a migração (função inexistente) falha de forma amigável, sem rebentar", async () => {
+  for (const message of ["Could not find the function public.analista_consultar(p_cliente, p_sql) in the schema cache", "function public.analista_consultar(text, text) does not exist"]) {
+    resposta = { data: null, error: { message } };
+    const r = (await correr({ sql: "select 1" })).dados as { erro: string; indisponivel?: boolean };
+    assert.equal(r.indisponivel, true);
+    assert.match(r.erro, /ainda não está ativada/);
+  }
+});

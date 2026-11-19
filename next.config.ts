@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // As fichas técnicas dos agentes (.md) que o Analista lê no servidor: garante
+  // que vão no pacote da função na Vercel (lib/ajudante/fichas/index.ts).
+  outputFileTracingIncludes: { "/api/ajudante": ["./lib/ajudante/fichas/*.md"] },
   experimental: {
     // Voltar a uma tela aberta há menos de 30 s é instantâneo (o app do
     // iPhone troca muito de aba). Gravar alguma coisa limpa esta memória.
