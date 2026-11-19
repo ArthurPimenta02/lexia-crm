@@ -30,6 +30,11 @@ const textos: TextosDaArea = {
     "Vendo os serviços": "A ver os serviços",
     "Vendo as objeções": "A ver as objeções",
     "Preparando a mensagem": "A preparar a mensagem",
+    "O assistente ainda não está ligado para esta conta; fale com a Lexia.": "O assistente ainda não está ligado para esta conta; fale com a Lexia.",
+    "O assistente está sem créditos de IA nesta conta; fale com a Lexia.": "O assistente está sem créditos de IA nesta conta; fale com a Lexia.",
+    "A chave de IA desta conta não foi aceita; fale com a Lexia.": "A chave de IA desta conta não foi aceite; fale com a Lexia.",
+    "O assistente está com muitos pedidos agora. Tente daqui a um minuto.": "O assistente está com muitos pedidos agora. Tente daqui a um minuto.",
+    "O serviço de IA está instável agora. Tente de novo daqui a pouco.": "O serviço de IA está instável agora. Tente de novo daqui a pouco.",
   },
   es: {
     "Pensando…": "Pensando…",
@@ -59,6 +64,11 @@ const textos: TextosDaArea = {
     "Vendo os serviços": "Viendo los servicios",
     "Vendo as objeções": "Viendo las objeciones",
     "Preparando a mensagem": "Preparando el mensaje",
+    "O assistente ainda não está ligado para esta conta; fale com a Lexia.": "El asistente todavía no está activado para esta cuenta; habla con Lexia.",
+    "O assistente está sem créditos de IA nesta conta; fale com a Lexia.": "El asistente no tiene créditos de IA en esta cuenta; habla con Lexia.",
+    "A chave de IA desta conta não foi aceita; fale com a Lexia.": "La clave de IA de esta cuenta no fue aceptada; habla con Lexia.",
+    "O assistente está com muitos pedidos agora. Tente daqui a um minuto.": "El asistente tiene muchas solicitudes ahora. Inténtalo en un minuto.",
+    "O serviço de IA está instável agora. Tente de novo daqui a pouco.": "El servicio de IA está inestable ahora. Inténtalo de nuevo en un rato.",
   },
   en: {
     "Pensando…": "Thinking…",
@@ -88,6 +98,11 @@ const textos: TextosDaArea = {
     "Vendo os serviços": "Checking services",
     "Vendo as objeções": "Checking objections",
     "Preparando a mensagem": "Drafting the message",
+    "O assistente ainda não está ligado para esta conta; fale com a Lexia.": "The assistant isn't switched on for this account yet; please contact Lexia.",
+    "O assistente está sem créditos de IA nesta conta; fale com a Lexia.": "The assistant has no AI credits left on this account; please contact Lexia.",
+    "A chave de IA desta conta não foi aceita; fale com a Lexia.": "This account's AI key was not accepted; please contact Lexia.",
+    "O assistente está com muitos pedidos agora. Tente daqui a um minuto.": "The assistant is handling too many requests right now. Try again in a minute.",
+    "O serviço de IA está instável agora. Tente de novo daqui a pouco.": "The AI service is unstable right now. Try again shortly.",
   },
 };
 

@@ -867,18 +867,22 @@ Com a variável, `POST /api/analises/pedir` abre a issue "Análise pedida #<id>"
 
 O Analista que o dono usa agora (botão ✦ no canto do painel, painel lateral,
 `/app/analista`, `/admin/analista`, `/m/ajudante` no app) corre no próprio painel,
-sem n8n: `lib/ajudante/motor.ts` (OpenAI Responses API, `store: false`, até 6
-voltas de ferramentas) e `lib/ajudante/ferramentas.ts` (só leitura, sempre com a
+sem n8n: `lib/ajudante/motor.ts` (Claude pela Messages API em HTTP direto, com a
+chave Anthropic do PRÓPRIO cliente — conexão `ia` em `lexia_conexoes`, a mesma do
+onboarding —, até 6 voltas de ferramentas, ferramentas + sistema fixo em cache de
+1 h) e `lib/ajudante/ferramentas.ts` (só leitura, sempre com a
 empresa da sessão; `propor_mensagem` não envia, o dono confirma e vai por
 `/api/m/enviar`). Rota: `/api/ajudante` (POST em NDJSON, GET sessões/mensagens).
 Guarda em `lexia_ai_sessoes` (`contexto.tipo = "ajudante"`), `lexia_ai_mensagens`
-e `lexia_ai_execucoes` (`versao_prompt = ajudante_v1`, tokens e duração).
+e `lexia_ai_execucoes` (`versao_prompt = ajudante_v2`, modelo, tokens, duração e
+erro). Sem chave do cliente o chat diz "O assistente ainda não está ligado para
+esta conta; fale com a Lexia." e não chama IA nenhuma; nunca usa chave global.
+Zero OpenAI (até 18/11 era `ajudante_v1` na OpenAI).
 
 ```text
 AJUDANTE_LIGADO=1            # sem isto responde 503 "ainda não está ligado"
-OPENAI_API_KEY               # a mesma do Analista antigo
-OPENAI_AJUDANTE_MODEL        # opcional; padrão gpt-5.5
-OPENAI_AJUDANTE_ESFORCO      # opcional; low | medium | high (padrão low)
+AJUDANTE_MODELO              # opcional; padrão claude-sonnet-5
+AJUDANTE_ESFORCO             # opcional; low | medium | high (padrão low)
 ```
 
 Limite: 40 perguntas por pessoa por hora. O Analista antigo (n8n,
