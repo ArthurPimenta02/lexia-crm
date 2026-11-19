@@ -1,0 +1,3 @@
+1. Em `lib/ajudante/ferramentas.ts`: `import { consultaLivre } from "./ferramentas/consulta";` e no fim do objeto `FERRAMENTAS` acrescentar `...consultaLivre,` (o formato já é o mesmo: descricao, executar(e, a), parametros, rotulo).
+2. Em `lib/ajudante/motor.ts`: `import { ESQUEMA_CONSULTA } from "./ferramentas/consulta-esquema";` e juntar `ESQUEMA_CONSULTA` ao texto de `instrucoes(e)` (o bloco com cache de 1 h), nunca ao `momento`.
+3. Antes de ligar: correr a migração `supabase/migrations/202611190021_analista_consulta_livre.sql` na base central (cria o papel `analista_leitor`, o schema `analista` e a função `public.analista_consultar`, só para a service_role).

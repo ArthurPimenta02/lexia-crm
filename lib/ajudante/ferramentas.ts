@@ -8,6 +8,11 @@ import { dadosResultados, diasDoIntervalo } from "@/lib/movel/resultados";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { consultaLivre } from "./ferramentas/consulta";
+import { fichaAgente } from "./ferramentas/ficha-agente";
+import { FERRAMENTAS_LEITURA, usarNumerosDoNegocio } from "./ferramentas/leitura";
+import { numeros, numerosDoNegocio } from "./ferramentas/numeros";
+
 /**
  * As ferramentas do Analista Lexia (o ajudante do dono).
  *
@@ -149,13 +154,14 @@ export const FERRAMENTAS: Record<string, Definicao> = {
   },
 
   hoje: {
-    descricao: "O que precisa do dono AGORA: clientes à espera de uma pessoa (há quanto tempo e a última mensagem), sinais por pagar, a agenda de hoje e quantos há amanhã.",
+    descricao: "O que precisa do dono AGORA: clientes à espera de uma pessoa (há quanto tempo e a última mensagem), leads quentes dos últimos 7 dias ainda sem marcação (com o motivo), sinais por pagar, a agenda de hoje e quantos há amanhã.",
     executar: async (e) => {
       const d = await dadosHoje(e.clienteSlug, e.fuso, new Date());
       return {
         dados: {
           agenda_de_hoje: d.agenda.map((m) => ({ cliente: m.nome, hora: hora(m.inicio, e.fuso), profissional: m.executor, servico: m.servico, sinal_por_pagar: m.pendenteSinal })),
           amanha: d.amanha,
+          leads_quentes_sem_marcacao: d.quentes,
           a_espera: d.pendencias.filter((p) => p.tipo === "espera").map((p) => ({ conversa: p.conversa, desde: p.tipo === "espera" ? p.desde : null, nome: p.nome, ultima_mensagem: p.tipo === "espera" ? p.previa : null })),
           sinais_por_pagar: d.pendencias.filter((p) => p.tipo === "sinal").map((p) => ({ cliente: p.nome, conversa: p.conversa })),
         },
@@ -307,7 +313,35 @@ export const FERRAMENTAS: Record<string, Definicao> = {
     parametros: objeto({ conversa: { type: "string" }, texto: { type: "string" } }, ["conversa", "texto"]),
     rotulo: "Preparando a mensagem",
   },
+
+  // As novas (19/11) vão no FIM: a ordem faz parte do prefixo em cache.
+  ...numeros,
+  ...fichaAgente,
+  ...consultaLivre,
+  ...FERRAMENTAS_LEITURA,
 };
+
+/**
+ * O relatório do período leva também os números do painel (secção "Outros
+ * números"): só valores planos e já calculados em código, com nomes legíveis.
+ */
+export async function numerosParaRelatorio(e: Escopo, p: { de: string; ate: string }): Promise<Record<string, unknown> | null> {
+  const r = await numerosDoNegocio(e, { agrupar_por: "nenhum", ate: p.ate, comparar_com_periodo_anterior: false, de: p.de });
+  const t = r.numeros.total;
+  const fat = t.faturamento_dos_realizados;
+  const plano: Record<string, unknown> = {
+    atendimentos_realizados: t.realizados,
+    faturamento_dos_realizados: fat.total,
+    ...(fat.marcacoes_com_valor_estimado ? { realizados_com_valor_estimado_pela_tabela: fat.marcacoes_com_valor_estimado } : {}),
+    ...(fat.marcacoes_sem_valor ? { realizados_sem_valor: fat.marcacoes_sem_valor } : {}),
+    valor_dos_agendamentos_marcados: t.valor_dos_marcados.total,
+    custo_por_agendamento_mínimo: t.cac_sobre_todos_os_agendamentos ?? null,
+    custo_por_agendamento_de_anúncio_máximo: t.cac_por_agendamento_de_anuncio ?? null,
+    conversas_com_pessoa: t.conversas_com_pessoa,
+  };
+  return Object.fromEntries(Object.entries(plano).filter(([, v]) => typeof v === "number"));
+}
+usarNumerosDoNegocio(numerosParaRelatorio);
 
 /** As definições no formato da Anthropic (Messages API: name, description, input_schema). Ordem fixa: fazem parte do prefixo em cache. */
 export function ferramentasAnthropic() {

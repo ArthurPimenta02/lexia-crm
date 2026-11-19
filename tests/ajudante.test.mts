@@ -175,11 +175,16 @@ test("ajudante: várias ferramentas na mesma volta respondem numa só mensagem",
   assert.deepEqual(resultados(pedidos[1]).map((b) => b.tool_use_id), ["a", "b"]);
 });
 
-test("ajudante: no máximo 6 voltas de ferramentas", async () => {
-  respostas = Array.from({ length: 10 }, (_, i) => chamada("servicos", {}, `c${i}`));
+test("ajudante: no máximo 10 voltas de ferramentas; na última tem de responder com o que tem", async () => {
+  respostas = [...Array.from({ length: 10 }, (_, i) => chamada("servicos", {}, `c${i}`)), fim("Com o que vi até aqui: 0 serviços.")];
   pedidos.length = 0;
-  await assert.rejects(perguntar(escopo, [], "Loop", () => undefined));
-  assert.equal(pedidos.length, 7);
+  const r = await perguntar(escopo, [], "Loop", () => undefined);
+  assert.equal(r.texto, "Com o que vi até aqui: 0 serviços.");
+  assert.equal(pedidos.length, 11);
+  assert.deepEqual(pedidos.slice(0, 10).map((p) => p.corpo.tool_choice.type), Array(10).fill("auto"));
+  assert.deepEqual(pedidos[10].corpo.tool_choice, { type: "none" });
+  // As ferramentas continuam no pedido (o prefixo em cache não muda).
+  assert.deepEqual(pedidos[10].corpo.tools, pedidos[0].corpo.tools);
 });
 
 test("ajudante: pedido à Anthropic: modelo, sem temperature, cache de 1 h nas ferramentas e no sistema fixo", async () => {
@@ -190,7 +195,7 @@ test("ajudante: pedido à Anthropic: modelo, sem temperature, cache de 1 h nas f
   const [p1, p2] = pedidos.map((p) => p.corpo);
   assert.equal(p1.model, "claude-sonnet-5");
   assert.equal(modeloDoAjudante(), "claude-sonnet-5");
-  assert.equal(VERSAO_PROMPT, "ajudante_v2");
+  assert.equal(VERSAO_PROMPT, "ajudante_v3");
   assert.equal("temperature" in p1, false);
   assert.deepEqual(p1.tool_choice, { type: "auto" });
   assert.deepEqual(p1.system[0].cache_control, { ttl: "1h", type: "ephemeral" });

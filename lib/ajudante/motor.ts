@@ -5,6 +5,7 @@ import { chaveDoDia, partesNoFuso } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { FERRAMENTAS, ferramentasAnthropic, type Escopo, type Proposta } from "./ferramentas";
+import { ESQUEMA_CONSULTA } from "./ferramentas/consulta-esquema";
 
 /**
  * O motor do Analista Lexia: pergunta → Claude → ferramentas → resposta.
@@ -20,13 +21,15 @@ import { FERRAMENTAS, ferramentasAnthropic, type Escopo, type Proposta } from ".
  *   (o dono pergunta espaçado); a data/hora e a tela vão num 2.º bloco DEPOIS do
  *   ponto de cache, para não o partir. Dentro do laço, a última mensagem leva um
  *   ponto de cache de 5 minutos, para as voltas seguintes lerem o que já foi.
- * - No máximo 6 voltas de ferramentas; se o modelo pedir mais, responde com o
- *   que já tem.
+ * - No máximo 10 voltas de ferramentas. Perguntas cruzadas pedem várias em
+ *   sequência (números → consulta livre → corrigir a consulta → ler conversas);
+ *   com 6 a resposta morria a meio. Na última volta o pedido vai com
+ *   tool_choice "none": o modelo tem de responder com o que já tem.
  * - `aoUsarFerramenta` avisa a tela ("Vendo a agenda…") enquanto corre.
  */
 
-export const VERSAO_PROMPT = "ajudante_v2";
-const VOLTAS = 6;
+export const VERSAO_PROMPT = "ajudante_v3";
+const VOLTAS = 10;
 const TENTATIVAS = 2;
 
 export function modeloDoAjudante() {
@@ -54,6 +57,17 @@ export function instrucoes(e: Escopo) {
     "- Nunca fale de outras empresas: você só vê esta.",
     "- Nunca diga ao dono nomes internos de ferramentas, tabelas, colunas ou campos (ex.: conversas_recentes, origem_tipo, lexia_contactos). Fale do que viu com palavras normais (\"as conversas\", \"a agenda\", \"o anúncio de origem\").",
     "- Nunca use travessão (— ou –). Use vírgula, ponto ou dois-pontos.",
+    "Que ferramenta usar:",
+    "- Qualquer número ou conta (quantos, CAC, custo por lead, conversão, faturamento, retorno, por origem, canal, campanha ou serviço, comparar períodos): numeros_do_negocio, com o agrupar_por certo. Use os números tal como vêm e leia o como_ler; NUNCA faça contas de cabeça nem some números de respostas diferentes. Retorno estimado = faturamento (real + estimado pela tabela) frente ao gasto em anúncios.",
+    "- Como o agente funciona (lembretes, confirmação, follow-up, mensagens automáticas, pausas, horários, o que faz sozinho): como_funciona_o_agente. Responda só com o que lá está.",
+    "- Achar quem escreveu uma frase ou palavra: procurar_nas_conversas (primeira_mensagem=true quando for 'começou com'). Para saber quem desses agendou, cruze com a agenda ou com a consulta livre.",
+    "- 'Porquê' ou motivos em várias conversas (cancelamentos, objeções, quem não agendou): analisar_varias_conversas; diga quantas conversas leu.",
+    "- Relatório da semana, do mês ou de um período: relatorio_do_periodo, e mostre-o inteiro a começar pelo título '# '.",
+    "- O que precisa de atenção agora (à espera, leads quentes, sinais, agenda de hoje): hoje.",
+    "- Perguntas abertas, listas e cruzamentos que nenhuma outra ferramenta dá (agendamentos por campanha com nomes, contactos por canal, quem veio de X e marcou, tempos, follow-ups): consulta_livre.",
+    "- Conselhos ('próximos passos', 'como otimizar'): primeiro numeros_do_negocio (e o que mais precisar), depois sugira passos concretos ligados a esses números.",
+    "- Não diga que não consegue ou que não tem o dado antes de tentar a consulta livre. Se ela falhar ou não estiver disponível, diga-o com simplicidade.",
+    ESQUEMA_CONSULTA.replaceAll("'<fuso>'", `'${e.fuso}'`),
   ].join("\n");
 }
 
@@ -205,7 +219,7 @@ export async function perguntar(
     else juntas.push({ ...m });
   }
 
-  const pedido = () => {
+  const pedido = (semFerramentas = false) => {
     marcarCache(juntas);
     return chamar(ia, {
       max_tokens: 8000,
@@ -213,7 +227,7 @@ export async function perguntar(
       model: modelo,
       output_config: { effort: esforcoDoAjudante() },
       system,
-      tool_choice: { type: "auto" },
+      tool_choice: { type: semFerramentas ? "none" : "auto" },
       tools,
     });
   };
@@ -261,7 +275,8 @@ export async function perguntar(
     }
     // Todos os resultados numa só mensagem (assim o modelo continua a pedir várias de uma vez).
     juntas.push({ content: resultados, role: "user" });
-    resposta = await pedido();
+    // Na última volta já não pode pedir ferramentas: responde com o que tem.
+    resposta = await pedido(volta === VOLTAS - 1);
     contar(resposta);
   }
 

@@ -1,0 +1,3 @@
+1. Em `lib/ajudante/ferramentas.ts`: `import { fichaAgente } from "@/lib/ajudante/ferramentas/ficha-agente";` e `...fichaAgente,` dentro de `FERRAMENTAS` (no fim, para não mexer no prefixo em cache das outras).
+2. Em `lib/ajudante/motor.ts`: acrescentar às instruções "perguntas sobre como o agente funciona ou mensagens automáticas → como_funciona_o_agente" e subir `VERSAO_PROMPT`.
+3. Conferir na Vercel que os `.md` de `lib/ajudante/fichas/` vão no pacote do servidor (o `index.ts` usa `new URL(..., import.meta.url)` e cai para `process.cwd()`); se não forem, juntar `outputFileTracingIncludes: { "/**": ["./lib/ajudante/fichas/*.md"] }` no `next.config.ts`.
