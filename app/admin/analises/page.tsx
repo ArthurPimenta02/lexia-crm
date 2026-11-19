@@ -23,7 +23,7 @@ export default async function AnalisesPage({ searchParams }: AnalisesPageProps) 
   const p = await searchParams;
   return (
     <AnalisesVista
-      filtros={{ analise: um(p.analise), cliente: um(p.cliente), estado: um(p.estado), gravidade: um(p.gravidade) }}
+      filtros={{ analise: um(p.analise), cliente: um(p.cliente), estado: um(p.estado) }}
     />
   );
 }

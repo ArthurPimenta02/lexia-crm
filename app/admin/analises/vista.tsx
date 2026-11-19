@@ -1,4 +1,4 @@
-import { ArrowUpRight, Repeat2 } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Repeat2 } from "lucide-react";
 import Link from "next/link";
 
 import { ItemAcoes } from "@/app/admin/analises/item-acoes";
@@ -9,16 +9,18 @@ import { DIAS_DOS_REPETIDOS, lerAnalises, type Analise, type ItemAnalise } from 
 import {
   contagemTotal,
   contagensPorCliente,
-  eEstadoItem,
+  eResolvido,
   eGravidade,
   errosQueSeRepetem,
-  ESTADOS_ITEM,
-  GRAVIDADES,
+  eVista,
   linkDaConversa,
+  separarItens,
+  totalPorResolver,
   type Contagem,
   type EstadoItem,
   type Gravidade,
   type Repetido,
+  type Vista,
 } from "@/lib/analises/regras";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
@@ -26,16 +28,21 @@ import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Análises das conversas (19/11/2026). À esquerda (no celular, em cima, a
- * deslizar) as análises mais recentes; ao meio a escolhida, com cartões por
- * cliente e cada achado; por baixo, os erros que se repetem em vários dias.
- * Os filtros ficam no endereço (?cliente, ?gravidade, ?estado, ?analise).
+ * Análises das conversas (19/11/2026; simplificada no mesmo dia). À esquerda
+ * (no celular, em cima, a deslizar) as análises mais recentes; ao meio a
+ * escolhida, com um cartão por cliente e os achados; por baixo, os erros que
+ * se repetem em vários dias.
+ *
+ * Regra da tela: erro contado é erro POR RESOLVER (novo ou visto). Corrigidos
+ * e falsos alarmes nunca entram nos números de graves/médios/detalhes; ficam
+ * num grupo recolhido "Já corrigidos (N)" no fim. Os filtros ficam no
+ * endereço (?cliente, ?estado=corrigidos|todos, ?analise).
  */
 
-type Filtros = { analise: string; cliente: string; estado: string; gravidade: string };
+type Filtros = { analise: string; cliente: string; estado: string };
 
 const FUSO = "America/Sao_Paulo";
-const PESO: Record<string, number> = { detalhe: 2, grave: 0, medio: 1, positivo: 3 };
+const ERROS = ["grave", "medio", "detalhe"] as const;
 const TOM_GRAVIDADE: Record<Gravidade, "perigo" | "alerta" | "neutro" | "verde"> = {
   detalhe: "neutro",
   grave: "perigo",
@@ -53,7 +60,6 @@ function rotulos(t: FuncaoT) {
   return {
     estadoAnalise: {
       a_correr: t("Rodando"),
-      concluida: t("Concluída"),
       falhou: t("Falhou"),
       pedida: t("Na fila"),
     } as Record<string, string>,
@@ -69,12 +75,15 @@ function rotulos(t: FuncaoT) {
       medio: t("Médio"),
       positivo: t("Positivo"),
     } as Record<Gravidade, string>,
-    gravidadePlural: {
-      detalhe: t("detalhes"),
-      grave: t("graves"),
-      medio: t("médios"),
-      positivo: t("positivos"),
-    } as Record<Gravidade, string>,
+    /** "2 detalhes", "1 grave". */
+    quantos: (g: (typeof ERROS)[number], n: number) =>
+      g === "grave"
+        ? n === 1 ? t("{n} grave", { n }) : t("{n} graves", { n })
+        : g === "medio"
+          ? n === 1 ? t("{n} médio", { n }) : t("{n} médios", { n })
+          : n === 1 ? t("{n} detalhe", { n }) : t("{n} detalhes", { n }),
+    corrigidos: (n: number) => (n === 1 ? t("{n} corrigido", { n }) : t("{n} corrigidos", { n })),
+    correuBem: (n: number) => (n === 1 ? t("{n} correu bem", { n }) : t("{n} correram bem", { n })),
     tipo: {
       diaria: t("Diária"),
       especifica: t("Específica"),
@@ -86,9 +95,22 @@ function rotulos(t: FuncaoT) {
 function hrefCom(f: Filtros, mudar: Partial<Filtros>) {
   const p = new URLSearchParams();
   const n = { ...f, ...mudar };
-  for (const k of ["cliente", "gravidade", "estado", "analise"] as const) if (n[k]) p.set(k, n[k]);
+  for (const k of ["cliente", "estado", "analise"] as const) if (n[k]) p.set(k, n[k]);
   const q = p.toString();
   return q ? `/admin/analises?${q}` : "/admin/analises";
+}
+
+/** "2 detalhes · 1 médio" só com o que existe; vazio quando não há nada por resolver. */
+function divisao(c: Contagem, r: Rotulos) {
+  return ERROS.filter((g) => c[g] > 0)
+    .map((g) => r.quantos(g, c[g]))
+    .join(" · ");
+}
+
+/** A cor do número: a do erro mais grave por resolver; cinza quando é zero. */
+function corDoPior(c: Contagem) {
+  const pior = ERROS.find((g) => c[g] > 0);
+  return pior ? COR_GRAVIDADE[pior] : "var(--ds-texto-3)";
 }
 
 /** A tela sem a verificação de acesso (quem chama já confirmou `lexia_admin`). */
@@ -105,13 +127,13 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
   const nomes = new Map(clientes.map((c) => [c.slug, c.nome]));
   const nomeDe = (slug: string | null) => (slug ? (nomes.get(slug) ?? slug) : t("Todos os clientes"));
 
-  // Só valores conhecidos entram nos filtros e na consulta.
+  // Só valores conhecidos entram nos filtros e na consulta. Sem `estado`, a vista é "por resolver".
   const filtros: Filtros = {
     analise: /^[0-9a-f-]{36}$/i.test(pedidos.analise) ? pedidos.analise : "",
     cliente: nomes.has(pedidos.cliente) ? pedidos.cliente : "",
-    estado: eEstadoItem(pedidos.estado) ? pedidos.estado : "",
-    gravidade: eGravidade(pedidos.gravidade) ? pedidos.gravidade : "",
+    estado: eVista(pedidos.estado) && pedidos.estado !== "por_resolver" ? pedidos.estado : "",
   };
+  const vista: Vista = (filtros.estado || "por_resolver") as Vista;
 
   const agora = new Date();
   const leitura = await lerAnalises(admin, { agora, cliente: filtros.cliente, pedida: filtros.analise });
@@ -132,29 +154,21 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
 
   const { analises, itensDaLista, itensSelecionada, repetidosBase, selecionada } = leitura;
 
-  const passa = (it: { cliente_slug: string; estado: string; gravidade: string }) =>
-    (!filtros.cliente || it.cliente_slug === filtros.cliente) &&
-    (!filtros.gravidade || it.gravidade === filtros.gravidade) &&
-    (!filtros.estado || it.estado === filtros.estado);
+  const doCliente = (it: { cliente_slug: string }) => !filtros.cliente || it.cliente_slug === filtros.cliente;
+  const itensDoCliente = itensSelecionada.filter(doCliente);
+  // O título conta a análise escolhida (a mesma dos cartões e da lista de itens), só o que está por resolver.
+  const total = contagemTotal(itensDoCliente);
 
-  const itensFiltrados = itensSelecionada
-    .filter(passa)
-    .sort((a, b) => (PESO[a.gravidade] ?? 9) - (PESO[b.gravidade] ?? 9) || a.criado_em.localeCompare(b.criado_em));
-  const itensDoCliente = itensSelecionada.filter((i) => !filtros.cliente || i.cliente_slug === filtros.cliente);
-  const gravesAbertos = itensDoCliente.filter((i) => i.gravidade === "grave" && i.estado === "novo").length;
-
-  const repetidos = errosQueSeRepetem(
-    repetidosBase.filter((i) => !filtros.cliente || i.cliente_slug === filtros.cliente),
-  ).slice(0, 12);
+  const repetidos = errosQueSeRepetem(repetidosBase.filter(doCliente)).slice(0, 12);
 
   const fmtData = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: FUSO });
   const fmtDia = new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short", timeZone: FUSO });
 
   const titulo = !selecionada
     ? { resto: t("O que os agentes erraram e por quê") }
-    : gravesAbertos > 0
-      ? { destaque: String(gravesAbertos), resto: gravesAbertos === 1 ? t("erro grave por olhar") : t("erros graves por olhar") }
-      : { resto: t("Nenhum erro grave por olhar") };
+    : total.grave > 0
+      ? { destaque: String(total.grave), resto: total.grave === 1 ? t("erro grave por resolver") : t("erros graves por resolver") }
+      : { resto: t("Nada grave por resolver") };
 
   return (
     <section className="flex w-full min-w-0 flex-col gap-5">
@@ -190,30 +204,14 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
               ]}
               rotulo={t("Cliente")}
             />
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <FiltroTrilho
-                opcoes={[
-                  { ativo: !filtros.gravidade, href: hrefCom(filtros, { gravidade: "" }), label: t("Toda gravidade") },
-                  ...GRAVIDADES.map((g) => ({
-                    ativo: filtros.gravidade === g,
-                    href: hrefCom(filtros, { gravidade: g }),
-                    label: r.gravidade[g],
-                  })),
-                ]}
-                rotulo={t("Gravidade")}
-              />
-              <FiltroTrilho
-                opcoes={[
-                  { ativo: !filtros.estado, href: hrefCom(filtros, { estado: "" }), label: t("Todo estado") },
-                  ...ESTADOS_ITEM.map((e) => ({
-                    ativo: filtros.estado === e,
-                    href: hrefCom(filtros, { estado: e }),
-                    label: r.estadoItem[e],
-                  })),
-                ]}
-                rotulo={t("Estado")}
-              />
-            </div>
+            <FiltroTrilho
+              opcoes={[
+                { ativo: vista === "por_resolver", href: hrefCom(filtros, { estado: "" }), label: t("Por resolver"), quantidade: totalPorResolver(total) },
+                { ativo: vista === "corrigidos", href: hrefCom(filtros, { estado: "corrigidos" }), label: t("Corrigidos"), quantidade: total.corrigidos },
+                { ativo: vista === "todos", href: hrefCom(filtros, { estado: "todos" }), label: t("Todos") },
+              ]}
+              rotulo={t("Estado")}
+            />
           </div>
 
           <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-[18.5rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
@@ -222,9 +220,9 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
               <p className="ds-sobretitulo mb-2 px-1">{t("Análises")}</p>
               <ol className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
                 {analises.map((a) => {
-                  const itens = itensDaLista.filter((i) => i.analise_id === a.id && passa(i));
-                  const c = contagemTotal(itens);
+                  const c = contagemTotal(itensDaLista.filter((i) => i.analise_id === a.id && doCliente(i)));
                   const ativa = selecionada?.id === a.id;
+                  const pronta = a.estado === "concluida";
                   return (
                     <li className="w-[15.5rem] shrink-0 snap-start lg:w-auto" key={a.id}>
                       <Link
@@ -240,15 +238,15 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
                           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                             {fmtData.format(new Date(a.criado_em))}
                           </span>
-                          <Selo tom={a.estado === "falhou" ? "perigo" : a.estado === "concluida" ? "neutro" : "ouro"}>
-                            {a.estado === "concluida" ? r.tipo[a.tipo] ?? a.tipo : r.estadoAnalise[a.estado] ?? a.estado}
-                          </Selo>
+                          {pronta ? null : (
+                            <Selo tom={a.estado === "falhou" ? "perigo" : "ouro"}>{r.estadoAnalise[a.estado] ?? a.estado}</Selo>
+                          )}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
-                          {nomeDe(a.cliente_slug)}
+                          {r.tipo[a.tipo] ?? a.tipo} · {nomeDe(a.cliente_slug)}
                           {a.pedido ? ` · ${a.pedido}` : ""}
                         </span>
-                        <ContagemEmLinha contagem={c} />
+                        {pronta ? <ContagemEmLinha contagem={c} r={r} t={t} /> : null}
                       </Link>
                     </li>
                   );
@@ -262,12 +260,12 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
                   analise={selecionada}
                   fmtData={fmtData}
                   filtros={filtros}
-                  itens={itensFiltrados}
                   itensDoCliente={itensDoCliente}
                   locale={locale}
                   nomeDe={nomeDe}
                   r={r}
                   t={t}
+                  vista={vista}
                 />
               ) : null}
             </div>
@@ -282,15 +280,16 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
   );
 }
 
-function ContagemEmLinha({ contagem }: { contagem: Contagem }) {
+/** Na lista de análises: o que está por resolver; os corrigidos só em cinza ao lado. */
+function ContagemEmLinha({ contagem, r, t }: { contagem: Contagem; r: Rotulos; t: FuncaoT }) {
+  const abertos = totalPorResolver(contagem);
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tabular-nums text-muted-foreground">
-      {GRAVIDADES.map((g) => (
-        <span className="inline-flex items-center gap-1" key={g}>
-          <span aria-hidden className="size-1.5 rounded-full" style={{ background: COR_GRAVIDADE[g] }} />
-          <span className={contagem[g] ? "text-foreground" : ""}>{contagem[g]}</span>
-        </span>
-      ))}
+    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs tabular-nums">
+      <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+        <span aria-hidden className="size-1.5 rounded-full" style={{ background: abertos ? corDoPior(contagem) : "var(--ds-positivo)" }} />
+        {abertos ? t("{coisas} por resolver", { coisas: divisao(contagem, r) }) : t("Nada por resolver")}
+      </span>
+      {contagem.corrigidos ? <span className="text-muted-foreground">· {r.corrigidos(contagem.corrigidos)}</span> : null}
     </span>
   );
 }
@@ -301,39 +300,51 @@ function DetalheAnalise({
   analise,
   filtros,
   fmtData,
-  itens,
   itensDoCliente,
   locale,
   nomeDe,
   r,
   t,
+  vista,
 }: {
   analise: Analise;
   filtros: Filtros;
   fmtData: Intl.DateTimeFormat;
-  itens: ItemAnalise[];
   itensDoCliente: ItemAnalise[];
   locale: string;
   nomeDe: (slug: string | null) => string;
   r: Rotulos;
   t: FuncaoT;
+  vista: Vista;
 }) {
   const porCliente = contagensPorCliente(itensDoCliente);
+  const { porResolver, positivos, resolvidos } = separarItens(itensDoCliente);
   const custo = analise.custo_estimado === null ? null : Number(analise.custo_estimado);
   const periodo =
     analise.periodo_inicio && analise.periodo_fim
       ? `${fmtData.format(new Date(analise.periodo_inicio))} → ${fmtData.format(new Date(analise.periodo_fim))}`
       : null;
   const emCurso = analise.estado === "pedida" || analise.estado === "a_correr";
+  const lista = (itens: ItemAnalise[]) => (
+    <ol className="flex min-w-0 flex-col gap-3">
+      {itens.map((it) => (
+        <li key={it.id}>
+          <ItemCartao item={it} nomeDe={nomeDe} r={r} t={t} />
+        </li>
+      ))}
+    </ol>
+  );
 
   return (
     <>
       <article className="ds-bloco ds-entrar flex min-w-0 flex-col gap-3 p-4 sm:p-6">
         <header className="flex min-w-0 flex-wrap items-center gap-2">
           <Selo tom="escuro">{r.tipo[analise.tipo] ?? analise.tipo}</Selo>
-          <Selo ponto tom={analise.estado === "falhou" ? "perigo" : analise.estado === "concluida" ? "verde" : "ouro"}>
-            {r.estadoAnalise[analise.estado] ?? analise.estado}
-          </Selo>
+          {analise.estado === "concluida" ? null : (
+            <Selo ponto tom={analise.estado === "falhou" ? "perigo" : "ouro"}>
+              {r.estadoAnalise[analise.estado] ?? analise.estado}
+            </Selo>
+          )}
           <span className="text-sm text-muted-foreground">{nomeDe(analise.cliente_slug)}</span>
         </header>
         <h2 className="ds-titulo-2 text-foreground">{fmtData.format(new Date(analise.criado_em))}</h2>
@@ -389,54 +400,85 @@ function DetalheAnalise({
         <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {porCliente.map(({ cliente_slug, contagem }, i) => {
             const ativo = filtros.cliente === cliente_slug;
+            const abertos = totalPorResolver(contagem);
+            const rodape = [
+              contagem.corrigidos ? r.corrigidos(contagem.corrigidos) : "",
+              contagem.positivo ? r.correuBem(contagem.positivo) : "",
+            ].filter(Boolean);
             return (
               <Link
                 aria-current={ativo ? "true" : undefined}
-                className={`ds-bloco ds-entrar flex min-w-0 flex-col gap-3 p-4 ${ativo ? "shadow-[0_0_0_2px_var(--ds-acao)]" : ""}`}
+                className={`ds-bloco ds-entrar flex min-w-0 flex-col gap-2 p-4 ${ativo ? "shadow-[0_0_0_2px_var(--ds-acao)]" : ""}`}
                 href={hrefCom(filtros, { cliente: ativo ? "" : cliente_slug })}
                 key={cliente_slug}
                 scroll={false}
                 style={{ ["--i" as string]: i + 1 }}
               >
                 <span className="truncate text-sm font-semibold text-foreground">{nomeDe(cliente_slug)}</span>
-                <span className="grid grid-cols-4 gap-1">
-                  {GRAVIDADES.map((g) => (
-                    <span className="flex min-w-0 flex-col" key={g}>
-                      <span className="ds-numero text-[1.375rem] leading-none" style={{ color: contagem[g] ? COR_GRAVIDADE[g] : "var(--ds-texto-3)" }}>
-                        {contagem[g]}
-                      </span>
-                      <span className="mt-1 truncate text-[0.6875rem] text-muted-foreground">{r.gravidadePlural[g]}</span>
-                    </span>
-                  ))}
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <span className="ds-numero text-[2rem] leading-none" style={{ color: corDoPior(contagem) }}>
+                    {abertos}
+                  </span>
+                  <span className="min-w-0 truncate text-sm text-foreground">
+                    {t("por resolver")}
+                    {abertos ? <span className="text-muted-foreground"> · {divisao(contagem, r)}</span> : null}
+                  </span>
                 </span>
+                {rodape.length ? <span className="truncate text-xs text-muted-foreground">{rodape.join(" · ")}</span> : null}
               </Link>
             );
           })}
         </div>
       ) : null}
 
-      {itens.length === 0 ? (
-        emCurso ? null : (
+      {emCurso ? null : itensDoCliente.length === 0 ? (
+        <div className="ds-bloco">
+          <VazioTela pose="feliz" texto={t("A análise não encontrou nada a apontar neste período.")} titulo={t("Nada a apontar")} />
+        </div>
+      ) : vista === "corrigidos" ? (
+        resolvidos.length === 0 ? (
           <div className="ds-bloco">
-            <VazioTela
-              pose={itensDoCliente.length === 0 ? "feliz" : "piscadinha"}
-              texto={
-                itensDoCliente.length === 0
-                  ? t("A análise não encontrou nada a apontar neste período.")
-                  : t("Nenhum item com estes filtros.")
-              }
-              titulo={itensDoCliente.length === 0 ? t("Nada a apontar") : t("Nada por aqui")}
-            />
+            <VazioTela pose="piscadinha" texto={t("Quando marcar um erro como corrigido, ele aparece aqui.")} titulo={t("Nada corrigido ainda")} />
           </div>
+        ) : (
+          lista(resolvidos)
         )
       ) : (
-        <ol className="flex min-w-0 flex-col gap-3">
-          {itens.map((it) => (
-            <li key={it.id}>
-              <ItemCartao item={it} nomeDe={nomeDe} r={r} t={t} />
-            </li>
-          ))}
-        </ol>
+        <>
+          <section aria-label={t("Por resolver")} className="flex min-w-0 flex-col gap-3">
+            {porResolver.length === 0 ? (
+              <div className="ds-bloco">
+                <VazioTela pose="feliz" titulo={t("Nada por resolver")} />
+              </div>
+            ) : (
+              <>
+                <h2 className="ds-sobretitulo px-1">
+                  {t("Por resolver")} <span className="tabular-nums">({porResolver.length})</span>
+                </h2>
+                {lista(porResolver)}
+              </>
+            )}
+          </section>
+
+          {positivos.length > 0 ? (
+            <section aria-label={t("O que correu bem")} className="flex min-w-0 flex-col gap-3">
+              <h2 className="ds-sobretitulo px-1">
+                {t("O que correu bem")} <span className="tabular-nums">({positivos.length})</span>
+              </h2>
+              {lista(positivos)}
+            </section>
+          ) : null}
+
+          {resolvidos.length > 0 ? (
+            <details className="group min-w-0" open={vista === "todos"}>
+              <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[12px] bg-[color-mix(in_oklab,var(--ds-texto)_3%,transparent)] px-3.5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                <ChevronRight aria-hidden className="size-4 shrink-0 transition-transform group-open:rotate-90" />
+                {t("Já corrigidos ({n})", { n: resolvidos.length })}
+              </summary>
+              <div className="mt-3">{lista(resolvidos)}</div>
+            </details>
+          ) : null}
+        </>
       )}
     </>
   );
@@ -451,22 +493,30 @@ function ItemCartao({ item, nomeDe, r, t }: { item: ItemAnalise; nomeDe: (s: str
     { rotulo: t("Causa"), valor: item.causa },
     { mono: true, rotulo: t("Onde corrigir"), valor: item.onde_corrigir },
   ];
-  const resolvido = item.estado === "corrigido" || item.estado === "falso_alarme";
+  const resolvido = eResolvido(item.estado);
 
   return (
     <article
-      className={`ds-bloco flex min-w-0 flex-col gap-3 border-l-[3px] p-4 sm:p-5 ${resolvido ? "opacity-75" : ""}`}
-      style={{ borderLeftColor: COR_GRAVIDADE[g] }}
+      className={`ds-bloco flex min-w-0 flex-col gap-3 border-l-[3px] p-4 sm:p-5 ${resolvido ? "bg-transparent" : ""}`}
+      style={{ borderLeftColor: resolvido ? "var(--border)" : COR_GRAVIDADE[g] }}
     >
       <header className="flex min-w-0 flex-col gap-1.5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Selo tom={TOM_GRAVIDADE[g]}>{r.gravidade[g]}</Selo>
-          <span className="text-xs text-muted-foreground">{nomeDe(item.cliente_slug)}</span>
-          {item.estado !== "novo" && eEstadoItem(item.estado) ? (
-            <span className="text-xs text-muted-foreground">· {r.estadoItem[item.estado]}</span>
+          {/* Resolvido: o selo do estado vem primeiro e bem visível; o resto do cartão fica apagado. */}
+          {resolvido ? (
+            <Selo ponto tom={item.estado === "corrigido" ? "verde" : "neutro"}>
+              {r.estadoItem[item.estado as EstadoItem]}
+            </Selo>
           ) : null}
+          <span className={resolvido ? "opacity-55" : ""}>
+            <Selo tom={TOM_GRAVIDADE[g]}>{r.gravidade[g]}</Selo>
+          </span>
+          <span className="text-xs text-muted-foreground">{nomeDe(item.cliente_slug)}</span>
+          {item.estado === "visto" ? <span className="text-xs text-muted-foreground">· {r.estadoItem.visto}</span> : null}
         </div>
-        <h3 className="ds-titulo-3 text-foreground [overflow-wrap:anywhere]">{item.titulo}</h3>
+        <h3 className={`ds-titulo-3 [overflow-wrap:anywhere] ${resolvido ? "text-muted-foreground line-through decoration-1" : "text-foreground"}`}>
+          {item.titulo}
+        </h3>
         {link ? (
           <Link className="inline-flex w-fit max-w-full items-center gap-1 text-xs font-medium text-[var(--ds-acao-forte)] underline-offset-2 hover:underline" href={link}>
             <span className="truncate">{t("Abrir conversa")}</span>
@@ -477,6 +527,7 @@ function ItemCartao({ item, nomeDe, r, t }: { item: ItemAnalise; nomeDe: (s: str
         ) : null}
       </header>
 
+      <div className={`flex min-w-0 flex-col gap-3 ${resolvido ? "opacity-55" : ""}`}>
       {item.citacao ? (
         <blockquote className="rounded-[14px] bg-muted px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-foreground [overflow-wrap:anywhere]">
           {item.citacao}
@@ -497,6 +548,7 @@ function ItemCartao({ item, nomeDe, r, t }: { item: ItemAnalise; nomeDe: (s: str
             </div>
           ))}
       </dl>
+      </div>
 
       <ItemAcoes estado={item.estado} id={item.id} nota={item.nota_admin} />
     </article>

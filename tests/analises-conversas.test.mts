@@ -271,17 +271,71 @@ test("validarPedido: período em horas e campos da específica", () => {
   assert.deepEqual(regras.validarPedido({ periodo: "toString", tipo: "geral" }, agora), { erro: "periodo", ok: false });
 });
 
-test("contagens por cliente: mais graves primeiro", () => {
+test("contagens por cliente: só o que está por resolver conta como erro; mais graves primeiro", () => {
   const c = regras.contagensPorCliente([
-    { cliente_slug: "b", gravidade: "medio" },
-    { cliente_slug: "a", gravidade: "grave" },
-    { cliente_slug: "a", gravidade: "positivo" },
-    { cliente_slug: "b", gravidade: "inventada" },
+    { cliente_slug: "b", estado: "novo", gravidade: "medio" },
+    { cliente_slug: "a", estado: "visto", gravidade: "grave" },
+    { cliente_slug: "a", estado: "novo", gravidade: "positivo" },
+    { cliente_slug: "b", estado: "novo", gravidade: "inventada" },
+    // O caso do Detail de 19/11: dois graves já corrigidos não podem aparecer como graves.
+    { cliente_slug: "c", estado: "corrigido", gravidade: "grave" },
+    { cliente_slug: "c", estado: "corrigido", gravidade: "grave" },
+    { cliente_slug: "c", estado: "falso_alarme", gravidade: "medio" },
+    { cliente_slug: "c", estado: "corrigido", gravidade: "positivo" },
   ]);
   assert.deepEqual(c, [
-    { cliente_slug: "a", contagem: { detalhe: 0, grave: 1, medio: 0, positivo: 1 } },
-    { cliente_slug: "b", contagem: { detalhe: 0, grave: 0, medio: 1, positivo: 0 } },
+    { cliente_slug: "a", contagem: { corrigidos: 0, detalhe: 0, grave: 1, medio: 0, positivo: 1 } },
+    { cliente_slug: "b", contagem: { corrigidos: 0, detalhe: 0, grave: 0, medio: 1, positivo: 0 } },
+    { cliente_slug: "c", contagem: { corrigidos: 3, detalhe: 0, grave: 0, medio: 0, positivo: 1 } },
   ]);
+  assert.equal(regras.totalPorResolver(c[2].contagem), 0);
+});
+
+test("contagem total: a análise real de 19/11 (8 corrigidos, 2 detalhes novos, 3 positivos) não tem graves", () => {
+  const itens = [
+    ...Array.from({ length: 6 }, (_, i) => ({ estado: "corrigido", gravidade: i < 2 ? "grave" : "medio" })),
+    { estado: "corrigido", gravidade: "detalhe" },
+    { estado: "falso_alarme", gravidade: "grave" },
+    { estado: "novo", gravidade: "detalhe" },
+    { estado: "visto", gravidade: "detalhe" },
+    { estado: "novo", gravidade: "positivo" },
+    { estado: "novo", gravidade: "positivo" },
+    { estado: "visto", gravidade: "positivo" },
+  ];
+  const c = regras.contagemTotal(itens);
+  assert.deepEqual(c, { corrigidos: 8, detalhe: 2, grave: 0, medio: 0, positivo: 3 });
+  assert.equal(regras.totalPorResolver(c), 2);
+});
+
+test("separar itens: por resolver (grave → médio → detalhe), o que correu bem, e os já resolvidos no fim", () => {
+  const it = (id: string, gravidade: string, estado: string, criado_em = "2026-11-19T05:00:00Z") => ({ criado_em, estado, gravidade, id });
+  const g = regras.separarItens([
+    it("d1", "detalhe", "novo"),
+    it("p1", "positivo", "novo"),
+    it("g-corr", "grave", "corrigido"),
+    it("m1", "medio", "visto"),
+    it("g2", "grave", "novo", "2026-11-19T06:00:00Z"),
+    it("g1", "grave", "novo", "2026-11-19T04:00:00Z"),
+    it("fa", "medio", "falso_alarme"),
+  ]);
+  assert.deepEqual(g.porResolver.map((i) => i.id), ["g1", "g2", "m1", "d1"]);
+  assert.deepEqual(g.positivos.map((i) => i.id), ["p1"]);
+  assert.deepEqual(g.resolvidos.map((i) => i.id), ["g-corr", "fa"]);
+});
+
+test("vistas: por resolver é o padrão; só corrigidos e todos mudam a tela", () => {
+  assert.deepEqual([...regras.VISTAS], ["por_resolver", "corrigidos", "todos"]);
+  assert.equal(regras.eVista("corrigidos"), true);
+  assert.equal(regras.eVista("novo"), false, "os estados antigos do filtro caem em 'por resolver'");
+  assert.equal(regras.ePorResolver("visto"), true);
+  assert.equal(regras.eResolvido("falso_alarme"), true);
+});
+
+test("a vista não conta erros sem passar pelas regras (nada de contar itens crus)", () => {
+  const vista = readFileSync("app/admin/analises/vista.tsx", "utf8");
+  assert.doesNotMatch(vista, /\.filter\(\(i\) => i\.gravidade === "grave"/);
+  assert.doesNotMatch(vista, /t\("Concluída"\)/, "o selo 'Concluída' saiu: confundia-se com o erro estar resolvido");
+  assert.match(vista, /contagemTotal\(itensDoCliente\)/);
 });
 
 test("erros que se repetem: mesmo título em dias diferentes; positivos e falsos alarmes fora", () => {

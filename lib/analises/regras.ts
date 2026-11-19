@@ -122,17 +122,38 @@ export type ItemResumo = {
   titulo: string;
 };
 
-export type Contagem = Record<Gravidade, number>;
+/** Um erro ainda por resolver: novo ou só visto. */
+export const ePorResolver = (estado: string) => estado === "novo" || estado === "visto";
+/** Corrigido ou falso alarme: já não é erro para contar. */
+export const eResolvido = (estado: string) => estado === "corrigido" || estado === "falso_alarme";
 
-const contagemVazia = (): Contagem => ({ detalhe: 0, grave: 0, medio: 0, positivo: 0 });
+/**
+ * O que a tela conta. `grave`, `medio` e `detalhe` são SÓ os erros por
+ * resolver (novo ou visto); os corrigidos e os falsos alarmes vão para
+ * `corrigidos` e nunca entram nos números de erro. `positivo` é o que correu
+ * bem, seja qual for o estado.
+ */
+export type Contagem = { corrigidos: number; detalhe: number; grave: number; medio: number; positivo: number };
 
-/** Quantos graves/médios/detalhes/positivos há por cliente (ordem: mais graves primeiro). */
-export function contagensPorCliente(itens: Pick<ItemResumo, "cliente_slug" | "gravidade">[]) {
+const contagemVazia = (): Contagem => ({ corrigidos: 0, detalhe: 0, grave: 0, medio: 0, positivo: 0 });
+
+function contar(c: Contagem, it: Pick<ItemResumo, "estado" | "gravidade">) {
+  if (!eGravidade(it.gravidade)) return;
+  if (it.gravidade === "positivo") c.positivo += 1;
+  else if (eResolvido(it.estado)) c.corrigidos += 1;
+  else if (ePorResolver(it.estado)) c[it.gravidade] += 1;
+}
+
+/** Quantos erros por resolver há (graves + médios + detalhes). */
+export const totalPorResolver = (c: Contagem) => c.grave + c.medio + c.detalhe;
+
+/** A contagem de cada cliente (ordem: mais graves por resolver primeiro). */
+export function contagensPorCliente(itens: Pick<ItemResumo, "cliente_slug" | "estado" | "gravidade">[]) {
   const mapa = new Map<string, Contagem>();
   for (const it of itens) {
     if (!eGravidade(it.gravidade)) continue;
     const c = mapa.get(it.cliente_slug) ?? contagemVazia();
-    c[it.gravidade] += 1;
+    contar(c, it);
     mapa.set(it.cliente_slug, c);
   }
   return [...mapa.entries()]
@@ -141,15 +162,40 @@ export function contagensPorCliente(itens: Pick<ItemResumo, "cliente_slug" | "gr
       (a, b) =>
         b.contagem.grave - a.contagem.grave ||
         b.contagem.medio - a.contagem.medio ||
+        b.contagem.detalhe - a.contagem.detalhe ||
         a.cliente_slug.localeCompare(b.cliente_slug),
     );
 }
 
-/** Total por gravidade de uma lista de itens. */
-export function contagemTotal(itens: Pick<ItemResumo, "gravidade">[]): Contagem {
+/** A contagem de uma lista de itens (mesmas regras de `contagensPorCliente`). */
+export function contagemTotal(itens: Pick<ItemResumo, "estado" | "gravidade">[]): Contagem {
   const c = contagemVazia();
-  for (const it of itens) if (eGravidade(it.gravidade)) c[it.gravidade] += 1;
+  for (const it of itens) contar(c, it);
   return c;
+}
+
+/** O que a tela mostra: por resolver, só os corrigidos, ou tudo. */
+export const VISTAS = ["por_resolver", "corrigidos", "todos"] as const;
+export type Vista = (typeof VISTAS)[number];
+export const eVista = (v: unknown): v is Vista => VISTAS.includes(v as Vista);
+
+const ORDEM: Record<string, number> = { detalhe: 2, grave: 0, medio: 1 };
+
+/**
+ * Os itens de uma análise em três grupos, cada um na ordem em que se lê:
+ * por resolver (grave → médio → detalhe, depois o mais antigo primeiro),
+ * o que correu bem, e os já resolvidos (corrigidos e falsos alarmes).
+ */
+export function separarItens<T extends Pick<ItemResumo, "criado_em" | "estado" | "gravidade">>(itens: T[]) {
+  const porOrdem = (a: T, b: T) =>
+    (ORDEM[a.gravidade] ?? 9) - (ORDEM[b.gravidade] ?? 9) || a.criado_em.localeCompare(b.criado_em);
+  const positivos = itens.filter((i) => i.gravidade === "positivo");
+  const erros = itens.filter((i) => i.gravidade !== "positivo");
+  return {
+    porResolver: erros.filter((i) => !eResolvido(i.estado)).sort(porOrdem),
+    positivos: [...positivos].sort((a, b) => a.criado_em.localeCompare(b.criado_em)),
+    resolvidos: erros.filter((i) => eResolvido(i.estado)).sort(porOrdem),
+  };
 }
 
 /** Minúsculas, sem acentos nem pontuação, espaços colapsados: "Preço  errado!" = "preco errado". */
