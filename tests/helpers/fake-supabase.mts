@@ -50,6 +50,8 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
   /** Colunas que o pedido exige preenchidas: `not(coluna, "is", null)`. */
   private readonly exigeValor: string[] = [];
+  /** `filter(coluna, "match", regex)`: o `~` do Postgres. */
+  private readonly padroes: { coluna: string; regex: RegExp }[] = [];
   private devolveLinhas = false;
   private limiteLinhas: number | null = null;
   private colunas: string | null = null;
@@ -135,6 +137,20 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
       coluna,
       prefixo: String(padrao).replace(/%$/, ""),
     });
+
+    return this;
+  }
+
+  /**
+   * Só o operador que o painel usa: `match`, a expressão regular do Postgres.
+   * Aplica-se a sério, porque é ela que decide que mensagens saem da base.
+   */
+  filter(coluna: string, operador: string, valor: string) {
+    if (operador !== "match") {
+      throw new Error(`O duplo da Supabase não sabe fazer filter(${operador}).`);
+    }
+
+    this.padroes.push({ coluna, regex: new RegExp(valor) });
 
     return this;
   }
@@ -230,6 +246,15 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
       if (
         this.exigeValor.some(
           (coluna) => linha[coluna] === null || linha[coluna] === undefined,
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        !this.padroes.every(
+          ({ coluna, regex }) =>
+            typeof linha[coluna] === "string" && regex.test(linha[coluna]),
         )
       ) {
         return false;

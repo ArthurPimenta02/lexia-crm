@@ -221,6 +221,7 @@ function cliente(parciais: Partial<ClienteLinha> = {}): ClienteLinha {
     primeiroContactoEm: null,
     telefone: "351925252340",
     telefoneDigitos: "925252340",
+    telefoneOrigem: "contacto",
     totalGasto: null,
     viatura: "BMW 320d",
     ...parciais,

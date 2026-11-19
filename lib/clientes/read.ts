@@ -1,8 +1,13 @@
-import { normalizarTelefone, pareceTelefone } from "@/lib/clientes/telefone";
+import {
+  normalizarTelefone,
+  pareceTelefone,
+  telefonesNoTexto,
+} from "@/lib/clientes/telefone";
 import {
   getAtribuicaoPorAnuncio,
   type AtribuicaoAnuncio,
 } from "@/lib/meta/atribuicao";
+import { chaveTelefone } from "@/lib/pipeline/etapas";
 import { getServicosConfig, createServicosClient } from "@/lib/servicos/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
@@ -34,7 +39,21 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
  *    passar o PSID. Esse número está em `marcacoes` e não em
  *    `lexia_contactos`, portanto essa pessoa aparece aqui pelo lado das
  *    marcações, não pelo lado do contacto.
+ *
+ * 5. Desde 19/11 os leads do Instagram e do Messenger entram na lista, a
+ *    pedido do Arthur, mesmo sem telefone. O número deles junta-se na
+ *    LEITURA, sem escrever nada na base: é um número que a pessoa escreveu
+ *    numa mensagem ao agente E que bate (pelos últimos 9 dígitos, a mesma
+ *    ponte do pipeline) com uma marcação. As duas condições juntas, porque
+ *    só a primeira apanhava NIFs e números de encomenda — medido a 19/11 no
+ *    Detail, 30 conversas de Meta têm números escritos e só 3 batem com uma
+ *    marcação; na Miranda, 61 e 40. Sem número, a ficha mostra o nome da
+ *    conta e o canal — nunca o PSID, que fica só no `identificadorConversa`
+ *    para abrir a conversa.
  */
+
+/** Os canais onde a coluna `telefone` do contacto leva o PSID. */
+const canaisDaMeta = new Set(["instagram", "messenger"]);
 
 
 /** Uma marcação, vista da ficha: o que o cliente comprou e quando. */
@@ -89,19 +108,35 @@ export type ClienteLinha = {
   origemManual: string | null;
   origemManualNota: string | null;
   primeiroContactoEm: string | null;
+  /**
+   * Um número a sério, ou vazio. Nunca o PSID: num contacto de Instagram ou
+   * Messenger é o número que a pessoa deu ao marcar, ou nada.
+   */
   telefone: string;
   telefoneDigitos: string;
+  /**
+   * De onde veio o número. `contacto` é o do WhatsApp (o da própria
+   * conversa); `marcacao` é o que um lead de Instagram/Messenger escreveu ao
+   * agente e bate com uma marcação — serve para ligar, mas a ficha não o
+   * tem gravado, por isso o registo de serviço à mão continua a pedi-lo.
+   */
+  telefoneOrigem: "contacto" | "marcacao" | null;
   /** Soma do que já pagou nas marcações que não foram canceladas. */
   totalGasto: number | null;
   /** O carro da pessoa, escrito no painel. Só o Detail usa. */
   viatura: string | null;
 };
 
-/** Um contacto sem número utilizável: fica de fora da lista, mas conta-se. */
+/** Os contactos que ficam de fora da lista, contados. */
 export type ClientesDeFora = {
-  /** Contactos de Meta cujo "telefone" é o PSID. */
+  /**
+   * Instagram/Messenger sem nome, sem número e sem uma única mensagem: uma
+   * ficha vazia que a Meta abriu e onde ninguém escreveu nada.
+   */
+  semConversa: number;
+  /** Fora da Meta, sem um número com forma de número. */
   semTelefoneReal: number;
-  /** Contactos com número mas sem nome. */
+  /** WhatsApp com número mas sem nome. */
   semNome: number;
 };
 
@@ -200,6 +235,60 @@ async function lerMensagens(clienteSlug: string) {
 }
 
 /**
+ * Os números que os leads escreveram nas mensagens deles.
+ *
+ * Só as mensagens RECEBIDAS e só as que têm uma sequência de dígitos: o
+ * filtro corre no Postgres, por isso o texto das outras nunca sai da base.
+ * Medido a 19/11: 398 mensagens no Detail e 166 na Miranda, em menos de 1 s.
+ * O texto não chega ao browser — daqui só sai o número, e só se bater com uma
+ * marcação.
+ */
+async function lerTelefonesDitos(clienteSlug: string) {
+  const admin = createAdminClient();
+
+  return fetchAllSupabaseRows<{
+    contacto_id: string | null;
+    conteudo: string | null;
+    criado_em: string | null;
+  }>(async (from, to) => {
+    const result = await admin
+      .from("lexia_mensagens")
+      .select("contacto_id, conteudo, criado_em")
+      .eq("cliente_slug", clienteSlug)
+      .eq("direccao", "recebida")
+      .filter("conteudo", "match", "[0-9][0-9 ().+-]{7,}[0-9]")
+      .order("criado_em", { ascending: true })
+      .range(from, to);
+
+    return { data: result.data ?? [], error: result.error };
+  });
+}
+
+/**
+ * Os telefones das marcações no espelho da agenda (`lexia_agendamentos`).
+ *
+ * É a tabela que os dois clientes têm — a `marcacoes` só existe no Detail, e
+ * só com credenciais. Inclui as canceladas: quem desmarcou também deu o número.
+ */
+async function lerTelefonesDaAgenda(clienteSlug: string) {
+  const admin = createAdminClient();
+
+  return fetchAllSupabaseRows<{ telefone_digitos: string | null }>(
+    async (from, to) => {
+      const result = await admin
+        .from("lexia_agendamentos")
+        .select("telefone_digitos")
+        .eq("cliente_slug", clienteSlug)
+        .not("telefone_digitos", "is", null)
+        .order("inicio", { ascending: true })
+        .range(from, to);
+
+      return { data: result.data ?? [], error: result.error };
+    },
+  );
+}
+
+/**
  * Lê as marcações na base de dados DO CLIENTE.
  *
  * Devolve `null` — e não uma lista vazia — quando o cliente não tem base
@@ -244,20 +333,37 @@ async function lerMarcacoes(clienteSlug: string) {
 }
 
 /**
- * Clientes do painel: contactos com nome e com um telefone a sério.
+ * Clientes do painel.
  *
- * A regra é a que o Arthur pediu — nome E telefone — aplicada ao número e não
- * ao canal. Aplicá-la ao texto cru da coluna deixava entrar 611 PSIDs
- * disfarçados de telemóvel.
+ * No WhatsApp a regra continua a ser a antiga — nome E telefone — aplicada ao
+ * número e não ao texto cru da coluna, que deixava entrar 611 PSIDs
+ * disfarçados de telemóvel. No Instagram e no Messenger (ver o ponto 5 lá em
+ * cima) entra quem tem nome, número dado ao marcar ou pelo menos uma mensagem.
  */
 export async function getClientes(
   clienteSlug: string,
 ): Promise<ClientesResultado> {
-  const [contactosResultado, mensagensResultado, marcacoes] = await Promise.all([
+  const [
+    contactosResultado,
+    mensagensResultado,
+    marcacoes,
+    ditosResultado,
+    agendaResultado,
+  ] = await Promise.all([
     lerContactos(clienteSlug),
     lerMensagens(clienteSlug),
     lerMarcacoes(clienteSlug),
+    lerTelefonesDitos(clienteSlug),
+    lerTelefonesDaAgenda(clienteSlug),
   ]);
+
+  if (ditosResultado.error) {
+    console.error("[clientes] falha a ler os números ditos", ditosResultado.error);
+  }
+
+  if (agendaResultado.error) {
+    console.error("[clientes] falha a ler os telefones da agenda", agendaResultado.error);
+  }
 
   if (contactosResultado.error) {
     console.error("[clientes] falha a ler os contactos", contactosResultado.error);
@@ -329,6 +435,40 @@ export async function getClientes(
     marcacoesPorDigitos.set(digitos, lista);
   }
 
+  // Os números das marcações, pela chave dos últimos 9 dígitos. A `marcacoes`
+  // do cliente primeiro: é com os dígitos exactos dela que o histórico casa.
+  const marcadosPorChave = new Map<string, string>();
+
+  for (const digitos of [
+    ...(marcacoes ?? []).map((marcacao) => normalizarTelefone(marcacao.telefone)),
+    ...agendaResultado.data.map((linha) => normalizarTelefone(linha.telefone_digitos)),
+  ]) {
+    const chave = chaveTelefone(digitos);
+
+    if (chave && pareceTelefone(digitos) && !marcadosPorChave.has(chave)) {
+      marcadosPorChave.set(chave, digitos);
+    }
+  }
+
+  // O número que cada contacto escreveu e que bate com uma marcação. Lidas por
+  // ordem, a última ganha: se a pessoa corrigiu o número, vale o corrigido.
+  const marcadoPorContacto = new Map<string, string>();
+
+  for (const mensagem of ditosResultado.data) {
+    if (!mensagem.contacto_id) {
+      continue;
+    }
+
+    for (const digitos of telefonesNoTexto(mensagem.conteudo)) {
+      const chave = chaveTelefone(digitos);
+      const marcado = chave ? marcadosPorChave.get(chave) : undefined;
+
+      if (marcado) {
+        marcadoPorContacto.set(mensagem.contacto_id, marcado);
+      }
+    }
+  }
+
   // Os contactos que foram absorvidos, agrupados pelo principal.
   const juntosPorPrincipal = new Map<string, ContactoJunto[]>();
 
@@ -343,13 +483,18 @@ export async function getClientes(
       canal: contacto.canal ?? "desconhecido",
       id: contacto.id,
       identificadorConversa: contacto.identificador_conversa,
-      telefone: contacto.telefone,
+      // O PSID não sai daqui: é um identificador interno, não um número.
+      telefone: pareceTelefone(contacto.telefone) ? contacto.telefone : null,
     });
 
     juntosPorPrincipal.set(contacto.fundido_em, lista);
   }
 
-  const deFora: ClientesDeFora = { semNome: 0, semTelefoneReal: 0 };
+  const deFora: ClientesDeFora = {
+    semConversa: 0,
+    semNome: 0,
+    semTelefoneReal: 0,
+  };
   const clientes: ClienteLinha[] = [];
 
   for (const contacto of contactos) {
@@ -359,22 +504,32 @@ export async function getClientes(
     }
 
     const nome = (contacto.nome ?? "").trim();
-    const digitos = normalizarTelefone(contacto.telefone);
     const temTelefone = pareceTelefone(contacto.telefone);
+    const daMeta = !temTelefone && canaisDaMeta.has(contacto.canal ?? "");
+    const juntos = juntosPorPrincipal.get(contacto.id) ?? [];
 
-    if (!temTelefone) {
+    if (!temTelefone && !daMeta) {
       deFora.semTelefoneReal += 1;
 
       continue;
     }
 
-    if (!nome) {
+    if (temTelefone && !nome) {
       deFora.semNome += 1;
 
       continue;
     }
 
-    const juntos = juntosPorPrincipal.get(contacto.id) ?? [];
+    // O número dado ao marcar, procurado também nos contactos que este
+    // absorveu: a conversa onde a pessoa o escreveu pode ser a outra.
+    const marcado = daMeta
+      ? [contacto.id, ...juntos.map((junto) => junto.id)]
+          .map((id) => marcadoPorContacto.get(id))
+          .find(Boolean) ?? null
+      : null;
+    const digitos = temTelefone
+      ? normalizarTelefone(contacto.telefone)
+      : (marcado ?? "");
 
     // As mensagens contam-se neste contacto e em todos os que ele absorveu:
     // juntar dois contactos junta as duas conversas numa pessoa só.
@@ -394,6 +549,14 @@ export async function getClientes(
       if (registo.ultima && (!mensagemUltima || registo.ultima > mensagemUltima)) {
         mensagemUltima = registo.ultima;
       }
+    }
+
+    // Uma ficha de Meta sem nome, sem número e sem mensagens não tem nada
+    // para mostrar: é a Meta a abrir uma conversa onde ninguém escreveu.
+    if (daMeta && !nome && !marcado && mensagens === 0) {
+      deFora.semConversa += 1;
+
+      continue;
     }
 
     // O histórico vem do telefone deste contacto e dos que ele absorveu: duas
@@ -448,8 +611,9 @@ export async function getClientes(
       origemManual: contacto.origem_manual,
       origemManualNota: contacto.origem_manual_nota,
       primeiroContactoEm: contacto.criado_em,
-      telefone: contacto.telefone ?? "",
+      telefone: temTelefone ? (contacto.telefone ?? "") : digitos,
       telefoneDigitos: digitos,
+      telefoneOrigem: temTelefone ? "contacto" : marcado ? "marcacao" : null,
       // Null, e não zero, quando não sabemos: sem credenciais da base do
       // cliente não há marcações, e zero seria uma afirmação falsa.
       totalGasto: marcacoes === null ? null : totalGasto,

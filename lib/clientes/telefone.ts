@@ -22,6 +22,29 @@ export function pareceTelefone(bruto: string | null | undefined) {
 }
 
 /**
+ * Os números com forma de telefone escritos num texto, só em dígitos.
+ *
+ * Serve para os leads do Instagram e do Messenger: aí a Meta não dá o número,
+ * e o único sítio onde ele existe é a mensagem em que a pessoa o escreveu ao
+ * agente ("o meu número é 912 345 678"). Aceita espaços, pontos, hífenes,
+ * parênteses e o "+" do meio do número, que é como as pessoas o escrevem.
+ *
+ * Sozinho isto NÃO chega para dizer "é o telefone dela": no Detail apareceram
+ * NIFs e números de encomenda com a mesma forma. Quem usa isto confirma o
+ * número contra uma marcação antes de o mostrar.
+ */
+export function telefonesNoTexto(texto: string | null | undefined) {
+  const pedacos = (texto ?? "").match(/\+?\d[\d ().-]{7,}\d/g) ?? [];
+
+  return pedacos
+    .map((pedaco) => normalizarTelefone(pedaco))
+    .filter(
+      (digitos) =>
+        digitos.length >= digitosMinimos && digitos.length <= digitosMaximos,
+    );
+}
+
+/**
  * Os indicativos do formulário, com Portugal à cabeça.
  *
  * Porque é que isto não é só "351": medido a 2026-10-16, dos 347 contactos do

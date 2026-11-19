@@ -55,9 +55,12 @@ import type { FuncaoT } from "@/lib/i18n/traduzir";
  * - Juntar não se escolhe numa lista de 341 opções. Os candidatos a sério são
  *   os que têm o mesmo número, e esses aparecem sugeridos; o resto procura-se
  *   a escrever.
- * - Quem não tem telefone utilizável não desaparece em silêncio: o número
- *   aparece em baixo, com a explicação. Um ecrã que mostra 341 de 999 sem
- *   dizer nada parece estar com um defeito.
+ * - Quem fica de fora não desaparece em silêncio: o número aparece em baixo,
+ *   com a explicação. Um ecrã que mostra 341 de 999 sem dizer nada parece
+ *   estar com um defeito.
+ * - Desde 19/11 os leads do Instagram e do Messenger também estão na lista.
+ *   Sem nome, aparecem como "Cliente do Instagram · data do 1.º contacto";
+ *   sem telefone, mostram o canal. O PSID nunca se escreve no ecrã.
  */
 
 export type ClienteAction = (
@@ -68,7 +71,7 @@ export type ClienteAction = (
 export type ServicoOpcao = { id: string; nome: string };
 export type ExecutorOpcao = { chave: string; nome: string };
 
-type Filtro = "duplicados" | "parados" | "semNotas" | "todos";
+type Filtro = "duplicados" | "meta" | "parados" | "semNotas" | "todos";
 
 /** Sem falar há mais do que isto, para o filtro dos parados. */
 const diasParaParado = 90;
@@ -87,6 +90,85 @@ const botaoPrimario = "ds-botao ds-botao-primario";
 
 const botaoDiscreto = "ds-botao ds-botao-secundario ds-botao-p";
 
+
+const nomesDosCanais: Record<string, string> = {
+  instagram: "Instagram",
+  messenger: "Messenger",
+  whatsapp: "WhatsApp",
+};
+
+/** O canal escrito como o dono o conhece. São nomes próprios: não se traduzem. */
+function nomeDoCanal(canal: string) {
+  return nomesDosCanais[canal] ?? canal;
+}
+
+/**
+ * O nome que se escreve no ecrã.
+ *
+ * Uma ficha de Instagram ou Messenger pode não ter nome nenhum: a Meta só o
+ * dá quando a pessoa o tem público. Em vez de uma linha em branco — ou pior,
+ * do PSID — fica o canal, e a data do primeiro contacto para se distinguirem
+ * umas das outras. O `timeZone` é opcional porque o escolhedor de juntar não
+ * precisa da data para nada.
+ */
+function nomeVisivel(
+  cliente: ClienteLinha,
+  t: FuncaoT,
+  data?: { locale: string; timeZone: string },
+) {
+  if (cliente.nome) {
+    return cliente.nome;
+  }
+
+  const base =
+    cliente.canal === "instagram"
+      ? t("Cliente do Instagram")
+      : cliente.canal === "messenger"
+        ? t("Cliente do Messenger")
+        : t("Cliente sem nome");
+
+  return data
+    ? `${base} · ${formatarDia(cliente.primeiroContactoEm, data.timeZone, data.locale)}`
+    : base;
+}
+
+/**
+ * De onde veio, numa linha: o que a Meta confirmou, ou o que o dono anotou,
+ * e a campanha quando o anúncio se conhece. Aparece sempre — "não sabemos"
+ * também é uma resposta, e é diferente de não dizer nada.
+ */
+function origemCurta(cliente: ClienteLinha, t: FuncaoT) {
+  const capturada = getOrigemCapturadaLabel(cliente.origemCapturada);
+  const manual = getCanalLabel(cliente.origemManual);
+  const partes = [
+    capturada
+      ? t(capturada)
+      : manual
+        ? t("{canal} (indicado)", { canal: t(manual) })
+        : t("Origem não registrada"),
+  ];
+
+  if (cliente.anuncio?.campanhaNome) {
+    partes.push(cliente.anuncio.campanhaNome);
+  }
+
+  return partes.join(" · ");
+}
+
+/**
+ * Se o número dá para abrir no WhatsApp.
+ *
+ * O do contacto dá sempre: é o da própria conversa. O que veio de uma
+ * marcação foi escrito à mão, e muitas vezes sem indicativo — na Miranda são
+ * números americanos de 10 dígitos, e o `wa.me` sem o 1 abre outra pessoa.
+ */
+function abreNoWhatsApp(cliente: ClienteLinha) {
+  return (
+    cliente.telefoneDigitos !== "" &&
+    (cliente.telefoneOrigem === "contacto" ||
+      cliente.telefoneDigitos.length >= 11)
+  );
+}
 
 /** A moeda é a do cliente; só o formato segue o idioma de quem está a ver. */
 function formatMoeda(valor: number, moeda: string, locale: string) {
@@ -986,13 +1068,14 @@ function OrigemDoCliente({ cliente }: { cliente: ClienteLinha }) {
   const manual = manualBruto ? t(manualBruto) : null;
   const anuncio = cliente.anuncio;
 
-  if (!capturada && !manual && !anuncio) {
-    return null;
-  }
-
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2 text-xs">
+        {!capturada && !manual ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 py-1 font-medium text-muted-foreground">
+            {t("Origem não registrada")}
+          </span>
+        ) : null}
         {capturada ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-positive/20 bg-positive-soft px-2.5 py-1 font-medium text-positive">
             {capturada}
@@ -1109,10 +1192,10 @@ function OpcaoDeJuntar({
     >
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium text-foreground">
-          {outro.nome}
+          {nomeVisivel(outro, t)}
         </span>
         <span className="block text-xs text-muted-foreground">
-          {outro.telefone}
+          {outro.telefone || nomeDoCanal(outro.canal)}
         </span>
       </span>
       {mesmoNumero ? (
@@ -1174,11 +1257,11 @@ function JuntarForm({
     return outros
       .filter(
         (outro) =>
-          outro.nome.toLowerCase().includes(alvo) ||
+          nomeVisivel(outro, t).toLowerCase().includes(alvo) ||
           (digitos !== "" && outro.telefoneDigitos.includes(digitos)),
       )
       .slice(0, 8);
-  }, [outros, procura]);
+  }, [outros, procura, t]);
 
   if (outros.length === 0) {
     return null;
@@ -1197,12 +1280,16 @@ function JuntarForm({
 
           <p className="rounded-lg bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
             {comNos(t("{nome} passa a aparecer dentro da ficha de {principal}"), {
-              nome: <span className="font-semibold">{cliente.nome}</span>,
-              principal: (
-                <span className="font-semibold">{escolhido.nome}</span>
+              nome: (
+                <span className="font-semibold">{nomeVisivel(cliente, t)}</span>
               ),
-            })}{" "}
-            · {escolhido.telefone}
+              principal: (
+                <span className="font-semibold">
+                  {nomeVisivel(escolhido, t)}
+                </span>
+              ),
+            })}
+            {escolhido.telefone ? ` · ${escolhido.telefone}` : ""}
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -1210,7 +1297,10 @@ function JuntarForm({
               className={botaoDiscreto}
               confirmMessage={t(
                 'Juntar "{nome}" a "{principal}"? Esta ficha deixa de aparecer sozinha. Pode ser desfeito.',
-                { nome: cliente.nome, principal: escolhido.nome },
+                {
+                  nome: nomeVisivel(cliente, t),
+                  principal: nomeVisivel(escolhido, t),
+                },
               )}
               pendingLabel={t("Juntando...")}
             >
@@ -1332,6 +1422,8 @@ function LinhaDoCliente({
 }) {
   const { locale, t } = useIdioma();
   const dias = diasDesde(cliente.mensagemUltima);
+  const nome = nomeVisivel(cliente, t, { locale, timeZone });
+  const telefoneOuCanal = cliente.telefone || t("sem telefone");
 
   return (
     <button
@@ -1343,11 +1435,15 @@ function LinhaDoCliente({
       type="button"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <AvatarCanal canal={cliente.canal} nome={cliente.nome} tamanho={34} />
+        <AvatarCanal canal={cliente.canal} nome={cliente.nome || "?"} tamanho={34} />
         <span className="min-w-0">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-semibold text-foreground">
-              {cliente.nome}
+            <span
+              className={`truncate text-sm font-semibold ${
+                cliente.nome ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {nome}
             </span>
             {marcada ? (
               <span className="ds-selo ds-selo-alerta shrink-0">
@@ -1360,15 +1456,24 @@ function LinhaDoCliente({
               </span>
             ) : null}
           </span>
+          {/* De onde veio: o canal e a origem, sempre, em todos os tamanhos. */}
+          <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+            {nomeDoCanal(cliente.canal)} · {origemCurta(cliente, t)}
+          </span>
           <span className="mt-0.5 block truncate text-xs text-muted-foreground tabular-nums sm:hidden">
-            {cliente.telefone} ·{" "}
+            {telefoneOuCanal} ·{" "}
             {formatarDia(cliente.mensagemUltima, timeZone, locale)}
           </span>
         </span>
       </span>
 
-      <span className="hidden truncate text-[0.8125rem] text-muted-foreground tabular-nums sm:block">
-        {cliente.telefone}
+      <span className="hidden min-w-0 text-[0.8125rem] text-muted-foreground tabular-nums sm:block">
+        <span className="block truncate">{telefoneOuCanal}</span>
+        {cliente.telefoneOrigem === "marcacao" ? (
+          <span className="block truncate text-xs text-muted-foreground/80">
+            {t("dado ao agendar")}
+          </span>
+        ) : null}
       </span>
 
       <span className="hidden text-[0.8125rem] text-muted-foreground sm:block">
@@ -1460,7 +1565,7 @@ function FichaDoCliente({
         {cliente.canais.map((canal) => (
           <ChannelBadge channel={canal} key={canal} />
         ))}
-        {cliente.telefoneDigitos ? (
+        {abreNoWhatsApp(cliente) ? (
           <a
             className="inline-flex min-h-9 items-center rounded-full bg-[#25D366] px-4 py-1.5 text-sm font-semibold text-white transition hover:brightness-95"
             href={`https://wa.me/${cliente.telefoneDigitos}`}
@@ -1486,6 +1591,42 @@ function FichaDoCliente({
       </div>
 
       <dl className="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+        {/*
+          O contacto em si. No WhatsApp é o número da conversa; no Instagram e
+          no Messenger é o nome da conta e, se a pessoa marcou, o número que
+          deu ao agente — encontrado na conversa e confirmado na marcação.
+        */}
+        <div>
+          <dt className="text-muted-foreground">{t("Telefone")}</dt>
+          <dd className="mt-0.5 text-sm font-semibold text-foreground tabular-nums">
+            {cliente.telefone || (
+              <span className="font-normal text-muted-foreground">
+                {t("Não deu o telefone")}
+              </span>
+            )}
+            {cliente.telefoneOrigem === "marcacao" ? (
+              <span className="block text-xs font-normal text-muted-foreground">
+                {t("dado ao agendar")}
+              </span>
+            ) : null}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">
+            {cliente.canal === "whatsapp"
+              ? t("Canal")
+              : t("Conta no {canal}", { canal: nomeDoCanal(cliente.canal) })}
+          </dt>
+          <dd className="mt-0.5 text-sm font-semibold break-words text-foreground">
+            {cliente.canal === "whatsapp"
+              ? nomeDoCanal(cliente.canal)
+              : cliente.nome || (
+                  <span className="font-normal text-muted-foreground">
+                    {t("sem nome público")}
+                  </span>
+                )}
+          </dd>
+        </div>
         <div>
           <dt className="text-muted-foreground">{t("Última mensagem")}</dt>
           <dd className="mt-0.5 text-sm font-semibold text-foreground">
@@ -1577,7 +1718,9 @@ function FichaDoCliente({
           `totalGasto === null` é "não sabemos" e não "nunca comprou" — sem
           base ligada não há onde escrever, e o formulário não aparece.
         */}
-        {podeEditar && cliente.totalGasto !== null ? (
+        {podeEditar &&
+        cliente.totalGasto !== null &&
+        cliente.telefoneOrigem === "contacto" ? (
           <div className="mt-3">
             <ServicoNaFichaForm
               action={actionServico}
@@ -1603,8 +1746,8 @@ function FichaDoCliente({
                 key={junto.id}
               >
                 <span className="text-xs text-muted-foreground">
-                  {junto.canal} ·{" "}
-                  {junto.telefone || junto.identificadorConversa}
+                  {nomeDoCanal(junto.canal)}
+                  {junto.telefone ? ` · ${junto.telefone}` : ""}
                 </span>
                 {podeEditar ? (
                   <SepararForm action={actionSeparar} duplicadoId={junto.id} />
@@ -1690,7 +1833,7 @@ export function ClientesPanel({
    */
   timeZone: string;
 }) {
-  const { t } = useIdioma();
+  const { locale, t } = useIdioma();
   const [procura, setProcura] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [pagina, setPagina] = useState(0);
@@ -1703,7 +1846,11 @@ export function ClientesPanel({
     const porDigitos = new Map<string, string[]>();
 
     for (const cliente of clientes) {
-      if (cliente.telefoneDigitos === "") {
+      // Só os números das próprias conversas. O de um lead do Instagram que
+      // bate com um do WhatsApp é a mesma pessoa em dois canais, e não o
+      // número em dois formatos de que o aviso fala — o Juntar sugere-o na
+      // ficha, mas não conta como duplicado.
+      if (cliente.telefoneDigitos === "" || cliente.telefoneOrigem !== "contacto") {
         continue;
       }
 
@@ -1725,7 +1872,9 @@ export function ClientesPanel({
     return clientes.filter((cliente) => {
       if (
         alvo !== "" &&
-        !cliente.nome.toLowerCase().includes(alvo) &&
+        !nomeVisivel(cliente, t, { locale, timeZone })
+          .toLowerCase()
+          .includes(alvo) &&
         !(digitos !== "" && cliente.telefoneDigitos.includes(digitos))
       ) {
         return false;
@@ -1739,6 +1888,10 @@ export function ClientesPanel({
         return !cliente.notas;
       }
 
+      if (filtro === "meta") {
+        return cliente.canal !== "whatsapp";
+      }
+
       if (filtro === "parados") {
         const dias = diasDesde(cliente.mensagemUltima);
 
@@ -1747,7 +1900,7 @@ export function ClientesPanel({
 
       return true;
     });
-  }, [clientes, duplicados, filtro, procura]);
+  }, [clientes, duplicados, filtro, locale, procura, t, timeZone]);
 
   const paginas = Math.max(1, Math.ceil(filtrados.length / porPagina));
   // A página pode ficar para lá do fim quando o filtro encolhe a lista.
@@ -1779,10 +1932,16 @@ export function ClientesPanel({
       id: "semNotas",
       rotulo: t("Sem notas"),
     },
+    {
+      contagem: clientes.filter((cliente) => cliente.canal !== "whatsapp").length,
+      id: "meta",
+      rotulo: t("Instagram e Messenger"),
+    },
   ];
 
   const parados = chips.find((chip) => chip.id === "parados")?.contagem ?? 0;
-  const deForaTotal = deFora.semTelefoneReal + deFora.semNome;
+  const deForaTotal =
+    deFora.semTelefoneReal + deFora.semNome + deFora.semConversa;
 
   const botaoNovo = podeEditar ? (
     <button
@@ -1938,9 +2097,9 @@ export function ClientesPanel({
             <VazioTela
               acao={botaoNovo}
               texto={t(
-                "Cada pessoa que conversar com o agente e der nome e número aparece aqui.",
+                "Cada pessoa que conversar com o agente aparece aqui: no WhatsApp com nome e número, no Instagram e no Messenger com a conta.",
               )}
-              titulo={t("Ainda não há clientes com nome e número de telefone.")}
+              titulo={t("Ainda não há clientes.")}
             />
           ) : (
             <VazioTela
@@ -2041,11 +2200,27 @@ export function ClientesPanel({
         <AvisoLinha
           detalhe={
             <ul className="flex list-disc flex-col gap-1.5 pl-4">
+              {deFora.semConversa > 0 ? (
+                <li>
+                  {comNos(
+                    t(
+                      "{n} do Instagram ou do Messenger sem nome, sem telefone e sem nenhuma mensagem: a conversa foi aberta mas ninguém escreveu nada.",
+                    ),
+                    {
+                      n: (
+                        <span className="font-semibold">
+                          {deFora.semConversa}
+                        </span>
+                      ),
+                    },
+                  )}
+                </li>
+              ) : null}
               {deFora.semTelefoneReal > 0 ? (
                 <li>
                   {comNos(
                     t(
-                      "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.",
+                      "{n} no WhatsApp sem um número de telefone válido.",
                     ),
                     {
                       n: (

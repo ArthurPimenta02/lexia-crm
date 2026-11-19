@@ -209,16 +209,12 @@ const textos: TextosDaArea = {
     "{n} de {total} clientes": "{n} de {total} clientes",
     "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.":
       "O histórico de marcações não está disponível: faltam as credenciais da base de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.",
-    "Ainda não há clientes com nome e número de telefone.":
-      "Ainda não há clientes com nome e número de telefone.",
     "Nenhum cliente corresponde a essa busca.": "Nenhum cliente corresponde a essa procura.",
     Gasto: "Gasto",
     Anterior: "Anterior",
     "Página {n} de {total}": "Página {n} de {total}",
     Próxima: "Seguinte",
     "Contatos que não entram na lista": "Contactos que não entram na lista",
-    "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.":
-      "{n} sem número de telefone utilizável. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o telemóvel, dá um identificador interno. Quem marcou por lá deu o número ao agente, e esse número está na marcação — não no contacto.",
     "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.":
       "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.",
 
@@ -238,9 +234,25 @@ const textos: TextosDaArea = {
     "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abre um deles e usa Juntar.",
     "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contactos aparecem duas vezes com o mesmo número.",
     "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Os valores gastos não aparecem: o histórico de marcações não está ligado.",
-    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Cada pessoa que falar com o agente e der nome e número aparece aqui.",
     "Tente outro nome ou número, ou escolha Todos no filtro.": "Experimenta outro nome ou número, ou escolhe Todos no filtro.",
     "{n} contatos não entram na lista. Ver por quê.": "{n} contactos não entram na lista. Ver porquê.",
+
+    // Leads do Instagram e do Messenger na lista (19/11)
+    "Cliente do Messenger": "Cliente do Messenger",
+    "Cliente sem nome": "Cliente sem nome",
+    "{canal} (indicado)": "{canal} (indicado)",
+    "Origem não registrada": "Origem não registada",
+    "sem telefone": "sem telefone",
+    "dado ao agendar": "dado ao marcar",
+    "Não deu o telefone": "Não deu o telefone",
+    "Conta no {canal}": "Conta no {canal}",
+    "sem nome público": "sem nome público",
+    "Instagram e Messenger": "Instagram e Messenger",
+    "Cada pessoa que conversar com o agente aparece aqui: no WhatsApp com nome e número, no Instagram e no Messenger com a conta.": "Cada pessoa que falar com o agente aparece aqui: no WhatsApp com nome e número, no Instagram e no Messenger com a conta.",
+    "{n} do Instagram ou do Messenger sem nome, sem telefone e sem nenhuma mensagem: a conversa foi aberta mas ninguém escreveu nada.": "{n} do Instagram ou do Messenger sem nome, sem telefone e sem nenhuma mensagem: a conversa foi aberta mas ninguém escreveu nada.",
+    "{n} no WhatsApp sem um número de telefone válido.": "{n} no WhatsApp sem um número de telefone utilizável.",
+    "Anúncio no Messenger": "Anúncio no Messenger",
+    "Anúncio (pela frase do anúncio)": "Anúncio (pela frase do anúncio)",
   },
 
   es: {
@@ -437,16 +449,12 @@ const textos: TextosDaArea = {
     "{n} de {total} clientes": "{n} de {total} clientes",
     "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.":
       "El historial de citas no está disponible: faltan las credenciales de la base de datos de este cliente en este entorno. Se ven los nombres, números y notas; los importes no.",
-    "Ainda não há clientes com nome e número de telefone.":
-      "Todavía no hay clientes con nombre y número de teléfono.",
     "Nenhum cliente corresponde a essa busca.": "Ningún cliente coincide con esa búsqueda.",
     Gasto: "Gastado",
     Anterior: "Anterior",
     "Página {n} de {total}": "Página {n} de {total}",
     Próxima: "Siguiente",
     "Contatos que não entram na lista": "Contactos que no entran en la lista",
-    "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.":
-      "{n} sin un número de teléfono válido. Casi todos son de Instagram y Messenger: en esos canales Meta no da el móvil, da un identificador interno. Quien reservó por ahí le dio el número al agente, y ese número está en la cita, no en el contacto.",
     "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.":
       "{n} con número pero sin nombre: la conversación no llegó al punto en que el agente pregunta cómo se llama la persona.",
 
@@ -482,9 +490,25 @@ const textos: TextosDaArea = {
     "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "Son la misma persona dos veces, porque Meta entregó el número en dos formatos. Abra uno y use Unir.",
     "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contactos aparecen dos veces con el mismo número.",
     "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Los importes gastados no aparecen: el historial de citas no está conectado.",
-    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Cada persona que hable con el agente y dé nombre y número aparece aquí.",
     "Tente outro nome ou número, ou escolha Todos no filtro.": "Pruebe otro nombre o número, o elija Todos en el filtro.",
     "{n} contatos não entram na lista. Ver por quê.": "{n} contactos no entran en la lista. Ver por qué.",
+
+    // Leads do Instagram e do Messenger na lista (19/11)
+    "Cliente do Messenger": "Cliente de Messenger",
+    "Cliente sem nome": "Cliente sin nombre",
+    "{canal} (indicado)": "{canal} (indicado)",
+    "Origem não registrada": "Origen no registrado",
+    "sem telefone": "sin teléfono",
+    "dado ao agendar": "dado al reservar",
+    "Não deu o telefone": "No dio el teléfono",
+    "Conta no {canal}": "Cuenta en {canal}",
+    "sem nome público": "sin nombre público",
+    "Instagram e Messenger": "Instagram y Messenger",
+    "Cada pessoa que conversar com o agente aparece aqui: no WhatsApp com nome e número, no Instagram e no Messenger com a conta.": "Cada persona que hable con el agente aparece aquí: en WhatsApp con nombre y número, en Instagram y Messenger con la cuenta.",
+    "{n} do Instagram ou do Messenger sem nome, sem telefone e sem nenhuma mensagem: a conversa foi aberta mas ninguém escreveu nada.": "{n} de Instagram o Messenger sin nombre, sin teléfono y sin ningún mensaje: la conversación se abrió pero nadie escribió nada.",
+    "{n} no WhatsApp sem um número de telefone válido.": "{n} en WhatsApp sin un número de teléfono válido.",
+    "Anúncio no Messenger": "Anuncio en Messenger",
+    "Anúncio (pela frase do anúncio)": "Anuncio (por la frase del anuncio)",
   },
 
   en: {
@@ -681,16 +705,12 @@ const textos: TextosDaArea = {
     "{n} de {total} clientes": "{n} of {total} customers",
     "O histórico de agendamentos não está disponível: faltam as credenciais do banco de dados deste cliente neste ambiente. Os nomes, números e notas aparecem; os valores não.":
       "Appointment history isn't available: this customer's database credentials are missing in this environment. Names, numbers and notes show; amounts don't.",
-    "Ainda não há clientes com nome e número de telefone.":
-      "There are no customers with a name and phone number yet.",
     "Nenhum cliente corresponde a essa busca.": "No customers match that search.",
     Gasto: "Spent",
     Anterior: "Previous",
     "Página {n} de {total}": "Page {n} of {total}",
     Próxima: "Next",
     "Contatos que não entram na lista": "Contacts not on the list",
-    "{n} sem número de telefone válido. São quase todos de Instagram e Messenger: nesses canais a Meta não dá o celular, dá um identificador interno. Quem agendou por lá deu o número ao agente, e esse número está no agendamento — não no contato.":
-      "{n} without a usable phone number. Almost all are from Instagram and Messenger: on those channels Meta doesn't give the phone number, it gives an internal ID. Whoever booked there gave their number to the agent, and that number is on the appointment — not on the contact.",
     "{n} com número mas sem nome: a conversa não chegou ao ponto de o agente perguntar como a pessoa se chama.":
       "{n} with a number but no name: the conversation didn't get to the point where the agent asks the person's name.",
 
@@ -726,9 +746,25 @@ const textos: TextosDaArea = {
     "São a mesma pessoa duas vezes, porque a Meta entregou o número em dois formatos. Abra um deles e use Juntar.": "They are the same person twice, because Meta sent the number in two formats. Open one and use Merge.",
     "{n} contatos aparecem duas vezes com o mesmo número.": "{n} contacts appear twice with the same number.",
     "Os valores gastos não aparecem: o histórico de agendamentos não está ligado.": "Amounts spent don't show: the booking history isn't connected.",
-    "Cada pessoa que conversar com o agente e der nome e número aparece aqui.": "Everyone who talks to the agent and gives a name and number shows up here.",
     "Tente outro nome ou número, ou escolha Todos no filtro.": "Try another name or number, or pick All in the filter.",
     "{n} contatos não entram na lista. Ver por quê.": "{n} contacts aren't on the list. See why.",
+
+    // Leads do Instagram e do Messenger na lista (19/11)
+    "Cliente do Messenger": "Messenger customer",
+    "Cliente sem nome": "Unnamed customer",
+    "{canal} (indicado)": "{canal} (noted)",
+    "Origem não registrada": "Source not recorded",
+    "sem telefone": "no phone",
+    "dado ao agendar": "given when booking",
+    "Não deu o telefone": "Didn't give a phone",
+    "Conta no {canal}": "{canal} account",
+    "sem nome público": "no public name",
+    "Instagram e Messenger": "Instagram and Messenger",
+    "Cada pessoa que conversar com o agente aparece aqui: no WhatsApp com nome e número, no Instagram e no Messenger com a conta.": "Everyone who talks to the agent shows up here: on WhatsApp with name and number, on Instagram and Messenger with their account.",
+    "{n} do Instagram ou do Messenger sem nome, sem telefone e sem nenhuma mensagem: a conversa foi aberta mas ninguém escreveu nada.": "{n} from Instagram or Messenger with no name, no phone and no messages: the conversation was opened but nobody wrote anything.",
+    "{n} no WhatsApp sem um número de telefone válido.": "{n} on WhatsApp without a valid phone number.",
+    "Anúncio no Messenger": "Messenger ad",
+    "Anúncio (pela frase do anúncio)": "Ad (from the ad's preset message)",
   },
 };
 
