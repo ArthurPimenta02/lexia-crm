@@ -19,6 +19,7 @@ import conectar from "./textos/conectar";
 import onboarding from "./textos/onboarding";
 import admin from "./textos/admin";
 import funil from "./textos/funil";
+import analises from "./textos/analises";
 
 /**
  * Cada área do painel tem o seu ficheiro em `textos/`. Estão separados para
@@ -44,6 +45,7 @@ const AREAS: TextosDaArea[] = [
   onboarding,
   admin,
   funil,
+  analises,
 ];
 
 function juntar(idioma: Exclude<Idioma, "pt-BR">): Dicionario {

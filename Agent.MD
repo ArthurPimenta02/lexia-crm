@@ -305,6 +305,7 @@ Quem não tem sessão vai a `/login?destino=/m`. A empresa vem de `contextoMovel
 | `/admin/area-testes` | Testes separados por cliente. | Sim |
 | `/admin/turnos` | **Controle do agente** em código (Fase 18, redesenhada a 2026-11-01): métricas das últimas 24 h, conversas à esquerda, a conversa como no WhatsApp ao meio (na sombra, com o que o n8n enviou ao lado) e, à direita, o caminho da resposta escolhida desenhado por etapas como os nós do n8n (`lib/turnos/mapa.ts`; desenho em `app/admin/turnos/vista.tsx` e `fluxo.tsx`, sem acesso a dados). Detalhe técnico completo em `/admin/turnos/[id]`. Lê `lexia_turnos` com a service_role, só `lexia_admin`. | Sim |
 | `/admin/funil` | **Funil dos agentes** (2026-11-18): as mesmas 6 etapas para todos (conversa, preço, horários, resumo, marcada, compareceu), por semana da 1.ª mensagem recebida, últimas 8 semanas, com a taxa de cada etapa sobre a anterior. `?cliente=<slug>` filtra; abre-se pela casa do cliente (Agente → Funil do agente). Só leitura, service_role, só `lexia_admin`. Definições na secção 14 ("Funil dos agentes"). | Não |
+| `/admin/analises` | **Análises das conversas** (2026-11-19): relatórios da rotina diária das 2h (Brasília) que lê `lexia_mensagens` e `lexia_turnos` das últimas 24 h de cada cliente (a rotina vive fora deste repositório). Lista das 30 mais recentes, filtros `?cliente`, `?gravidade`, `?estado`, `?analise`; cartões por cliente; cada achado com citação, o que a IA decidiu, o que o código fez, causa e onde corrigir; estado do item (visto/corrigido/falso alarme) e nota; "Erros que se repetem" (mesmo título ou causa em 2+ dias, 30 dias). Botões "Nova análise geral" e "Análise específica" chamam `POST /api/analises/pedir`. Service_role, só `lexia_admin`. Detalhe na secção 10 ("Análises das conversas"). | Não |
 | `/admin/followups` | **Follow-ups e lembretes** do agente em código (2026-11-02): follow-ups marcados (`lexia_followups`) e consultas a lembrar (tabela de marcações) lidos da base do cliente com a service_role dele (`<PREFIXO>_SUPABASE_URL`/`_SERVICE_ROLE_KEY`, hoje só Miranda); enviados lidos de `lexia_turnos` (rota followup/lembrete, modo produção). Só leitura; para parar um follow-up bloqueia-se o contacto em `/admin/bloqueios`. Só `lexia_admin`. | Sim |
 | `/admin/conexoes` | Conexões de cada agente (Fase 19): tokens de WhatsApp, Meta, Redis, bases, agenda; e as da Lexia (conta Google, IA de reserva). Segredos cifrados, nunca devolvidos ao navegador. Só `lexia_admin`. | Sim |
 | `/admin/bloqueios` | Contactos bloqueados por cliente (Fase 21): a agente em código não responde a quem está aqui. Adicionar (telefone ou IGSID/PSID) e desbloquear; o botão "Bloquear contacto" na conversa do admin grava o identificador da própria conversa. Só `lexia_admin`. | Sim |
@@ -854,6 +855,14 @@ autoriza as rotas chamadas pelo n8n.
   ela a tela de conexões não grava e o agente não lê. Trocá-la torna ilegíveis
   todos os segredos já gravados: seria preciso gravá-los de novo.
 
+### Análises das conversas (gatilho da rotina)
+
+```text
+ANALISE_GITHUB_TOKEN   # opcional; token do GitHub com permissão de criar issues em ArthurPimenta02/lexia-agentes
+```
+
+Com a variável, `POST /api/analises/pedir` abre a issue "Análise pedida #<id>" (corpo em JSON com o pedido), que dispara a rotina na nuvem. Sem ela, o pedido fica só gravado em `lexia_analises` (`estado = 'pedida'`) e a tela diz "Pedido registrado; roda na próxima análise". O token só é lido no servidor (`lib/analises/gatilho.ts`, `server-only`) e nunca volta na resposta.
+
 ### Analista Lexia novo (ajudante, em código)
 
 O Analista que o dono usa agora (botão ✦ no canto do painel, painel lateral,
@@ -1182,6 +1191,15 @@ Criadas por `supabase/migrations/202609220001_lexia_ai_analyst.sql`:
 As quatro tabelas usam RLS. Sessões e mensagens só podem ser vistas pelo autor autenticado; insights só podem ser lidos por admin ou por perfil ativo do próprio tenant; escrita de insights e execuções acontece exclusivamente no backend com service role após autorização. A migration revoga privilégios implícitos de `anon` e concede ao papel `authenticated` apenas as operações previstas.
 
 Rollback destrutivo: `supabase/rollbacks/202609220001_lexia_ai_analyst_down.sql`. Fazer export das quatro tabelas antes de executar em ambiente com histórico real.
+
+### Análises das conversas (2026-11-19)
+
+Criadas por `supabase/migrations/202611190018_analises_conversas.sql` (rollback destrutivo em `supabase/rollbacks/202611190018_analises_conversas_down.sql`):
+
+- `lexia_analises`: `tipo` (`diaria` | `geral` | `especifica`), `estado` (`pedida` | `a_correr` | `concluida` | `falhou`), `pedido` (texto do admin, nulo na diária), `cliente_slug` (nulo = todos), `conversa`, `periodo_inicio/fim`, `resumo`, `custo_estimado` (USD), `concluida_em`, `erro`.
+- `lexia_analises_itens`: um achado por linha, ligado à análise (`on delete cascade`): `cliente_slug` (FK para `lexia_clientes`), `identificador_conversa`, `gravidade` (`grave` | `medio` | `detalhe` | `positivo`), `titulo`, `citacao`, `o_que_a_ia_decidiu`, `o_que_o_codigo_fez`, `causa`, `onde_corrigir`, `estado` (`novo` | `visto` | `corrigido` | `falso_alarme`), `nota_admin`.
+- **Permissões:** RLS ligado, nada para `anon`/`authenticated`; o painel usa a service_role depois de confirmar `lexia_admin`. O utilizador Postgres `analise_leitura` (a rotina; só leitura no resto) tem `select, insert, update` nestas duas tabelas e as policies correspondentes. Ele tem `default_transaction_read_only = on`: para gravar, a rotina abre a transacção com `begin read write;`.
+- Regras puras em `lib/analises/regras.ts` (validação do pedido, contagens, erros que se repetem), leitura em `lib/analises/read.ts`; testes em `tests/analises-conversas.test.mts`.
 
 ## 11. Supabase Externos e Agendamentos
 
