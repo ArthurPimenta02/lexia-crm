@@ -73,11 +73,12 @@ test("equipe da Lexia: a empresa pedida, mas só se existir", async () => {
   assert.equal(await acessoAoOnboarding(), null, "sem cliente escolhido não há acesso");
 });
 
-test("a conta em onboarding só abre o onboarding, e é lá que aterra", () => {
+test("a conta da Jessica abre só a Área de testes (onde aterra) e os Feedbacks", () => {
   const J = "jessica_beauty";
-  assert.equal(ecras.soOnboarding(J), true);
-  assert.equal(ecras.ecraDeEntrada(J), "/app/onboarding");
-  for (const ecra of ecras.ECRAS_DO_PAINEL) assert.equal(ecras.ecraPermitido(J, ecra), ecra === "/app/onboarding", ecra);
+  assert.equal(ecras.soOnboarding(J), false, "já não está só no onboarding: o menu mostra as telas, as outras 'Em breve'");
+  assert.equal(ecras.ecraDeEntrada(J), "/app/area-testes");
+  const abertas = ["/app/area-testes", "/app/feedbacks"];
+  for (const ecra of ecras.ECRAS_DO_PAINEL) assert.equal(ecras.ecraPermitido(J, ecra), abertas.includes(ecra), ecra);
   // quem vê o painel inteiro não está em onboarding; a demo da Braz também não
   assert.equal(ecras.soOnboarding("detail_by_cordeiro"), false);
   assert.equal(ecras.soOnboarding("braz_insurance"), false);
