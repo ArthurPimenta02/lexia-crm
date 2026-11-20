@@ -361,7 +361,7 @@ Etapa 1:
 
 
 - `/app/onboarding` é a tela do onboarding **dentro da conta do cliente**. Enquanto o cliente
-  estiver em `ecrasPorCliente` com `["/app/onboarding"]` (hoje: `jessica_beauty`), a conta só
+  estiver em `ecrasPorCliente` com `["/app/onboarding"]` (hoje: nenhum; a `jessica_beauty` passou a 20/11 para Área de testes + Feedbacks), a conta só
   abre essa tela e o menu lateral mostra só "Onboarding" (`soOnboarding` em `lib/auth/ecras.ts`).
   Quem tem o painel inteiro é reencaminhado para `/app`.
 - A empresa de cada pedido vem de `acessoAoOnboarding` (`lib/onboarding/acesso.ts`): conta de
