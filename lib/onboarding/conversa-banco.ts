@@ -3,15 +3,16 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Andamento } from "@/lib/onboarding/caderno";
-import { andamentoDoCursor, type Cartao, type MensagemDaConversa, type PontoDeRetorno, type Repositorio, type Resposta } from "@/lib/onboarding/conversa";
+import { andamentoDoCursor, desfeita, type Cartao, type MensagemDaConversa, type PontoDeRetorno, type Repositorio, type Resposta } from "@/lib/onboarding/conversa";
 import { acrescentarLinhas, criarItem, lerItens, lerLinhas } from "@/lib/onboarding/dados";
 
 const COLUNAS = "id, autor, tipo, conteudo, dados, criado_em, processada_em";
 
 /**
  * A conversa guardada no Supabase central. Cada consulta leva o `cliente_slug`
- * e o `onboarding_id`. Mensagens e linhas do diário só recebem INSERT; a única
- * coisa que se altera numa mensagem é a marca de "já tratada".
+ * e o `onboarding_id`. Mensagens e linhas do diário só recebem INSERT; o que se
+ * altera numa mensagem é a marca de "já tratada" e, no "corrigir a resposta
+ * anterior", a marca de desfeita (com o histórico do que saiu do caderno).
  */
 export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, onboardingId: string, userId: string | null): Repositorio {
   const mensagens = () => admin.from("lexia_onboarding_mensagens");
@@ -74,23 +75,42 @@ export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, o
       falhar("mensagem", error);
     },
     async desfazer(d) {
+      // NADA SE APAGA DELA (19/11/2026). Ordem pensada para, se algo falhar a meio, o que ela respondeu continuar guardado:
+      // 1) copiar as linhas do turno para o histórico da mensagem dela; 2) tirá-las do caderno; 3) itens; 4) marcar as mensagens.
       const base = <T extends { eq(c: string, v: string): T }>(q: T) => q.eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId);
+      const em = new Date().toISOString();
+      const lidas = await admin.from("lexia_onboarding_campos").select("*").eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).eq("evidencia->>mensagem", d.dela.id);
+      falhar("corrigir (ler linhas)", lidas.error);
+      const linhas = (lidas.data ?? []) as { id: string }[];
+      const historico = { em, motivo: "corrigir_resposta_anterior", por: userId, fala: d.fala.id, linhas, itens_tirados: d.tirarItens, itens_restaurados: d.restaurarItens };
+      // Antes de mexer no caderno, o histórico fica gravado (ainda sem a marca de desfeita: a mensagem continua na conversa).
       {
-        const { error } = await base(admin.from("lexia_onboarding_campos").delete()).eq("evidencia->>mensagem", d.linhasDaMensagem);
-        falhar("voltar (linhas)", error);
+        const { error } = await mensagens().update({ dados: { ...(d.dela.dados ?? {}), historico_do_corrigir: [...((d.dela.dados?.historico_do_corrigir as unknown[]) ?? []), historico] } }).eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).eq("id", d.dela.id);
+        falhar("corrigir (histórico)", error);
       }
-      if (d.apagarItens.length) {
-        const a = await base(admin.from("lexia_onboarding_campos").delete()).in("item_id", d.apagarItens);
-        falhar("voltar (linhas dos itens)", a.error);
-        const b = await base(admin.from("lexia_onboarding_itens").delete()).in("id", d.apagarItens);
-        falhar("voltar (itens)", b.error);
+      if (linhas.length) {
+        // As linhas saem do caderno (o valor atual é a linha mais recente: se ficassem, o turno não era desfeito), mas estão copiadas acima.
+        const { error } = await base(admin.from("lexia_onboarding_campos").delete()).in("id", linhas.map((l) => l.id));
+        falhar("corrigir (linhas)", error);
+      }
+      if (d.tirarItens.length) {
+        const { error } = await base(admin.from("lexia_onboarding_itens").update({ removido_em: em })).in("id", d.tirarItens);
+        falhar("corrigir (itens novos)", error);
       }
       if (d.restaurarItens.length) {
         const { error } = await base(admin.from("lexia_onboarding_itens").update({ removido_em: null })).in("id", d.restaurarItens);
-        falhar("voltar (itens tirados)", error);
+        falhar("corrigir (itens tirados)", error);
       }
-      const { error } = await mensagens().delete().eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).in("id", d.apagarMensagens);
-      falhar("voltar (mensagens)", error);
+      const marca = { em, motivo: "corrigir_resposta_anterior" };
+      const historicoDela = [...((d.dela.dados?.historico_do_corrigir as unknown[]) ?? []), historico];
+      for (const [m, dados] of [
+        [d.fala, { ...(d.fala.dados ?? {}), desfeita: marca }],
+        [d.dela, { ...(d.dela.dados ?? {}), historico_do_corrigir: historicoDela, desfeita: marca }],
+      ] as const) {
+        const { error } = await mensagens().update({ dados }).eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).eq("id", m.id);
+        falhar("corrigir (mensagens)", error);
+      }
+      console.log("[onboarding] corrigir a resposta anterior", clienteSlug, JSON.stringify({ mensagem: d.dela.id, fala: d.fala.id, linhas: linhas.length, itens_tirados: d.tirarItens.length, itens_restaurados: d.restaurarItens.length, por: userId }));
     },
     async gravarDaEntrevistadora(texto: string, cartao: Cartao, volta?: PontoDeRetorno) {
       const { data, error } = await mensagens()
@@ -103,7 +123,8 @@ export function repositorioDoBanco(admin: SupabaseClient, clienteSlug: string, o
     async mensagens() {
       const { data, error } = await mensagens().select(COLUNAS).eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).order("criado_em").limit(2000);
       falhar("mensagens", error);
-      return (data ?? []) as MensagemDaConversa[];
+      // As desfeitas pelo "corrigir a resposta anterior" ficam no banco, mas fora da conversa.
+      return ((data ?? []) as MensagemDaConversa[]).filter((m) => !desfeita(m));
     },
     async terminar() {
       const { error } = await admin.from("lexia_onboardings").update({ estado: "revisao", atualizado_em: new Date().toISOString() }).eq("cliente_slug", clienteSlug).eq("id", onboardingId).eq("estado", "conversa");

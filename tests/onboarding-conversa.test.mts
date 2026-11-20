@@ -17,6 +17,7 @@ import { test } from "node:test";
 import { montarCaderno, resumir, type Andamento, type ItemDoCaderno, type LinhaDoCaderno } from "../lib/onboarding/caderno";
 import { abrirConversa, andamentoDoCursor, turno, voltar, type Cartao, type ContextoDaExtracao, type Extracao, type Inteligencia, type MensagemDaConversa, type Repositorio, type Resposta } from "../lib/onboarding/conversa";
 import type { NovaLinha } from "../lib/onboarding/dados";
+import { concluirEnvio, enviarTurno, estadoComDesfeita, guardarPendente, k, lerPendente, chaveDoPendente, type EnvioGuardado } from "../lib/onboarding/tela";
 
 function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
   const diario: (NovaLinha & { n: number })[] = [];
@@ -43,26 +44,28 @@ function banco(inicio: { linhas?: NovaLinha[]; itens?: ItemDoCaderno[] } = {}) {
     async gravarDaCliente(r) {
       const ja = msgs.find((m) => m.dados.idDoAparelho === r.idDoAparelho);
       if (ja) return ja;
-      const m: MensagemDaConversa = { id: `m${++nMsg}`, autor: "cliente", tipo: "texto", conteudo: r.texto ?? r.textoDoArquivo ?? "", dados: { idDoAparelho: r.idDoAparelho }, criado_em: "", processada_em: null };
+      const m: MensagemDaConversa = { id: `m${++nMsg}`, autor: "cliente", tipo: "texto", conteudo: r.texto ?? r.textoDoArquivo ?? "", dados: { idDoAparelho: r.idDoAparelho, valores: r.valores ?? [], lista: r.lista ?? null, pular: !!r.pular, nenhum: !!r.nenhum }, criado_em: "", processada_em: null };
       msgs.push(m);
       return m;
     },
     async marcarProcessada(id) { msgs.find((m) => m.id === id)!.processada_em = "agora"; },
+    // Como o banco: as linhas do turno saem do caderno mas ficam copiadas no histórico; nada mais sai.
     async desfazer(d) {
-      for (let i = diario.length - 1; i >= 0; i--) if ((diario[i].evidencia as { mensagem?: string } | undefined)?.mensagem === d.linhasDaMensagem || d.apagarItens.includes(String(diario[i].itemId))) diario.splice(i, 1);
-      for (let i = itens.length - 1; i >= 0; i--) if (d.apagarItens.includes(itens[i].id)) itens.splice(i, 1);
+      const saem = diario.filter((l) => (l.evidencia as { mensagem?: string } | undefined)?.mensagem === d.dela.id);
+      for (let i = diario.length - 1; i >= 0; i--) if (saem.includes(diario[i])) diario.splice(i, 1);
+      for (const i of itens) if (d.tirarItens.includes(i.id)) i.removido = true;
       for (const i of itens) if (d.restaurarItens.includes(i.id)) i.removido = false;
-      for (let i = msgs.length - 1; i >= 0; i--) if (d.apagarMensagens.includes(msgs[i].id)) msgs.splice(i, 1);
+      for (const m of msgs) if (m.id === d.dela.id || m.id === d.fala.id) m.dados = { ...m.dados, desfeita: { em: "agora" }, ...(m.id === d.dela.id ? { historico_do_corrigir: [{ linhas: saem }] } : {}) };
     },
     async gravarDaEntrevistadora(texto, cartao, volta) {
       const m: MensagemDaConversa = { id: `m${++nMsg}`, autor: "entrevistadora", tipo: "texto", conteudo: texto, dados: { passo: cartao, ...(volta ? { volta } : {}) }, criado_em: "", processada_em: "agora" };
       msgs.push(m);
       return m;
     },
-    async mensagens() { return [...msgs]; },
+    async mensagens() { return msgs.filter((m) => !m.dados.desfeita); },
     async terminar() { terminou = true; },
   };
-  return { repo, diario, itens, msgs, terminou: () => terminou, andamento: () => andamento, ultimoCartao: () => [...msgs].reverse().find((m) => m.autor === "entrevistadora")!.dados.passo as Cartao };
+  return { repo, diario, itens, msgs, terminou: () => terminou, andamento: () => andamento, ultimoCartao: () => [...msgs].reverse().find((m) => m.autor === "entrevistadora" && !m.dados.desfeita)!.dados.passo as Cartao };
 }
 
 const NADA: Extracao = { campos: [], horarios: [], novos_itens: [], duvida: "" };
@@ -401,7 +404,7 @@ test("áudio que corrige um rascunho: vale o que ela disse (não o rascunho que 
   assert.match(fala, /Atualizei para quem você indica com o que você falou\. Ficou assim: "Para quem tem falhas/);
 });
 
-test("voltar à pergunta anterior: desfaz o último turno inteiro (linhas, itens, andamento, mensagens) e só o último", async () => {
+test("corrigir a resposta anterior: desfaz o último turno inteiro (linhas, itens, andamento, mensagens) e só o último", async () => {
   const b = banco({
     itens: [servico("s1"), servico("s2", 1)],
     linhas: [
@@ -414,7 +417,8 @@ test("voltar à pergunta anterior: desfaz o último turno inteiro (linhas, itens
   const lista = b.ultimoCartao();
   assert.equal(lista.tipo, "lista");
   assert.equal(await voltar(b.repo), null, "na abertura não há para onde voltar");
-  const antes = { linhas: JSON.stringify(await b.repo.linhas()), itens: JSON.stringify(await b.repo.itens()), andamento: JSON.stringify(await b.repo.andamento()), msgs: b.msgs.length };
+  const ativos = async () => JSON.stringify((await b.repo.itens()).filter((x) => !x.removido));
+  const antes = { linhas: JSON.stringify(await b.repo.linhas()), itens: await ativos(), andamento: JSON.stringify(await b.repo.andamento()), msgs: (await b.repo.mensagens()).length };
   // Ela tira um serviço e acrescenta outro; o passo seguinte é a tabela.
   await turno(b.repo, i, msg({ lista: { manter: ["s1"], novos: ["Brow Lamination"] } }), "");
   assert.equal(b.ultimoCartao().tipo, "tabela");
@@ -422,9 +426,9 @@ test("voltar à pergunta anterior: desfaz o último turno inteiro (linhas, itens
   const r = await voltar(b.repo);
   assert.ok(r, "o último turno pode ser desfeito");
   assert.equal(JSON.stringify(await b.repo.linhas()), antes.linhas, "as respostas desse turno saem");
-  assert.equal(JSON.stringify(await b.repo.itens()), antes.itens, "o serviço acrescentado sai e o tirado volta");
+  assert.equal(await ativos(), antes.itens, "o serviço acrescentado sai e o tirado volta");
   assert.equal(JSON.stringify(await b.repo.andamento()), antes.andamento, "a lista volta a poder ser mostrada");
-  assert.equal(b.msgs.length, antes.msgs);
+  assert.equal((await b.repo.mensagens()).length, antes.msgs);
   assert.equal(b.ultimoCartao().tipo, "lista", "a tela mostra de novo o passo anterior");
   assert.equal(await voltar(b.repo), null, "só o último turno: não volta duas vezes seguidas");
   // E a conversa continua normalmente depois de voltar.
@@ -468,4 +472,91 @@ test("escolher 'Outro' e escrever no mesmo cartão: o texto entra junto; sem a e
   assert.equal((await atual(b, "posicionamento"))!.valor, "Outro");
   assert.deepEqual([(await atual(b, "outro_posicionamento"))!.estado, (await atual(b, "outro_posicionamento"))!.valor], ["respondido", "Boutique, por indicação"]);
   assert.equal(await atual(b, "outro_emojis"), undefined, "campo que depende de outra resposta, não mandada, fica de fora");
+});
+
+// ------------------------------------------------------------------ 19/11/2026: a Jessica perdeu respostas
+
+test("corrigir a resposta anterior NÃO apaga nada dela: a mensagem e as linhas ficam no histórico, e o cartão reabre com o que ela mandou (não com a sugestão)", async () => {
+  const b = banco({ linhas: [rascunho("nome_do_negocio", "Jessica Beauty"), rascunho("cidade", "Malden")] });
+  await abrirConversa(b.repo, ia(), "");
+  const cartao = b.ultimoCartao();
+  assert.equal(cartao.tipo, "confirmar");
+  const dela = { campo: "nome_do_negocio", itemId: null, valor: "Jessica Bruns Beauty Studio" };
+  await turno(b.repo, ia(), msg({ texto: "e atendo também em Boston", valores: [dela, { campo: "cidade", itemId: null, valor: "Malden" }] }), "");
+  assert.equal((await atual(b, "nome_do_negocio"))!.valor, "Jessica Bruns Beauty Studio");
+  const r = await voltar(b.repo);
+  assert.ok(r);
+  // O caderno volta ao que era (o turno foi desfeito)...
+  assert.equal((await atual(b, "nome_do_negocio"))!.estado, "rascunho");
+  // ...mas a mensagem dela continua no banco, marcada, com as linhas que saíram copiadas.
+  const guardada = b.msgs.find((m) => m.autor === "cliente")!;
+  assert.ok(guardada.dados.desfeita, "a mensagem dela fica, marcada como desfeita");
+  const historico = guardada.dados.historico_do_corrigir as { linhas: NovaLinha[] }[];
+  assert.ok(historico[0].linhas.some((l) => l.campo === "nome_do_negocio" && l.valor === "Jessica Bruns Beauty Studio"), "a resposta dela fica no histórico");
+  assert.equal(b.msgs.length, 3, "nenhuma mensagem foi apagada");
+  // O que volta para a tela é o que ELA mandou.
+  assert.deepEqual(r.desfeita.valores.find((v) => v.campo === "nome_do_negocio"), dela);
+  assert.equal(r.desfeita.texto, "e atendo também em Boston");
+  assert.equal(r.desfeita.falaId, r.mensagens.at(-1)!.id);
+  const { estado, texto } = estadoComDesfeita(b.ultimoCartao(), r.desfeita);
+  assert.equal(estado.valores[k(dela)], "Jessica Bruns Beauty Studio", "o cartão reabre preenchido com a resposta dela, não com o rascunho");
+  assert.equal(texto, "e atendo também em Boston", "o texto dela volta para a caixa");
+  // E a conversa segue: a nova resposta é gravada como nova mensagem.
+  await turno(b.repo, ia(), msg({ valores: [{ ...dela, valor: "Jessica Bruns Studio" }] }), "");
+  assert.equal((await atual(b, "nome_do_negocio"))!.valor, "Jessica Bruns Studio");
+});
+
+test("corrigir na lista: o serviço acrescentado não é apagado (fica tirado) e a lista reabre como ela deixou", async () => {
+  const b = banco({ itens: [servico("s1"), servico("s2", 1)], linhas: [{ campo: "nome", itemId: "s1", valor: "Microblading", estado: "rascunho", fonte: "site" }, { campo: "nome", itemId: "s2", valor: "Lash Lifting", estado: "rascunho", fonte: "site" }] });
+  await abrirConversa(b.repo, ia(), "");
+  await turno(b.repo, ia(), msg({ lista: { manter: ["s1"], novos: ["Brow Lamination"] } }), "");
+  const r = (await voltar(b.repo))!;
+  assert.equal(b.itens.length, 3, "nenhum item apagado");
+  assert.equal(b.itens.find((i) => i.id === "servicos-3")!.removido, true);
+  const { estado } = estadoComDesfeita(b.ultimoCartao(), r.desfeita);
+  assert.deepEqual([...estado.manter], ["s1"]);
+  assert.deepEqual(estado.novos, ["Brow Lamination"]);
+});
+
+/** Um servidor de mentira que responde como a rota: 401 enquanto a sessão estiver vencida, e o turno de verdade depois. */
+function servidor(b: ReturnType<typeof banco>) {
+  const estado = { sessao: false, pedidos: 0 };
+  const f = (async (_url: string, init?: RequestInit) => {
+    estado.pedidos++;
+    if (!estado.sessao) return Response.json({ erro: "Sua sessão expirou.", motivo: "sessao" }, { status: 401 });
+    const corpo = JSON.parse(String(init?.body)) as Resposta;
+    const r = await turno(b.repo, ia(), corpo, "");
+    return Response.json(r);
+  }) as typeof fetch;
+  return { estado, fetch: f };
+}
+function armazemDeTeste() {
+  const m = new Map<string, string>();
+  return { m, a: { getItem: (x: string) => m.get(x) ?? null, setItem: (x: string, v: string) => void m.set(x, v), removeItem: (x: string) => void m.delete(x) } };
+}
+const TEXTOS = { falhou: "falhou", sessao: "sessão expirou" };
+
+test("sessão expirada: o servidor diz 401, a resposta fica guardada no aparelho e, depois de entrar, o MESMO envio grava uma vez só", async () => {
+  const b = banco({ linhas: [rascunho("nome_do_negocio", "Jessica Beauty")] });
+  await abrirConversa(b.repo, ia(), "");
+  const s = servidor(b);
+  const { a } = armazemDeTeste();
+  const envio: EnvioGuardado = { id: "envio-12345678", texto: "", valores: [{ campo: "nome_do_negocio", itemId: null, valor: "Jessica Bruns" }], falaId: b.msgs[0].id };
+  guardarPendente(a, chaveDoPendente(undefined), envio);
+  let renovou = 0;
+  const r1 = await enviarTurno(envio, { fetch: s.fetch, renovarSessao: async () => renovou++, textos: TEXTOS });
+  assert.deepEqual(r1, { ok: false, erro: "sessão expirou", sessao: true, guardada: false });
+  assert.equal(renovou, 1, "tenta renovar a sessão antes de cada envio");
+  concluirEnvio(a, undefined, envio, r1);
+  assert.deepEqual(lerPendente(a, chaveDoPendente(undefined)), envio, "a resposta continua guardada");
+  // Ela entra de novo; a página reenvia o que está guardado, duas vezes (a confirmação da primeira perdeu-se).
+  s.estado.sessao = true;
+  const guardado = lerPendente(a, chaveDoPendente(undefined))!;
+  const r2 = await enviarTurno(guardado, { fetch: s.fetch, textos: TEXTOS });
+  const r3 = await enviarTurno(guardado, { fetch: s.fetch, textos: TEXTOS });
+  assert.ok(r2.ok && r3.ok);
+  assert.equal(b.msgs.filter((m) => m.autor === "cliente").length, 1, "gravada uma vez só");
+  assert.equal((await atual(b, "nome_do_negocio"))!.valor, "Jessica Bruns");
+  concluirEnvio(a, undefined, guardado, r2);
+  assert.equal(lerPendente(a, chaveDoPendente(undefined)), null, "confirmado: sai do aparelho");
 });

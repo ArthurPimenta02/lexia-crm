@@ -83,3 +83,15 @@ test("a conta em onboarding só abre o onboarding, e é lá que aterra", () => {
   assert.equal(ecras.soOnboarding("braz_insurance"), false);
   assert.equal(ecras.soOnboarding(null), false);
 });
+
+test("sessão expirada responde 401 com motivo (a tela guarda e reenvia); sem permissão continua 403", async () => {
+  const { acessoOuMotivo, respostaSemAcesso } = await import("@/lib/onboarding/acesso");
+  perfil = null;
+  assert.deepEqual(await acessoOuMotivo("jessica_beauty"), { sem: "sessao" });
+  const r = respostaSemAcesso("sessao");
+  assert.equal(r.status, 401);
+  assert.equal(((await r.json()) as { motivo: string }).motivo, "sessao");
+  perfil = { role: "cliente_admin", cliente_slug: null, status: "ativo" };
+  assert.deepEqual(await acessoOuMotivo("jessica_beauty"), { sem: "permissao" });
+  assert.equal(respostaSemAcesso("permissao").status, 403);
+});

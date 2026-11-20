@@ -155,8 +155,14 @@ export type Repositorio = {
   marcarProcessada(id: string): Promise<void>;
   /** `volta` é o ponto de retorno do turno que esta fala fecha (para o "voltar à pergunta anterior"). */
   gravarDaEntrevistadora(texto: string, cartao: Cartao, volta?: PontoDeRetorno): Promise<MensagemDaConversa>;
-  /** Desfaz um turno: as linhas que ele escreveu, os itens que criou ou tirou, e as duas mensagens (a dela e a fala seguinte). */
-  desfazer(d: { linhasDaMensagem: string; apagarItens: string[]; restaurarItens: string[]; apagarMensagens: string[] }): Promise<void>;
+  /**
+   * Desfaz um turno SEM APAGAR NADA dela (19/11/2026: a Jessica perdeu respostas ao "voltar"). As linhas que o turno
+   * escreveu saem do caderno, mas ficam copiadas, inteiras, no histórico da mensagem dela; os itens que o turno criou
+   * ficam marcados como tirados (não são apagados); os que tirou voltam; as duas mensagens (a dela e a fala seguinte)
+   * ficam marcadas como desfeitas (`dados.desfeita`) e saem da conversa, mas continuam no banco.
+   */
+  desfazer(d: { dela: MensagemDaConversa; fala: MensagemDaConversa; tirarItens: string[]; restaurarItens: string[] }): Promise<void>;
+  /** As mensagens da conversa, sem as desfeitas pelo "corrigir a resposta anterior". */
   mensagens(): Promise<MensagemDaConversa[]>;
   terminar(): Promise<void>;
 };
@@ -600,13 +606,29 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
   return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, seguinte.tipo === "fim") };
 }
 
+/** O que ela tinha respondido no turno desfeito: a tela reabre o cartão PREENCHIDO com isto, nunca com a sugestão. */
+export type RespostaDesfeita = {
+  /** A fala da Lia cujo cartão reabre (a última da conversa depois de voltar). */
+  falaId: string;
+  texto: string;
+  tipo: MensagemDaConversa["tipo"];
+  valores: { campo: string; itemId: string | null; valor: unknown }[];
+  lista: { manter: string[]; novos: string[] } | null;
+  pular: boolean;
+  nenhum: boolean;
+};
+
+/** Mensagem desfeita pelo "corrigir a resposta anterior": fica no banco, mas fora da conversa. */
+export const desfeita = (m: MensagemDaConversa) => !!(m.dados as { desfeita?: unknown } | null)?.desfeita;
+
 /**
- * Voltar à pergunta anterior: desfaz o ÚLTIMO turno (o que ela respondeu e a fala que veio a seguir) e a tela
- * mostra de novo o passo anterior, para ela responder outra vez. Só o último turno, e só os feitos desde que o
- * ponto de retorno passou a ser guardado. Os áudios e arquivos enviados continuam guardados.
+ * Corrigir a resposta anterior: desfaz o ÚLTIMO turno (o que ela respondeu e a fala que veio a seguir) e a tela
+ * mostra de novo o passo anterior, PREENCHIDO com o que ela tinha respondido, para ela mudar o que quiser. Nada é
+ * apagado: ver `Repositorio.desfazer`. Só o último turno, e só os feitos desde que o ponto de retorno passou a ser
+ * guardado. Os áudios e arquivos enviados continuam guardados.
  */
-export async function voltar(repo: Repositorio): Promise<ResultadoDoTurno | null> {
-  const msgs = await repo.mensagens();
+export async function voltar(repo: Repositorio): Promise<(ResultadoDoTurno & { desfeita: RespostaDesfeita }) | null> {
+  const msgs = (await repo.mensagens()).filter((m) => !desfeita(m));
   const fala = msgs.at(-1);
   const dela = msgs.at(-2);
   const volta = fala?.autor === "entrevistadora" ? (fala.dados as { volta?: PontoDeRetorno }).volta : undefined;
@@ -614,18 +636,35 @@ export async function voltar(repo: Repositorio): Promise<ResultadoDoTurno | null
   const agora = await repo.itens();
   const antes = new Map(volta.itens.map((i) => [i.id, i]));
   await repo.desfazer({
-    linhasDaMensagem: dela.id,
-    apagarItens: agora.filter((i) => !antes.has(i.id)).map((i) => i.id),
+    dela,
+    fala,
+    tirarItens: agora.filter((i) => !antes.has(i.id) && !i.removido).map((i) => i.id),
     restaurarItens: agora.filter((i) => i.removido && antes.get(i.id)?.removido === false).map((i) => i.id),
-    apagarMensagens: [dela.id, fala.id],
   });
   await repo.gravarAndamento(andamentoDoCursor(volta.andamento));
   const [linhas, itens, andamento] = await Promise.all([repo.linhas(), repo.itens(), repo.andamento()]);
-  return { mensagens: await repo.mensagens(), progresso: progressoDe(linhas, itens, proximoPasso(montarCaderno(linhas, itens), itens, andamento).tipo === "fim") };
+  const mensagens = (await repo.mensagens()).filter((m) => !desfeita(m));
+  const d = (dela.dados ?? {}) as { valores?: RespostaDesfeita["valores"]; lista?: RespostaDesfeita["lista"]; pular?: boolean; nenhum?: boolean };
+  const reaberta = [...mensagens].reverse().find((m) => m.autor === "entrevistadora");
+  return {
+    mensagens,
+    progresso: progressoDe(linhas, itens, proximoPasso(montarCaderno(linhas, itens), itens, andamento).tipo === "fim"),
+    desfeita: {
+      falaId: reaberta?.id ?? "",
+      // Um arquivo não volta para a caixa de texto (continua guardado); o texto e a transcrição do áudio voltam.
+      texto: dela.tipo === "arquivo" ? "" : dela.conteudo,
+      tipo: dela.tipo,
+      valores: Array.isArray(d.valores) ? d.valores : [],
+      lista: d.lista ?? null,
+      pular: !!d.pular,
+      nenhum: !!d.nenhum,
+    },
+  };
 }
 
-/** A última fala pode ser desfeita? (a tela mostra o "voltar" só nesse caso) */
+/** A última fala pode ser desfeita? (a tela mostra o "corrigir" só nesse caso) */
 export const podeVoltar = (msgs: MensagemDaConversa[]) => {
-  const fala = msgs.at(-1);
-  return !!fala && fala.autor === "entrevistadora" && !!(fala.dados as { volta?: PontoDeRetorno }).volta && msgs.at(-2)?.autor === "cliente";
+  const ativas = msgs.filter((m) => !desfeita(m));
+  const fala = ativas.at(-1);
+  return !!fala && fala.autor === "entrevistadora" && !!(fala.dados as { volta?: PontoDeRetorno }).volta && ativas.at(-2)?.autor === "cliente";
 };

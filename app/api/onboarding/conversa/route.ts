@@ -1,4 +1,4 @@
-import { acessoAoOnboarding } from "@/lib/onboarding/acesso";
+import { acessoOuMotivo, respostaSemAcesso } from "@/lib/onboarding/acesso";
 import { chaveDoGemini, transcrever } from "@/lib/onboarding/audio";
 import { abrirConversa, turno, voltar, type Resposta } from "@/lib/onboarding/conversa";
 import { repositorioDoBanco } from "@/lib/onboarding/conversa-banco";
@@ -14,8 +14,8 @@ export const maxDuration = 300;
 const erro = (mensagem: string, status: number, extra: Record<string, unknown> = {}) => Response.json({ erro: mensagem, ...extra }, { status });
 
 async function contexto(pedida: unknown) {
-  const acesso = await acessoAoOnboarding(pedida);
-  if (!acesso) return { falha: erro("Acesso não autorizado.", 403) } as const;
+  const acesso = await acessoOuMotivo(pedida);
+  if ("sem" in acesso) return { falha: respostaSemAcesso(acesso.sem) } as const;
   const onb = await lerOnboarding(acesso.admin, acesso.clienteSlug);
   if (!onb || onb.estado === "etapa1" || onb.estado === "preparando") return { falha: erro("A conversa ainda não foi liberada.", 409) } as const;
   const ia = await chaveDoCliente(acesso.admin, acesso.clienteSlug);
@@ -47,11 +47,11 @@ export async function POST(request: Request) {
   if (c.onb.estado !== "conversa") return erro("A conversa já terminou.", 409);
   const { admin, clienteSlug, userId } = c.acesso;
 
-  // Voltar à pergunta anterior: desfaz o último turno, sem IA.
+  // Corrigir a resposta anterior: desfaz o último turno, sem IA e sem apagar nada dela (fica no histórico da mensagem).
   if (corpo.voltar === true) {
     try {
       const r = await voltar(repositorioDoBanco(admin, clienteSlug, c.onb.id, userId));
-      if (!r) return erro("Não dá para voltar mais do que isso.", 409);
+      if (!r) return erro("Não dá para corrigir mais do que a última resposta.", 409);
       return Response.json({ ...r, estado: "conversa" });
     } catch (e) {
       console.error("[onboarding] voltar", clienteSlug, e);
