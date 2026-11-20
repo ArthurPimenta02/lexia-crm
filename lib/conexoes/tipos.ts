@@ -120,6 +120,27 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ],
   },
   {
+    tipo: "pabau",
+    titulo: "Agenda e clientes (Pabau)",
+    descricao:
+      "Sistema da clínica: agenda de todos os profissionais, clientes e serviços. É o que a Jessica usa.",
+    ambito: "cliente",
+    campos: [
+      {
+        nome: "client_id",
+        label: "Client ID",
+        segredo: false,
+        ajuda: "No Pabau, em Setup › APIs & Webhooks, aparece junto com a chave.",
+      },
+      {
+        nome: "api_key",
+        label: "API Key",
+        segredo: true,
+        ajuda: "No Pabau, em Setup › APIs & Webhooks › New API Key (tipo API).",
+      },
+    ],
+  },
+  {
     tipo: "redis",
     titulo: "Memória rápida (Redis)",
     descricao: "Pausas, buffer e contexto da conversa. O botão de pausar do painel usa o mesmo.",
