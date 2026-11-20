@@ -133,6 +133,9 @@ test("idioma do iPhone: os quatro idiomas, e o resto em inglês", () => {
 
 test("login: só volta para o app (/m), nunca para fora", () => {
   assert.equal(destinoSeguro("/m"), "/m");
+  assert.equal(destinoSeguro("/app/onboarding"), "/app/onboarding");
+  assert.equal(destinoSeguro("/admin/clientes/jessica_beauty/onboarding"), "/admin/clientes/jessica_beauty/onboarding");
+  for (const mau of ["/app", "/app/onboarding/x", "/admin/clientes/a/b/onboarding", "/admin/clientes//onboarding"]) assert.equal(destinoSeguro(mau), null, mau);
   assert.equal(destinoSeguro("/m/conversas/whatsapp%3A1"), "/m/conversas/whatsapp%3A1");
   for (const mau of ["https://mal.example", "//mal.example", "/m//mal.example", "/mal", "/admin", "/m\\..", 42, null]) assert.equal(destinoSeguro(mau), null, String(mau));
 });

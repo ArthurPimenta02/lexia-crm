@@ -1226,7 +1226,7 @@ export function ConversaOnboarding({
 
   /** Entrar de novo. Com um arquivo que ainda não subiu (só existe nesta página), abre noutra aba para a página não se perder. */
   const entrarDeNovo = (novaAba: boolean) => (
-    <a className="ds-botao ds-botao-primario" href="/login" onClick={() => { saindoParaEntrar.current = !novaAba; }} rel={novaAba ? "noopener" : undefined} target={novaAba ? "_blank" : undefined}>
+    <a className="ds-botao ds-botao-primario" href={`/login?destino=${encodeURIComponent(typeof window === "undefined" ? "/app/onboarding" : window.location.pathname)}`} onClick={() => { saindoParaEntrar.current = !novaAba; }} rel={novaAba ? "noopener" : undefined} target={novaAba ? "_blank" : undefined}>
       {t("Entrar de novo")}
     </a>
   );
