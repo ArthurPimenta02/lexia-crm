@@ -934,14 +934,11 @@ export function ConversaOnboarding({
   }, [porEnviar]);
 
   /** Busca a conversa como está. Não mexe na tela: quem chama decide o que fazer com o resultado. */
-  const buscar = useCallback(async (): Promise<{ mensagens: MensagemDaConversa[]; progresso: Progresso | null } | { erro: string }> => {
+  const buscar = useCallback(async (): Promise<{ mensagens: MensagemDaConversa[]; progresso: Progresso | null } | { erro: string; sessao?: boolean }> => {
     try {
       const r = await fetch(`/api/onboarding/conversa${clienteSlug ? `?cliente=${encodeURIComponent(clienteSlug)}` : ""}`, { cache: "no-store" });
       const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
-      if (r.status === 401) {
-        setSessaoExpirada(true);
-        return { erro: t("Sua sessão expirou. Entre de novo para continuar.") };
-      }
+      if (r.status === 401) return { erro: t("Sua sessão expirou. Entre de novo para continuar."), sessao: true };
       if (!r.ok || !j.mensagens) return { erro: j.erro ?? t("Não foi possível abrir a conversa.") };
       return { mensagens: j.mensagens, progresso: j.progresso ?? null };
     } catch {
@@ -950,7 +947,10 @@ export function ConversaOnboarding({
   }, [clienteSlug, t]);
 
   const aplicar = useCallback((r: Awaited<ReturnType<typeof buscar>>) => {
-    if ("erro" in r) return setFalha(r.erro);
+    if ("erro" in r) {
+      if (r.sessao) setSessaoExpirada(true);
+      return setFalha(r.erro);
+    }
     setFalha(null);
     setMensagens(r.mensagens);
     setProgresso(r.progresso);
