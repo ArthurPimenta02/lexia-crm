@@ -5,17 +5,21 @@ import { AlertCircle, ArrowLeft, Check, Clock, FileText, Loader2, Mic, Paperclip
 
 import { useIdioma } from "@/app/components/idioma";
 import { Mascote } from "@/app/components/mascote";
-import type { CampoDoCartao, Cartao, MensagemDaConversa, Progresso } from "@/lib/onboarding/conversa";
+import type { CampoDoCartao, Cartao, MensagemDaConversa, Progresso, RespostaDesfeita } from "@/lib/onboarding/conversa";
 import { ESQUEMA_ONBOARDING, type CampoOnboarding } from "@/lib/onboarding/esquema";
+import { cartaoEditado, concluirEnvio, chaveDoCartao, chaveDoPendente, enviarTurno, estadoComDesfeita, estadoInicial, guardarCartao, guardarPendente, k, lerCartao, lerPendente, type Armazem, type EnvioGuardado, type EstadoDoCartao } from "@/lib/onboarding/tela";
 import { createClient } from "@/lib/supabase/client";
 
 /**
  * A conversa com a entrevistadora (Etapa 2).
  *
  * Regras desta tela:
- *  - nada do que a cliente escreveu ou gravou se perde: o rascunho do texto fica
- *    no navegador, e um envio que falha fica na tela com "Tentar de novo" (o
- *    mesmo envio, com o mesmo identificador, para o servidor não o duplicar);
+ *  - nada do que a cliente escreveu ou gravou se perde (19/11/2026, ver `lib/onboarding/tela.ts`):
+ *    o texto livre e o cartão em edição ficam gravados no aparelho a cada edição; a resposta só sai
+ *    do cartão depois de o servidor confirmar que gravou; um envio que falha fica na tela com
+ *    "Tentar de novo" (o mesmo envio, com o mesmo identificador, para o servidor não o duplicar),
+ *    e com a sessão expirada fica guardado e é reenviado sozinho depois de ela entrar de novo;
+ *  - "Corrigir a resposta anterior" não apaga nada e reabre o cartão com o que ela respondeu;
  *  - só o último cartão é respondível; os anteriores ficam como histórico;
  *  - nos cartões de escolha nada é enviado sem ela ver o que está marcado.
  */
@@ -23,17 +27,37 @@ import { createClient } from "@/lib/supabase/client";
 type Envio = {
   id: string;
   texto: string;
-  arquivo?: { blob: Blob; nome: string; mime: string; audio: boolean; id?: string };
+  /** `blob` falta quando o envio foi retomado do aparelho (aí o arquivo já tinha subido e tem `id`). */
+  arquivo?: { blob?: Blob; nome: string; mime: string; audio: boolean; id?: string };
   valores?: { campo: string; itemId: string | null; valor: unknown }[];
   lista?: { manter: string[]; novos: string[] };
   pular?: boolean;
   nenhum?: boolean;
+  /** A fala da Lia a que responde. */
+  falaId?: string;
 };
+type Pendente = Envio & { erro?: string; sessao?: boolean; guardada?: boolean };
+
+/** Sessão expirada no meio de um envio (o servidor respondeu 401). */
+class SessaoExpirada extends Error {}
+
+/** O armazenamento do aparelho, ou null (navegação privada, bloqueado). */
+function armazem(): Armazem | null {
+  try {
+    return typeof window === "undefined" ? null : window.localStorage;
+  } catch {
+    return null;
+  }
+}
+/** O envio como fica guardado no aparelho. Um arquivo que ainda não subiu não cabe lá: fica só na memória da página. */
+const paraGuardar = (e: Envio): EnvioGuardado | null =>
+  e.arquivo && !e.arquivo.id ? null : { id: e.id, texto: e.texto, ...(e.arquivo?.id ? { arquivo: { id: e.arquivo.id, nome: e.arquivo.nome, mime: e.arquivo.mime, audio: e.arquivo.audio } } : {}), valores: e.valores, lista: e.lista, pular: e.pular, nenhum: e.nenhum, falaId: e.falaId };
+/** Renova a sessão antes de mandar (um painel aberto há dias tem o token vencido). */
+const renovarSessao = () => createClient().auth.getSession();
 
 const DIAS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const GRUPO: Record<string, string> = { servicos: "Serviços", profissionais: "Profissionais", faqs: "Perguntas frequentes", objecoes: "Objeções", promocoes: "Promoções" };
 const novoId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, "");
-const k = (c: { campo: string; itemId: string | null }) => `${c.itemId ?? ""}|${c.campo}`;
 const tempo = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 function lerRascunho(chave: string) {
@@ -335,21 +359,6 @@ function Resumo({ campo, valor, abrir, editado }: { campo: CampoDoCartao; valor:
 
 // ------------------------------------------------------------------ o cartão ativo
 
-type EstadoDoCartao = { valores: Record<string, unknown>; manter: Set<string>; novos: string[] };
-
-function estadoInicial(c: Cartao): EstadoDoCartao {
-  const valores: Record<string, unknown> = {};
-  const confirmar = c.tipo === "confirmar" ? c.campos : c.tipo === "item" ? c.confirmar : [];
-  for (const f of confirmar) valores[k(f)] = f.valor;
-  // Na tabela, o que as fontes acharam já vem escrito na linha do serviço.
-  // Na lista de perguntas frequentes, objeções e profissionais, a resposta sugerida de cada item já vem escrita.
-  if (c.tipo === "lista") for (const f of c.itens.flatMap((i) => i.campos ?? [])) valores[k(f)] = f.valor;
-  // Nas escolhas com recomendação, a recomendada já vem marcada (e fica à vista o que está sendo aceito).
-  if (c.tipo === "cartoes" && c.secao === "recomendadas") for (const f of c.campos) valores[k(f)] = f.recomendado;
-  if (c.tipo === "tabela") for (const f of c.linhas.flatMap((l) => l.campos)) if (f.valor !== undefined && f.valor !== null) valores[k(f)] = f.valor;
-  return { valores, manter: new Set(c.tipo === "lista" ? c.itens.map((i) => i.id) : []), novos: [] };
-}
-
 const vazio = (v: unknown) => v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
 
 // ------------------------------------------------------------------ a tabela dos serviços (preço e duração)
@@ -451,7 +460,9 @@ const soNumero = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 12);
 
 function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Cartao; estado: EstadoDoCartao; mudar: (e: EstadoDoCartao) => void; ocupado: boolean; enviar: (e: Partial<Envio>) => void }) {
   const { t } = useIdioma();
-  const [novo, setNovo] = useState("");
+  // O texto livre do próprio cartão fica no estado do cartão: é gravado no aparelho como o resto.
+  const novo = estado.rascunho ?? "";
+  const setNovo = (v: string) => mudar({ ...estado, rascunho: v });
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const set = (f: CampoDoCartao, v: unknown) => mudar({ ...estado, valores: { ...estado.valores, [k(f)]: v } });
   // Os dias de funcionamento saem do horário de cada dia: não se escolhem duas vezes.
@@ -546,8 +557,7 @@ function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Carta
   if (cartao.tipo === "lista") {
     const acrescentar = () => {
       const nome = novo.trim();
-      if (nome && !estado.novos.includes(nome)) mudar({ ...estado, novos: [...estado.novos, nome] });
-      setNovo("");
+      mudar({ ...estado, novos: nome && !estado.novos.includes(nome) ? [...estado.novos, nome] : estado.novos, rascunho: "" });
     };
     return (
       <div className="ds-cartao flex flex-col gap-3 p-4">
@@ -877,33 +887,58 @@ export function ConversaOnboarding({
   const [progresso, setProgresso] = useState<Progresso | null>(inicial?.progresso ?? null);
   const [falha, setFalha] = useState<string | null>(null);
   const [texto, setTexto] = useState(() => lerRascunho(chaveDoRascunho));
-  const [pendente, setPendente] = useState<(Envio & { erro?: string }) | null>(null);
+  const [pendente, setPendente] = useState<Pendente | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [gravando, setGravando] = useState<number | null>(null);
   const [falarComALia, setFalarComALia] = useState(false);
   const [estadoDoCartao, setEstadoDoCartao] = useState<EstadoDoCartao>({ valores: {}, manter: new Set(), novos: [] });
+  /** De que fala da Lia é o estado do cartão (para nunca gravar o cartão de uma fala com a chave de outra). */
+  const [estadoDe, setEstadoDe] = useState("");
+  const [confirmarVoltar, setConfirmarVoltar] = useState(false);
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
+  const saindoParaEntrar = useRef(false);
   const gravador = useRef<MediaRecorder | null>(null);
   const relogio = useRef<ReturnType<typeof setInterval> | null>(null);
   const fim = useRef<HTMLDivElement>(null);
-  const cartaoDe = useRef<string>("");
 
   const ultimaDaLia = useMemo(() => [...(mensagens ?? [])].reverse().find((m) => m.autor === "entrevistadora") ?? null, [mensagens]);
   const cartao = (ultimaDaLia?.dados?.passo ?? null) as Cartao | null;
   const terminou = progresso?.terminou || cartao?.tipo === "fim";
 
-  // Cartão novo: começa com o que o rascunho achou (os de escolha começam vazios: nada é aceito sem ela marcar).
+  // Cartão novo: começa com o que ela já tinha mexido nele neste aparelho (recarregou, fechou, voltou) ou, se não mexeu,
+  // com o que o rascunho achou (os de escolha começam vazios: nada é aceito sem ela marcar).
+  // (Acerto de estado durante a renderização, como manda o React: o cartão só existe depois de a conversa chegar, já no navegador.)
+  if (ultimaDaLia && cartao && estadoDe !== ultimaDaLia.id) {
+    const guardado = somenteLeitura ? null : lerCartao(armazem(), chaveDoCartao(clienteSlug, ultimaDaLia.id));
+    setEstadoDoCartao(guardado ?? estadoInicial(cartao));
+    setEstadoDe(ultimaDaLia.id);
+  }
+
+  // Cada edição do cartão fica gravada no aparelho na hora.
   useEffect(() => {
-    if (ultimaDaLia && cartao && cartaoDe.current !== ultimaDaLia.id) {
-      cartaoDe.current = ultimaDaLia.id;
-      setEstadoDoCartao(estadoInicial(cartao));
-    }
-  }, [ultimaDaLia, cartao]);
+    if (somenteLeitura || !ultimaDaLia || !cartao || estadoDe !== ultimaDaLia.id) return;
+    guardarCartao(armazem(), chaveDoCartao(clienteSlug, ultimaDaLia.id), estadoDoCartao, cartao);
+  }, [estadoDoCartao, estadoDe, ultimaDaLia, cartao, clienteSlug, somenteLeitura]);
+
+  // Fechar ou recarregar com alguma coisa por enviar: o navegador avisa (o que está no aparelho volta na mesma).
+  const porEnviar = !somenteLeitura && (!!pendente || !!texto.trim() || (!!cartao && !!ultimaDaLia && estadoDe === ultimaDaLia.id && cartaoEditado(estadoDoCartao, cartao)));
+  useEffect(() => {
+    if (!porEnviar) return;
+    const avisar = (e: BeforeUnloadEvent) => {
+      if (saindoParaEntrar.current) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [porEnviar]);
 
   /** Busca a conversa como está. Não mexe na tela: quem chama decide o que fazer com o resultado. */
-  const buscar = useCallback(async (): Promise<{ mensagens: MensagemDaConversa[]; progresso: Progresso | null } | { erro: string }> => {
+  const buscar = useCallback(async (): Promise<{ mensagens: MensagemDaConversa[]; progresso: Progresso | null } | { erro: string; sessao?: boolean }> => {
     try {
       const r = await fetch(`/api/onboarding/conversa${clienteSlug ? `?cliente=${encodeURIComponent(clienteSlug)}` : ""}`, { cache: "no-store" });
-      const j = (await r.json()) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
+      const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
+      if (r.status === 401) return { erro: t("Sua sessão expirou. Entre de novo para continuar."), sessao: true };
       if (!r.ok || !j.mensagens) return { erro: j.erro ?? t("Não foi possível abrir a conversa.") };
       return { mensagens: j.mensagens, progresso: j.progresso ?? null };
     } catch {
@@ -912,7 +947,10 @@ export function ConversaOnboarding({
   }, [clienteSlug, t]);
 
   const aplicar = useCallback((r: Awaited<ReturnType<typeof buscar>>) => {
-    if ("erro" in r) return setFalha(r.erro);
+    if ("erro" in r) {
+      if (r.sessao) setSessaoExpirada(true);
+      return setFalha(r.erro);
+    }
     setFalha(null);
     setMensagens(r.mensagens);
     setProgresso(r.progresso);
@@ -934,14 +972,34 @@ export function ConversaOnboarding({
     fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [mensagens, pendente, enviando]);
 
-  /** Voltar à pergunta anterior: o servidor desfaz o último turno e devolve a conversa como estava. */
+  /**
+   * Corrigir a resposta anterior: o servidor desfaz o último turno SEM APAGAR NADA e devolve o que ela tinha
+   * respondido; o cartão reabre preenchido com isso (e o texto dela volta para a caixa), nunca com a sugestão.
+   */
   const voltar = useCallback(async () => {
+    setConfirmarVoltar(false);
     setEnviando(true);
     setFalha(null);
     try {
+      await renovarSessao().catch(() => null);
       const r = await fetch("/api/onboarding/conversa", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ cliente: clienteSlug, voltar: true }) });
-      const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
+      const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string; desfeita?: RespostaDesfeita };
+      if (r.status === 401) {
+        setSessaoExpirada(true);
+        throw new Error(t("Sua sessão expirou. Entre de novo para continuar."));
+      }
       if (!r.ok || !j.mensagens) throw new Error(j.erro ?? t("Não consegui voltar agora. Tente de novo."));
+      const d = j.desfeita;
+      const reaberto = d ? ((j.mensagens.find((m) => m.id === d.falaId)?.dados ?? {}) as { passo?: Cartao }).passo : undefined;
+      if (d && reaberto) {
+        const { estado, texto: escrito } = estadoComDesfeita(reaberto, d);
+        // Gravado antes de mostrar: o cartão que reabre lê isto (e continua lá se ela recarregar).
+        guardarCartao(armazem(), chaveDoCartao(clienteSlug, d.falaId), estado, reaberto);
+        if (escrito) {
+          setTexto(escrito);
+          guardarRascunho(chaveDoRascunho, escrito);
+        }
+      }
       setMensagens(j.mensagens);
       setProgresso(j.progresso ?? null);
     } catch (e) {
@@ -949,7 +1007,7 @@ export function ConversaOnboarding({
     } finally {
       setEnviando(false);
     }
-  }, [clienteSlug, t]);
+  }, [clienteSlug, chaveDoRascunho, t]);
 
   const transcrever = useCallback(
     async (blob: Blob, mime: string) => {
@@ -971,45 +1029,109 @@ export function ConversaOnboarding({
     [clienteSlug, t],
   );
 
+  /**
+   * Manda a resposta. Ela fica guardada no aparelho até o servidor confirmar que gravou; só então sai do cartão.
+   * Com a sessão expirada, fica guardada e volta a ser enviada (o mesmo envio: o servidor não duplica) depois de ela entrar de novo.
+   */
   const mandar = useCallback(
     async (envio: Envio) => {
+      const chavePendente = chaveDoPendente(clienteSlug);
       setEnviando(true);
-      setPendente({ ...envio, erro: undefined });
+      setPendente({ ...envio, erro: undefined, sessao: false });
+      const guardado = paraGuardar(envio);
+      if (guardado) {
+        guardarPendente(armazem(), chavePendente, guardado);
+        // O texto livre agora está no envio guardado: a caixa pode ficar vazia sem se perder nada.
+        guardarRascunho(chaveDoRascunho, "");
+      }
+      const pedirArquivo = async (corpo: Record<string, unknown>) => {
+        const r = await fetch("/api/onboarding/arquivo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) });
+        const j = (await r.json().catch(() => ({}))) as { caminho?: string; token?: string; id?: string; erro?: string };
+        if (r.status === 401) throw new SessaoExpirada();
+        if (!r.ok) throw new Error(j.erro ?? t("Não foi possível enviar o arquivo."));
+        return j;
+      };
       try {
         // 1) o arquivo (áudio, imagem, PDF) sobe primeiro; se já subiu numa tentativa anterior, não sobe de novo
         if (envio.arquivo && !envio.arquivo.id) {
           const a = envio.arquivo;
+          if (!a.blob) throw new Error(t("Não foi possível enviar o arquivo."));
+          await renovarSessao().catch(() => null);
           const base = { cliente: clienteSlug, origem: "conversa", nome: a.nome, mime: a.mime, tamanho: a.blob.size };
-          const p = await fetch("/api/onboarding/arquivo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...base, passo: "preparar" }) });
-          const pj = (await p.json()) as { caminho?: string; token?: string; erro?: string };
-          if (!p.ok || !pj.caminho || !pj.token) throw new Error(pj.erro ?? t("Não foi possível enviar o arquivo."));
+          const pj = await pedirArquivo({ ...base, passo: "preparar" });
+          if (!pj.caminho || !pj.token) throw new Error(pj.erro ?? t("Não foi possível enviar o arquivo."));
           const { error } = await createClient().storage.from("onboarding").uploadToSignedUrl(pj.caminho, pj.token, a.blob, { contentType: a.mime.split(";")[0] });
           if (error) throw new Error(t("Não foi possível enviar o arquivo."));
-          const r = await fetch("/api/onboarding/arquivo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...base, passo: "registar", caminho: pj.caminho }) });
-          const rj = (await r.json()) as { id?: string; erro?: string };
-          if (!r.ok || !rj.id) throw new Error(rj.erro ?? t("Não foi possível enviar o arquivo."));
+          const rj = await pedirArquivo({ ...base, passo: "registar", caminho: pj.caminho });
+          if (!rj.id) throw new Error(rj.erro ?? t("Não foi possível enviar o arquivo."));
           envio = { ...envio, arquivo: { ...a, id: rj.id } };
           setPendente({ ...envio });
+          const agora = paraGuardar(envio);
+          if (agora) {
+            guardarPendente(armazem(), chavePendente, agora);
+            guardarRascunho(chaveDoRascunho, "");
+          }
         }
         // 2) o turno
-        const r = await fetch("/api/onboarding/conversa", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ cliente: clienteSlug, idDoAparelho: envio.id, texto: envio.texto, arquivoId: envio.arquivo?.id, valores: envio.valores, lista: envio.lista, pular: envio.pular, nenhum: envio.nenhum }),
-        });
-        const j = (await r.json().catch(() => ({}))) as { mensagens?: MensagemDaConversa[]; progresso?: Progresso; erro?: string };
-        if (!r.ok || !j.mensagens) throw new Error(j.erro ?? t("Não foi possível enviar. Sua resposta continua aqui."));
-        setMensagens(j.mensagens);
-        setProgresso(j.progresso ?? null);
+        const final = paraGuardar(envio)!;
+        const r = await enviarTurno(final, { cliente: clienteSlug, fetch: (u, o) => fetch(u, o), renovarSessao, textos: { falhou: t("Não foi possível enviar. Sua resposta continua aqui."), sessao: t("Sua sessão expirou. Entre de novo: sua resposta está guardada.") } });
+        if (!r.ok) {
+          if (r.sessao) setSessaoExpirada(true);
+          setPendente({ ...envio, erro: r.erro, sessao: r.sessao, guardada: r.guardada });
+          return;
+        }
+        // O servidor confirmou: só agora a resposta sai do cartão e do aparelho.
+        setSessaoExpirada(false);
+        concluirEnvio(armazem(), clienteSlug, final, r);
+        setMensagens(r.mensagens);
+        setProgresso(r.progresso);
         setPendente(null);
       } catch (e) {
-        setPendente({ ...envio, erro: e instanceof Error ? e.message : t("Não foi possível enviar. Sua resposta continua aqui.") });
+        if (e instanceof SessaoExpirada) {
+          setSessaoExpirada(true);
+          setPendente({ ...envio, erro: t("Sua sessão expirou. Entre de novo: sua resposta está guardada."), sessao: true });
+        } else setPendente({ ...envio, erro: e instanceof Error ? e.message : t("Não foi possível enviar. Sua resposta continua aqui.") });
       } finally {
         setEnviando(false);
       }
     },
-    [clienteSlug, t],
+    [clienteSlug, chaveDoRascunho, t],
   );
+
+  // Ao abrir: uma resposta que ficou por confirmar (recarregou, a sessão tinha expirado) é enviada de novo, sozinha.
+  const retomado = useRef(false);
+  useEffect(() => {
+    if (retomado.current || mensagens === null || somenteLeitura) return;
+    retomado.current = true;
+    const chave = chaveDoPendente(clienteSlug);
+    const p = lerPendente(armazem(), chave);
+    if (!p) return;
+    const ultima = [...mensagens].reverse().find((m) => m.autor === "entrevistadora");
+    // Fora do corpo do efeito (o envio mexe no estado da tela).
+    void Promise.resolve().then(() => {
+      if (!p.falaId || p.falaId === ultima?.id) return mandar({ ...p, arquivo: p.arquivo ? { ...p.arquivo } : undefined });
+      // A conversa já seguiu (a resposta chegou e só a confirmação se perdeu): não se reenvia, mas o texto dela não se perde.
+      guardarPendente(armazem(), chave, null);
+      if (p.texto.trim() && !lerRascunho(chaveDoRascunho).trim()) {
+        setTexto(p.texto);
+        guardarRascunho(chaveDoRascunho, p.texto);
+      }
+    });
+  }, [mensagens, somenteLeitura, clienteSlug, chaveDoRascunho, mandar]);
+
+  // Voltou de entrar de novo (noutra aba ou depois de desbloquear o telefone): reenvia sozinha.
+  useEffect(() => {
+    if (!pendente?.sessao || enviando) return;
+    const tentar = () => {
+      if (document.visibilityState === "visible") void mandar(pendente);
+    };
+    window.addEventListener("focus", tentar);
+    document.addEventListener("visibilitychange", tentar);
+    return () => {
+      window.removeEventListener("focus", tentar);
+      document.removeEventListener("visibilitychange", tentar);
+    };
+  }, [pendente, enviando, mandar]);
 
   /** Junta o que está marcado no cartão do serviço com a resposta em texto, áudio ou arquivo. */
   const enviar = (extra: Partial<Envio>) => {
@@ -1054,10 +1176,10 @@ export function ConversaOnboarding({
         valores = [...valores.filter((v) => v.campo !== "dias_de_funcionamento"), { campo: "dias_de_funcionamento", itemId: null, valor: dias }];
       }
     }
-    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores };
+    const envio: Envio = { id: novoId(), texto: texto.trim(), ...extra, valores, falaId: ultimaDaLia?.id };
     if (!envio.texto && !envio.arquivo && !envio.valores?.length && !envio.lista && !envio.pular && !envio.nenhum) return;
+    // A caixa esvazia-se à vista; o texto fica guardado no envio (no aparelho) até o servidor confirmar.
     setTexto("");
-    guardarRascunho(chaveDoRascunho, "");
     void mandar(envio);
   };
 
@@ -1102,15 +1224,25 @@ export function ConversaOnboarding({
     if (gravando !== null && gravando >= 600) gravador.current?.stop();
   }, [gravando]);
 
+  /** Entrar de novo. Com um arquivo que ainda não subiu (só existe nesta página), abre noutra aba para a página não se perder. */
+  const entrarDeNovo = (novaAba: boolean) => (
+    <a className="ds-botao ds-botao-primario" href={`/login?destino=${encodeURIComponent(typeof window === "undefined" ? "/app/onboarding" : window.location.pathname)}`} onClick={() => { saindoParaEntrar.current = !novaAba; }} rel={novaAba ? "noopener" : undefined} target={novaAba ? "_blank" : undefined}>
+      {t("Entrar de novo")}
+    </a>
+  );
+
   if (mensagens === null) {
     return (
       <div className="ds-cartao flex min-h-64 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">
         {falha ? (
           <>
             <p role="alert">{falha}</p>
-            <button className="ds-botao ds-botao-secundario" onClick={carregar} type="button">
-              {t("Tentar de novo")}
-            </button>
+            <div className="flex flex-wrap justify-center gap-2">
+              {sessaoExpirada ? entrarDeNovo(false) : null}
+              <button className="ds-botao ds-botao-secundario" onClick={carregar} type="button">
+                {t("Tentar de novo")}
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -1195,10 +1327,28 @@ export function ConversaOnboarding({
                 <div className="flex max-w-[min(42rem,92%)] flex-wrap items-center justify-end gap-2 text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">
                   <AlertCircle aria-hidden="true" className="h-4 w-4 shrink-0" />
                   <span>{pendente.erro}</span>
+                  {pendente.sessao ? entrarDeNovo(!!pendente.arquivo && !pendente.arquivo.id) : null}
                   <button className="ds-botao ds-botao-secundario" onClick={() => void mandar(pendente)} type="button">
                     <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
                     {t("Tentar de novo")}
                   </button>
+                  {!pendente.sessao && !pendente.guardada ? (
+                    <button
+                      className="ds-botao ds-botao-secundario"
+                      onClick={() => {
+                        // Desiste deste envio para mudar a resposta: o cartão continua como estava e o texto volta para a caixa.
+                        guardarPendente(armazem(), chaveDoPendente(clienteSlug), null);
+                        if (pendente.texto) {
+                          setTexto(pendente.texto);
+                          guardarRascunho(chaveDoRascunho, pendente.texto);
+                        }
+                        setPendente(null);
+                      }}
+                      type="button"
+                    >
+                      {t("Editar a resposta")}
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
             </li>
@@ -1214,18 +1364,38 @@ export function ConversaOnboarding({
         </ol>
 
         {podeResponder && !pendente && mensagens.at(-1)?.autor === "entrevistadora" && (mensagens.at(-1)!.dados as { volta?: unknown }).volta && mensagens.at(-2)?.autor === "cliente" ? (
-          <button className="flex items-center gap-1.5 self-start px-1 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50" disabled={bloqueado} onClick={() => void voltar()} type="button">
-            <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-            {t("Voltar à pergunta anterior")}
-          </button>
+          confirmarVoltar ? (
+            <div className="ds-cartao flex flex-col gap-3 p-3" role="alertdialog">
+              <p className="text-sm text-foreground">{t("Corrigir a resposta anterior? O que você respondeu volta para o cartão, para você mudar o que quiser.")}</p>
+              <div className="flex flex-wrap gap-2">
+                <button className="ds-botao ds-botao-primario" disabled={bloqueado} onClick={() => void voltar()} type="button">
+                  {t("Sim, corrigir")}
+                </button>
+                <button className="ds-botao ds-botao-secundario" onClick={() => setConfirmarVoltar(false)} type="button">
+                  {t("Cancelar")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="flex items-center gap-1.5 self-start px-1 text-[0.8125rem] text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50" disabled={bloqueado} onClick={() => setConfirmarVoltar(true)} type="button">
+              <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+              {t("Corrigir a resposta anterior")}
+            </button>
+          )
         ) : null}
-        {falha && !falarComALia ? <p className="px-1 text-[0.8125rem] text-[var(--ds-perigo)]" role="alert">{falha}</p> : null}
+        {falha && !falarComALia ? (
+          <div className="flex flex-wrap items-center gap-2 px-1" role="alert">
+            <p className="text-[0.8125rem] text-[var(--ds-perigo)]">{falha}</p>
+            {sessaoExpirada ? entrarDeNovo(false) : null}
+          </div>
+        ) : null}
         {terminou && !somenteLeitura ? (
           <button className="ds-botao ds-botao-primario self-start" onClick={() => window.location.reload()} type="button">
             {t("Revisar e enviar")}
           </button>
         ) : null}
-        {podeResponder && cartao && !pendente ? (
+        {/* O cartão só sai depois de o servidor confirmar: enquanto envia (ou se falhar) continua à vista, com o que ela marcou. */}
+        {podeResponder && cartao ? (
           <Dependentes.Provider value={{ valores: estadoDoCartao.valores, mudar: (chave, v) => setEstadoDoCartao((e) => ({ ...e, valores: { ...e.valores, [chave]: v } })) }}>
             <CartaoAtivo cartao={cartao} enviar={enviar} estado={estadoDoCartao} mudar={setEstadoDoCartao} ocupado={bloqueado} />
           </Dependentes.Provider>

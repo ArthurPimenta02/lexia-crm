@@ -3,6 +3,13 @@ import type { TextosDaArea } from "../traduzir";
 /** Textos do onboarding (/app/onboarding e /admin/clientes/<slug>/onboarding). */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Corrigir a resposta anterior": "Corrigir a resposta anterior",
+    "Corrigir a resposta anterior? O que você respondeu volta para o cartão, para você mudar o que quiser.": "Corrigir a resposta anterior? O que respondeu volta para o cartão, para mudar o que quiser.",
+    "Sim, corrigir": "Sim, corrigir",
+    "Entrar de novo": "Entrar de novo",
+    "Editar a resposta": "Editar a resposta",
+    "Sua sessão expirou. Entre de novo para continuar.": "A sua sessão expirou. Entre de novo para continuar.",
+    "Sua sessão expirou. Entre de novo: sua resposta está guardada.": "A sua sessão expirou. Entre de novo: a sua resposta está guardada.",
     "Recomendações da Lexia": "Recomendações da Lexia",
     "Falta escolher": "Falta escolher",
     "Fechar": "Fechar",
@@ -214,6 +221,13 @@ const textos: TextosDaArea = {
     "Voltar ao cliente": "Voltar ao cliente",
   },
   es: {
+    "Corrigir a resposta anterior": "Corregir la respuesta anterior",
+    "Corrigir a resposta anterior? O que você respondeu volta para o cartão, para você mudar o que quiser.": "¿Corregir la respuesta anterior? Lo que respondiste vuelve a la tarjeta, para que cambies lo que quieras.",
+    "Sim, corrigir": "Sí, corregir",
+    "Entrar de novo": "Entrar de nuevo",
+    "Editar a resposta": "Editar la respuesta",
+    "Sua sessão expirou. Entre de novo para continuar.": "Tu sesión expiró. Entra de nuevo para continuar.",
+    "Sua sessão expirou. Entre de novo: sua resposta está guardada.": "Tu sesión expiró. Entra de nuevo: tu respuesta está guardada.",
     "Recomendações da Lexia": "Recomendaciones de Lexia",
     "Falta escolher": "Falta elegir",
     "Fechar": "Cerrar",
@@ -425,6 +439,13 @@ const textos: TextosDaArea = {
     "Voltar ao cliente": "Volver al cliente",
   },
   en: {
+    "Corrigir a resposta anterior": "Fix the previous answer",
+    "Corrigir a resposta anterior? O que você respondeu volta para o cartão, para você mudar o que quiser.": "Fix the previous answer? What you answered goes back into the card, so you can change anything you want.",
+    "Sim, corrigir": "Yes, fix it",
+    "Entrar de novo": "Sign in again",
+    "Editar a resposta": "Edit the answer",
+    "Sua sessão expirou. Entre de novo para continuar.": "Your session expired. Sign in again to continue.",
+    "Sua sessão expirou. Entre de novo: sua resposta está guardada.": "Your session expired. Sign in again: your answer is saved.",
     "Recomendações da Lexia": "Lexia's recommendations",
     "Falta escolher": "Not chosen yet",
     "Fechar": "Close",

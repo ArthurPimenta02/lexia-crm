@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { acessoAoOnboarding } from "@/lib/onboarding/acesso";
+import { acessoOuMotivo, respostaSemAcesso } from "@/lib/onboarding/acesso";
 import { chaveDoGemini, transcrever } from "@/lib/onboarding/audio";
 import { abrirOnboarding, BUCKET_ONBOARDING, gravarTextoDoArquivo, listarArquivos, pastaDoCliente, registarArquivo, TAMANHO_MAXIMO_ARQUIVO } from "@/lib/onboarding/dados";
 
@@ -22,8 +22,8 @@ const EXTENSAO: Record<string, string> = { "application/pdf": "pdf", "image/png"
  */
 export async function POST(request: Request) {
   const corpo = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const acesso = await acessoAoOnboarding(corpo.cliente);
-  if (!acesso) return Response.json({ erro: "Acesso não autorizado." }, { status: 403 });
+  const acesso = await acessoOuMotivo(corpo.cliente);
+  if ("sem" in acesso) return respostaSemAcesso(acesso.sem);
   const { admin, clienteSlug: slug } = acesso;
 
   // `transcrever`: o áudio que ela gravou DENTRO de um campo. Devolve o texto para a tela escrever no campo; a
