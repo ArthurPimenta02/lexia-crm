@@ -1074,7 +1074,7 @@ export function ConversaOnboarding({
         }
         // 2) o turno
         const final = paraGuardar(envio)!;
-        const r = await enviarTurno(final, { cliente: clienteSlug, fetch, renovarSessao, textos: { falhou: t("Não foi possível enviar. Sua resposta continua aqui."), sessao: t("Sua sessão expirou. Entre de novo: sua resposta está guardada.") } });
+        const r = await enviarTurno(final, { cliente: clienteSlug, fetch: (u, o) => fetch(u, o), renovarSessao, textos: { falhou: t("Não foi possível enviar. Sua resposta continua aqui."), sessao: t("Sua sessão expirou. Entre de novo: sua resposta está guardada.") } });
         if (!r.ok) {
           if (r.sessao) setSessaoExpirada(true);
           setPendente({ ...envio, erro: r.erro, sessao: r.sessao, guardada: r.guardada });

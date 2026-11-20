@@ -148,7 +148,9 @@ export async function enviarTurno(
     // sem renovar, tenta-se na mesma: o servidor diz se a sessão expirou
   }
   try {
-    const r = await deps.fetch("/api/onboarding/conversa", {
+    // Chamado solto: `deps.fetch(...)` passaria `deps` como `this`, e o fetch do navegador recusa ("Illegal invocation").
+    const pedir = deps.fetch;
+    const r = await pedir("/api/onboarding/conversa", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ cliente: deps.cliente, idDoAparelho: envio.id, texto: envio.texto, arquivoId: envio.arquivo?.id, valores: envio.valores, lista: envio.lista, pular: envio.pular, nenhum: envio.nenhum }),

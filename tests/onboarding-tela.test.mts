@@ -91,3 +91,13 @@ test("a sugestão nunca é confundida com o que ela respondeu: k() é a mesma ch
   assert.equal(k({ campo: "valor", itemId: "s1" }), "s1|valor");
   assert.equal(k({ campo: "cidade", itemId: null }), "|cidade");
 });
+
+test("o fetch é chamado solto: o do navegador recusa outro `this` (Illegal invocation) e o envio nunca saía", async () => {
+  // Como o fetch do navegador: falha se for chamado como método de outro objeto.
+  function fetchDoNavegador(this: unknown) {
+    if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+    return Promise.resolve(Response.json({ mensagens: [], progresso: null }));
+  }
+  const r = await enviarTurno({ id: "envio-solto-1", texto: "oi" }, { fetch: fetchDoNavegador as unknown as typeof fetch, textos: TEXTOS });
+  assert.equal(r.ok, true);
+});
