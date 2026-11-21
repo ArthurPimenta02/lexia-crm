@@ -30,6 +30,7 @@ export function MenuDoCliente({
       titulo: t("Atendimento"),
       itens: [
         { label: t("Conversas"), href: `/admin/conversas${c}` },
+        { label: t("Resultados do follow-up"), href: `/admin/followups/resultados${c}` },
         ...(temFollowups ? [{ label: t("Follow-ups e lembretes"), href: "/admin/followups" }] : []),
         { label: t("Handoffs"), href: `/admin/handoffs${c}`, aviso: handoffsPendentes },
         { label: t("Feedbacks"), href: `/admin/feedbacks${c}`, aviso: feedbacksPendentes },
