@@ -19,6 +19,7 @@ const clientNavigation = [
   { label: "Serviços", href: "/app/servicos", icon: "servicos" },
   { label: "Produtos", href: "/app/produtos", icon: "produtos" },
   { label: "Conversas", href: "/app/conversas", icon: "conversas" },
+  { label: "Follow-up", href: "/app/followups", icon: "followups" },
   { label: "Área de testes", href: "/app/area-testes", icon: "testes" },
   { label: "Handoffs", href: "/app/handoffs", icon: "handoffs" },
   { label: "Feedbacks", href: "/app/feedbacks", icon: "feedbacks" },

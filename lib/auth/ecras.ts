@@ -43,6 +43,7 @@ export const ECRAS_DO_PAINEL = [
   "/app/servicos",
   "/app/produtos",
   "/app/conversas",
+  "/app/followups",
   "/app/area-testes",
   "/app/handoffs",
   "/app/feedbacks",
@@ -71,7 +72,7 @@ const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   jessica_beauty: ["/app/area-testes", "/app/feedbacks"],
   clinica_teste: [
     "/app", "/app/conversas", "/app/agenda", "/app/pipeline", "/app/clientes", "/app/campanhas",
-    "/app/servicos", "/app/produtos", "/app/handoffs", "/app/feedbacks", "/app/analista", "/app/configuracoes",
+    "/app/servicos", "/app/produtos", "/app/handoffs", "/app/feedbacks", "/app/analista", "/app/configuracoes", "/app/followups",
   ],
 };
 
