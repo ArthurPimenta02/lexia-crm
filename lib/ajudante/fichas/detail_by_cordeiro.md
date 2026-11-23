@@ -6,8 +6,7 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
 - Atende no WhatsApp, no Instagram e no Messenger.
 - Junta as mensagens seguidas do cliente (cerca de 60 segundos).
 - Entende áudio e fotos (a foto do carro e o comprovante do sinal).
-- Escreve em português de Portugal, tratando o cliente por "tu", na voz do Martim.
-- Os follow-ups saem em inglês ou espanhol quando o cliente escreveu nessa língua.
+- Fala português de Portugal (por "tu", na voz do Martim) ou inglês, conforme o cliente; outra língua é atendida em inglês. O idioma vale para respostas, resumo, confirmação, lembretes e follow-ups.
 
 ## Agenda
 - A fonte é a agenda Google do Martim. Lê também as marcações feitas à mão, pelo telefone ou pelo nome completo do cliente, para nunca oferecer uma marcação nova a quem já está marcado.
