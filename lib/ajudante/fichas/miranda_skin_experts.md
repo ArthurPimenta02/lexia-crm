@@ -1,6 +1,6 @@
 # Como funciona a Carol, agente da Miranda Skin Experts
 
-Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC). Horas no fuso de Boston.
+Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Boston.
 
 ## Canais e idiomas
 - Atende no WhatsApp e no Direct do Instagram.
@@ -24,7 +24,7 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 
 ## Confirmação da marcação
 - Antes de marcar, faz um resumo e pede o "sim". Se o cliente some, 15 minutos depois pergunta "posso confirmar?".
-- Mais 15 minutos sem resposta: **a Carol confirma sozinha** e diz que, se quiser cancelar ou mudar, é só avisar. Isto vale a qualquer hora.
+- Mais 15 minutos sem resposta: **a Carol confirma sozinha** e diz que, se quiser cancelar ou mudar, é só avisar. Vale a qualquer hora, menos para quem já tem outra marcação.
 - Quando marca, avisa o Samuel (e o sócio) pelo WhatsApp.
 - **Depois de marcar, a Carol fica em silêncio para sempre naquele número.** Pedido do Samuel: daí em diante só a equipe responde.
 
@@ -34,11 +34,11 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 - Depois do lembrete, a conversa fica em pausa: a resposta do cliente é lida só pela equipe, não pela Carol.
 
 ## Remarcar e cancelar
-- A Carol remarca e cancela sozinha as marcações futuras que ela própria criou e que não são para hoje.
-- Remarcar: cria a nova primeiro e só depois apaga a antiga.
+- A Carol remarca e cancela sozinha as marcações futuras que ela criou, ainda no horário dela, e que não são para hoje.
+- Remarcar: cria a nova, depois apaga a antiga e diz ao cliente qual deixou de valer.
 - Cancelar: pergunta uma vez se prefere mudar de dia; só apaga com o "sim".
 - O Samuel recebe aviso de cada mudança.
-- Marcações feitas à mão pela equipe, ou para hoje, passam para a equipe.
+- Feitas ou movidas pela equipe, ou para hoje: passam para a equipe.
 
 ## Follow-up (quem parou de responder)
 - 1.º cerca de 1 h depois e 2.º cerca de 24 h depois. Só de segunda a sábado, das 7h às 20h.
@@ -60,7 +60,6 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 
 ## Passa para a equipe (avisa o Samuel)
 - Complicação depois de um procedimento (urgente); reclamação ou reembolso.
-- Remarcar ou cancelar marcações feitas à mão ou para hoje.
 - Pacotes ou condições fora da tabela; serviços que a equipe fecha.
 - Cliente pede uma pessoa; dúvidas de pagamento que ela não sabe.
 
