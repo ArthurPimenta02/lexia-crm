@@ -24,7 +24,7 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 
 ## Confirmação da marcação
 - Antes de marcar, faz um resumo e pede o "sim". Se o cliente some, 15 minutos depois pergunta "posso confirmar?".
-- Mais 15 minutos sem resposta: **a Carol confirma sozinha** e diz que, se quiser cancelar ou mudar, é só avisar. Isto vale a qualquer hora.
+- Mais 15 minutos sem resposta: **a Carol confirma sozinha** e diz que, se quiser cancelar ou mudar, é só avisar. Isto vale a qualquer hora. Exceção (desde 23/11): se o cliente já tem outra marcação futura na agenda, ela não confirma sozinha; só com o "sim" dele.
 - Quando marca, avisa o Samuel (e o sócio) pelo WhatsApp.
 - **Depois de marcar, a Carol fica em silêncio para sempre naquele número.** Pedido do Samuel: daí em diante só a equipe responde.
 
@@ -34,7 +34,8 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 - Depois do lembrete, a conversa fica em pausa: a resposta do cliente é lida só pela equipe, não pela Carol.
 
 ## Remarcar e cancelar
-- A Carol remarca e cancela sozinha as marcações futuras que ela própria criou e que não são para hoje.
+- A Carol remarca e cancela sozinha as marcações futuras que ela própria criou, que continuam no horário que ela marcou e que não são para hoje. Se a equipe moveu o evento na agenda, a marcação passa a ser da equipe (desde 23/11, caso Luis Baño).
+- Na remarcação, diz ao cliente qual marcação deixa de valer ("com esta mudança, a de sábado 19/12 às 10h fica cancelada").
 - Remarcar: cria a nova primeiro e só depois apaga a antiga.
 - Cancelar: pergunta uma vez se prefere mudar de dia; só apaga com o "sim".
 - O Samuel recebe aviso de cada mudança.
@@ -60,7 +61,7 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 18/11, 23:36 UTC)
 
 ## Passa para a equipe (avisa o Samuel)
 - Complicação depois de um procedimento (urgente); reclamação ou reembolso.
-- Remarcar ou cancelar marcações feitas à mão ou para hoje.
+- Remarcar ou cancelar marcações feitas à mão, mudadas pela equipe na agenda ou para hoje.
 - Pacotes ou condições fora da tabela; serviços que a equipe fecha.
 - Cliente pede uma pessoa; dúvidas de pagamento que ela não sabe.
 

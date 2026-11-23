@@ -44,8 +44,9 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 19/11). Horas no 
 - **Vigia da agenda, de hora a hora**: avisa o Martim quando uma marcação do agente fica por cima de outro evento.
 
 ## Remarcar e cancelar
-- **Remarcar**: o agente faz sozinho. Cria a marcação nova e só depois apaga a antiga.
-- **Cancelar**: passa para o Martim. Mas quem diz que não vem e não tem data nova tem a marcação cancelada, e o Martim é avisado.
+- **Remarcar**: o agente faz sozinho. Cria a marcação nova e só depois apaga a antiga. No resumo diz qual marcação deixa de contar.
+- **Cancelar**: pergunta uma vez e, com o "sim", apaga e avisa o Martim. Quem diz que não vem e não tem data nova tem a marcação cancelada, e o Martim é avisado. Para hoje, é com o Martim.
+- Só nas marcações que o próprio agente criou nessa conversa e que continuam no horário dele. Feita à mão pelo Martim, ou que ele mudou na agenda: passa para o Martim, sem mexer (desde 23/11).
 
 ## Follow-up (quem parou de responder)
 - WhatsApp: 1 h, 24 h e 3 dias. Depois disso, a cadência depende da temperatura do lead (configurável, interruptor "follow-ups longos").

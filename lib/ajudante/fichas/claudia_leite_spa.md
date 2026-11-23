@@ -38,12 +38,13 @@ A 19/11 a conta ainda estava em **modo de teste** no CRM.
 - **Um lembrete 48 h antes**. Se a marcação foi feita com menos de 48 h, sai 12 h antes.
   - Sai por WhatsApp, só entre as 8h e as 21h30. Uma cliente com dois serviços no mesmo dia recebe um lembrete só.
   - Vale também para marcações feitas à mão pela equipe, se o telefone estiver no evento.
-  - Pede para confirmar a presença. Na resposta, a Carla agradece, cancela e libera o horário, ou remarca.
+  - Pede para confirmar a presença. Na resposta, a Carla agradece, cancela e libera o horário, ou remarca. Se a marcação foi feita ou mudada pela equipe, cancelar ou remarcar passa para a equipe.
 - Marcações sem telefone: o spa recebe um aviso de que essas não vão ter lembrete.
 
 ## Remarcar e cancelar
-- **Remarcar**: a Carla faz sozinha, pelos horários reais da agenda.
+- **Remarcar**: a Carla faz sozinha, pelos horários reais da agenda. No resumo diz qual horário deixa de valer.
 - **Cancelar**: só quando a cliente pede claramente. Apaga a marcação e avisa o spa.
+- Só nas marcações que a própria Carla fez nessa conversa e que continuam no horário dela. Feita à mão ou mudada pela equipe na agenda: passa para a equipe, sem mexer (desde 23/11).
 
 ## Follow-up (quem parou de responder)
 - 1.º 1 h depois da última resposta da Carla. 2.º cerca de 22 h depois da última mensagem da cliente.
