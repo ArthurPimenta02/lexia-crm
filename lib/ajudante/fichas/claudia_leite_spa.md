@@ -1,7 +1,6 @@
 # Como funciona a Carla, agente da Claudia Leite Spa
 
-Lido do código do agente publicado (19/11/2026). Horas no fuso de Nova Iorque.
-A 19/11 a conta ainda estava em **modo de teste** no CRM.
+Lido do agente publicado (23/11/2026), ainda em **modo de teste**. Horas de Nova Iorque.
 
 ## Canais e idiomas
 - Atende no WhatsApp, no Instagram e no Messenger.
@@ -36,15 +35,15 @@ A 19/11 a conta ainda estava em **modo de teste** no CRM.
 
 ## Lembretes
 - **Um lembrete 48 h antes**. Se a marcação foi feita com menos de 48 h, sai 12 h antes.
-  - Sai por WhatsApp, só entre as 8h e as 21h30. Uma cliente com dois serviços no mesmo dia recebe um lembrete só.
+  - Por WhatsApp, das 8h às 21h30. Dois serviços no mesmo dia: um lembrete só.
   - Vale também para marcações feitas à mão pela equipe, se o telefone estiver no evento.
-  - Pede para confirmar a presença. Na resposta, a Carla agradece, cancela e libera o horário, ou remarca. Se a marcação foi feita ou mudada pela equipe, cancelar ou remarcar passa para a equipe.
-- Marcações sem telefone: o spa recebe um aviso de que essas não vão ter lembrete.
+  - Pede para confirmar a presença. Na resposta, a Carla agradece, cancela ou remarca (regras abaixo).
+- Marcação sem telefone: o spa é avisado de que fica sem lembrete.
 
 ## Remarcar e cancelar
-- **Remarcar**: a Carla faz sozinha, pelos horários reais da agenda. No resumo diz qual horário deixa de valer.
-- **Cancelar**: só quando a cliente pede claramente. Apaga a marcação e avisa o spa.
-- Só nas marcações que a própria Carla fez nessa conversa e que continuam no horário dela. Feita à mão ou mudada pela equipe na agenda: passa para a equipe, sem mexer (desde 23/11).
+- **Remarcar**: a Carla faz sozinha, pela agenda real, e diz qual horário deixa de valer.
+- **Cancelar**: só quando a cliente pede claramente. Apaga e avisa o spa.
+- Só nas que ela marcou e seguem no horário dela; feitas ou movidas pela equipe vão para a equipe.
 
 ## Follow-up (quem parou de responder)
 - 1.º 1 h depois da última resposta da Carla. 2.º cerca de 22 h depois da última mensagem da cliente.

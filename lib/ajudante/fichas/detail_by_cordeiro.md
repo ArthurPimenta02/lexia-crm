@@ -1,6 +1,6 @@
 # Como funciona o agente do Detail by Cordeiro
 
-Lido do agente em produção a 19/11/2026 (versão publicada a 19/11). Horas no fuso de Lisboa.
+Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
 
 ## Canais e idiomas
 - Atende no WhatsApp, no Instagram e no Messenger.
@@ -10,9 +10,8 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 19/11). Horas no 
 - Os follow-ups saem em inglês ou espanhol quando o cliente escreveu nessa língua.
 
 ## Agenda
-- A fonte é a agenda Google (Martim e Roberto). Lê também as marcações feitas à mão, pelo telefone ou pelo nome completo do cliente, para nunca oferecer uma marcação nova a quem já está marcado.
+- A fonte é a agenda Google do Martim. Lê também as marcações feitas à mão, pelo telefone ou pelo nome completo do cliente, para nunca oferecer uma marcação nova a quem já está marcado.
 - Martim: de segunda a sexta das 9h às 18h, e no sábado das 9h às 13h.
-- Roberto: de segunda a sexta das 9h às 17h.
 - Fechado aos domingos e nos feriados nacionais.
 - Almoço das 12h30 às 13h00; 15 minutos de margem no fim de cada serviço.
 - Marca de amanhã até 60 dias à frente. Pedido para hoje passa para o Martim.
@@ -40,13 +39,13 @@ Lido do agente em produção a 19/11/2026 (versão publicada a 19/11). Horas no 
   - Se o Martim mudar a hora, sai um lembrete novo com a hora certa.
   - Quem disse nos últimos dias que não pode vir não recebe o lembrete.
 - **Lembrete do sinal**: se o sinal continua por pagar 24 h depois de ter sido pedido, sai uma mensagem (uma vez, das 8h às 20h). Não leva valores nem IBAN.
-- **Aviso ao Martim, todos os dias às 9h**: lista das marcações dos próximos dias sem celular, que por isso não vão receber lembrete.
-- **Vigia da agenda, de hora a hora**: avisa o Martim quando uma marcação do agente fica por cima de outro evento.
+- **Aviso ao Martim, às 9h**: marcações dos próximos dias sem celular (ficam sem lembrete).
+- **Vigia da agenda (de hora a hora)**: avisa o Martim se uma marcação do agente fica sobre outro evento.
 
 ## Remarcar e cancelar
-- **Remarcar**: o agente faz sozinho. Cria a marcação nova e só depois apaga a antiga. No resumo diz qual marcação deixa de contar.
-- **Cancelar**: pergunta uma vez e, com o "sim", apaga e avisa o Martim. Quem diz que não vem e não tem data nova tem a marcação cancelada, e o Martim é avisado. Para hoje, é com o Martim.
-- Só nas marcações que o próprio agente criou nessa conversa e que continuam no horário dele. Feita à mão pelo Martim, ou que ele mudou na agenda: passa para o Martim, sem mexer (desde 23/11).
+- **Remarcar**: cria a nova, depois apaga a antiga; o resumo diz qual deixa de contar.
+- **Cancelar**: pergunta uma vez e apaga com o sim (sem data nova, cancela logo). Avisa o Martim. Hoje: é com o Martim.
+- Só nas que o agente marcou e seguem no horário dele; feitas ou movidas pelo Martim vão para ele.
 
 ## Follow-up (quem parou de responder)
 - WhatsApp: 1 h, 24 h e 3 dias. Depois disso, a cadência depende da temperatura do lead (configurável, interruptor "follow-ups longos").
