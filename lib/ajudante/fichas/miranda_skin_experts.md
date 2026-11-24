@@ -1,12 +1,12 @@
 # Como funciona a Carol, agente da Miranda Skin Experts
 
-Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Boston.
+Versão em produção de 24/11/2026. Horas no fuso de Boston.
 
 ## Canais e idiomas
 - Atende no WhatsApp e no Direct do Instagram.
-- Junta as mensagens seguidas do cliente (60 segundos).
-- Responde em português, inglês ou espanhol, na língua do cliente. Lembretes e textos fixos também saem nessa língua.
-- Não atende números que estão salvos na agenda do celular do Samuel nem os contatos bloqueados no painel.
+- Junta mensagens seguidas (60 s).
+- Responde em português, inglês ou espanhol, na língua do cliente, também nos lembretes e textos fixos.
+- Não atende números salvos no celular do Samuel nem contatos bloqueados no painel.
 
 ## Agenda
 - A fonte é a agenda Google do Samuel. Só oferece horários que a agenda devolveu livres. Lê as marcações que o cliente já tem e respeita o que ele disse que não pode ("de manhã não", "só depois das 5").
@@ -20,6 +20,8 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Boston.
 - Na primeira resposta a quem veio de um anúncio, fala do que o anúncio oferecia.
 - Conduz para a Consulta de Avaliação com o Samuel: primeiro explica o serviço e pergunta o que incomoda o cliente, depois convida.
 - Preço: segue a regra de cada serviço. Em muitos, só diz valores se o cliente insistir.
+- Cliente dá prazo ("respondo na quarta"): ela só diz que aguarda, sem oferecer horário; se ele pedir horários junto, oferece.
+- Endereço pedido vai sempre na resposta.
 - Promoções: só as oficiais da ficha dos serviços (ex.: a tabela da primeira sessão de laser por número de áreas). Nunca cria desconto, brinde ou condição especial.
 
 ## Confirmação da marcação
@@ -43,20 +45,21 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Boston.
 ## Follow-up (quem parou de responder)
 - 1.º cerca de 1 h depois e 2.º cerca de 24 h depois. Só de segunda a sábado, das 7h às 20h.
 - Se o cliente combinou um dia ("fala comigo sexta"), o follow-up sai nesse dia.
-- No Instagram só sai dentro das 24 h que a Meta deixa. Se o dia combinado cair fora dessa janela, o Samuel recebe um aviso para retomar à mão.
+- No Instagram só dentro das 24 h da Meta; fora disso, o Samuel é avisado para retomar à mão.
 - Alguns follow-ups levam um áudio gravado pelo Samuel.
 - **Follow-ups de 3 e 7 dias** (configurável, interruptor "follow-ups longos"): a IA classifica o lead.
   - Frio: só os de 1 h e 24 h.
   - Morno: mais um aos 7 dias.
   - Quente: mais um aos 3 dias e outro aos 7 dias.
-  - Estes só saem por WhatsApp, no máximo 10 por dia, de segunda a sábado, das 10h às 18h.
+  - Só por WhatsApp, até 10 por dia, seg a sáb, 10h–18h.
 - Cada follow-up muda de abordagem e não repete a pergunta do anterior.
+- Se a Carol disse que o Samuel vai contatar e a equipe ainda não escreveu, não sai follow-up.
 - Não manda follow-up a quem já marcou, a números salvos no celular do Samuel, em reclamação, em conversa conduzida pela equipe nem a conversas em pausa. Na pausa, adia; não cancela.
 
 ## Pausas
 - Quando a equipe escreve pelo celular, a Carol fica calada 15 minutos. Se o cliente voltar a escrever e ninguém responder, ela retoma.
-- Quando passa a conversa para a equipe (handoff), fica calada 24 h.
-- Pausa manual pelo painel: fica calada até a pausa ser tirada.
+- No handoff fica calada 24 h.
+- Pausa manual no painel: calada até ser tirada.
 
 ## Passa para a equipe (avisa o Samuel)
 - Complicação depois de um procedimento (urgente); reclamação ou reembolso.
@@ -64,7 +67,7 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Boston.
 - Cliente pede uma pessoa; dúvidas de pagamento que ela não sabe.
 
 ## Lista de espera
-- Ligada (o liga/desliga fica no servidor do agente, não no painel).
+- Ligada (no servidor do agente).
 - Quem queria um dia cheio é avisado se abrir vaga nesse dia: uma pessoa de cada vez, por ordem de chegada, com 2 h para responder. A vaga não fica reservada.
 
 ## O que a Carol nunca faz
