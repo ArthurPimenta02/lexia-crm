@@ -455,7 +455,7 @@ function Duracao({ valor, mudar }: { valor: string; mudar: (v: string) => void }
 /** "300 a 600" a partir do mínimo e do máximo (só um deles também vale). */
 const faixaDe = (min: string, max: string) => (min && max ? `${min} a ${max}` : min ? `a partir de ${min}` : max ? `até ${max}` : "");
 
-const ROTULO_DO_TIPO = (opcao: string) => (/orçamento|avalia/i.test(opcao) ? "Só após avaliação" : /partir/i.test(opcao) ? "A partir de" : "Preço fixo");
+const ROTULO_DO_TIPO = (opcao: string) => (/orçamento|avalia/i.test(opcao) ? "Só após avaliação" : /partir/i.test(opcao) ? "A partir de" : /unidade/i.test(opcao) ? "Por unidade" : "Preço fixo");
 const soNumero = (v: string) => v.replace(/[^\d.,]/g, "").slice(0, 12);
 
 function CartaoAtivo({ cartao, estado, mudar, ocupado, enviar }: { cartao: Cartao; estado: EstadoDoCartao; mudar: (e: EstadoDoCartao) => void; ocupado: boolean; enviar: (e: Partial<Envio>) => void }) {

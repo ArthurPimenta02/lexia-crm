@@ -24,6 +24,7 @@ const clientTimezones: Record<string, string> = {
   claudia_leite_spa: "America/New_York",
   jessica_beauty: "America/New_York", // Boston
   clinica_teste: "America/New_York",
+  kglow_aesthetics: "America/New_York", // Philadelphia
 };
 
 /** O fuso de quem ainda não está no mapa. */

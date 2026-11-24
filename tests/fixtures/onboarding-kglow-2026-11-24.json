@@ -1,0 +1,4389 @@
+{
+"_nota": "Cópia reduzida do rascunho do onboarding da K-Glow Aesthetics (24/11/2026): a vista atual (última linha por campo+item), sem evidências nem texto colado. Dados públicos do site e do Moxie dela. Usada só nos testes da passagem automática (tests/onboarding-exportar.test.mts).",
+"etapa1": {
+"notas": "Aqui tem o link que ela usa para fazer os agendamentos, você pode usar tambem para ler serviços, preços e durações:\r\n\r\nhttps://app.joinmoxie.com/booking/k-glow-aesthetics\r\n\r\nTemos poucas informações, é uma cliente bem nova.",
+"site": "https://www.k-glowaesthetics.com/?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAcGRvZgJzcnRjBmFwcF9pZA85MzY2MTk3NDMzOTI0NTkAAaeFGq3kLNWXYt4nsolBRpknjFgXbYZt-gAcSJCT1eNJ3MzDqR-KMqLAzERydA_aem_wHCfZrkDvT30J_QeQmuptw"
+},
+"itens": [
+{
+"id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"grupo": "servicos",
+"ordem": 0,
+"removido": false
+},
+{
+"id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"grupo": "servicos",
+"ordem": 3,
+"removido": false
+},
+{
+"id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"grupo": "servicos",
+"ordem": 7,
+"removido": false
+},
+{
+"id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"grupo": "servicos",
+"ordem": 11,
+"removido": false
+},
+{
+"id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"grupo": "servicos",
+"ordem": 13,
+"removido": false
+},
+{
+"id": "408542b3-ced5-4db5-b8c4-533aa1528114",
+"grupo": "profissionais",
+"ordem": 0,
+"removido": false
+},
+{
+"id": "e5bc14d0-d585-43eb-a2f7-a55a435a4d96",
+"grupo": "faqs",
+"ordem": 0,
+"removido": false
+},
+{
+"id": "4b2634d9-22ea-4bb0-8c93-0fe72e80fa10",
+"grupo": "faqs",
+"ordem": 1,
+"removido": false
+},
+{
+"id": "ee219d52-06ed-4468-b0f5-4577bdf6d7be",
+"grupo": "faqs",
+"ordem": 2,
+"removido": false
+},
+{
+"id": "5312b415-3966-4180-9786-96718830c1a0",
+"grupo": "faqs",
+"ordem": 3,
+"removido": false
+},
+{
+"id": "5fa7d269-1ce9-410f-9d92-b25ea290b829",
+"grupo": "faqs",
+"ordem": 4,
+"removido": false
+},
+{
+"id": "d916ce04-13ae-4f14-8c94-5e538e04480d",
+"grupo": "faqs",
+"ordem": 5,
+"removido": false
+},
+{
+"id": "fa0f9cbc-f2ec-466c-a2f7-4c231934648c",
+"grupo": "faqs",
+"ordem": 6,
+"removido": false
+},
+{
+"id": "dd07501a-817b-4ecb-92a0-64fe2c19f05e",
+"grupo": "faqs",
+"ordem": 7,
+"removido": false
+},
+{
+"id": "661478b6-ee93-4d00-b93c-ddb6155eb70f",
+"grupo": "promocoes",
+"ordem": 0,
+"removido": false
+},
+{
+"id": "3caac94f-2485-4820-8f87-c771fb43e3ac",
+"grupo": "objecoes",
+"ordem": 0,
+"removido": false
+},
+{
+"id": "5ad0ab53-e500-4682-901c-ec04cffe2383",
+"grupo": "objecoes",
+"ordem": 1,
+"removido": false
+},
+{
+"id": "bc68dee7-a086-46c0-9436-90ae1a7f3ade",
+"grupo": "objecoes",
+"ordem": 2,
+"removido": false
+},
+{
+"id": "d7cebcb1-6622-41e0-b67d-44e5a4f55dcc",
+"grupo": "objecoes",
+"ordem": 3,
+"removido": false
+},
+{
+"id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"grupo": "servicos",
+"ordem": 14,
+"removido": false
+},
+{
+"id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"grupo": "servicos",
+"ordem": 15,
+"removido": false
+},
+{
+"id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"grupo": "servicos",
+"ordem": 16,
+"removido": false
+},
+{
+"id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"grupo": "servicos",
+"ordem": 17,
+"removido": false
+},
+{
+"id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"grupo": "servicos",
+"ordem": 18,
+"removido": false
+},
+{
+"id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"grupo": "servicos",
+"ordem": 19,
+"removido": false
+},
+{
+"id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"grupo": "servicos",
+"ordem": 20,
+"removido": false
+},
+{
+"id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"grupo": "servicos",
+"ordem": 21,
+"removido": false
+},
+{
+"id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"grupo": "servicos",
+"ordem": 22,
+"removido": false
+},
+{
+"id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"grupo": "servicos",
+"ordem": 23,
+"removido": false
+},
+{
+"id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"grupo": "servicos",
+"ordem": 24,
+"removido": false
+},
+{
+"id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"grupo": "servicos",
+"ordem": 25,
+"removido": false
+},
+{
+"id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"grupo": "servicos",
+"ordem": 26,
+"removido": false
+},
+{
+"id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"grupo": "servicos",
+"ordem": 27,
+"removido": false
+},
+{
+"id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"grupo": "servicos",
+"ordem": 6,
+"removido": true
+},
+{
+"id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"grupo": "servicos",
+"ordem": 5,
+"removido": true
+},
+{
+"id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"grupo": "servicos",
+"ordem": 10,
+"removido": true
+},
+{
+"id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"grupo": "servicos",
+"ordem": 8,
+"removido": true
+},
+{
+"id": "6afac318-2e13-4c45-9018-77b461238beb",
+"grupo": "servicos",
+"ordem": 12,
+"removido": true
+},
+{
+"id": "ddf07ea3-fec1-44f2-bbc8-ff3a47d46a77",
+"grupo": "servicos",
+"ordem": 4,
+"removido": true
+},
+{
+"id": "f2d1c34b-e37f-4ce3-bc1e-9be93ae74ec8",
+"grupo": "servicos",
+"ordem": 9,
+"removido": true
+},
+{
+"id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"grupo": "servicos",
+"ordem": 1,
+"removido": true
+},
+{
+"id": "0933ce47-9db6-422d-8865-e7d9f16369c6",
+"grupo": "profissionais",
+"ordem": 1,
+"removido": true
+},
+{
+"id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"grupo": "servicos",
+"ordem": 28,
+"removido": false
+},
+{
+"id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"grupo": "servicos",
+"ordem": 29,
+"removido": false
+},
+{
+"id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"grupo": "servicos",
+"ordem": 30,
+"removido": false
+},
+{
+"id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"grupo": "servicos",
+"ordem": 31,
+"removido": false
+},
+{
+"id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"grupo": "servicos",
+"ordem": 32,
+"removido": false
+},
+{
+"id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"grupo": "servicos",
+"ordem": 33,
+"removido": false
+},
+{
+"id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"grupo": "servicos",
+"ordem": 34,
+"removido": false
+},
+{
+"id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"grupo": "servicos",
+"ordem": 35,
+"removido": false
+},
+{
+"id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"grupo": "servicos",
+"ordem": 36,
+"removido": false
+},
+{
+"id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"grupo": "servicos",
+"ordem": 37,
+"removido": false
+},
+{
+"id": "a9509956-dc06-4887-9db3-2396607606c3",
+"grupo": "servicos",
+"ordem": 38,
+"removido": false
+},
+{
+"id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"grupo": "servicos",
+"ordem": 39,
+"removido": false
+},
+{
+"id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"grupo": "servicos",
+"ordem": 40,
+"removido": false
+},
+{
+"id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"grupo": "servicos",
+"ordem": 41,
+"removido": false
+},
+{
+"id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"grupo": "servicos",
+"ordem": 42,
+"removido": false
+},
+{
+"id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"grupo": "servicos",
+"ordem": 43,
+"removido": false
+},
+{
+"id": "3354920e-c885-463d-a928-744f14e765f9",
+"grupo": "servicos",
+"ordem": 44,
+"removido": false
+},
+{
+"id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"grupo": "servicos",
+"ordem": 45,
+"removido": false
+},
+{
+"id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"grupo": "servicos",
+"ordem": 46,
+"removido": false
+},
+{
+"id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"grupo": "servicos",
+"ordem": 47,
+"removido": false
+},
+{
+"id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"grupo": "servicos",
+"ordem": 48,
+"removido": false
+},
+{
+"id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"grupo": "servicos",
+"ordem": 49,
+"removido": false
+},
+{
+"id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"grupo": "servicos",
+"ordem": 50,
+"removido": false
+},
+{
+"id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"grupo": "servicos",
+"ordem": 51,
+"removido": false
+},
+{
+"id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"grupo": "servicos",
+"ordem": 52,
+"removido": false
+},
+{
+"id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"grupo": "servicos",
+"ordem": 53,
+"removido": false
+},
+{
+"id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"grupo": "servicos",
+"ordem": 54,
+"removido": false
+},
+{
+"id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"grupo": "servicos",
+"ordem": 55,
+"removido": false
+},
+{
+"id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"grupo": "servicos",
+"ordem": 56,
+"removido": false
+},
+{
+"id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"grupo": "servicos",
+"ordem": 57,
+"removido": false
+},
+{
+"id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"grupo": "servicos",
+"ordem": 58,
+"removido": false
+},
+{
+"id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"grupo": "servicos",
+"ordem": 59,
+"removido": false
+},
+{
+"id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"grupo": "servicos",
+"ordem": 2,
+"removido": true
+},
+{
+"id": "25534b2d-07e8-445b-83d1-9010fa836e8a",
+"grupo": "promocoes",
+"ordem": 1,
+"removido": false
+},
+{
+"id": "bc005a90-3220-42a7-b4e5-f65f5e797a41",
+"grupo": "promocoes",
+"ordem": 2,
+"removido": false
+},
+{
+"id": "e2c8d2de-42c0-417b-9c81-049796576ba1",
+"grupo": "promocoes",
+"ordem": 3,
+"removido": false
+},
+{
+"id": "bba4c7e9-9f2e-4d95-aa22-007b4ff9c889",
+"grupo": "promocoes",
+"ordem": 4,
+"removido": false
+},
+{
+"id": "47614fca-567f-40a3-b944-db95a7f12f1f",
+"grupo": "promocoes",
+"ordem": 5,
+"removido": false
+},
+{
+"id": "72cf0390-3f1e-455f-aa07-808b8d693557",
+"grupo": "promocoes",
+"ordem": 6,
+"removido": false
+}
+],
+"linhas": [
+{
+"campo": "nome_do_negocio",
+"item_id": null,
+"valor": "K-Glow Aesthetics",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "endereco_completo",
+"item_id": null,
+"valor": "14200 Bustleton Ave 2nd Floor, Office 2, Philadelphia-PA, 19116",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "cidade",
+"item_id": null,
+"valor": "Philadelphia, PA",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "website",
+"item_id": null,
+"valor": "https://www.k-glowaesthetics.com/",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "instagram",
+"item_id": null,
+"valor": "@kglow.aesthetics",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "idiomas",
+"item_id": null,
+"valor": [
+"Português",
+"Inglês",
+"Espanhol"
+],
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "dias_de_funcionamento",
+"item_id": null,
+"valor": [
+"Seg",
+"Ter",
+"Qua",
+"Qui",
+"Sex",
+"Sáb"
+],
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "horario_por_dia",
+"item_id": null,
+"valor": {
+"Qua": [
+"10:00",
+"16:00"
+],
+"Qui": [
+"10:00",
+"20:00"
+],
+"Seg": [
+"10:00",
+"16:00"
+],
+"Sex": [
+"10:00",
+"16:00"
+],
+"Ter": [
+"10:00",
+"20:00"
+],
+"Sáb": [
+"11:00",
+"15:00"
+]
+},
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "Botox",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "menos de 30 minutos",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "Neurotoxina usada para reduzir a aparência de linhas e rugas, dando aspecto suave e renovado de forma natural.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "534e42d3-adbf-48cd-88c5-80464fda8ce8",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "Dysport",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "9",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "menos de 30 minutos",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "Neurotoxina usada para reduzir a aparência de linhas e rugas, dando aspecto suave e renovado de forma natural.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "63bcf733-2956-41ac-9e57-c1a37cc6a303",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "Jeuveau",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "9",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "menos de 30 minutos",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "Neurotoxina usada para reduzir a aparência de linhas e rugas, dando aspecto suave e renovado de forma natural.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "3d6b641a-c3b3-4a0c-986b-70667202eaa8",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "Xeomin",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "menos de 30 minutos",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "Neurotoxina usada para reduzir a aparência de linhas e rugas, dando aspecto suave e renovado de forma natural.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "eb2bb144-3a6d-423f-b6bd-f2c644078a20",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "ddf07ea3-fec1-44f2-bbc8-ff3a47d46a77",
+"valor": "Fillers",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "Lip Fillers",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "Preenchimento à base de ácido hialurônico aplicado nos lábios para dar mais volume, definir o contorno e corrigir assimetrias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "Indicado para quem deseja lábios mais volumosos, simétricos ou com contorno mais definido.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "Antes: evitar álcool e anti-inflamatórios nos dias anteriores. Depois: aplicar gelo para reduzir o inchaço, evitar exercícios intensos, sol e calor excessivo por alguns dias, evitar pressionar ou massagear a área sem orientação.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "Gestantes e lactantes; pessoas com infecção ativa na região dos lábios; alergia aos componentes do produto.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "a505e3ee-3705-4402-b6e0-87151b095fc2",
+"valor": "1 sessão, com manutenção a cada 6 a 12 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "Laser Hair Removal",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "Procedimento que usa luz laser para reduzir os pelos de forma gradual e duradoura, aplicada diretamente sobre a pele limpa e sem produtos.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "4562402b-8f91-4333-9da8-78a56dc8bea0",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Microneedling",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Procedimento que utiliza um aparelho com microagulhas finas para criar microlesões controladas na pele, estimulando a produção natural de colágeno.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Indicado para quem deseja melhorar textura da pele, cicatrizes de acne, poros dilatados e linhas finas.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, evitar maquiagem por 24h, evitar exercícios intensos e piscina por alguns dias, manter a pele hidratada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Gestantes, pele com infecção ativa, acne inflamada, uso recente de isotretinoína, histórico de queloide.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "de 3 a 6 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "PRP",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "Tratamento que utiliza o plasma rico em plaquetas do próprio sangue do cliente, aplicado na pele ou couro cabeludo para estimular regeneração e produção de colágeno.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "Indicado para quem busca rejuvenescimento da pele ou estímulo ao crescimento capilar.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "Antes: boa hidratação e evitar álcool e anti-inflamatórios. Depois: evitar sol direto, exercícios intensos e maquiagem nas primeiras horas, manter a área limpa.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "Distúrbios de coagulação, uso de anticoagulantes, infecções ativas na área, gestantes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "a845b593-853c-4b48-aee5-a98adbe6b8fe",
+"valor": "de 3 a 4 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "f2d1c34b-e37f-4ce3-bc1e-9be93ae74ec8",
+"valor": "Skincare",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "Chemical Peels",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "Aplicação de uma solução química na pele para promover a renovação celular, removendo camadas superficiais e melhorando textura, manchas e brilho da pele.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "Indicado para quem deseja tratar manchas, textura irregular, poros dilatados e sinais de envelhecimento.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, não esfoliar a pele, evitar maquiagem por algumas horas, manter a pele hidratada, pode descamar nos dias seguintes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "Gestantes, pele com ferida ou infecção ativa, uso recente de isotretinoína, histórico de cicatrização inadequada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "c4485b23-bbb3-4602-a34c-06eec1bdc0a9",
+"valor": "de 3 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Microdermabrasion",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Procedimento que esfolia mecanicamente a camada mais superficial da pele usando um aparelho específico, removendo células mortas e impurezas.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Indicado para quem deseja melhorar textura da pele, poros dilatados e pequenas manchas superficiais.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Antes: evitar sol e produtos irritantes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, evitar produtos ácidos ou esfoliantes por alguns dias, manter a pele hidratada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Pele com infecção ativa, rosácea severa, feridas abertas, uso recente de isotretinoína.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "de 4 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "6afac318-2e13-4c45-9018-77b461238beb",
+"valor": "Vitamin Injection",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "Dermaplaning",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "Técnica de esfoliação física que utiliza uma lâmina específica para remover células mortas e pelos finos do rosto, deixando a pele mais lisa e uniforme.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "Indicado para quem deseja uma pele mais lisa e uniforme, e melhor absorção de produtos de skincare.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "Antes: pele limpa, sem maquiagem. Depois: evitar sol direto e usar protetor solar, evitar produtos ácidos ou esfoliantes nas primeiras 24h.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "Acne ativa inflamada, pele com ferida ou infecção, uso recente de isotretinoína.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "4ccfc245-c2ac-4188-b061-ec6c5dfe0d4c",
+"valor": "sessão única, com manutenção a cada 3 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "408542b3-ced5-4db5-b8c4-533aa1528114",
+"valor": "Kelly Soares",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "especialidade",
+"item_id": "408542b3-ced5-4db5-b8c4-533aa1528114",
+"valor": "Registered Nurse | Licensed Esthetician | Aesthetic Specialist",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "0933ce47-9db6-422d-8865-e7d9f16369c6",
+"valor": "Jonathan Hodor, MD",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "especialidade",
+"item_id": "0933ce47-9db6-422d-8865-e7d9f16369c6",
+"valor": "Medical Director",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "e5bc14d0-d585-43eb-a2f7-a55a435a4d96",
+"valor": "How much treatment will I need?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "e5bc14d0-d585-43eb-a2f7-a55a435a4d96",
+"valor": "Depende de fatores como a área a ser tratada (onzes, testa, pés de galinha, etc.), a força dos músculos faciais e a profundidade das linhas existentes. É recomendada uma consulta gratuita com a enfermeira injetora para criar um plano adequado.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "4b2634d9-22ea-4bb0-8c93-0fe72e80fa10",
+"valor": "Does it hurt?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "4b2634d9-22ea-4bb0-8c93-0fe72e80fa10",
+"valor": "A maioria dos clientes diz que parece uma pequena beliscada. A agulha é pequena, entra suavemente e a neurotoxina é injetada rapidamente, resultando em dor mínima. Não são usados agentes anestésicos nesse tratamento.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "ee219d52-06ed-4468-b0f5-4577bdf6d7be",
+"valor": "What's the downtime?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "ee219d52-06ed-4468-b0f5-4577bdf6d7be",
+"valor": "Praticamente nenhum tempo de recuperação. É chamado de 'procedimento de hora do almoço', já que a maioria dos pacientes volta direto ao trabalho ou às atividades normais. Pode ocorrer vermelhidão e inchaço no local da injeção, que geralmente desaparece em algumas horas. Raramente pode ocorrer um pequeno hematoma.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "5312b415-3966-4180-9786-96718830c1a0",
+"valor": "How long do results last?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "5312b415-3966-4180-9786-96718830c1a0",
+"valor": "Os resultados duram cerca de 3 a 6 meses, dependendo do local do tratamento, da atividade muscular e da resposta individual do corpo.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "5fa7d269-1ce9-410f-9d92-b25ea290b829",
+"valor": "Are Botox and Dysport the same?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "5fa7d269-1ce9-410f-9d92-b25ea290b829",
+"valor": "Embora Botox, Dysport e Xeomin sejam injetáveis de neurotoxina usados para tratar e prevenir rugas, suas composições químicas diferem levemente. A enfermeira injetora vai explicar as diferenças e permitir que a cliente escolha o produto preferido.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "d916ce04-13ae-4f14-8c94-5e538e04480d",
+"valor": "Are there any side effects?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "d916ce04-13ae-4f14-8c94-5e538e04480d",
+"valor": "As injeções de neurotoxina são procedimentos comuns e de baixo risco. Dores de cabeça, pequenos hematomas e inchaço no local da injeção são os efeitos colaterais mais relatados, embora raros.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "fa0f9cbc-f2ec-466c-a2f7-4c231934648c",
+"valor": "What do I need to do before my neurotoxin appointment?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "fa0f9cbc-f2ec-466c-a2f7-4c231934648c",
+"valor": "Evitar maquiagem; agendar com pelo menos duas semanas de antecedência de evento importante; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; clientes grávidas ou amamentando não são elegíveis.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "pergunta",
+"item_id": "dd07501a-817b-4ecb-92a0-64fe2c19f05e",
+"valor": "What do I need to know post neurotoxin treatment?",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "resposta",
+"item_id": "dd07501a-817b-4ecb-92a0-64fe2c19f05e",
+"valor": "Sem maquiagem imediatamente após o tratamento; não deitar por 4 horas; sem exercícios por 24 horas (caminhar está ok); evitar álcool por 24 horas; evitar massagear a área por 4-6 horas; sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "661478b6-ee93-4d00-b93c-ddb6155eb70f",
+"valor": "NEW CLIENT SPECIAL: Dysport & Jeuveau Wrinkle Relaxers",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "661478b6-ee93-4d00-b93c-ddb6155eb70f",
+"valor": "Just $9/unit para novos clientes",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "objecao",
+"item_id": "3caac94f-2485-4820-8f87-c771fb43e3ac",
+"valor": "Achei caro",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "como_responder",
+"item_id": "3caac94f-2485-4820-8f87-c771fb43e3ac",
+"valor": "Entendo perfeitamente, é importante pensar bem no investimento. O valor contempla a aplicação feita por profissional qualificada, produtos de qualidade e todo o cuidado durante e depois do procedimento — fico à disposição para te explicar certinho o que está incluso.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "objecao",
+"item_id": "5ad0ab53-e500-4682-901c-ec04cffe2383",
+"valor": "Tenho medo de sentir dor",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "como_responder",
+"item_id": "5ad0ab53-e500-4682-901c-ec04cffe2383",
+"valor": "Esse medo é super comum e totalmente compreensível! A maioria das clientes relata sentir só uma picadinha rápida, nada muito incômodo, e a Kelly é bem cuidadosa e gentil durante toda a aplicação.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "objecao",
+"item_id": "bc68dee7-a086-46c0-9436-90ae1a7f3ade",
+"valor": "Tenho medo de ficar com a cara artificial ou travada",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "como_responder",
+"item_id": "bc68dee7-a086-46c0-9436-90ae1a7f3ade",
+"valor": "Entendo essa preocupação, é super válida. O foco aqui é sempre um resultado natural e sutil, respeitando os seus traços — a Kelly conversa bastante antes para alinhar exatamente o que você espera.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "objecao",
+"item_id": "d7cebcb1-6622-41e0-b67d-44e5a4f55dcc",
+"valor": "Já tive uma experiência ruim em outro lugar",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "como_responder",
+"item_id": "d7cebcb1-6622-41e0-b67d-44e5a4f55dcc",
+"valor": "Sinto muito que isso tenha acontecido, imagino que isso deixe insegura para tentar de novo. Aqui a Kelly gosta de ouvir com calma o que rolou antes e explicar cada passo, para você se sentir segura e confortável no seu próprio ritmo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "Brow lift",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "110",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "A non-surgical treatment that uses small amounts of botulinum toxin to gently lift the outer brows, creating a more open, refreshed, and youthful appearance.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "✨ Precision Tox — Crow’s Feet (Both Sides)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "220",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "Targeted neuromodulator treatment for crow’s feet to soften lines around the eyes while maintaining a natural, expressive smile. Dosing is customized to your facial anatomy and aesthetic goals. Neuromodulators: Dysport or Jeuveau Important: • For clients with stronger muscles (often male patients ), additional product may be required and the total price may be higher. This will always be discussed during your consultation. • A complimentary touch-up may be offered at the 2-week follow-up if clinically indicated. This does not include additional areas or full re-treatments.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "✨ Precision Tox  — Glabella (Frown / 11s)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "210",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "30 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "Targeted neuromodulator treatment for the frown lines (11s) to soften vertical lines between the brows and create a more relaxed, refreshed appearance. Dosing is customized to your facial anatomy and goals Neuromodulators: Dysport or Jeuveau Important: • For clients with stronger muscles (often male patients ), additional product may be required and the total price may be higher. This will always be discussed during your consultation. • A complimentary touch-up may be offered at the 2-week follow-up if clinically indicated. This does not include additional areas or full re-treatments.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "✨ Glow Duo -2 Areas... Glabella (11s/frown lines) paired with either the forehead (frontalis) or crow’s feet.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "360",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "Our Glow Duo is a customized upper-face neuromodulator treatment for two targeted areas: glabella (11s) paired with either the forehead (frontalis) or crow’s feet . This combination helps balance muscle movement, soften expression lines, and create a refreshed, natural-looking result. Dosing is tailored to your facial anatomy and aesthetic goals. Neuromodulators: Dysport or Jeuveau Important: • Bundle pricing includes savings compared to booking areas individually. • A complimentary touch-up may be offered at the 2-week follow-up if clinically indicated. This does not include additional areas or full re-treatments. • For clients with stronger muscles (often male patients), additional product may be required and the total price may be higher. This will always be discussed during your consultation.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "✨ Glow Tox - 3areas (Glow Tox - 3areas...  Forehead (frontalis), frown lines (glabella/11s), and crow’s feet)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "520",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "Glow Tox is our signature upper-face neuromodulator treatment targeting the forehead (frontalis), frown lines (glabella/11s), and crow’s feet . Neuromodulators smooth expression lines while preserving natural movement for a refreshed, lifted look. Dosing is customized to your facial anatomy and aesthetic goals. Neuromodulators: Dysport or Jeuveau Important: • Bundle pricing includes savings compared to booking areas individually. • A complimentary touch-up may be offered at the 2-week follow-up if clinically indicated. This does not include additional areas or full re-treatments. • For clients with stronger muscles (often male patients), additional product may be required and the total price may be higher. This will always be discussed during your consultation.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "Gummy Smile Tox",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "90",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "A neuromodulator treatment that relaxes the muscles that elevate the upper lip, reducing excessive gum show when smiling for a more balanced, natural smile. _______________________ Tratamento com toxina botulínica que relaxa os músculos que elevam o lábio superior, reduzindo a exposição excessiva da gengiva ao sorrir.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "Lip Flip",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "100",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "30 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "A subtle neuromodulator treatment that relaxes the muscle around the upper lip, allowing it to gently roll outward for a more defined look—without adding volume. Dysport® or Jeuveau® used. Results vary. Not a filler treatment. Best for patients with lip inversion when smiling. _________ Procedimento com toxina botulínica que relaxa suavemente o músculo do lábio superior, fazendo com que ele “vire” levemente para fora, deixando o contorno mais definido — sem adicionar volume.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "FB/IG New Patient $9/unit 'Tox Offer",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "Outro",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "outro_tipo_de_preco",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "US$ 9 por unidade (oferta para cliente novo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "💉 ' Tox Promo – Only $9/Unit ✨ Exclusive Offer for New Clients ✨ Tired of fine lines and wrinkles? You’re right on time for our New Client Special Neuromodulator treatment performed using Dysport® or Jeuveau®, based on the treatment plan and patient needs.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"valor": "hyaluronic acid (HA) filler",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"valor": "600",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"valor": "30 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "6a4b3e09-ea76-4c97-9f96-ee38ecc7ca0f",
+"valor": "Hyaluronic acid filler restores volume, enhances facial contours, and softens lines for natural-looking, customized results. A consultation is required to assess your goals and determine the appropriate treatment and pricing. _____________________ Preenchimento com ácido hialurônico restaura volume, realça os contornos do rosto e suaviza linhas para resultados naturais e personalizados. É necessária uma consulta para avaliar seus objetivos e definir o tratamento e o valor adequados.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "Lip Filler 💋",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "600",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "1h10",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "Add volume, shape, and definition to your lips while maintaining beautiful, natural-looking results. Whether you’re looking for a subtle enhancement or more noticeable definition, each treatment is customized to complement your unique features. Results typically last 6–12 months with minimal downtime. Must be 21 years of age or older to receive treatment. __________________ Adicione volume, forma e suavidade aos seus lábios com resultados naturais. Seja um aumento sutil ou mais definição, o tratamento é totalmente personalizado para você. Os resultados duram de 6 a 12 meses com pouco ou nenhum tempo de recuperação. É necessário ter 21 anos ou mais para realizar o procedimento.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"valor": "Filler Dissolver / Hylenex",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"valor": "220",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "0ce0c8dc-9b0f-4b37-8b7d-f6f8c8eb99c1",
+"valor": "If you're unhappy with previous filler results or experiencing lumps, migration, or other concerns, Hylenex can help. This enzyme-based injection safely breaks down hyaluronic acid fillers to restore your natural features. We’ll start with a consultation to see what you need and choose the best plan for you. Most people need 1–4 vials per session, and sometimes more than one session is needed. Pricing starts at $220 per vial.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"valor": "Microneedling package of 3 sessions for Face",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"valor": "650",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "ac0da578-3d84-452a-a319-a620cadde68a",
+"valor": "A series of three microneedling treatments for the face , designed to support collagen production and improve the appearance of fine lines, enlarged pores, uneven skin texture, acne scars, and overall skin quality. Treatments are typically spaced 4–6 weeks apart to allow the skin time to heal and support progressive results. Ideal for acne scars, enlarged pores, uneven texture, fine lines, and dullness. A series of 3 treatments helps soften the appearance of acne scars, refine pores, smooth uneven texture, and improve firmness—revealing fresher, more radiant, even-looking skin. Package: $650 (Regularly $750) Save $100",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "250",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "a3f57328-1ac2-4404-b6f5-0553c8554eba",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"valor": "Microneedling with PRP - Face",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"valor": "300",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "886ff19d-81b6-49e5-a9a9-5cb3611a28ec",
+"valor": "Microneedling with PRP (The “Vampire Facial”) This rejuvenating treatment combines collagen-stimulating microneedling with platelet-rich plasma (PRP) derived from your own blood. The growth factors in PRP enhance skin repair and renewal, helping to improve texture, tone, fine lines, acne scars, and overall radiance—all with minimal downtime.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"valor": "Microneedling with PRP - Face and neck",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"valor": "360",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "e3517fd2-fc03-423d-81a2-177fdc6715d9",
+"valor": "Microneedling with PRP. This rejuvenating treatment combines collagen-stimulating microneedling with platelet-rich plasma (PRP) derived from your own blood. The growth factors in PRP enhance skin repair and renewal, helping to improve texture, tone, fine lines, acne scars, and overall radiance—all with minimal downtime.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"valor": "Microneedling with PRP - Face, Neck, & Chest",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"valor": "430",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "f95c3dbe-d4dc-4d9a-b0f3-71119fca2702",
+"valor": "Microneedling with PRP (The “Vampire Facial”) This rejuvenating treatment combines collagen-stimulating microneedling with platelet-rich plasma (PRP) derived from your own blood. The growth factors in PRP enhance skin repair and renewal, helping to improve texture, tone, fine lines, acne scars, and overall radiance—all with minimal downtime.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "BioRePeel Skin Renewal Package of 4",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "680",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "50 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "A series of four BioRePeel treatments designed to progressively improve skin texture, tone, brightness, fine lines, congestion, and the appearance of post-acne marks and hyperpigmentation. Treatments are typically spaced 7–10 days apart to support consistent skin renewal with minimal downtime. Perfect for clients looking for a brighter, smoother, more refreshed complexion and better results than a single treatment. 4 Treatments — $680 Regularly $800 • Save $120 Treatments approximately 7–10 days apart.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "BioRePeel Blue",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "200",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "BioRePeel Blue is a revitalizing, non-invasive skin treatment featuring 35% TCA and a blend of exfoliating, hydrating, and revitalizing ingredients. It helps improve the appearance of fine lines, acne, post-acne marks, enlarged pores, uneven skin texture, hyperpigmentation, and dullness while promoting smoother, brighter, more refreshed-looking skin. Suitable for all Fitzpatrick skin types, BioRePeel offers skin rejuvenation with minimal downtime. For optimal results, a series of 4–6 treatments spaced approximately 7–10 days apart may be recommended based on your skin concerns and treatment goals.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "Perfect Dermapeel",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "280",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "A powerful, medical-grade peel that brightens skin, fades dark spots, clears acne, and smooths fine lines—all with minimal downtime. This peel is safe for all skin types and can yield visible results within just one week.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Perfect Derma Chemical peel package of 3",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "750",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Perfect Derma Peel Package of 3 ✨ A series of three professional chemical peel treatments designed to improve the appearance of hyperpigmentation, uneven skin tone, texture, fine lines, acne, and post-acne marks while revealing brighter, smoother-looking skin. Treatments are spaced according to your skin’s needs and response, allowing adequate time for healing and renewal between sessions. Ideal for clients looking for a more intensive skin-resurfacing program and progressive improvement over multiple treatments. Package: $750 (Regularly $840) Save $90",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"valor": "Consultation",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"valor": "Outro",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "outro_tipo_de_preco",
+"item_id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"valor": "Preço varia (no Moxie aparece US$ 0)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"valor": "1h20",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "de78ebeb-ed48-4c88-9174-8f0e5bee43de",
+"valor": "We believe every treatment starts with connection. During your consultation, we’ll take the time to listen to your goals, answer your questions, and get to know your skin, health, and lifestyle. This one-on-one visit is all about you—your concerns, your story, and how we can help you feel more confident and cared for. We’ll review your medical history, evaluate the areas you’d like to treat, and create a custom plan that aligns with your beauty and wellness goals. Whether it’s your first time or you’re returning for something new, we’re here to guide you every step of the way with honesty, knowledge, and kindness.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Package of 3 PRP injections for Hair Restoration",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "950",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Single Treatment — $350 Package of 3 — $950 ✨ Save $100 when you purchase the recommended series. For optimal results, a series of 3 treatments spaced approximately 4–6 weeks apart is typically recommended. Results are gradual and vary based on the individual and cause of hair loss.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "PRP Injections for Hair Restoration",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "350",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "PRP Hair Restoration uses your own platelet-rich plasma to stimulate hair follicles, support natural hair growth, reduce shedding, and improve hair thickness and density.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"valor": "Sculptra",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"valor": "730",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "c870b4f4-7965-4c86-9d6f-82edb5403de2",
+"valor": "Sculptra is a collagen-stimulating injectable made of poly-L-lactic acid (PLLA). It works gradually to restore volume, improve skin structure, and enhance facial contours by stimulating your body’s natural collagen. Results develop over several weeks and can last up to 2 years after a series of treatments. Price per Vial",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"valor": "Glow & Go IV",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"valor": "160",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "3a6fd0e9-28fc-4c4b-8b19-306ded13d3cb",
+"valor": "Boosts natural energy, mental focus, endurance, and recovery Infused with: B-Complex Vitamins and Amino Blend",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "a9509956-dc06-4887-9db3-2396607606c3",
+"valor": "Immune Glow IV",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "a9509956-dc06-4887-9db3-2396607606c3",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "a9509956-dc06-4887-9db3-2396607606c3",
+"valor": "150",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "a9509956-dc06-4887-9db3-2396607606c3",
+"valor": "1h20",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "a9509956-dc06-4887-9db3-2396607606c3",
+"valor": "Supports immune health, energy, hydration, and recovery Infused with: Vitamin C, B-Complex Vitamins, and Zinc",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"valor": "K-Performance IV",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"valor": "200",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"valor": "1h30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "90e374f0-400d-4f50-b17c-2cd19ed7659e",
+"valor": "Supports endurance, muscle recovery, hydration, and athletic performance Infused with: Vitamin C, B-Complex vitamins, Amino Blend, Mineral Blend",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"valor": "Pure Hydration IV Drip",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"valor": "A partir de (preço mínimo)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"valor": "129",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "9b5a3b52-36ef-41db-a174-64e1dbab4483",
+"valor": "Refresh, rehydrate, and replenish Infused with: 500 mL or 1,000 mL of Normal Saline Price: $99 or $129",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"valor": "The Beauty Glow IV",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"valor": "180",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"valor": "1h30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "f17d3435-3766-49f5-9c75-2c3791dcec25",
+"valor": "Promotes radiant skin, healthy hair, strong nails, and overall wellness Infused with: Vitamin C, B-Complex Vitamins, Glutathione, and Biotin",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"valor": "Tri- Immune Boost IV",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"valor": "130",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "417f5964-c59f-4a5e-bcb3-7c72c48ce40a",
+"valor": "Supports immune health and antioxidant protection Infused with: Vitamin C, Zinc, and Glutathione",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"valor": "Express Glow Facial",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"valor": "75",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"valor": "35 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "56d82c6e-cdd5-4776-a2d9-deaf57a70929",
+"valor": "A quick but powerful treatment that deeply cleanses, gently exfoliates, infuses hydration, and leaves the skin fresh and radiant. Includes: steam, cleanse, mask, moisturizer, and SPF. ✨ Great first facial or maintenance option.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "3354920e-c885-463d-a928-744f14e765f9",
+"valor": "The signature K-Glow Custom Facial",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "3354920e-c885-463d-a928-744f14e765f9",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "3354920e-c885-463d-a928-744f14e765f9",
+"valor": "130",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "3354920e-c885-463d-a928-744f14e765f9",
+"valor": "1h20",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "3354920e-c885-463d-a928-744f14e765f9",
+"valor": "Fully tailored to your skin’s unique needs. Using professional products from Revision and AnteAGE, plus advanced techniques and devices, we personalize every step to target your specific concerns. Whether you want hydration, brightening, anti-aging, or clarifying, this facial delivers visible results with a luxurious, relaxing experience. May include steam, double cleanse, exfoliation, hydro-infusion, extractions (if needed), LED therapy, cold globes, mask, and finishing products. ✨ Treatment will be customized by a medical aesthetician.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "100",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "0cc85ae0-47fa-445f-8dc1-a93491bf1dcb",
+"valor": "40 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Laser Hair Removal Back",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "180",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "50 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Targets unwanted hair across the full back for smoother, longer-lasting results. A quick, effective treatment with minimal discomfort and no downtime. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Laser Hair Removal Bikini Full (Extended Bikini)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "100",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "30 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Removes hair along the standard bikini line with extra coverage toward the front and sides for a more defined, cleaner shape. This option goes slightly inward for a smoother finish but does not include the labia or perianal area.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "Laser Hair Removal Brazilian + perianal",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "140",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "This treatment includes full hair removal of the Brazilian area (front, bikini line, and labia) plus the perianal area for smooth, long-lasting results. price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Laser Hair Removal Full Arm",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "150",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "50 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "Laser Hair Removal Full Face",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "110",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "45 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "This treatment targets unwanted hair across the entire face, including cheeks, upper lip, chin, jawline, and beard area. It helps reduce coarse and fine hair for smoother skin and a cleaner, more even appearance. Ideal for clients dealing with ingrown hairs, shadowing, or constant shaving. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "Laser Hair Removal Full Leg",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "200",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "1h",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "This treatment removes unwanted hair from the entire leg, including the upper legs, lower legs, and knees, for smooth, long-lasting results. It effectively targets the hair follicles to reduce growth over time, helping clients achieve soft, low-maintenance skin without shaving or waxing. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Laser Hair Removal Lower Leg or Upper Leg",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "140",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "35 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Laser Hair Removal – Lower Leg Removes unwanted hair from the lower legs, including the shins and calves, for smoother skin and reduced regrowth over time. This treatment is great for clients wanting consistently soft legs without constant shaving. Laser Hair Removal – Upper Leg Targets the upper portion of the legs, including the thighs and knee area, to reduce hair growth and leave the skin smoother and easier to maintain. Ideal for clients who want long-lasting results without waxing or shaving. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Laser Hair Removal Lower or Upper Arm",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "80",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "35 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Laser Hair Removal – Lower Arm Removes unwanted hair from the forearms (elbow to wrist) for smoother skin and long-lasting reduction in hair growth. Ideal for clients who want a clean, low-maintenance look without shaving or waxing. Laser Hair Removal – Upper Arm Targets hair on the upper arms (shoulder to elbow) to reduce growth over time and leave the skin softer and easier to maintain. A great option for clients seeking a polished, uniform appearance. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Laser Hair Removal Under Arms",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "70",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Targets unwanted hair in the underarm area to reduce growth and leave the skin smoother and easier to maintain. This quick, effective treatment helps minimize ingrown hairs, irritation from shaving, and shadowing for a cleaner, long-lasting result. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "Laser Hair Removal Upper Lip & Chin",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "50",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "15 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "This treatment targets unwanted hair on the upper lip and chin to create smoother skin and reduce regrowth over time. It’s ideal for clients dealing with hormonal hair, frequent shaving, or irritation from waxing. The laser helps minimize ingrowns and leaves the area softer and cleaner with each session. Price per session",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"valor": "Vitamin Biotin IM injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"valor": "30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "395dc08a-bc50-499b-9c28-bd6df4278dcc",
+"valor": "Benefits: boosts healthy hair, skin, nails, and supports energy metabolism. Route: intramuscular (IM) injection. Frequency: usually once weekly, based on individual needs and provider recommendation.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"valor": "Vitamin D IM injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"valor": "30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "66daa78e-bea5-4a66-9a2c-aeae46db2fda",
+"valor": "A quick intramuscular injection designed to boost Vitamin D levels, support immune function, improve energy, and enhance overall mood and wellness. This treatment delivers Vitamin D directly into the muscle for faster absorption and more reliable results compared to oral supplements. Ideal for clients with low levels, fatigue, seasonal mood changes, or those looking for an overall wellness boost. Frequency: Most clients receive Vitamin D injections every 2–4 weeks, depending on their levels and provider recommendations.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"valor": "Vitamin Glutathione IM Injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"valor": "50",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "0f435981-06bf-4512-8d17-cf463bd460f6",
+"valor": "A powerful antioxidant boost for brighter skin, detox support, and cellular health. Glutathione is often called the “master antioxidant” because it helps protect your cells from damage, supports liver detoxification, reduces oxidative stress, and promotes a clearer, more radiant complexion. Delivered via intramuscular (IM) injection, this treatment allows for rapid absorption and higher bioavailability compared to oral supplements.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"valor": "Vitamin Injections B12 IM injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"valor": "30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "84ef5295-0c0c-4823-bea1-8892c7cb9fed",
+"valor": "Benefits: Boosts energy, metabolism, and mental clarity Frequency: Weekly or biweekly, as needed Intramuscular Injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"valor": "Vitamin Injections Tri Immune Booster IM injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_preco",
+"item_id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"valor": "Preço fixo",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "valor",
+"item_id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"valor": "40",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "duracao_media",
+"item_id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"valor": "20 min",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "descricao_e_indicacao",
+"item_id": "d2913481-e19e-438b-bb52-7925492ad20d",
+"valor": "contains Ascorbic Acid, Glutathione, and Zinc Sulfate. Benefits: detoxify the body, brighten skin, repair cells, boost immunity, and protect against oxidative stress. Frequency: Weekly for immune support; biweekly for maintenance Intramuscular injection",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "723cfe29-18e0-4e09-adea-8c2f071ddff0",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "de 3 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "11ba6545-0a22-4035-b1ad-8786d09e5397",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "a64f22a9-c5d1-4e55-ac48-d71a6b175b66",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "1233b67f-18b6-43f4-973c-92ace46794f5",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "4e5c1ec3-1209-4439-a3d8-4b540853e24a",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "77ce3572-966a-46ac-8212-622f9441fa32",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "Indicado para quem deseja tratar manchas, textura irregular, poros dilatados e sinais de envelhecimento.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "bb05ffce-2b89-4af1-8e39-061e94c8ed6d",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "7a9b53cc-0b77-4593-adda-9dd7f8b4b74b",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "2084cd08-6bd7-467c-9bb4-8a65fc270189",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "Antes: raspar a área (não usar cera ou pinça), evitar exposição solar e bronzeamento artificial, não usar cremes ou perfumes no local. Depois: evitar sol direto e usar protetor solar, evitar banhos muito quentes e esfoliação nos primeiros dias.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "Gestantes, peles bronzeadas recentemente, uso de certos medicamentos fotossensibilizantes, histórico de queloide na região.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "de 6 a 8 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "5779c571-ebc5-4679-871b-35e2e94aec9f",
+"valor": "Indicado para quem deseja reduzir pelos indesejados em áreas como axilas, pernas, buço, virilha e outras regiões do corpo.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "Antes: evitar álcool e anti-inflamatórios nos dias anteriores. Depois: aplicar gelo para reduzir o inchaço, evitar exercícios intensos, sol e calor excessivo por alguns dias, evitar pressionar ou massagear a área sem orientação.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "Gestantes e lactantes; pessoas com infecção ativa na região dos lábios; alergia aos componentes do produto.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "1 sessão, com manutenção a cada 6 a 12 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "199cfcba-529a-4a1b-87cf-ef0f2823fee5",
+"valor": "Indicado para quem deseja lábios mais volumosos, simétricos ou com contorno mais definido.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, não esfoliar a pele, evitar maquiagem por algumas horas, manter a pele hidratada, pode descamar nos dias seguintes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "373dd4b9-23e6-4333-aec7-920c0f3bbfbd",
+"valor": "Gestantes, pele com ferida ou infecção ativa, uso recente de isotretinoína, histórico de cicatrização inadequada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, não esfoliar a pele, evitar maquiagem por algumas horas, manter a pele hidratada, pode descamar nos dias seguintes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "Gestantes, pele com ferida ou infecção ativa, uso recente de isotretinoína, histórico de cicatrização inadequada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "de 3 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "43efa4e3-136e-47fa-9d6f-52c04007df4f",
+"valor": "Indicado para quem deseja tratar manchas, textura irregular, poros dilatados e sinais de envelhecimento.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, não esfoliar a pele, evitar maquiagem por algumas horas, manter a pele hidratada, pode descamar nos dias seguintes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "Gestantes, pele com ferida ou infecção ativa, uso recente de isotretinoína, histórico de cicatrização inadequada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "de 3 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "4139d280-2ff6-40b2-8e1d-3129e23a1b2b",
+"valor": "Indicado para quem deseja tratar manchas, textura irregular, poros dilatados e sinais de envelhecimento.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Antes: evitar sol e ácidos fortes nos dias anteriores. Depois: evitar sol direto e usar protetor solar, não esfoliar a pele, evitar maquiagem por algumas horas, manter a pele hidratada, pode descamar nos dias seguintes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Gestantes, pele com ferida ou infecção ativa, uso recente de isotretinoína, histórico de cicatrização inadequada.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "de 3 a 6 sessões, com intervalos de 2 a 4 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "e9c82abd-93f6-4788-89b4-39055a2c4836",
+"valor": "Indicado para quem deseja tratar manchas, textura irregular, poros dilatados e sinais de envelhecimento.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Antes: boa hidratação e evitar álcool e anti-inflamatórios. Depois: evitar sol direto, exercícios intensos e maquiagem nas primeiras horas, manter a área limpa.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Distúrbios de coagulação, uso de anticoagulantes, infecções ativas na área, gestantes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "de 3 a 4 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "ffeb242a-3c92-42fb-8434-99b0452d073e",
+"valor": "Indicado para quem busca rejuvenescimento da pele ou estímulo ao crescimento capilar.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "Antes: boa hidratação e evitar álcool e anti-inflamatórios. Depois: evitar sol direto, exercícios intensos e maquiagem nas primeiras horas, manter a área limpa.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "Distúrbios de coagulação, uso de anticoagulantes, infecções ativas na área, gestantes.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "de 3 a 4 sessões, com intervalos de 4 a 6 semanas",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "921e09c9-7b70-4092-b35a-a142606cba59",
+"valor": "Indicado para quem busca rejuvenescimento da pele ou estímulo ao crescimento capilar.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "parcelamento",
+"item_id": null,
+"valor": "Sim",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "8c137fc1-afc5-45dc-8d3b-ed5ac9d52ac4",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "bfaee632-b261-4062-b81e-0fadf9f05880",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "56d7a8f7-480a-4f69-8696-fdddd6234d83",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "24afa86d-57a4-4414-97de-03c3c643a9b9",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "ca361ef1-4ae8-4498-96cc-5a7db97f5c44",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "916ff7d8-ab5b-4fd3-afbc-e9e88e15cc19",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "40a40eda-309f-425d-a6e2-d80b4a8b95bc",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "preparo_e_cuidados",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "Não usar maquiagem na consulta; agendar com pelo menos duas semanas de antecedência de eventos importantes; evitar álcool 24h antes; evitar Retin-A, Tretinoína e Retinoides três dias antes; chegar com a pele limpa e sem maquiagem; não fazer se estiver grávida ou amamentando. Após: sem maquiagem imediatamente, não deitar por 4 horas, sem exercícios por 24h (caminhar é ok), evitar álcool por 24h, evitar massagear a área por 4-6 horas, sem faciais por uma semana.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "contraindicacoes",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "Clientes grávidas ou amamentando não são elegíveis para o tratamento com neurotoxina.",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "numero_de_sessoes",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "1 sessão, com manutenção a cada 3 a 4 meses",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "para_quem_indicar",
+"item_id": "4b643416-9499-4df9-9a1e-ad9a7678aa1e",
+"valor": "Indicado para quem deseja suavizar linhas de expressão, como pés de galinha, linhas na testa e entre as sobrancelhas, mantendo um aspecto natural.",
+"estado": "rascunho",
+"fonte": "recomendacao",
+"perguntas": 0
+},
+{
+"campo": "informacoes_adicionais",
+"item_id": null,
+"valor": "Diretor médico: Dr. Jonathan Hodor, MD (não atende os clientes; só a Kelly atende).",
+"estado": "rascunho",
+"fonte": "site",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "25534b2d-07e8-445b-83d1-9010fa836e8a",
+"valor": "BioRePeel Glow Series of 4",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "estacionamento_ou_acesso",
+"item_id": null,
+"valor": "Fica no prédio ao lado do Ninja Sushi & Hibachi. Estacionar atrás do prédio, entrar pela porta dos fundos, pegar o elevador até o 2º andar e seguir o corredor até o Office 2.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "25534b2d-07e8-445b-83d1-9010fa836e8a",
+"valor": "Pacote por US$ 599 (economia de US$ 201). Package includes: 4 BioRePeel Treatments Reveal brighter, healthier, more youthful-looking skin with BioRePeel—an advanced, low-downtime peel treatment that exfoliates, hydrates, and stimulates your skin's natural collagen production. It helps improve skin texture and tone while reducing the appearance of acne, fine lines, enlarged pores, and pigmentation, leaving your complexion smoother and more radiant. With little to no visible peeling for most patients, you can refresh your skin without putting your social life on hold or taking time away from your busy schedule . A series of 4 treatments , spaced every 2–4 weeks , is typically recommended for the best results, followed by maintenance treatments every few months.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "25534b2d-07e8-445b-83d1-9010fa836e8a",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "25534b2d-07e8-445b-83d1-9010fa836e8a",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "bc005a90-3220-42a7-b4e5-f65f5e797a41",
+"valor": "Holiday Tox + Lip Glow Package",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "bc005a90-3220-42a7-b4e5-f65f5e797a41",
+"valor": "Pacote por US$ 840 (economia de US$ 120). Refresh your look just in time for the holidays! ✨ Enjoy our Glow Duo (2 areas of wrinkle relaxer) plus 1 full syringe of lip filler for a beautifully refreshed, balanced look. Choose your 2 treatment areas: Glabella (frown lines) + Crow’s Feet (lines around the eyes) or Glabella (frown lines) + Frontalis (forehead lines) 💕 Regular Price: $960 🎁 Holiday Special: $750 ✨ You Save: $210! Smooth fine lines, enhance your natural lip shape, and step into the holidays feeling confident and radiant! Limited-time offer. Treatment areas, dosing, and product selection are determined during consultation. All treatments are subject to medical eligibility.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "bc005a90-3220-42a7-b4e5-f65f5e797a41",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "bc005a90-3220-42a7-b4e5-f65f5e797a41",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "e2c8d2de-42c0-417b-9c81-049796576ba1",
+"valor": "K-Glow Collagen Revival | 2-Vial Sculptra Package — $1,100",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "e2c8d2de-42c0-417b-9c81-049796576ba1",
+"valor": "Pacote por US$ 1100 (economia de US$ 360). Sculptra stimulates your body's natural collagen production to gradually restore facial volume, improve skin firmness, and soften wrinkles. Unlike traditional fillers, results develop progressively over several weeks to months. Most patients benefit from a series of treatment sessions spaced several weeks apart, with improvements that can last up to 2 years. Beautiful, natural-looking results that develop with time! What's Included: 2 vials of Sculptra Treatment sessions scheduled according to your personalized treatment plan Individualized assessment and follow-up care Package Terms: Valid for 90 days from the date of purchase. Initial treatment must be scheduled within 90 days. Remaining sessions will be scheduled according to clinical recommendations, typically several weeks apart. Number of vials administered per session will be determined by your provider based on your individual needs. Results develop gradually and vary by patient. Package is nontransferable. Refunds are subject to applicable law. Invest in collagen today for beautiful results that develop over time! 🩷",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "e2c8d2de-42c0-417b-9c81-049796576ba1",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "e2c8d2de-42c0-417b-9c81-049796576ba1",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "bba4c7e9-9f2e-4d95-aa22-007b4ff9c889",
+"valor": "K-Glow Facial Harmony – BUY 3 SYRINGES, GET YOUR 4th FREE!",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "antecedencia_minima",
+"item_id": null,
+"valor": "1 dia",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "antecedencia_maxima",
+"item_id": null,
+"valor": "90 dias",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "politica_de_cancelamento",
+"item_id": null,
+"valor": "Cancelar ou remarcar com menos de 24 h de antecedência gera taxa; falta sem aviso tem taxa de US$ 20. O cliente pode cancelar e remarcar pelo portal do Moxie.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "bba4c7e9-9f2e-4d95-aa22-007b4ff9c889",
+"valor": "Pacote por US$ 1800 (economia de US$ 600). Restore facial volume, enhance your natural contours, soften lines, and achieve a beautifully balanced, refreshed appearance. Discover the power of facial balancing! Strategically placed dermal fillers can restore lost volume, enhance facial contours, soften deep lines, and create a more youthful, refreshed, and harmonious appearance — without compromising your natural beauty. 🩷 Restore lost facial volume 🩷 Enhance facial definition and contours 🩷 Improve facial harmony and proportions 🩷 Achieve natural-looking rejuvenation Potential treatment areas include: Cheeks and midface Chin and jawline Smile lines Marionette lines Lips, when appropriate Every face is unique. During your consultation, we will create a personalized treatment plan based on your facial anatomy and aesthetic goals. If additional syringes are recommended to achieve your desired results, we will discuss this with you before proceeding. Additional syringes will be charged separately. Valid for 90 days from the date of purchase. Subject to consultation, medical clearance, and clinical eligibility. Cannot be combined with other promotions.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "bba4c7e9-9f2e-4d95-aa22-007b4ff9c889",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "bba4c7e9-9f2e-4d95-aa22-007b4ff9c889",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "47614fca-567f-40a3-b944-db95a7f12f1f",
+"valor": "Microneedling Collagen Renewal Package (3 sessions)",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "47614fca-567f-40a3-b944-db95a7f12f1f",
+"valor": "Pacote por US$ 785 (economia de US$ 190). ✨ Collagen Glow Package 3 Microneedling Sessions + 3 Complimentary Express Glow Facials + 1 Revision CMT post-procedure cream (0.5 oz) Reveal smoother, firmer, and more radiant skin with this collagen-boosting package! Microneedling stimulates natural collagen and elastin production to improve skin texture, soften fine lines, reduce acne scars, and promote a youthful glow. 💕 Package Includes: 3 Microneedling Sessions 3 Complimentary Express Glow Facials, featuring gentle cleansing, soothing hydration, and skin-nourishing care tailored to your treatment. ✨ Benefits: Softens fine lines and wrinkles Improves acne scars and uneven texture Minimizes the appearance of pores Promotes firmer, smoother, glowing skin 3 sessions. Extra pampering. Beautiful results! 💕",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "47614fca-567f-40a3-b944-db95a7f12f1f",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "47614fca-567f-40a3-b944-db95a7f12f1f",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "nome",
+"item_id": "72cf0390-3f1e-455f-aa07-808b8d693557",
+"valor": "The K-Glow Loyalty Tox - up to 50 Botox-equivalent units of Dysport",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicao",
+"item_id": "72cf0390-3f1e-455f-aa07-808b8d693557",
+"valor": "Pacote por US$ 470 (economia de US$ 50). Exclusively for existing K-Glow Aesthetics patients. ✨ Smooth fine lines and wrinkles while maintaining a refreshed, youthful appearance! Enjoy up to 50 Botox-equivalent units of Dysport for just $470! 💉✨ This treatment is designed to soften expression lines, reduce the appearance of wrinkles, and help prevent dynamic lines from becoming more deeply etched over time. Common treatment areas include: Forehead lines Frown lines (11s) Crow’s feet Every treatment is customized to your unique facial anatomy, muscle movement, and aesthetic goals to achieve beautiful, natural-looking results. Additional Units: If more than 50 Botox-equivalent units are needed or requested. Additional units are $12 per Botox-equivalent unit. 50 Botox-equivalent units correspond to approximately 150 actual Dysport units. Treatment areas and dosing are determined during your consultation. Additional units are optional and subject to clinical assessment. Results may vary. Treatment must be scheduled and completed within 90 days. Offer is exclusive to existing K-Glow Aesthetics patients. Unused units expire after 90 days and are nonrefundable, subject to applicable law.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "tipo_de_validade",
+"item_id": "72cf0390-3f1e-455f-aa07-808b8d693557",
+"valor": "Data",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "validade",
+"item_id": "72cf0390-3f1e-455f-aa07-808b8d693557",
+"valor": "2026-11-30",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+},
+{
+"campo": "condicoes_de_parcelamento",
+"item_id": null,
+"valor": "Financiamento pela Cherry.",
+"estado": "rascunho",
+"fonte": "lexia",
+"perguntas": 0
+}
+]
+}

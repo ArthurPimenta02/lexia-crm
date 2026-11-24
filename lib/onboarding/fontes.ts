@@ -125,7 +125,7 @@ const SO_A_DONA_RESPONDE = new Set(["diferencial_1", "diferencial_2", "diferenci
  * Campos que dependem de outro ficam de fora do rascunho (quase todos são o "qual?" de um "Outro"), menos estes:
  * a equipe costuma saber e a dona só precisa conferir. Só ficam se o rascunho trouxer também a resposta que os pede.
  */
-const CONDICIONAIS_QUE_ENTRAM = new Set(["valor_da_avaliacao"]);
+const CONDICIONAIS_QUE_ENTRAM = new Set(["valor_da_avaliacao", "avaliacao_vira_credito"]);
 const camposDaRaiz = () => ESQUEMA_ONBOARDING.flatMap((s) => s.campos).filter((c) => c.tipo !== "upload" && c.tipo !== "horarios" && (!c.quando || CONDICIONAIS_QUE_ENTRAM.has(c.chave)) && !SO_A_DONA_RESPONDE.has(c.chave));
 const grupo = (chave: string) => ESQUEMA_ONBOARDING.flatMap((s) => s.grupos).find((g) => g.chave === chave)!;
 
