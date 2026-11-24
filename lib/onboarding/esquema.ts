@@ -32,7 +32,7 @@ export type GrupoOnboarding = { chave: GrupoQueRepete; titulo: string; obrigator
 export type SecaoOnboarding = { chave: string; titulo: string; novo?: boolean; campos: CampoOnboarding[]; grupos: GrupoOnboarding[] };
 export type GrupoQueRepete = "servicos" | "profissionais" | "faqs" | "objecoes" | "promocoes";
 
-/** 13 seções, 140 campos. */
+/** 13 seções, 144 campos. */
 export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
   {
     "chave": "sobre_o_negocio",
@@ -588,6 +588,16 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
     "titulo": "Serviços",
     "campos": [
       {
+        "chave": "servicos_com_consulta_antes",
+        "pergunta": "Quais serviços precisam de uma consulta antes de marcar o procedimento?",
+        "tipo": "multi",
+        "opcoesDe": "servicos",
+        "obrigatorio": false,
+        "modo": "conversa",
+        "novo": true,
+        "ajuda": "Para esses, a assistente marca primeiro a consulta. Para os outros, marca o procedimento direto. Se nenhum precisar, pode deixar em branco."
+      },
+      {
         "chave": "avaliacao_paga",
         "pergunta": "A avaliação é paga ou gratuita?",
         "tipo": "radio",
@@ -641,6 +651,14 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "obrigatorio": true,
         "modo": "conversa",
         "novo": true
+      },
+      {
+        "chave": "retoque_cobrado",
+        "pergunta": "Algum serviço tem retoque? Ele é grátis ou cobrado à parte? Conte quais serviços, quanto custa e até quantos dias depois.",
+        "tipo": "long",
+        "obrigatorio": false,
+        "modo": "conversa",
+        "novo": true
       }
     ],
     "grupos": [
@@ -658,13 +676,14 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
           },
           {
             "chave": "tipo_de_preco",
-            "pergunta": "Tipo de preço",
+            "pergunta": "Como este serviço é cobrado?",
             "tipo": "radio",
             "obrigatorio": true,
             "modo": "fonte",
             "opcoes": [
               "Preço fixo",
               "A partir de (preço mínimo)",
+              "Por unidade (ex.: botox, cobrado por unidade aplicada)",
               "Sob orçamento — só após avaliação presencial",
               "Outro"
             ]
@@ -686,7 +705,7 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "tipo": "number",
             "obrigatorio": true,
             "modo": "fonte",
-            "ajuda": "Se for 'a partir de', informe o valor mínimo.",
+            "ajuda": "Se for 'a partir de', informe o valor mínimo. Se for por unidade, informe o preço de cada unidade.",
             "quando": {
               "campo": "tipo_de_preco",
               "diferenteDe": "Sob orçamento — só após avaliação presencial"
@@ -922,7 +941,19 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "opcoes": [
           "Sim",
           "Não"
-        ]
+        ],
+        "quando": {
+          "algum": [
+            {
+              "campo": "avaliacao_paga",
+              "valor": "Paga"
+            },
+            {
+              "campo": "avaliacao_paga",
+              "valor": "Depende do serviço"
+            }
+          ]
+        }
       },
       {
         "chave": "valor_da_avaliacao",
@@ -931,8 +962,16 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "obrigatorio": true,
         "modo": "conversa",
         "quando": {
-          "campo": "avaliacao_vira_credito",
-          "valor": "Sim"
+          "algum": [
+            {
+              "campo": "avaliacao_paga",
+              "valor": "Paga"
+            },
+            {
+              "campo": "avaliacao_paga",
+              "valor": "Depende do serviço"
+            }
+          ]
         }
       }
     ],
@@ -1043,6 +1082,20 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         }
       },
       {
+        "chave": "quem_manda_lembretes",
+        "pergunta": "O seu sistema de agendamento (Moxie, Vagaro, Square...) já manda lembrete para a cliente antes do horário?",
+        "tipo": "radio",
+        "opcoes": [
+          "Sim, e basta: a assistente não precisa mandar",
+          "Sim, e quero que a assistente também mande pelo WhatsApp",
+          "Não manda (a assistente manda pelo WhatsApp)"
+        ],
+        "obrigatorio": true,
+        "modo": "conversa",
+        "novo": true,
+        "ajuda": "Assim a cliente não recebe dois lembretes iguais."
+      },
+      {
         "chave": "lembretes",
         "pergunta": "Lembretes automáticos de agendamento",
         "tipo": "multi",
@@ -1058,7 +1111,11 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
         "recomendado": [
           "24h antes",
           "2h antes"
-        ]
+        ],
+        "quando": {
+          "campo": "quem_manda_lembretes",
+          "diferenteDe": "Sim, e basta: a assistente não precisa mandar"
+        }
       },
       {
         "chave": "outro_lembretes",
@@ -1519,6 +1576,20 @@ export const ESQUEMA_ONBOARDING: SecaoOnboarding[] = [
             "tipo": "text",
             "obrigatorio": true,
             "modo": "conversa"
+          },
+          {
+            "chave": "para_quem_vale",
+            "pergunta": "Para quem vale esta promoção?",
+            "tipo": "radio",
+            "opcoes": [
+              "Só para clientes novas",
+              "Só para quem já é cliente",
+              "Para todas"
+            ],
+            "obrigatorio": true,
+            "modo": "conversa",
+            "novo": true,
+            "ajuda": "Algumas promoções nós puxamos do seu sistema de agendamento online (por exemplo, o Moxie). Queremos entender para quem cada uma vale, para a assistente oferecer só a quem pode usar."
           },
           {
             "chave": "tipo_de_validade",
