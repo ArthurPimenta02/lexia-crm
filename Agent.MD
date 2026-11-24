@@ -406,6 +406,33 @@ Etapa 1:
   (`etapa1.whatsapp_grupo`, preenchido pela equipe na Etapa 1). Nada é escrito no Supabase do
   cliente: os dados ficam na base central e a equipe vê a ficha em
   `/admin/clientes/<slug>/onboarding`.
+- Etapa 3, passagem automática (24/11/2026, ramo `onboarding-etapa3-exportar`): em
+  `/admin/clientes/<slug>/onboarding` (só `lexia_admin`, `maxDuration` 300) o cartão "Base do
+  agente" tem "Prévia da base do agente" (server action `previaDaBase`: não grava, não abre a base
+  do cliente) e "Gravar na base do agente" (`gravarNaBase`: só sem erros na prévia, com
+  confirmação). Só aparece para clientes do mapa EXPLÍCITO slug → sufixo em
+  `lib/onboarding/exportar.ts` (`kglow_aesthetics` → `_kglow`; sem sufixo = recusa).
+  - `lib/onboarding/exportar.ts` (puro): ficha atual → `servicos_<s>`, `info_<s>`, `config_<s>`,
+    `profissionais_<s>`, `promocoes_<s>`, seguindo `~/lexia-memoria/onboarding/mapa_etapa3.md`.
+    Só linhas `confirmado`/`respondido`; `pulado`/`vago` = pendência (aviso), `nao_se_aplica` não
+    escreve, rascunho não entra. Contagem anti-perda: resposta resolvida sem destino → erro com a
+    lista (não grava). A ficha inteira (todas as linhas atuais, com estado/fonte) vai SEMPRE para
+    `config_<s>.ficha_onboarding_completa` (+ `ficha_onboarding_completa_em`). Decisões do Arthur
+    gravadas em config: `preco_so_se_perguntar`, `oferecer_horarios_depois_do_preco`,
+    `pausa_quando_equipe_escreve_min=60`. IA (interface `IaDaExportacao`, chave Anthropic do próprio
+    cliente) só para `nome_es`, `aliases`, `categoria`, `preparo_pre`/`cuidados_pos`, e nas
+    promoções `campanha`, `servico_ids`, brindes e apelidos; sem chave ou com erro, segue sem eles.
+  - `lib/onboarding/exportar-base.ts` (server-only): a base de destino é SEMPRE a conexão
+    `supabase_cliente` do slug do pedido; recusa se a URL for a central ou estiver ligada a outro
+    cliente. Upsert por `origem_item_id` (grupos) e `chave` (info/config), em grupos com as mesmas
+    colunas (coluna ausente nunca vira NULL). Nunca apaga: item removido → `ativo=false`; chave com
+    `origem` `onboarding:*` que deixou de sair → `ativo=false`; chave escrita à mão é substituída só
+    se a conversão produzir a mesma chave (fica aviso). Tabela inexistente → "falta criar as
+    tabelas". `promocoes.inicio`/`anunciar_desde` ficam no default da base (dia da 1ª gravação).
+  - SQL das tabelas da K-Glow (para o Arthur correr no Supabase DELA, não é migração central):
+    `supabase/clientes/kglow_tabelas.sql` (idempotente, sem begin/commit; acrescenta
+    `servicos.preparo_e_cuidados` e `ativo` em info/config ao desenho do mapa). O agente da Kelly
+    tem de ler info/config com `ativo=true`.
 - Perguntas (17/11/2026): escolher "Outro"/"Texto próprio" abre o texto no mesmo cartão (o campo
   dependente mandado junto é aceito pelo servidor); os serviços de cada profissional escolhem-se da
   lista de serviços (`opcoesDe`); os dias de funcionamento saem do horário de cada dia; saíram do

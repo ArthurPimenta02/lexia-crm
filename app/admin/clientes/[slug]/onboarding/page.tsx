@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { liberarConversa, salvarEtapa1 } from "@/app/admin/clientes/[slug]/onboarding/actions";
+import { gravarNaBase, liberarConversa, previaDaBase, salvarEtapa1 } from "@/app/admin/clientes/[slug]/onboarding/actions";
+import { BaseDoAgente } from "@/app/components/onboarding/base-do-agente";
 import { ConversaOnboarding } from "@/app/components/onboarding/conversa";
 import { Etapa1Form } from "@/app/components/onboarding/etapa1-form";
 import { FichaDoAgente } from "@/app/components/onboarding/revisao";
@@ -9,8 +10,12 @@ import { CabecalhoTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { dadosDaEtapa1 } from "@/lib/onboarding/etapa1-tela";
+import { clienteDaExportacao } from "@/lib/onboarding/exportar";
 import { fichaDe } from "@/lib/onboarding/revisao";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+/** A prévia e a gravação da base do agente (Etapa 3) podem chamar a IA do cliente: mais tempo que o padrão. */
+export const maxDuration = 300;
 
 /**
  * O onboarding de um cliente visto pela equipe da Lexia (acompanhar e, se for
@@ -48,6 +53,8 @@ export default async function OnboardingDoClientePage({ params }: { params: Prom
         <Etapa1Form {...dados} clienteSlug={slug} liberar={liberarConversa.bind(null, slug)} salvarAcao={salvarEtapa1.bind(null, slug)} />
       ) : (
         <>
+          {/* Etapa 3: passar as respostas confirmadas para a base própria do agente (só clientes com tabelas configuradas). */}
+          {clienteDaExportacao(slug) ? <BaseDoAgente gravar={gravarNaBase.bind(null, slug)} previa={previaDaBase.bind(null, slug)} /> : null}
           {/* Tudo o que a cliente ensinou até agora, para a equipe montar o agente (só leitura). */}
           <div className="flex min-w-0 flex-col gap-3">
             <h2 className="ds-titulo-3 text-foreground">
