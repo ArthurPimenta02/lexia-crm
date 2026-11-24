@@ -1,15 +1,15 @@
 # Como funciona o agente do Detail by Cordeiro
 
-Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
+Versão em produção de 24/11/2026. Horas no fuso de Lisboa.
 
 ## Canais e idiomas
 - Atende no WhatsApp, no Instagram e no Messenger.
-- Junta as mensagens seguidas do cliente (cerca de 60 segundos).
+- Junta mensagens seguidas (cerca de 60 s).
 - Entende áudio e fotos (a foto do carro e o comprovante do sinal).
-- Fala português de Portugal (por "tu", na voz do Martim) ou inglês, conforme o cliente; outra língua é atendida em inglês. O idioma vale para respostas, resumo, confirmação, lembretes e follow-ups.
+- Fala português de Portugal (por "tu", na voz do Martim) ou inglês, conforme o cliente; outra língua é atendida em inglês. Vale para tudo o que envia.
 
 ## Agenda
-- A fonte é a agenda Google do Martim. Lê também as marcações feitas à mão, pelo telefone ou pelo nome completo do cliente, para nunca oferecer uma marcação nova a quem já está marcado.
+- A fonte é a agenda Google do Martim. Lê também as marcações feitas à mão (telefone ou nome), para não remarcar quem já está marcado.
 - Martim: de segunda a sexta das 9h às 18h, e no sábado das 9h às 13h.
 - Fechado aos domingos e nos feriados nacionais.
 - Almoço das 12h30 às 13h00; 15 minutos de margem no fim de cada serviço.
@@ -19,7 +19,8 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
 
 ## Preço e sinal
 - O preço sai da tabela do Martim, pela categoria do carro. A IA nunca o calcula.
-- Diz "a partir de". O valor máximo só se o cliente perguntar. Nunca dá desconto.
+- Diz "a partir de". O valor máximo só se o cliente perguntar. Nunca dá desconto. Não repete preço já dito.
+- Se recomenda um serviço, não pergunta "qual dos dois". Um "ok" não é escolha.
 - Sinal de 40% para fechar a marcação. Os dados de pagamento (IBAN e MB WAY) vão na mensagem de confirmação, escrita pelo sistema.
 
 ## Marcação e confirmação
@@ -34,12 +35,12 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
 - **Lembrete da marcação**: um por marcação, cerca de 48 h antes (entre 48 h e 2 h antes). Só sai das 8h às 20h, por WhatsApp.
   - Leva o dia, a hora, o serviço com o valor e o estado do sinal.
   - Pergunta "Está tudo certo do teu lado?".
-  - Vale também para marcações feitas à mão, desde que o celular esteja escrito no evento.
+  - Vale para marcações à mão com o celular no evento.
   - Se o Martim mudar a hora, sai um lembrete novo com a hora certa.
   - Quem disse nos últimos dias que não pode vir não recebe o lembrete.
 - **Lembrete do sinal**: se o sinal continua por pagar 24 h depois de ter sido pedido, sai uma mensagem (uma vez, das 8h às 20h). Não leva valores nem IBAN.
 - **Aviso ao Martim, às 9h**: marcações dos próximos dias sem celular (ficam sem lembrete).
-- **Vigia da agenda (de hora a hora)**: avisa o Martim se uma marcação do agente fica sobre outro evento.
+- **Vigia da agenda (de hora a hora)**: avisa se uma marcação do agente fica sobre outro evento.
 
 ## Remarcar e cancelar
 - **Remarcar**: cria a nova, depois apaga a antiga; o resumo diz qual deixa de contar.
@@ -53,7 +54,8 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
   - Quente: mais um aos 3 dias e outro aos 7 dias.
   - Os de 3 e 7 dias saem devagar: no máximo 10 por dia, de segunda a sábado, das 10h às 18h.
 - Instagram e Messenger: 1 h e cerca de 23 h. Fechada a janela de 24 h da Meta, o Martim recebe um aviso para retomar à mão.
-- Quem adia ("vou pensar", "eu ligo"): no WhatsApp só recebe o follow-up de 3 dias; no Instagram e no Messenger, o de 24 h.
+- Quem adia ("vou pensar", "lá pro fim do mês marco"): no WhatsApp só o de 3 dias; no Instagram e Messenger, o de 24 h. Adiar com pergunta concreta não conta.
+- Prazo no mesmo dia ("confirmo-lhe à tarde"): o curto só sai depois desse prazo.
 - Não sai a quem já tem marcação na agenda, a quem está com o Martim nem a quem disse que não quer.
 - O follow-up nunca propõe horários. Cada um muda de abordagem e não repete a pergunta do anterior.
 
@@ -69,7 +71,7 @@ Lido do agente em produção (versão de 23/11/2026). Horas no fuso de Lisboa.
 Fora desta lista, o agente responde ele próprio.
 
 ## Lista de espera
-- Ligada (o liga/desliga fica no servidor do agente, não no painel).
+- Ligada (no servidor do agente).
 - Quem queria um dia cheio é avisado se abrir vaga nesse dia: uma pessoa de cada vez, por ordem de chegada, com 2 h para responder. A vaga não fica reservada.
 
 ## O que nunca faz
