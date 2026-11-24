@@ -861,6 +861,14 @@ autoriza as rotas chamadas pelo n8n.
   ela a tela de conexões não grava e o agente não lê. Trocá-la torna ilegíveis
   todos os segredos já gravados: seria preciso gravá-los de novo.
 
+### Análises das conversas (porta HTTPS da rotina, 24/11/2026)
+
+```text
+ANALISE_ROTINA_TOKEN   # obrigatório para a rotina; 32+ caracteres aleatórios; o MESMO valor na Vercel (Production) e nas variáveis do ambiente "Lexia Análises" da rotina
+```
+
+O ambiente da rotina na nuvem recusa a ligação direta ao Postgres (porta 5432), mesmo com "Acesso à rede: Total" (medido de 20 a 24/11: "connection refused" nas 5 bases). Por isso `ler.mjs` e `gravar.mjs` (ramo `analise` do `lexia-agentes`) usam `GET/POST /api/analises/rotina` com `Authorization: Bearer <ANALISE_ROTINA_TOKEN>`. Leitura: base central só `lexia_analises`, `lexia_analises_itens`, `lexia_clientes`, `lexia_contactos`, `lexia_mensagens`, `lexia_turnos` (colunas com nome de segredo tiradas); bases dos clientes (miranda, detail, claudia, jessica, asteric) pela conexão `supabase_cliente`, todas as tabelas, só leitura. Tabelas até 3000 linhas vêm inteiras; maiores desde há `horas`, em páginas de 500. Escrita: só `lexia_analises` e `lexia_analises_itens`. Sem a variável (ou com menos de 32 caracteres) a rota responde 401 a tudo. As `LEITURA_*` antigas deixam de ser usadas.
+
 ### Análises das conversas (gatilho da rotina)
 
 ```text
