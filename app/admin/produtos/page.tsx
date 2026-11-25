@@ -24,6 +24,7 @@ import {
   registarCompraAdminAction,
   reporProdutoAdminAction,
 } from "./actions";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 type AdminCliente = {
   id: string;
@@ -56,6 +57,7 @@ export default async function AdminProdutosPage({
   const { data: clientesData, error: clientesError } = await supabase
     .from("lexia_clientes")
     .select("id, nome, slug")
+    .not("slug", "in", FILTRO_OCULTOS)
     .eq("status", "ativo")
     .order("nome");
 

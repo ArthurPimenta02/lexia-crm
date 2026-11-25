@@ -6,6 +6,7 @@ import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ocultoNoAdmin } from "@/lib/clientes/ocultos";
 
 /**
  * O funil dos agentes (18/11/2026): as mesmas seis etapas para todos os
@@ -42,7 +43,7 @@ export async function FunilVista({ pedido }: { pedido: string }) {
   const locale = LOCALE_DO_IDIOMA[await getIdioma()];
 
   const admin = createAdminClient();
-  const slugs = CLIENTES_DO_FUNIL.map((c) => c.slug);
+  const slugs = CLIENTES_DO_FUNIL.map((c) => c.slug).filter((s) => !ocultoNoAdmin(s));
   const { data: clientesData } = await admin.from("lexia_clientes").select("slug, nome").in("slug", slugs);
   const nomes = new Map((clientesData ?? []).map((c) => [c.slug as string, (c.nome as string | null) || (c.slug as string)]));
   const selecionado = slugs.includes(pedido) ? pedido : "";

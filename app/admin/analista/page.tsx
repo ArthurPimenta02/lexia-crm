@@ -5,6 +5,7 @@ import { CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 type AdminAnalystPageProps = {
   searchParams: Promise<{ cliente?: string | string[] }>;
@@ -23,6 +24,7 @@ export default async function AdminAnalystPage({
   const { data, error } = await supabase
     .from("lexia_clientes")
     .select("nome, slug")
+    .not("slug", "in", FILTRO_OCULTOS)
     .eq("status", "ativo")
     .order("nome", { ascending: true });
 

@@ -7,6 +7,7 @@ import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { tiposDoAmbito } from "@/lib/conexoes/tipos";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /**
  * Conexões de cada agente: onde o Arthur cola os tokens de WhatsApp, Meta,
@@ -44,6 +45,7 @@ export default async function ConexoesPage({ searchParams }: ConexoesPageProps) 
   const { data: clientesData } = await admin
     .from("lexia_clientes")
     .select("slug, nome")
+    .not("slug", "in", FILTRO_OCULTOS)
     .order("nome");
   const clientes = (clientesData ?? []) as { slug: string; nome: string | null }[];
 

@@ -8,6 +8,7 @@ import { ScrollToTop } from "@/app/components/scroll-to-top";
 import { getT } from "@/lib/i18n/servidor";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /*
  * Menu curto (14/11/2026): a visão geral, os clientes e o que é da Lexia
@@ -30,7 +31,9 @@ async function clientesDoMenu() {
   const { data } = await createAdminClient()
     .from("lexia_clientes")
     .select("slug, nome, status, modo_teste")
-    .eq("status", "ativo")
+    // 24/11: quem está em teste (ex.: Jessica, ainda inativa) também aparece, a dourado; os ocultos (Asteric) não.
+    .or("status.eq.ativo,modo_teste.eq.true")
+    .not("slug", "in", FILTRO_OCULTOS)
     .order("nome");
   return (data ?? [])
     .filter((c) => !CONTAS_INTERNAS.has(c.slug))
