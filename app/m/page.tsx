@@ -8,7 +8,7 @@ import { duracaoCurta, iniciais, moeda, partesNoFuso } from "@/lib/movel/formato
 import type { DadosHoje } from "@/lib/movel/hoje";
 import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
-import { IcAnuncios, IcBusca, IcCalendario, IcCheck, IcConversa, IcMais, IcSeta, IcSino } from "./_c/icones";
+import { IcAnuncios, IcBusca, IcCheck, IcConversa, IcMais, IcPessoas, IcSeta, IcSino } from "./_c/icones";
 import { Iniciais, Moldado } from "./_c/pecas";
 
 export const dynamic = "force-dynamic";
@@ -75,10 +75,10 @@ export default async function HojeMovel() {
   // Um segmento por agendamento (no máximo 12; depois, proporcional).
   const segmentos = total ? (total <= 12 ? d.agenda.map((m) => Date.parse(m.fim) <= agora.getTime()) : Array.from({ length: 12 }, (_, i) => i < Math.round((feitos / total) * 12))) : [];
 
+  // Marcar e Agenda passaram para a barra de baixo e para o botão grande (25/11).
   const atalhos = [
-    pode("/app/agenda") ? { href: "/m/agenda?nova=1", icone: <IcMais tamanho={22} />, r: t("Marcar") } : null,
     pode("/app/conversas") ? { href: "/m/conversas", icone: <IcConversa tamanho={22} />, r: t("Conversas") } : null,
-    pode("/app/agenda") ? { href: "/m/agenda", icone: <IcCalendario tamanho={22} />, r: t("Agenda") } : null,
+    pode("/app/clientes") ? { href: "/m/clientes", icone: <IcPessoas tamanho={22} />, r: t("Clientes") } : null,
     pode("/app/campanhas") ? { href: "/m/campanhas", icone: <IcAnuncios tamanho={22} />, r: t("Anúncios") } : null,
   ].filter(Boolean) as { href: string; icone: React.ReactNode; r: string }[];
 
@@ -106,6 +106,10 @@ export default async function HojeMovel() {
     <main className="m-pagina m6 m6-hoje">
       {topo}
       {admin}
+
+      {pode("/app/agenda") ? (
+        <Link className="ag-grande" href="/m/agendar"><IcMais tamanho={22} />{t("Novo agendamento")}</Link>
+      ) : null}
 
       <section aria-label={t("Agendamentos hoje")} className="m6-bloco">
         <span className="m6-rotulo">{t("Agendamentos hoje")}</span>

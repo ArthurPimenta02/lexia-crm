@@ -1,13 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { agendaDoDia, diaValido, somarDias, type Vista } from "@/lib/movel/agenda";
 import { contextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
-import { ehContaDemo, SERVICOS_DEMO } from "@/lib/movel/demo";
+import { ehContaDemo } from "@/lib/movel/demo";
 
 import { IcSeta, IcVoltar } from "../_c/icones";
 import { DiaAgenda } from "./dia";
@@ -46,8 +46,13 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
   }
   // Conta demo: marca só na base da Lexia, com serviços fictícios (lib/movel/demo.ts).
   const demo = ehContaDemo(c.clienteSlug);
-  const podeMarcar = demo || marcarEstaLigado();
-  const [contactos, servicos] = podeMarcar ? await Promise.all([getContactosParaEscolha(c.clienteSlug).catch(() => []), demo ? Promise.resolve(SERVICOS_DEMO) : getServicosAgendaveis(c.clienteSlug).catch(() => [])]) : [[], []];
+  // Marcar vive em /m/agendar (25/11). Aqui só se sabe SE dá para marcar, para
+  // mostrar o botão e tornar os dias tocáveis.
+  const podeMarcar = demo || (marcarEstaLigado() && (await getServicosAgendaveis(c.clienteSlug).catch(() => [])).length > 0);
+  if (params.nova === "1" && podeMarcar) {
+    redirect(`/m/agendar?dia=${dia}${typeof params.contacto === "string" ? `&contacto=${encodeURIComponent(params.contacto)}` : ""}`);
+  }
+  const marcarEm = (k: string) => (podeMarcar && k >= hoje ? `/m/agendar?dia=${k}&volta=agenda` : null);
   const codigoMoeda = moedaDoCliente(getMoedaDoCliente(c.clienteSlug), c.fuso);
 
   const titulo = new Intl.DateTimeFormat(c.locale, { month: "long", timeZone: "UTC", year: dia.slice(0, 4) === hoje.slice(0, 4) ? undefined : "numeric" }).format(new Date(`${dia}T12:00:00Z`));
@@ -80,7 +85,8 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
               const n = dados!.contagem[k] ?? 0;
               const fora = k < dados!.mes.inicio || k > dados!.mes.fim;
               return (
-                <Link aria-current={k === dia ? "date" : undefined} className={`dia${fora ? " fora" : ""}${k === hoje ? " hoje" : ""}`} href={url({ dia: k })} key={k} replace>
+                // Tocar num dia de hoje em diante abre a marcação nesse dia (como no Google Agenda).
+                <Link aria-current={k === dia ? "date" : undefined} className={`dia${fora ? " fora" : ""}${k === hoje ? " hoje" : ""}`} href={marcarEm(k) ?? url({ dia: k })} key={k} replace={!marcarEm(k)}>
                   <b>{Number(k.slice(8))}</b>
                   <i style={n ? undefined : { visibility: "hidden" }} />
                 </Link>
@@ -100,6 +106,7 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
         )}
         <Link aria-label={t("Seguinte")} className="seta" href={seguinte} replace><IcSeta tamanho={16} /></Link>
       </div>
+      {vista === "mes" && podeMarcar ? <p className="ag-dica">{t("Toque em qualquer dia para marcar nele")}</p> : null}
 
       {dados ? (
         <div className="m6-resumo">
@@ -122,7 +129,6 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
       {!dados ? <div className="m-vazio" style={{ marginTop: 14 }}>{t("Não foi possível carregar a agenda.")}</div> : (
         <DiaAgenda
           horaAgora={partesNoFuso(agora, c.fuso).hora}
-          contactos={contactos.map((x) => ({ id: x.id, nome: x.nome, telefone: x.telefone }))}
           dia={dia}
           eventos={eventos.map((e) => ({
             ...e,
@@ -140,36 +146,22 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
           }))}
           agrupar={vista === "semana"}
           eHoje={dia === hoje}
-          abrirMarcar={params.nova === "1"}
-          contactoInicial={typeof params.contacto === "string" ? params.contacto : null}
-          podeMarcar={podeMarcar && servicos.length > 0 && contactos.length > 0}
-          servicos={servicos.map((s) => ({ executores: s.executores, id: s.id, nome: s.nome, preco: s.precoBase, precoTexto: s.precoBase ? moeda(s.precoBase, c.locale, codigoMoeda) : null }))}
+          hrefMarcar={podeMarcar ? (dia >= hoje ? `/m/agendar?dia=${dia}&volta=agenda` : "/m/agendar?volta=agenda") : null}
           textos={{
             abrirGoogle: t("Abrir no Google Agenda"),
             agente: t("Marcado pelo agente"),
             agenteTag: t("agente"),
             agora: t("Agora"),
             cancelado: t("Cancelado"),
-            cliente: t("Cliente"),
-            confirmar: t("Confirmar"),
             conversa: t("Abrir conversa"),
             dia: t("Dia"),
-            erroGeral: t("Não foi possível marcar."),
-            escolhaCliente: t("Escolha o cliente"),
             faltaSinal: t("falta sinal"),
             fechar: t("Fechar"),
-            hora: t("Hora"),
             ligar: t("Ligar"),
             manual: t("Marcado à mão"),
-            marcado: t("Marcado!"),
             marcar: t("Marcar"),
-            marcarMesmoAssim: t("Marcar mesmo assim"),
+            marcarNeste: t("Toque para marcar neste dia"),
             nenhum: t("Nenhum agendamento neste dia."),
-            novaMarcacao: t("Nova marcação"),
-            ocupado: t("Já há algo nesse horário:"),
-            procurarCliente: t("Procurar cliente"),
-            profissional: t("Profissional"),
-            servico: t("Serviço"),
           }}
         />
       )}

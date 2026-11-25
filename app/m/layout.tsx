@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { GestoVoltar } from "@/app/components/gesto-voltar";
 import { PonteDoApp } from "@/app/components/ponte-do-app";
+import { ecraPermitido } from "@/lib/auth/ecras";
 import { contextoMovel } from "@/lib/movel/contexto";
 import { COOKIE_MODO_MOVEL, modoValido } from "@/lib/movel/modo";
 
@@ -31,12 +32,14 @@ export default async function LayoutMovel({ children }: { children: React.ReactN
     <div className="m-app" data-modo={modo} lang={c.idioma}>
       {children}
       <AbasMovel
+        podeAgenda={ecraPermitido(c.clienteSlug, "/app/agenda")}
         rotulos={{
+          agenda: c.t("Agenda"),
           conversas: c.t("Conversas"),
           hoje: c.t("Hoje"),
           mais: c.t("Mais"),
           menu: c.t("Menu"),
-          resultados: c.t("Resultados"),
+          novo: c.t("Novo agendamento"),
         }}
       />
       <BarraDeEstado />

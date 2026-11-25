@@ -44,7 +44,7 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
   private readonly diferencas: Filtro[] = [];
   private readonly limites: {
     coluna: string;
-    limite: "gte" | "lt" | "lte";
+    limite: "gt" | "gte" | "lt" | "lte";
     valor: string;
   }[] = [];
   private readonly negacoes: { coluna: string; prefixo: string }[] = [];
@@ -99,6 +99,12 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
    */
   gte(coluna: string, valor: string) {
     this.limites.push({ coluna, limite: "gte", valor });
+
+    return this;
+  }
+
+  gt(coluna: string, valor: string) {
+    this.limites.push({ coluna, limite: "gt", valor });
 
     return this;
   }
@@ -192,6 +198,26 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     return this;
   }
 
+  /** Como na Supabase: exactamente uma linha, ou erro. */
+  async single(): Promise<Resultado<Linha | null>> {
+    const { data, error } = await this.executar();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const linhas = (Array.isArray(data) ? data : data ? [data] : []) as Linha[];
+
+    if (linhas.length !== 1) {
+      return {
+        data: null,
+        error: { code: "PGRST116", message: "não devolveu exactamente uma linha" },
+      };
+    }
+
+    return { data: linhas[0], error: null };
+  }
+
   async maybeSingle(): Promise<Resultado<Linha | null>> {
     const { data, error } = await this.executar();
 
@@ -238,6 +264,10 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
 
           if (limite === "gte") {
             return actual >= valor;
+          }
+
+          if (limite === "gt") {
+            return actual > valor;
           }
 
           return limite === "lte" ? actual <= valor : actual < valor;

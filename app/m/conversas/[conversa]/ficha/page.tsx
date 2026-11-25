@@ -48,7 +48,7 @@ export default async function FichaMovel({ params }: { params: Promise<{ convers
       <nav aria-label={t("Ações")} className="m6-atalhos tres">
         <Link className="m6-atalho" href={chat}><span className="c"><IcConversa tamanho={21} /></span>{t("Conversa")}</Link>
         {d.telefone ? <a className="m6-atalho" href={`tel:+${d.telefone}`}><span className="c"><IcTelefone tamanho={21} /></span>{t("Ligar")}</a> : null}
-        {podeMarcar ? <Link className="m6-atalho" href={`/m/agenda?nova=1${d.contactoId ? `&contacto=${encodeURIComponent(d.contactoId)}` : ""}`}><span className="c"><IcCalendarioMais tamanho={21} /></span>{t("Marcar")}</Link> : null}
+        {podeMarcar ? <Link className="m6-atalho" href={`/m/agendar?volta=${encodeURIComponent(`/m/conversas/${encodeURIComponent(conversa)}/ficha`)}${d.contactoId ? `&contacto=${encodeURIComponent(d.contactoId)}` : ""}`}><span className="c"><IcCalendarioMais tamanho={21} /></span>{t("Marcar")}</Link> : null}
       </nav>
 
       <dl className="m6-pares">

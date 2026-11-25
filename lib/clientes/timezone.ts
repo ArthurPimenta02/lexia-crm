@@ -285,3 +285,17 @@ export function formatDayInTimezone(date: string | null, timeZone: string) {
     year: "numeric",
   }).format(new Date(date));
 }
+
+/**
+ * O indicativo do país que se assume para um número escrito sem "+", pelo fuso
+ * da empresa (25/11, Novo agendamento do app): quem atende em Boston escreve
+ * números dos EUA, quem atende em Lisboa escreve números portugueses.
+ */
+export function indicativoDoFuso(fuso: string) {
+  if (fuso === "Europe/Lisbon" || fuso === "Atlantic/Madeira" || fuso === "Atlantic/Azores") return "351";
+  if (fuso === "Europe/Madrid") return "34";
+  if (fuso === "Europe/London") return "44";
+  if (["America/Sao_Paulo", "America/Fortaleza", "America/Recife", "America/Bahia", "America/Manaus", "America/Belem"].includes(fuso)) return "55";
+  if (fuso.startsWith("America/")) return "1";
+  return "";
+}

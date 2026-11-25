@@ -46,6 +46,11 @@ const AGENDAS: Record<string, Record<string, string> | undefined> = {
   },
 };
 
+/** Todas as agendas do Google de um cliente, por profissional. */
+export function agendasDe(clienteSlug: string): Record<string, string> {
+  return { ...(AGENDAS[clienteSlug] ?? {}) };
+}
+
 /** A agenda do Google onde se marca para este profissional, ou `null`. */
 export function agendaDe(clienteSlug: string, executorChave: string) {
   return AGENDAS[clienteSlug]?.[executorChave] ?? null;
