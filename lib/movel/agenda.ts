@@ -1,11 +1,15 @@
 import "server-only";
 
+import { diasDoEvento } from "@/lib/agenda/read";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import { chaveDoDia } from "./formato";
 import { limitesDoDia, semanaDe, somarDias } from "./hoje";
 
 export type EventoAgenda = {
+  /** Dias depois do primeiro de um evento de vários dias (o carro de segunda a quarta). */
+  continuaDeAntes: boolean;
+  /** Dias antes do último de um evento de vários dias. */
+  continuaDepois: boolean;
   conversa: string | null;
   estado: string;
   executor: string | null;
@@ -47,7 +51,10 @@ export async function agendaDoDia(clienteSlug: string, fuso: string, dia: string
   const mes = mesDe(dia);
   const primeiro = vista === "mes" ? semanaDe(mes.inicio)[0] : semana[0];
   const ultimo = vista === "mes" ? semanaDe(mes.fim)[6] : semana[6];
-  const lim = { fim: limitesDoDia(ultimo, fuso).fim, inicio: limitesDoDia(primeiro, fuso).inicio };
+  // Vai 31 dias para trás para apanhar o que começou antes e ainda está a
+  // decorrer: sem isto a terça e a quarta de um carro de segunda a quarta
+  // apareciam livres, embora o Google as mostre ocupadas.
+  const lim = { fim: limitesDoDia(ultimo, fuso).fim, inicio: limitesDoDia(somarDias(primeiro, -31), fuso).inicio };
   const { data, error } = await base
     .from("lexia_agendamentos")
     .select("id, inicio, fim, titulo, nome_cliente, telefone_digitos, servico, executor, valor_previsto, estado, origem, dados, link_google, dia_inteiro")
@@ -59,12 +66,24 @@ export async function agendaDoDia(clienteSlug: string, fuso: string, dia: string
   if (error) throw new Error("Não foi possível ler a agenda.");
 
   const linhas = (data ?? []).filter((l) => !l.dia_inteiro);
-  const diasComEventos = [...new Set(linhas.filter((l) => l.estado !== "cancelado").map((l) => chaveDoDia(l.inicio, fuso)))];
+  // Cada evento entra em todos os dias que ocupa (dentro da grelha), não só no
+  // dia em que começa.
+  const porDias = linhas.flatMap((l) => {
+    const { primeiro: p, ultimo: u } = diasDoEvento(l.inicio, l.fim, fuso);
+    const dias: string[] = [];
+    for (let k = p < primeiro ? primeiro : p; k <= u && k <= ultimo; k = somarDias(k, 1)) dias.push(k);
+    return dias.map((k) => ({ continuaDeAntes: k > p, continuaDepois: k < u, k, l }));
+  });
+  const diasComEventos = [...new Set(porDias.filter(({ l }) => l.estado !== "cancelado").map(({ k }) => k))];
   const noIntervalo = (k: string) => (vista === "dia" ? k === dia : vista === "semana" ? semana.includes(k) : k >= mes.inicio && k <= mes.fim);
-  const eventos: (EventoAgenda & { dia: string })[] = linhas
-    .filter((l) => noIntervalo(chaveDoDia(l.inicio, fuso)))
-    .map((l) => ({
-      dia: chaveDoDia(l.inicio, fuso),
+  const eventos: (EventoAgenda & { dia: string })[] = porDias
+    .filter(({ k }) => noIntervalo(k))
+    // Por dia e, dentro do dia, o que já vinha de trás primeiro e o resto pela hora.
+    .sort((a, b) => a.k.localeCompare(b.k) || Number(b.continuaDeAntes) - Number(a.continuaDeAntes) || a.l.inicio.localeCompare(b.l.inicio))
+    .map(({ continuaDeAntes, continuaDepois, k, l }) => ({
+      continuaDeAntes,
+      continuaDepois,
+      dia: k,
       conversa: l.telefone_digitos ? `whatsapp:${l.telefone_digitos}` : null,
       estado: l.estado,
       executor: l.executor,
@@ -80,7 +99,7 @@ export async function agendaDoDia(clienteSlug: string, fuso: string, dia: string
       valor: l.valor_previsto === null ? null : Number(l.valor_previsto),
     }));
   const contagem: Record<string, number> = {};
-  for (const l of linhas) if (l.estado !== "cancelado") { const k = chaveDoDia(l.inicio, fuso); contagem[k] = (contagem[k] ?? 0) + 1; }
+  for (const { k, l } of porDias) if (l.estado !== "cancelado") contagem[k] = (contagem[k] ?? 0) + 1;
   return { contagem, diasComEventos, eventos, grelha: diasEntre(primeiro, ultimo), mes, semana };
 }
 

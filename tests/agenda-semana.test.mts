@@ -573,3 +573,88 @@ test("uma leitura que falha dá erro em vez de uma semana vazia", async () => {
   assert.equal(agenda.erro, "Não foi possível carregar a agenda.");
   assert.equal(agenda.total, 0);
 });
+
+/*
+ * Eventos de vários dias.
+ *
+ * Caso real medido a 2026-11-25 na agenda do Martim: "Pedro St Iria" de
+ * terça 24/11 às 13h até sexta 27/11 às 18h, e "Carlos Saloio" de sábado
+ * 28/11 às 9h até sexta 04/12 às 12h. O Google mostra os dias do meio
+ * ocupados; a agenda da plataforma punha cada um só no dia em que começa e a
+ * quarta, quinta e sexta apareciam livres.
+ */
+test("um evento de vários dias aparece em todos os dias que ocupa", async () => {
+  reiniciar();
+  base.substituir("lexia_agendamentos", [
+    evento({
+      cliente_slug: A,
+      fim: "2026-11-27T18:00:00+00:00",
+      id: "pedro",
+      inicio: "2026-11-24T13:00:00+00:00",
+      titulo: "Pedro St Iria",
+    }),
+    evento({
+      cliente_slug: A,
+      fim: "2026-12-04T12:00:00+00:00",
+      id: "carlos",
+      inicio: "2026-11-28T09:00:00+00:00",
+      titulo: "Carlos Saloio",
+    }),
+  ]);
+
+  const semana = await semanaDe("2026-11-25");
+  const ids = (chave: string) =>
+    semana.dias.find((dia) => dia.chave === chave)?.eventos.map((e) => e.id);
+
+  assert.deepEqual(ids("2026-11-23"), []);
+  assert.deepEqual(ids("2026-11-24"), ["pedro"]);
+  assert.deepEqual(ids("2026-11-25"), ["pedro"]);
+  assert.deepEqual(ids("2026-11-27"), ["pedro"]);
+  assert.deepEqual(ids("2026-11-28"), ["carlos"]);
+  assert.deepEqual(ids("2026-11-29"), ["carlos"]);
+
+  const quarta = semana.dias.find((dia) => dia.chave === "2026-11-25")!.eventos[0];
+  assert.equal(quarta.continuaDeAntes, true);
+  assert.equal(quarta.continuaDepois, true);
+
+  // Uma marcação de quatro dias é uma marcação, não quatro.
+  assert.equal(semana.total, 2);
+
+  // A semana seguinte só vê o Carlos — que começou na anterior — de segunda a
+  // sexta, e não o conta como marcação dela.
+  const seguinte = await semanaDe("2026-12-01");
+  assert.deepEqual(
+    seguinte.dias.map((dia) => dia.eventos.map((e) => e.id).join()),
+    ["carlos", "carlos", "carlos", "carlos", "carlos", "", ""],
+  );
+  assert.equal(seguinte.total, 0);
+});
+
+test("o dia inteiro de vários dias acaba no dia antes do fim do Google", async () => {
+  reiniciar();
+  // Medido na Miranda: "Kids with Andy" de 23/12 a 25/12 05:00Z — o Google
+  // escreve o fim como a meia-noite do dia seguinte ao último.
+  base.substituir("lexia_agendamentos", [
+    evento({
+      cliente_slug: C,
+      dia_inteiro: true,
+      executor: "Samuel",
+      fim: "2026-12-25T05:00:00+00:00",
+      id: "andy",
+      inicio: "2026-12-23T05:00:00+00:00",
+      titulo: "Kids with Andy",
+    }),
+  ]);
+
+  const semana = await getAgenda({
+    agora: new Date("2026-12-21T12:00:00.000Z"),
+    clienteSlug: C,
+    dia: "2026-12-23",
+    timeZone: BOSTON,
+  });
+
+  assert.deepEqual(
+    semana.dias.map((dia) => dia.eventos.length),
+    [0, 0, 1, 1, 0, 0, 0],
+  );
+});

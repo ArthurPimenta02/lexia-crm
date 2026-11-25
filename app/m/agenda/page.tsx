@@ -128,9 +128,14 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
             ...e,
             passou: Date.parse(e.fim) <= agora.getTime(),
             executor: e.executor ? e.executor.charAt(0).toUpperCase() + e.executor.slice(1) : null,
-            hora: partesNoFuso(e.inicio, c.fuso).hora,
+            // Vários dias: o primeiro mostra a hora de início, o último "até"
+            // a hora de fim, e os do meio "Dia todo". A hora a ordenar fica 00:00
+            // nos dias em que já vinha de trás, para ir para o topo do dia.
+            hora: e.continuaDeAntes ? "00:00" : partesNoFuso(e.inicio, c.fuso).hora,
+            rotuloHora: e.continuaDeAntes ? (e.continuaDepois ? t("Dia inteiro") : t("até {hora}", { hora: partesNoFuso(e.fim, c.fuso).hora })) : null,
             rotuloDia: (() => { const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC", weekday: "long" }).format(new Date(`${e.dia}T12:00:00Z`)); return r.charAt(0).toUpperCase() + r.slice(1); })(),
-            horaFim: partesNoFuso(e.fim, c.fuso).hora,
+            periodo: e.continuaDeAntes || e.continuaDepois ? new Intl.DateTimeFormat(c.locale, { day: "2-digit", hour: "2-digit", hour12: false, minute: "2-digit", month: "2-digit", timeZone: c.fuso }).formatRange(new Date(e.inicio), new Date(e.fim)) : null,
+            horaFim: e.continuaDepois ? "24:00" : partesNoFuso(e.fim, c.fuso).hora,
             valorTexto: e.valor ? moeda(e.valor, c.locale, codigoMoeda) : null,
           }))}
           agrupar={vista === "semana"}

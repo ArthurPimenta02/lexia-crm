@@ -33,6 +33,15 @@ import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
  */
 
 export type EventoAgenda = {
+  /**
+   * `true` nos dias depois do primeiro de um evento que dura vários dias.
+   * O Martim marca um carro de segunda a quarta com um evento só; sem isto a
+   * terça e a quarta apareciam livres na agenda, embora o Google as mostre
+   * ocupadas.
+   */
+  continuaDeAntes: boolean;
+  /** `true` nos dias antes do último de um evento que dura vários dias. */
+  continuaDepois: boolean;
   /** `true` quando o evento ocupa o dia todo e não tem hora. */
   diaInteiro: boolean;
   executor: string | null;
@@ -108,6 +117,40 @@ type AgendamentoRow = {
 };
 
 const UM_DIA = 24 * 60 * 60 * 1000;
+
+/**
+ * Até quantos dias para trás se vai buscar um evento que ainda esteja a
+ * decorrer no período à vista. O mais longo medido a 2026-11-25 tem 7 dias
+ * (Carlos Saloio, 28/11 a 04/12); 31 dá folga para um carro esquecido na
+ * oficina um mês inteiro.
+ */
+const DIAS_PARA_TRAS = 31;
+
+/**
+ * O primeiro e o último dia (no fuso do cliente) que um evento ocupa.
+ *
+ * O fim do Google é exclusivo: um evento de dia inteiro a 23/12 acaba às
+ * 00:00 de 24/12, e um evento das 9h às 18h acaba às 18h. Tirar um
+ * milissegundo ao fim dá o último dia em que o evento ainda está a decorrer,
+ * nos dois casos.
+ */
+export function diasDoEvento(
+  inicio: string,
+  fim: string | null,
+  timeZone: string,
+) {
+  const comeco = new Date(inicio);
+  const primeiro = diaNoFuso(comeco, timeZone);
+  const termo = fim ? new Date(fim) : null;
+
+  if (!termo || Number.isNaN(termo.getTime()) || termo <= comeco) {
+    return { primeiro, ultimo: primeiro };
+  }
+
+  const ultimo = diaNoFuso(new Date(termo.getTime() - 1), timeZone);
+
+  return { primeiro, ultimo: ultimo < primeiro ? primeiro : ultimo };
+}
 
 /**
  * O dia de um instante, escrito `AAAA-MM-DD`, no fuso pedido.
@@ -268,7 +311,11 @@ export async function getAgenda({
   // A janela vai um dia para cada lado em UTC e só depois se filtra pelo dia
   // no fuso do cliente. Sem a folga, um evento das 21h de sexta em Boston —
   // que em UTC já é sábado — ficava de fora da semana a que pertence.
-  const de = `${somarDias(primeiroDaGrelha, -1)}T00:00:00.000Z`;
+  //
+  // Começa ainda mais atrás para apanhar o que começou antes e ainda está a
+  // decorrer — o carro que entrou na segunda e só sai na quarta. Esses
+  // separam-se abaixo pelo dia em que acabam.
+  const de = `${somarDias(primeiroDaGrelha, -1 - DIAS_PARA_TRAS)}T00:00:00.000Z`;
   const ate = `${somarDias(ultimoDaGrelha, 2)}T00:00:00.000Z`;
 
   const { data, error } = await fetchAllSupabaseRows<AgendamentoRow>(
@@ -308,10 +355,22 @@ export async function getAgenda({
       continue;
     }
 
-    const chave = diaNoFuso(instante, timeZone);
-    const doDia = porDia.get(chave);
+    const { primeiro, ultimo } = diasDoEvento(
+      linha.inicio,
+      linha.fim,
+      timeZone,
+    );
+    const visiveis: string[] = [];
 
-    if (!doDia) {
+    for (
+      let chave = primeiro < primeiroDaGrelha ? primeiroDaGrelha : primeiro;
+      chave <= ultimo && chave <= ultimoDaGrelha;
+      chave = somarDias(chave, 1)
+    ) {
+      visiveis.push(chave);
+    }
+
+    if (visiveis.length === 0) {
       continue;
     }
 
@@ -328,7 +387,10 @@ export async function getAgenda({
     // Os dias que a grelha do mês traz do mês ao lado contam-se para fora da
     // soma: o cabeçalho diz "outubro", e dizer "15 marcações" a incluir dois
     // dias de setembro era um número que não batia com coisa nenhuma.
-    if (doPeriodo(chave)) {
+    //
+    // Conta-se uma vez, no dia em que começa: um carro de três dias é uma
+    // marcação, não três. O que começou antes do período não é marcação dele.
+    if (porDia.has(primeiro) && doPeriodo(primeiro)) {
       total += 1;
 
       if (linha.origem === "agente") {
@@ -336,21 +398,25 @@ export async function getAgenda({
       }
     }
 
-    doDia.push({
-      diaInteiro: linha.dia_inteiro === true,
-      executor: linha.executor,
-      fim: linha.fim,
-      id: linha.id,
-      inicio: linha.inicio,
-      linkGoogle: linha.link_google,
-      localizacao: linha.localizacao,
-      nomeCliente: linha.nome_cliente,
-      origem: linha.origem,
-      servico: linha.servico,
-      telefone: linha.telefone,
-      titulo: linha.titulo,
-      valorPrevisto: numero(linha.valor_previsto),
-    });
+    for (const chave of visiveis) {
+      porDia.get(chave)?.push({
+        continuaDeAntes: chave > primeiro,
+        continuaDepois: chave < ultimo,
+        diaInteiro: linha.dia_inteiro === true,
+        executor: linha.executor,
+        fim: linha.fim,
+        id: linha.id,
+        inicio: linha.inicio,
+        linkGoogle: linha.link_google,
+        localizacao: linha.localizacao,
+        nomeCliente: linha.nome_cliente,
+        origem: linha.origem,
+        servico: linha.servico,
+        telefone: linha.telefone,
+        titulo: linha.titulo,
+        valorPrevisto: numero(linha.valor_previsto),
+      });
+    }
   }
 
   // Dentro do dia, o que ocupa o dia todo vem primeiro — não tem hora para

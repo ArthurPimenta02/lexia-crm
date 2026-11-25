@@ -191,6 +191,27 @@ function horas(
   locale: string,
   t: FuncaoT,
 ) {
+  const variosDias = evento.continuaDeAntes || evento.continuaDepois;
+
+  if (variosDias && evento.fim) {
+    // Vários dias: as duas pontas levam a data, senão "09:00–18:00" num carro
+    // de segunda a quarta parecia um dia só.
+    const ultimoInstante = evento.diaInteiro
+      ? new Date(new Date(evento.fim).getTime() - 1)
+      : new Date(evento.fim);
+
+    return new Intl.DateTimeFormat(locale, {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone,
+      ...(evento.diaInteiro
+        ? {}
+        : { hour: "2-digit", hour12: false, minute: "2-digit" }),
+    })
+      .formatRange(new Date(evento.inicio), ultimoInstante)
+      .replace(/[\u2009\u202f\u00a0]/g, " ");
+  }
+
   if (evento.diaInteiro) {
     return t("Dia inteiro");
   }
@@ -393,14 +414,17 @@ function EventoCompacto({
 }) {
   const { locale, t } = useIdioma();
   const titulo = tituloDoEvento(evento, t);
-  const hora = evento.diaInteiro
-    ? null
-    : new Intl.DateTimeFormat(locale, {
-        hour: "2-digit",
-        hour12: false,
-        minute: "2-digit",
-        timeZone,
-      }).format(new Date(evento.inicio));
+  // Num evento de vários dias a hora só aparece no dia em que começa: nos
+  // outros a célula do mês não tem espaço para um "até 18:00".
+  const hora =
+    evento.diaInteiro || evento.continuaDeAntes
+      ? null
+      : new Intl.DateTimeFormat(locale, {
+          hour: "2-digit",
+          hour12: false,
+          minute: "2-digit",
+          timeZone,
+        }).format(new Date(evento.inicio));
 
   return (
     <span className="flex w-full min-w-0 items-start gap-1 px-1 text-left text-[11px] leading-tight text-foreground">
@@ -1005,6 +1029,28 @@ const horaCurta = (iso: string, timeZone: string, locale: string) =>
     timeZone,
   }).format(new Date(iso));
 
+/**
+ * A hora que um evento mostra num dia da grelha. Num evento de vários dias,
+ * o primeiro dia mostra a hora a que começa, o último "até" a hora a que
+ * acaba e os do meio "Dia inteiro" — como o Google.
+ */
+const horaNoDia = (
+  evento: EventoAgenda,
+  timeZone: string,
+  locale: string,
+  t: FuncaoT,
+) => {
+  if (evento.diaInteiro || (evento.continuaDeAntes && evento.continuaDepois)) {
+    return t("Dia inteiro");
+  }
+
+  if (evento.continuaDeAntes && evento.fim) {
+    return t("até {hora}", { hora: horaCurta(evento.fim, timeZone, locale) });
+  }
+
+  return horaCurta(evento.inicio, timeZone, locale);
+};
+
 type Bloco = {
   evento: EventoAgenda;
   faixa: number;
@@ -1031,7 +1077,10 @@ const duracaoEmMinutos = (evento: EventoAgenda) =>
  * tapavam a semana inteira e espremiam os outros atendimentos.
  */
 const vaiParaOTopo = (evento: EventoAgenda) =>
-  evento.diaInteiro || duracaoEmMinutos(evento) >= LONGO_MIN;
+  evento.diaInteiro ||
+  evento.continuaDeAntes ||
+  evento.continuaDepois ||
+  duracaoEmMinutos(evento) >= LONGO_MIN;
 
 function arrumarDia(eventos: EventoAgenda[], timeZone: string): Bloco[] {
   const blocos: Bloco[] = eventos
@@ -1224,9 +1273,10 @@ function SemanaPorHora({
                     onClick={() => abrirEvento(evento.id)}
                     type="button"
                   >
-                    {evento.diaInteiro ? null : (
+                    {evento.diaInteiro ||
+                    (evento.continuaDeAntes && evento.continuaDepois) ? null : (
                       <span className="font-semibold tabular-nums">
-                        {horaCurta(evento.inicio, timeZone, locale)}{" "}
+                        {horaNoDia(evento, timeZone, locale, t)}{" "}
                       </span>
                     )}
                     {tituloDoEvento(evento, t)}
@@ -1415,9 +1465,7 @@ function SemanaEmLista({
                         type="button"
                       >
                         <span className="w-11 shrink-0 pt-0.5 text-xs font-semibold text-foreground tabular-nums">
-                          {evento.diaInteiro
-                            ? t("Dia inteiro")
-                            : horaCurta(evento.inicio, timeZone, locale)}
+                          {horaNoDia(evento, timeZone, locale, t)}
                         </span>
                         <span
                           aria-hidden="true"
@@ -1550,7 +1598,10 @@ export function AgendaPanel({
     <BotaoExportar
       assunto="agenda"
       colunas={colunasDaAgenda(moeda, timeZone)}
-      linhas={agenda.dias.flatMap((candidato) => candidato.eventos)}
+      // Um carro de três dias está nos três dias, mas é uma linha só.
+      linhas={agenda.dias
+        .flatMap((candidato) => candidato.eventos)
+        .filter((candidato) => !candidato.continuaDeAntes)}
     />
   );
 
