@@ -1,11 +1,11 @@
 "use client";
 
 import { Check, Search, X } from "lucide-react";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 
 import { FormSubmitButton } from "@/app/components/form-submit-button";
 import { useIdioma } from "@/app/components/idioma";
-import type { MarcarResultado } from "@/app/app/agenda/actions";
+import { horariosLivresAction, type MarcarResultado } from "@/app/app/agenda/actions";
 import type { FraseParaTraduzir } from "@/lib/agenda/marcar";
 import type { ContactoParaEscolha } from "@/lib/clientes/read";
 import type { ServicoAgendavel } from "@/lib/servicos/read";
@@ -92,10 +92,12 @@ const soDigitos = (texto: string) => texto.replace(/\D/g, "");
  * lista ele está.
  */
 function EscolhaDoCliente({
+  aoDigitar,
   contactos,
   escolhido,
   escolher,
 }: {
+  aoDigitar: (texto: string) => void;
   contactos: ContactoParaEscolha[];
   escolhido: ContactoParaEscolha | null;
   escolher: (contacto: ContactoParaEscolha | null) => void;
@@ -144,6 +146,7 @@ function EscolhaDoCliente({
             onClick={() => {
               escolher(null);
               setProcura("");
+              aoDigitar("");
             }}
             type="button"
           >
@@ -191,6 +194,7 @@ function EscolhaDoCliente({
           id="marcar-cliente"
           onChange={(evento) => {
             setProcura(evento.target.value);
+            aoDigitar(evento.target.value);
             setAberto(true);
             setRealcado(0);
           }}
@@ -286,7 +290,7 @@ function EscolhaDoCliente({
             })
           : sugestoes.length === 0
             ? t(
-                "Nenhum cliente com esse nome ou número. Cadastre-o primeiro na aba Clientes.",
+                "Cliente novo? Escreva o telefone abaixo: a ficha é criada sozinha ao agendar.",
               )
             : t("Clique no cliente certo para o agendamento ficar no nome dele.")}
       </p>
@@ -314,6 +318,7 @@ export function NovaMarcacaoForm({
   dia,
   fechar,
   moeda,
+  mostrarViatura,
   servicos,
   timeZone,
 }: {
@@ -323,6 +328,7 @@ export function NovaMarcacaoForm({
   dia: string;
   fechar: () => void;
   moeda: string | null;
+  mostrarViatura: boolean;
   servicos: ServicoAgendavel[];
   timeZone: string;
 }) {
@@ -333,6 +339,13 @@ export function NovaMarcacaoForm({
   >(action, null);
 
   const [escolhido, setEscolhido] = useState<ContactoParaEscolha | null>(null);
+  // 25/11 (o mesmo do app): cliente novo com nome + telefone, ficha criada sozinha.
+  const [nomeDigitado, setNomeDigitado] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [origem, setOrigem] = useState("");
+  const [dataSel, setDataSel] = useState(dia);
+  const [hora, setHora] = useState("");
+  const [livresDe, setLivresDe] = useState<{ lista: string[]; pergunta: string } | null>(null);
   const [servicoId, setServicoId] = useState("");
   const [executor, setExecutor] = useState("");
   const [duracao, setDuracao] = useState("");
@@ -347,13 +360,14 @@ export function NovaMarcacaoForm({
   const sugerirTitulo = (
     nomeDoServico: string | null,
     contacto: ContactoParaEscolha | null,
+    nomeLivre: string = nomeDigitado,
   ) => {
     if (tituloMeu) {
       return;
     }
 
     setTitulo(
-      [nomeDoServico, contacto?.nome].filter(Boolean).join(" — ").trim(),
+      [nomeDoServico, contacto?.nome ?? nomeLivre.trim()].filter(Boolean).join(" — ").trim(),
     );
   };
 
@@ -383,6 +397,24 @@ export function NovaMarcacaoForm({
     setEscolhido(contacto);
     sugerirTitulo(servico?.nome ?? null, contacto);
   };
+
+  const digitosTel = telefone.replace(/\D/g, "");
+  const donoDoNumero =
+    !escolhido && digitosTel.length >= 8
+      ? (contactos.find((c) => c.telefoneDigitos.length >= 8 && c.telefoneDigitos.slice(-9) === digitosTel.slice(-9)) ?? null)
+      : null;
+
+  const pergunta = servico && executor && Number(duracao) > 0 ? `${dataSel}|${executor}|${duracao}` : "";
+  useEffect(() => {
+    if (!pergunta) return;
+    const [d, ex, min] = pergunta.split("|");
+    let vivo = true;
+    horariosLivresAction(d, ex, Number(min))
+      .then((lista) => { if (vivo) setLivresDe({ lista, pergunta }); })
+      .catch(() => { if (vivo) setLivresDe({ lista: [], pergunta }); });
+    return () => { vivo = false; };
+  }, [pergunta]);
+  const livres = livresDe && livresDe.pergunta === pergunta ? livresDe.lista : null;
 
   const avisos = resultado?.avisos ?? [];
   const conflitos = resultado?.conflitos ?? [];
@@ -464,12 +496,76 @@ export function NovaMarcacaoForm({
       </div>
 
       <EscolhaDoCliente
+        aoDigitar={(texto) => {
+          setNomeDigitado(texto);
+          sugerirTitulo(servico?.nome ?? null, null, texto);
+        }}
         contactos={contactos}
         escolher={escolherContacto}
         escolhido={escolhido}
       />
 
-      <input name="contacto_id" type="hidden" value={escolhido?.id ?? ""} />
+      <input name="contacto_id" type="hidden" value={escolhido?.id ?? donoDoNumero?.id ?? ""} />
+      <input name="nome" type="hidden" value={escolhido ? "" : nomeDigitado} />
+
+      {!escolhido && nomeDigitado.trim() ? (
+        <div className="flex flex-wrap items-start gap-3">
+          <label className={`${labelClass} min-w-48 flex-1`} htmlFor="marcar-telefone">
+            {t("Telefone")}
+            <input
+              autoComplete="tel"
+              className={`${inputClass} w-full`}
+              id="marcar-telefone"
+              inputMode="tel"
+              name="telefone"
+              onChange={(evento) => setTelefone(evento.target.value)}
+              placeholder={t("Com o indicativo, se for de outro país")}
+              type="tel"
+              value={telefone}
+            />
+            {donoDoNumero ? (
+              <button
+                className="self-start text-left text-xs font-semibold text-positive underline underline-offset-4"
+                onClick={() => escolherContacto(donoDoNumero)}
+                type="button"
+              >
+                {t("Já é cliente: {nome}. Usar esta ficha", { nome: donoDoNumero.nome })}
+              </button>
+            ) : digitosTel.length >= 8 ? (
+              <span className="text-xs font-normal text-positive">
+                {t("Cliente novo. A ficha é criada sozinha quando você agendar.")}
+              </span>
+            ) : null}
+          </label>
+
+          {!donoDoNumero ? (
+            <label className={`${labelClass} w-44`} htmlFor="marcar-origem">
+              {t("De onde veio? (opcional)")}
+              <select
+                className={`${inputClass} w-full`}
+                id="marcar-origem"
+                name="origem"
+                onChange={(evento) => setOrigem(evento.target.value)}
+                value={origem}
+              >
+                <option value="">—</option>
+                <option value="meta">{t("Anúncio")}</option>
+                <option value="organico">{t("Orgânico")}</option>
+                <option value="indicacao">{t("Indicação")}</option>
+                <option value="google">{t("Google")}</option>
+                <option value="outro">{t("Outro")}</option>
+              </select>
+            </label>
+          ) : null}
+
+          {origem === "outro" && !donoDoNumero ? (
+            <label className={`${labelClass} min-w-48 flex-1`} htmlFor="marcar-origem-nota">
+              {t("Escreva de onde veio")}
+              <input className={`${inputClass} w-full`} id="marcar-origem-nota" maxLength={200} name="origem_nota" type="text" />
+            </label>
+          ) : null}
+        </div>
+      ) : null}
 
       <label className={labelClass} htmlFor="marcar-servico">
         {t("Serviço")}
@@ -513,11 +609,12 @@ export function NovaMarcacaoForm({
           {t("Dia")}
           <input
             className={`${inputClass} w-full`}
-            defaultValue={dia}
             id="marcar-data"
             name="data"
+            onChange={(evento) => { setDataSel(evento.target.value); setHora(""); }}
             required
             type="date"
+            value={dataSel}
           />
         </label>
 
@@ -527,9 +624,11 @@ export function NovaMarcacaoForm({
             className={`${inputClass} w-full`}
             id="marcar-hora"
             name="hora"
+            onChange={(evento) => setHora(evento.target.value)}
             required
             step={900}
             type="time"
+            value={hora}
           />
         </label>
 
@@ -558,19 +657,25 @@ export function NovaMarcacaoForm({
           </select>
         </label>
 
+        {/* Duração sempre em horas (pedido do Arthur, 25/11); o valor enviado continua em minutos. */}
         <label className={`${labelClass} w-32`} htmlFor="marcar-duracao">
-          {t("Duração (min)")}
-          <input
+          {t("Duração")}
+          <select
             className={`${inputClass} w-full`}
             id="marcar-duracao"
-            inputMode="numeric"
-            min={1}
             name="duracao"
-            onChange={(evento) => setDuracao(evento.target.value)}
-            step={15}
-            type="number"
+            onChange={(evento) => { setDuracao(evento.target.value); setHora(""); }}
             value={duracao}
-          />
+          >
+            {duracao === "" ? <option value="">—</option> : null}
+            {Array.from(new Set([...Array.from({ length: 20 }, (_, i) => (i + 1) * 30), ...(Number(duracao) > 0 ? [Number(duracao)] : [])]))
+              .sort((a, b) => a - b)
+              .map((minutos) => (
+                <option key={minutos} value={String(minutos)}>
+                  {new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(minutos / 60)} h
+                </option>
+              ))}
+          </select>
         </label>
 
         <label className={`${labelClass} w-32`} htmlFor="marcar-valor">
@@ -589,6 +694,7 @@ export function NovaMarcacaoForm({
           />
         </label>
 
+        {mostrarViatura ? (
         <label
           className={`${labelClass} min-w-40 flex-1`}
           htmlFor="marcar-viatura"
@@ -603,7 +709,35 @@ export function NovaMarcacaoForm({
             type="text"
           />
         </label>
+        ) : null}
       </div>
+
+      {servico && executor ? (
+        <div className="flex flex-col gap-1.5">
+          <span className={labelTexto}>{t("Horários livres")}</span>
+          {livres === null ? (
+            <p className="text-xs text-muted-foreground">{t("Procurando horários livres…")}</p>
+          ) : livres.length === 0 ? (
+            <p className="text-xs text-muted-foreground">{t("Nenhum horário livre neste dia.")}</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {livres.map((h) => (
+                <button
+                  aria-pressed={hora === h}
+                  className={`h-8 rounded-full border px-3 text-xs font-semibold tabular-nums transition ${
+                    hora === h ? "border-foreground bg-foreground text-background" : "border-border bg-surface hover:bg-muted"
+                  }`}
+                  key={h}
+                  onClick={() => setHora(h)}
+                  type="button"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <label className={labelClass} htmlFor="marcar-observacoes">
         {t("Observações")}

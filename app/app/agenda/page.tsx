@@ -1,3 +1,4 @@
+import { mostraViatura } from "@/lib/clientes/ficha";
 import { redirect } from "next/navigation";
 
 import { marcarNaAgendaAction } from "@/app/app/agenda/actions";
@@ -95,8 +96,9 @@ export default async function AgendaPage({
     : [[], []];
 
   const marcar: MarcarNaAgenda | null =
-    servicos.length > 0 && contactos.length > 0
-      ? { action: marcarNaAgendaAction, contactos, servicos }
+    // 25/11: já não exige clientes na base — um cliente novo cria a ficha ao agendar.
+    servicos.length > 0
+      ? { action: marcarNaAgendaAction, contactos, mostrarViatura: mostraViatura(profile.cliente_slug), servicos }
       : null;
 
   return (

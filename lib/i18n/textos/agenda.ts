@@ -14,6 +14,16 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
+    "Procurando horários livres…": "A procurar horários livres…",
+    "Cancelar agendamento": "Cancelar marcação",
+    "Cancelar este agendamento? Ele sai da agenda do Google e o cliente não é avisado.": "Cancelar esta marcação? Sai da agenda do Google e o cliente não é avisado.",
+    "Cliente novo. A ficha é criada sozinha quando você agendar.": "Cliente novo. A ficha é criada sozinha quando marcar.",
+    "Cliente novo? Escreva o telefone abaixo: a ficha é criada sozinha ao agendar.": "Cliente novo? Escreva o telefone abaixo: a ficha é criada sozinha ao marcar.",
+    "Com o indicativo, se for de outro país": "Com o indicativo, se for de outro país",
+    "De onde veio? (opcional)": "De onde veio? (opcional)",
+    "Horários livres": "Horas livres",
+    "Já é cliente: {nome}. Usar esta ficha": "Já é cliente: {nome}. Usar esta ficha",
     // Páginas
     Agenda: "Agenda",
     Pipeline: "Pipeline",
@@ -224,6 +234,16 @@ const textos: TextosDaArea = {
     "Ainda não há ninguém no pipeline": "Ainda não há ninguém no pipeline",
   },
   es: {
+    // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
+    "Procurando horários livres…": "Buscando horarios libres…",
+    "Cancelar agendamento": "Cancelar cita",
+    "Cancelar este agendamento? Ele sai da agenda do Google e o cliente não é avisado.": "¿Cancelar esta cita? Sale de la agenda de Google y el cliente no recibe aviso.",
+    "Cliente novo. A ficha é criada sozinha quando você agendar.": "Cliente nuevo. La ficha se crea sola al agendar.",
+    "Cliente novo? Escreva o telefone abaixo: a ficha é criada sozinha ao agendar.": "¿Cliente nuevo? Escriba el teléfono abajo: la ficha se crea sola al agendar.",
+    "Com o indicativo, se for de outro país": "Con el prefijo, si es de otro país",
+    "De onde veio? (opcional)": "¿De dónde vino? (opcional)",
+    "Horários livres": "Horarios libres",
+    "Já é cliente: {nome}. Usar esta ficha": "Ya es cliente: {nome}. Usar esta ficha",
     // Páginas
     Agenda: "Agenda",
     Pipeline: "Embudo",
@@ -432,6 +452,16 @@ const textos: TextosDaArea = {
     "Ainda não há ninguém no pipeline": "Todavía no hay nadie en el pipeline",
   },
   en: {
+    // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
+    "Procurando horários livres…": "Looking for available times…",
+    "Cancelar agendamento": "Cancel appointment",
+    "Cancelar este agendamento? Ele sai da agenda do Google e o cliente não é avisado.": "Cancel this appointment? It's removed from Google Calendar and the client isn't notified.",
+    "Cliente novo. A ficha é criada sozinha quando você agendar.": "New client. The profile is created automatically when you book.",
+    "Cliente novo? Escreva o telefone abaixo: a ficha é criada sozinha ao agendar.": "New client? Type the phone below: the profile is created automatically when you book.",
+    "Com o indicativo, se for de outro país": "With the country code, if from another country",
+    "De onde veio? (opcional)": "Where did they come from? (optional)",
+    "Horários livres": "Available times",
+    "Já é cliente: {nome}. Usar esta ficha": "Already a client: {nome}. Use this profile",
     // Páginas
     Agenda: "Calendar",
     Pipeline: "Pipeline",

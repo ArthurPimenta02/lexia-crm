@@ -14,7 +14,10 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+
+import { cancelarAction, presencaAction } from "@/app/app/agenda/actions";
 
 import {
   NovaMarcacaoForm,
@@ -490,6 +493,8 @@ const PONTOS_NO_DIA = 3;
 export type MarcarNaAgenda = {
   action: MarcarAction;
   contactos: ContactoParaEscolha[];
+  /** "Veículo" só para quem trabalha com carros (lib/clientes/ficha.ts). */
+  mostrarViatura: boolean;
   servicos: ServicoAgendavel[];
 };
 
@@ -536,6 +541,7 @@ function PainelDeMarcar({
           dia={dia}
           fechar={fechar}
           moeda={moeda}
+          mostrarViatura={marcar.mostrarViatura}
           servicos={marcar.servicos}
           timeZone={timeZone}
         />
@@ -576,7 +582,9 @@ function PainelDoDia({
   timeZone: string;
 }) {
   const { locale, t } = useIdioma();
-  const [aMarcar, setAMarcar] = useState(false);
+  // 25/11 (como no Google Agenda): clicar num dia de hoje em diante abre já a
+  // marcação nesse dia. Dias passados abrem só a lista.
+  const [aMarcar, setAMarcar] = useState(() => Boolean(marcar) && dia.chave >= new Intl.DateTimeFormat("en-CA", { timeZone }).format(new Date()));
 
   usePainel(fechar, !temEventoPorCima);
 
@@ -634,7 +642,8 @@ function PainelDoDia({
               dia={dia.chave}
               fechar={() => setAMarcar(false)}
               moeda={moeda}
-              servicos={marcar.servicos}
+              mostrarViatura={marcar.mostrarViatura}
+          servicos={marcar.servicos}
               timeZone={timeZone}
             />
           ) : null}
@@ -883,6 +892,8 @@ function PainelDoEvento({
           )}
         </div>
 
+        <PresencaECancelar evento={evento} fechar={fechar} />
+
         {/*
           O Google é a fonte da verdade, por isso é lá que se altera. Este link
           é o que antes estava no cartão.
@@ -901,6 +912,82 @@ function PainelDoEvento({
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/** Compareceu / faltou e cancelar (25/11, o mesmo do app). */
+function PresencaECancelar({ evento, fechar }: { evento: EventoAgenda; fechar: () => void }) {
+  const { t } = useIdioma();
+  const router = useRouter();
+  const [agora] = useState(() => Date.now());
+  const [presenca, setPresenca] = useState(evento.presenca ?? null);
+  const [confirmar, setConfirmar] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [pendente, inicia] = useTransition();
+
+  // Feriado ou dia inteiro não pede resposta; um atendimento posto à mão sem
+  // telefone pede (na Miranda são a maioria). Cancelar só com cliente.
+  if (evento.diaInteiro) return null;
+  const comecou = Date.parse(evento.inicio) <= agora;
+  if (!comecou && !evento.nomeCliente && !evento.telefone) return null;
+
+  const marcar = (p: "compareceu" | "faltou" | null) => {
+    const antes = presenca;
+    setPresenca(p);
+    setErro(null);
+    inicia(async () => {
+      const r = await presencaAction(evento.id, p);
+      if (!r.ok) { setPresenca(antes); setErro(t(r.erro ?? "Não foi possível guardar.")); return; }
+      router.refresh();
+    });
+  };
+  const cancelar = () => inicia(async () => {
+    const r = await cancelarAction(evento.id);
+    if (!r.ok) { setErro(t(r.erro ?? "Não foi possível cancelar.")); setConfirmar(false); return; }
+    router.refresh();
+    fechar();
+  });
+
+  return (
+    <div className="flex shrink-0 flex-col gap-2 border-t border-border px-4 py-3 sm:px-5">
+      {comecou ? (
+        presenca ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className={`text-sm font-semibold ${presenca === "compareceu" ? "text-positive" : "text-danger"}`}>
+              {presenca === "compareceu" ? t("Compareceu") : t("Faltou")}
+            </p>
+            <button className="ds-botao ds-botao-secundario ds-botao-p" disabled={pendente} onClick={() => marcar(null)} type="button">
+              {t("Desfazer")}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="flex-1 text-sm font-semibold text-foreground">{t("O cliente compareceu?")}</p>
+            <button className="ds-botao ds-botao-primario ds-botao-p" disabled={pendente} onClick={() => marcar("compareceu")} type="button">
+              {t("Compareceu")}
+            </button>
+            <button className="ds-botao ds-botao-secundario ds-botao-p" disabled={pendente} onClick={() => marcar("faltou")} type="button">
+              {t("Faltou")}
+            </button>
+          </div>
+        )
+      ) : confirmar ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="flex-1 text-sm text-foreground">{t("Cancelar este agendamento? Ele sai da agenda do Google e o cliente não é avisado.")}</p>
+          <button className="ds-botao ds-botao-secundario ds-botao-p" disabled={pendente} onClick={() => setConfirmar(false)} type="button">
+            {t("Manter")}
+          </button>
+          <button className="ds-botao ds-botao-primario ds-botao-p" disabled={pendente} onClick={cancelar} type="button">
+            {t("Sim, cancelar")}
+          </button>
+        </div>
+      ) : (
+        <button className="self-start text-sm font-semibold text-danger underline underline-offset-4" onClick={() => setConfirmar(true)} type="button">
+          {t("Cancelar agendamento")}
+        </button>
+      )}
+      {erro ? <p className="text-xs text-danger" role="alert">{erro}</p> : null}
     </div>
   );
 }

@@ -61,7 +61,7 @@ export default async function AgendamentoMovel({ params, searchParams }: { param
       <AcoesAgendamento
         conversa={a.conversa}
         id={a.id}
-        pedePresenca={passou && !cancelado && Boolean(a.nome || a.telefone)}
+        pedePresenca={passou && !cancelado}
         podeMudar={a.gerido && !cancelado && !passou}
         presenca={a.presenca}
         telefone={a.telefone}
