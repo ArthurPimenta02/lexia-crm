@@ -17,16 +17,20 @@ const textos: TextosDaArea = {
     // Páginas
     Agenda: "Agenda",
     Pipeline: "Pipeline",
-    "Sem cliente associado a esta conta.": "Sem cliente associado a esta conta.",
-    "Não foi possível carregar a agenda.": "Não foi possível carregar a agenda.",
-    "Não foi possível carregar o pipeline.": "Não foi possível carregar o pipeline.",
+    "Sem cliente associado a esta conta.":
+      "Sem cliente associado a esta conta.",
+    "Não foi possível carregar a agenda.":
+      "Não foi possível carregar a agenda.",
+    "Não foi possível carregar o pipeline.":
+      "Não foi possível carregar o pipeline.",
 
     // Agenda
     "Dia inteiro": "Dia todo",
     "até {hora}": "até {hora}",
     "Nada agendado neste dia.": "Nada marcado neste dia.",
     "1 agendamento, {agente} pelo agente.": "1 marcação, {agente} pelo agente.",
-    "{n} agendamentos, {agente} pelo agente.": "{n} marcações, {agente} pelo agente.",
+    "{n} agendamentos, {agente} pelo agente.":
+      "{n} marcações, {agente} pelo agente.",
     "Sem título": "Sem título",
     Agente: "Agente",
     Manual: "À mão",
@@ -76,7 +80,8 @@ const textos: TextosDaArea = {
     Cancelar: "Cancelar",
     "Escolha o serviço": "Escolhe o serviço",
     "Nome do evento": "Nome do evento",
-    "ex.: Lavagem Detalhada — Martim Cordeiro": "ex.: Lavagem Detalhada — Martim Cordeiro",
+    "ex.: Lavagem Detalhada — Martim Cordeiro":
+      "ex.: Lavagem Detalhada — Martim Cordeiro",
     Dia: "Dia",
     Hora: "Hora",
     "Duração (min)": "Duração (min)",
@@ -94,18 +99,23 @@ const textos: TextosDaArea = {
     Agendar: "Marcar",
 
     // Mensagens da server action e de lib/agenda/marcar.ts
-    "Sessão sem permissão para agendar.": "Sessão sem permissão para marcar na agenda.",
+    "Sessão sem permissão para agendar.":
+      "Sessão sem permissão para marcar na agenda.",
     "Faltam dados para agendar.": "Faltam dados para marcar.",
-    "Há uma coisa para confirmar antes de agendar.": "Há uma coisa a confirmar antes de marcar.",
-    "Há {n} coisas para confirmar antes de agendar.": "Há {n} coisas a confirmar antes de marcar.",
+    "Há uma coisa para confirmar antes de agendar.":
+      "Há uma coisa a confirmar antes de marcar.",
+    "Há {n} coisas para confirmar antes de agendar.":
+      "Há {n} coisas a confirmar antes de marcar.",
     "{executor} já tem trabalho marcado neste horário.":
       "{executor} já tem trabalho marcado a esta hora.",
-    '"{servico}" ficou agendado para {cliente}.': '"{servico}" ficou marcado para {cliente}.',
+    '"{servico}" ficou agendado para {cliente}.':
+      '"{servico}" ficou marcado para {cliente}.',
     "O agendamento não entrou.": "A marcação não entrou.",
     "Escolha o cliente.": "Escolhe o cliente.",
     "Escolha o serviço.": "Escolhe o serviço.",
     "Escolha o dia e a hora.": "Escolhe o dia e a hora.",
-    "Não foi possível ler a ficha do cliente.": "Não foi possível ler a ficha do cliente.",
+    "Não foi possível ler a ficha do cliente.":
+      "Não foi possível ler a ficha do cliente.",
     "Cliente não encontrado na base.": "Cliente não encontrado na base.",
     "Esta ficha não tem nome. Coloque o nome primeiro.":
       "Esta ficha não tem nome. Põe o nome primeiro.",
@@ -131,6 +141,8 @@ const textos: TextosDaArea = {
       "São {horas} horas seguidas — este serviço costuma ser feito em mais do que um dia.",
     "O agendamento pelo painel ainda não está ligado ao n8n.":
       "A marcação pelo painel ainda não está ligada ao n8n.",
+    "Este profissional ainda não tem agenda do Google ligada à Lexia.":
+      "Este profissional ainda não tem agenda do Google ligada à Lexia.",
     "A agenda não respondeu a tempo. Confirma no Google se o agendamento entrou antes de tentar de novo.":
       "A agenda não respondeu a tempo. Confirma no Google se a marcação entrou antes de tentares outra vez.",
     "A agenda recusou o agendamento. Tente de novo daqui a pouco.":
@@ -151,13 +163,16 @@ const textos: TextosDaArea = {
     "A conversa está ativa e a bola está com a gente.":
       "A conversa está viva e a bola está do nosso lado.",
     "Tem um agendamento por acontecer.": "Tem uma marcação por acontecer.",
-    "Já foi atendido. Aqui se ganha a recompra.": "Já foi atendido. Aqui ganha-se a repetição.",
+    "Já foi atendido. Aqui se ganha a recompra.":
+      "Já foi atendido. Aqui ganha-se a repetição.",
     "Um mês sem dizer nada. Fica fora da vista até alguém procurar.":
       "Um mês sem dizer nada. Fica fora da vista até alguém o procurar.",
     "Escreveram e ainda ninguém respondeu. Quem já tem agendamento fica em Agendado, com o aviso vermelho no cartão.":
       "Escreveram e ainda ninguém respondeu. Quem já tem marcação fica em Agendado, com o aviso vermelho no cartão.",
-    "Escreveu hoje e ainda não teve resposta.": "Escreveu hoje e ainda não teve resposta.",
-    "Escreveu há 1 dia e ainda não teve resposta.": "Escreveu há 1 dia e ainda não teve resposta.",
+    "Escreveu hoje e ainda não teve resposta.":
+      "Escreveu hoje e ainda não teve resposta.",
+    "Escreveu há 1 dia e ainda não teve resposta.":
+      "Escreveu há 1 dia e ainda não teve resposta.",
     "Escreveu há {n} dias e ainda não teve resposta.":
       "Escreveu há {n} dias e ainda não teve resposta.",
     "A conversa está ativa.": "A conversa está viva.",
@@ -180,9 +195,10 @@ const textos: TextosDaArea = {
     // Redesenho das telas (06/11)
     "1 atendimento": "1 marcação",
     "{n} atendimentos": "{n} marcações",
-    "nesta semana, {agente} pelo agente.": "nesta semana, {agente} pelo agente.",
+    "nesta semana, {agente} pelo agente.":
+      "nesta semana, {agente} pelo agente.",
     "neste mês, {agente} pelo agente.": "neste mês, {agente} pelo agente.",
-    "Vista": "Vista",
+    Vista: "Vista",
     "Próximo: {nome} às {hora}": "Próximo: {nome} às {hora}",
     "Nada mais por hoje.": "Nada mais por hoje.",
     "1 marcado à mão.": "1 marcada à mão.",
@@ -192,23 +208,27 @@ const textos: TextosDaArea = {
     "Dia mais cheio": "Dia mais cheio",
     "Dias livres": "Dias livres",
     "Sem nada agendado.": "Sem nada marcado.",
-    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.": "As marcações aparecem aqui assim que entram no Google Calendar, pelo agente ou à mão.",
+    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.":
+      "As marcações aparecem aqui assim que entram no Google Calendar, pelo agente ou à mão.",
     "Semana livre": "Semana livre",
     "A linha vermelha é a hora atual.": "A linha vermelha é a hora atual.",
-    "hoje": "hoje",
+    hoje: "hoje",
     "Pipeline · atualiza sozinho": "Pipeline · atualiza sozinho",
     "1 pessoa": "1 pessoa",
     "{n} pessoas": "{n} pessoas",
-    "Ninguém sem resposta, {n} em andamento.": "Ninguém sem resposta, {n} a decorrer.",
+    "Ninguém sem resposta, {n} em andamento.":
+      "Ninguém sem resposta, {n} a decorrer.",
     "sem resposta e {n} em andamento.": "sem resposta e {n} a decorrer.",
-    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.": "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.",
+    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.":
+      "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.",
     "Ainda não há ninguém no pipeline": "Ainda não há ninguém no pipeline",
   },
   es: {
     // Páginas
     Agenda: "Agenda",
     Pipeline: "Embudo",
-    "Sem cliente associado a esta conta.": "No hay ningún cliente asociado a esta cuenta.",
+    "Sem cliente associado a esta conta.":
+      "No hay ningún cliente asociado a esta cuenta.",
     "Não foi possível carregar a agenda.": "No se pudo cargar la agenda.",
     "Não foi possível carregar o pipeline.": "No se pudo cargar el embudo.",
 
@@ -217,7 +237,8 @@ const textos: TextosDaArea = {
     "até {hora}": "hasta las {hora}",
     "Nada agendado neste dia.": "Nada agendado este día.",
     "1 agendamento, {agente} pelo agente.": "1 cita, {agente} por el agente.",
-    "{n} agendamentos, {agente} pelo agente.": "{n} citas, {agente} por el agente.",
+    "{n} agendamentos, {agente} pelo agente.":
+      "{n} citas, {agente} por el agente.",
     "Sem título": "Sin título",
     Agente: "Agente",
     Manual: "Manual",
@@ -267,7 +288,8 @@ const textos: TextosDaArea = {
     Cancelar: "Cancelar",
     "Escolha o serviço": "Elige el servicio",
     "Nome do evento": "Nombre del evento",
-    "ex.: Lavagem Detalhada — Martim Cordeiro": "p. ej.: Lavado Detallado — Martim Cordeiro",
+    "ex.: Lavagem Detalhada — Martim Cordeiro":
+      "p. ej.: Lavado Detallado — Martim Cordeiro",
     Dia: "Día",
     Hora: "Hora",
     "Duração (min)": "Duración (min)",
@@ -285,18 +307,23 @@ const textos: TextosDaArea = {
     Agendar: "Agendar",
 
     // Mensagens da server action e de lib/agenda/marcar.ts
-    "Sessão sem permissão para agendar.": "Tu sesión no tiene permiso para agendar.",
+    "Sessão sem permissão para agendar.":
+      "Tu sesión no tiene permiso para agendar.",
     "Faltam dados para agendar.": "Faltan datos para agendar.",
-    "Há uma coisa para confirmar antes de agendar.": "Hay una cosa que confirmar antes de agendar.",
-    "Há {n} coisas para confirmar antes de agendar.": "Hay {n} cosas que confirmar antes de agendar.",
+    "Há uma coisa para confirmar antes de agendar.":
+      "Hay una cosa que confirmar antes de agendar.",
+    "Há {n} coisas para confirmar antes de agendar.":
+      "Hay {n} cosas que confirmar antes de agendar.",
     "{executor} já tem trabalho marcado neste horário.":
       "{executor} ya tiene trabajo agendado a esta hora.",
-    '"{servico}" ficou agendado para {cliente}.': '"{servico}" quedó agendado para {cliente}.',
+    '"{servico}" ficou agendado para {cliente}.':
+      '"{servico}" quedó agendado para {cliente}.',
     "O agendamento não entrou.": "La cita no se registró.",
     "Escolha o cliente.": "Elige el cliente.",
     "Escolha o serviço.": "Elige el servicio.",
     "Escolha o dia e a hora.": "Elige el día y la hora.",
-    "Não foi possível ler a ficha do cliente.": "No se pudo leer la ficha del cliente.",
+    "Não foi possível ler a ficha do cliente.":
+      "No se pudo leer la ficha del cliente.",
     "Cliente não encontrado na base.": "Cliente no encontrado en la base.",
     "Esta ficha não tem nome. Coloque o nome primeiro.":
       "Esta ficha no tiene nombre. Ponle el nombre primero.",
@@ -322,6 +349,8 @@ const textos: TextosDaArea = {
       "Son {horas} horas seguidas — este servicio suele hacerse en más de un día.",
     "O agendamento pelo painel ainda não está ligado ao n8n.":
       "Agendar desde el panel todavía no está conectado a n8n.",
+    "Este profissional ainda não tem agenda do Google ligada à Lexia.":
+      "Este profesional todavía no tiene una agenda de Google conectada a Lexia.",
     "A agenda não respondeu a tempo. Confirma no Google se o agendamento entrou antes de tentar de novo.":
       "La agenda no respondió a tiempo. Comprueba en Google si la cita se creó antes de volver a intentarlo.",
     "A agenda recusou o agendamento. Tente de novo daqui a pouco.":
@@ -342,13 +371,16 @@ const textos: TextosDaArea = {
     "A conversa está ativa e a bola está com a gente.":
       "La conversación está activa y nos toca responder a nosotros.",
     "Tem um agendamento por acontecer.": "Tiene una cita pendiente.",
-    "Já foi atendido. Aqui se ganha a recompra.": "Ya fue atendido. Aquí se gana la repetición.",
+    "Já foi atendido. Aqui se ganha a recompra.":
+      "Ya fue atendido. Aquí se gana la repetición.",
     "Um mês sem dizer nada. Fica fora da vista até alguém procurar.":
       "Un mes sin decir nada. Queda fuera de la vista hasta que alguien lo busque.",
     "Escreveram e ainda ninguém respondeu. Quem já tem agendamento fica em Agendado, com o aviso vermelho no cartão.":
       "Escribieron y nadie ha respondido todavía. Quien ya tiene cita queda en Agendado, con el aviso rojo en la tarjeta.",
-    "Escreveu hoje e ainda não teve resposta.": "Escribió hoy y aún no tiene respuesta.",
-    "Escreveu há 1 dia e ainda não teve resposta.": "Escribió hace 1 día y aún no tiene respuesta.",
+    "Escreveu hoje e ainda não teve resposta.":
+      "Escribió hoy y aún no tiene respuesta.",
+    "Escreveu há 1 dia e ainda não teve resposta.":
+      "Escribió hace 1 día y aún no tiene respuesta.",
     "Escreveu há {n} dias e ainda não teve resposta.":
       "Escribió hace {n} días y aún no tiene respuesta.",
     "A conversa está ativa.": "La conversación está activa.",
@@ -371,9 +403,10 @@ const textos: TextosDaArea = {
     // Redesenho das telas (06/11)
     "1 atendimento": "1 cita",
     "{n} atendimentos": "{n} citas",
-    "nesta semana, {agente} pelo agente.": "esta semana, {agente} por el agente.",
+    "nesta semana, {agente} pelo agente.":
+      "esta semana, {agente} por el agente.",
     "neste mês, {agente} pelo agente.": "este mes, {agente} por el agente.",
-    "Vista": "Vista",
+    Vista: "Vista",
     "Próximo: {nome} às {hora}": "Próxima: {nome} a las {hora}",
     "Nada mais por hoje.": "Nada más por hoy.",
     "1 marcado à mão.": "1 agendada a mano.",
@@ -383,23 +416,27 @@ const textos: TextosDaArea = {
     "Dia mais cheio": "Día más lleno",
     "Dias livres": "Días libres",
     "Sem nada agendado.": "Sin nada agendado.",
-    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.": "Las citas aparecen aquí en cuanto entran en Google Calendar, por el agente o a mano.",
+    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.":
+      "Las citas aparecen aquí en cuanto entran en Google Calendar, por el agente o a mano.",
     "Semana livre": "Semana libre",
     "A linha vermelha é a hora atual.": "La línea roja es la hora actual.",
-    "hoje": "hoy",
+    hoje: "hoy",
     "Pipeline · atualiza sozinho": "Pipeline · se actualiza solo",
     "1 pessoa": "1 persona",
     "{n} pessoas": "{n} personas",
-    "Ninguém sem resposta, {n} em andamento.": "Nadie sin respuesta, {n} en curso.",
+    "Ninguém sem resposta, {n} em andamento.":
+      "Nadie sin respuesta, {n} en curso.",
     "sem resposta e {n} em andamento.": "sin respuesta y {n} en curso.",
-    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.": "Cada persona que escriba al agente aparece aquí y cambia de columna sola.",
+    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.":
+      "Cada persona que escriba al agente aparece aquí y cambia de columna sola.",
     "Ainda não há ninguém no pipeline": "Todavía no hay nadie en el pipeline",
   },
   en: {
     // Páginas
     Agenda: "Calendar",
     Pipeline: "Pipeline",
-    "Sem cliente associado a esta conta.": "No client is linked to this account.",
+    "Sem cliente associado a esta conta.":
+      "No client is linked to this account.",
     "Não foi possível carregar a agenda.": "Couldn't load the calendar.",
     "Não foi possível carregar o pipeline.": "Couldn't load the pipeline.",
 
@@ -408,7 +445,8 @@ const textos: TextosDaArea = {
     "até {hora}": "until {hora}",
     "Nada agendado neste dia.": "Nothing booked on this day.",
     "1 agendamento, {agente} pelo agente.": "1 booking, {agente} by the agent.",
-    "{n} agendamentos, {agente} pelo agente.": "{n} bookings, {agente} by the agent.",
+    "{n} agendamentos, {agente} pelo agente.":
+      "{n} bookings, {agente} by the agent.",
     "Sem título": "Untitled",
     Agente: "Agent",
     Manual: "Manual",
@@ -458,7 +496,8 @@ const textos: TextosDaArea = {
     Cancelar: "Cancel",
     "Escolha o serviço": "Choose the service",
     "Nome do evento": "Event name",
-    "ex.: Lavagem Detalhada — Martim Cordeiro": "e.g.: Detailed Wash — Martim Cordeiro",
+    "ex.: Lavagem Detalhada — Martim Cordeiro":
+      "e.g.: Detailed Wash — Martim Cordeiro",
     Dia: "Day",
     Hora: "Time",
     "Duração (min)": "Duration (min)",
@@ -478,16 +517,20 @@ const textos: TextosDaArea = {
     // Mensagens da server action e de lib/agenda/marcar.ts
     "Sessão sem permissão para agendar.": "This session isn't allowed to book.",
     "Faltam dados para agendar.": "Some details are missing to book.",
-    "Há uma coisa para confirmar antes de agendar.": "There's one thing to confirm before booking.",
-    "Há {n} coisas para confirmar antes de agendar.": "There are {n} things to confirm before booking.",
+    "Há uma coisa para confirmar antes de agendar.":
+      "There's one thing to confirm before booking.",
+    "Há {n} coisas para confirmar antes de agendar.":
+      "There are {n} things to confirm before booking.",
     "{executor} já tem trabalho marcado neste horário.":
       "{executor} already has work booked at this time.",
-    '"{servico}" ficou agendado para {cliente}.': '"{servico}" is booked for {cliente}.',
+    '"{servico}" ficou agendado para {cliente}.':
+      '"{servico}" is booked for {cliente}.',
     "O agendamento não entrou.": "The booking didn't go through.",
     "Escolha o cliente.": "Choose the customer.",
     "Escolha o serviço.": "Choose the service.",
     "Escolha o dia e a hora.": "Choose the day and time.",
-    "Não foi possível ler a ficha do cliente.": "Couldn't read the customer's profile.",
+    "Não foi possível ler a ficha do cliente.":
+      "Couldn't read the customer's profile.",
     "Cliente não encontrado na base.": "Customer not found in the records.",
     "Esta ficha não tem nome. Coloque o nome primeiro.":
       "This record has no name. Add the name first.",
@@ -513,6 +556,8 @@ const textos: TextosDaArea = {
       "That's {horas} hours in a row — this service is usually done over more than one day.",
     "O agendamento pelo painel ainda não está ligado ao n8n.":
       "Booking from the dashboard isn't connected to n8n yet.",
+    "Este profissional ainda não tem agenda do Google ligada à Lexia.":
+      "This team member doesn't have a Google Calendar connected to Lexia yet.",
     "A agenda não respondeu a tempo. Confirma no Google se o agendamento entrou antes de tentar de novo.":
       "The calendar didn't respond in time. Check in Google whether the booking went through before trying again.",
     "A agenda recusou o agendamento. Tente de novo daqui a pouco.":
@@ -533,13 +578,16 @@ const textos: TextosDaArea = {
     "A conversa está ativa e a bola está com a gente.":
       "The conversation is active and the ball is in our court.",
     "Tem um agendamento por acontecer.": "Has an upcoming booking.",
-    "Já foi atendido. Aqui se ganha a recompra.": "Already served. This is where repeat business is won.",
+    "Já foi atendido. Aqui se ganha a recompra.":
+      "Already served. This is where repeat business is won.",
     "Um mês sem dizer nada. Fica fora da vista até alguém procurar.":
       "A month without a word. Stays out of sight until someone looks for it.",
     "Escreveram e ainda ninguém respondeu. Quem já tem agendamento fica em Agendado, com o aviso vermelho no cartão.":
       "They wrote and no one has replied yet. Anyone with a booking stays in Booked, with the red warning on the card.",
-    "Escreveu hoje e ainda não teve resposta.": "Wrote today and hasn't had a reply yet.",
-    "Escreveu há 1 dia e ainda não teve resposta.": "Wrote 1 day ago and hasn't had a reply yet.",
+    "Escreveu hoje e ainda não teve resposta.":
+      "Wrote today and hasn't had a reply yet.",
+    "Escreveu há 1 dia e ainda não teve resposta.":
+      "Wrote 1 day ago and hasn't had a reply yet.",
     "Escreveu há {n} dias e ainda não teve resposta.":
       "Wrote {n} days ago and hasn't had a reply yet.",
     "A conversa está ativa.": "The conversation is active.",
@@ -564,7 +612,7 @@ const textos: TextosDaArea = {
     "{n} atendimentos": "{n} appointments",
     "nesta semana, {agente} pelo agente.": "this week, {agente} by the agent.",
     "neste mês, {agente} pelo agente.": "this month, {agente} by the agent.",
-    "Vista": "View",
+    Vista: "View",
     "Próximo: {nome} às {hora}": "Next: {nome} at {hora}",
     "Nada mais por hoje.": "Nothing else today.",
     "1 marcado à mão.": "1 booked by hand.",
@@ -574,16 +622,20 @@ const textos: TextosDaArea = {
     "Dia mais cheio": "Busiest day",
     "Dias livres": "Free days",
     "Sem nada agendado.": "Nothing booked.",
-    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.": "Appointments show up here as soon as they reach Google Calendar, booked by the agent or by hand.",
+    "Os atendimentos aparecem aqui assim que entram no Google Agenda, pelo agente ou à mão.":
+      "Appointments show up here as soon as they reach Google Calendar, booked by the agent or by hand.",
     "Semana livre": "Free week",
     "A linha vermelha é a hora atual.": "The red line is the current time.",
-    "hoje": "today",
+    hoje: "today",
     "Pipeline · atualiza sozinho": "Pipeline · updates itself",
     "1 pessoa": "1 person",
     "{n} pessoas": "{n} people",
-    "Ninguém sem resposta, {n} em andamento.": "Nobody waiting for a reply, {n} in progress.",
-    "sem resposta e {n} em andamento.": "waiting for a reply and {n} in progress.",
-    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.": "Everyone who messages the agent shows up here and moves between columns on their own.",
+    "Ninguém sem resposta, {n} em andamento.":
+      "Nobody waiting for a reply, {n} in progress.",
+    "sem resposta e {n} em andamento.":
+      "waiting for a reply and {n} in progress.",
+    "Cada pessoa que escrever ao agente aparece aqui e muda de coluna sozinha.":
+      "Everyone who messages the agent shows up here and moves between columns on their own.",
     "Ainda não há ninguém no pipeline": "Nobody in the pipeline yet",
   },
 };

@@ -75,6 +75,11 @@ class Consulta implements PromiseLike<Resultado<Linha[] | Linha | null>> {
     return this;
   }
 
+  /** `is(coluna, null)` — para as linhas globais, com `cliente_slug` nulo. */
+  is(coluna: string, valor: null) {
+    return this.eq(coluna, valor);
+  }
+
   in(coluna: string, valores: unknown[]) {
     this.filtros.push({ coluna, valor: valores, valores });
 
