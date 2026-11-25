@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { OCULTOS_NO_ADMIN, FILTRO_OCULTOS, ocultoNoAdmin } from "../lib/clientes/ocultos.ts";
+import { OCULTOS_NO_ADMIN, FILTRO_OCULTOS, ocultoNoAdmin } from "../lib/clientes/ocultos";
 
 test("asteric está nos ocultos do admin; o filtro do PostgREST sai certo", () => {
   assert.deepEqual([...OCULTOS_NO_ADMIN], ["asteric"]);
