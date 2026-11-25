@@ -32,6 +32,7 @@ import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createClient } from "@/lib/supabase/server";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 type AdminAdjustmentsPageProps = {
   searchParams: Promise<{
@@ -312,7 +313,7 @@ export default async function AdminAdjustmentsPage({
     { data: clientsData, error: clientsError },
     { data: feedbackData, error: feedbackError },
   ] = await Promise.all([
-    supabase.from("lexia_clientes").select("id, nome, slug").order("nome"),
+    supabase.from("lexia_clientes").select("id, nome, slug").not("slug", "in", FILTRO_OCULTOS).order("nome"),
     feedbackId && selectedClient
       ? supabase
           .from("lexia_feedbacks")

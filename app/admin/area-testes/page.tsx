@@ -7,6 +7,7 @@ import {
 import { CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 type AdminClient = {
   id: string;
@@ -30,6 +31,7 @@ export default async function AdminTestAreaPage({
   const { data: clientsData, error: clientsError } = await supabase
     .from("lexia_clientes")
     .select("id, nome, slug")
+    .not("slug", "in", FILTRO_OCULTOS)
     .order("nome");
 
   if (clientsError) {

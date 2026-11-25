@@ -5,6 +5,7 @@ import { CabecalhoTela, FiltroTrilho, VazioTela } from "@/app/components/tela";
 import { getLoggedInUserProfile } from "@/lib/auth/profile";
 import { getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /**
  * Lista de clientes do admin (14/11/2026). Antes, a página de cada cliente
@@ -58,10 +59,11 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   const comLongos = await admin
     .from("lexia_clientes")
     .select("slug, nome, status, modo_teste, cor_principal, followups_longos")
+    .not("slug", "in", FILTRO_OCULTOS)
     .order("nome");
   let clientes = (comLongos.data ?? []) as Cliente[];
   if (comLongos.error) {
-    const semLongos = await admin.from("lexia_clientes").select("slug, nome, status, modo_teste, cor_principal").order("nome");
+    const semLongos = await admin.from("lexia_clientes").select("slug, nome, status, modo_teste, cor_principal").not("slug", "in", FILTRO_OCULTOS).order("nome");
     if (semLongos.error) throw new Error("Não foi possível buscar os clientes.");
     clientes = (semLongos.data ?? []) as Cliente[];
   }

@@ -15,6 +15,7 @@ import { getClientTimezone } from "@/lib/clientes/timezone";
 import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /**
  * Contactos bloqueados de cada agente (Fase 21): a agente em código não
@@ -46,7 +47,7 @@ export default async function BloqueiosPage({ searchParams }: BloqueiosPageProps
   const pedido = Array.isArray(params.cliente) ? (params.cliente[0] ?? "") : (params.cliente ?? "");
 
   const admin = createAdminClient();
-  const { data: clientesData } = await admin.from("lexia_clientes").select("slug, nome").order("nome");
+  const { data: clientesData } = await admin.from("lexia_clientes").select("slug, nome").not("slug", "in", FILTRO_OCULTOS).order("nome");
   const clientes = (clientesData ?? []) as { slug: string; nome: string | null }[];
   const selecionado = clientes.some((c) => c.slug === pedido) ? pedido : "";
 

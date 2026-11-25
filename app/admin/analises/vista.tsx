@@ -26,6 +26,7 @@ import { LOCALE_DO_IDIOMA } from "@/lib/i18n/idiomas";
 import { getIdioma, getT } from "@/lib/i18n/servidor";
 import type { FuncaoT } from "@/lib/i18n/traduzir";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /**
  * Análises das conversas (19/11/2026; simplificada no mesmo dia). À esquerda
@@ -120,7 +121,7 @@ export async function AnalisesVista({ filtros: pedidos }: { filtros: Filtros }) 
   const r = rotulos(t);
   const admin = createAdminClient();
 
-  const { data: clientesData } = await admin.from("lexia_clientes").select("slug, nome").order("nome");
+  const { data: clientesData } = await admin.from("lexia_clientes").select("slug, nome").not("slug", "in", FILTRO_OCULTOS).order("nome");
   const clientes = (clientesData ?? [])
     .filter((c) => !["cliente_teste", "clinica_teste"].includes(c.slug as string))
     .map((c) => ({ nome: (c.nome as string | null) || (c.slug as string), slug: c.slug as string }));

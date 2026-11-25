@@ -65,6 +65,7 @@ import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { getExternalClientMetrics } from "@/lib/metrics/external-client-metrics";
 import { fetchAllSupabaseRows } from "@/lib/supabase/fetch-all";
 import { createClient } from "@/lib/supabase/server";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 type AdminDashboardProps = {
   searchParams: Promise<{
@@ -272,6 +273,7 @@ export default async function AdminDashboard({
   const { data: clientsData, error: clientsError } = await supabase
     .from("lexia_clientes")
     .select("id, nome, slug, status, modo_teste")
+    .not("slug", "in", FILTRO_OCULTOS)
     .order("nome");
 
   if (clientsError) {

@@ -10,6 +10,7 @@ import { inicioUltimas24h } from "@/lib/turnos/mapa";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
 import { getT } from "@/lib/i18n/servidor";
+import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
 
 /**
  * Controle do agente em código: o equivalente às execuções do n8n, mas por
@@ -57,7 +58,7 @@ export default async function ControlePage({ searchParams }: Props) {
 
   const [{ data, error }, { data: clientesData }, { data: ultProd }, { data: ultSombra }] = await Promise.all([
     lista,
-    admin.from("lexia_clientes").select("slug, nome").order("nome"),
+    admin.from("lexia_clientes").select("slug, nome").not("slug", "in", FILTRO_OCULTOS).order("nome"),
     ultimoDe("producao"),
     ultimoDe("sombra"),
   ]);
