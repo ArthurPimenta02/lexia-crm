@@ -68,6 +68,8 @@ test("tipos: nomes únicos e Google da Lexia só no âmbito global", () => {
   const nomes = TIPOS_CONEXAO.map((t) => t.tipo);
   assert.equal(new Set(nomes).size, nomes.length);
   assert.ok(tiposDoAmbito("global").some((t) => t.tipo === "google_conta"));
+  assert.ok(tiposDoAmbito("global").some((t) => t.tipo === "elevenlabs"), "a chave da ElevenLabs é da Lexia (global)");
+  assert.ok(!tiposDoAmbito("cliente").some((t) => t.tipo === "elevenlabs"));
   assert.ok(!tiposDoAmbito("cliente").some((t) => t.tipo === "google_conta"));
   assert.ok(tiposDoAmbito("cliente").some((t) => t.tipo === "ia"));
 });
