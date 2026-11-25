@@ -44,7 +44,11 @@ export const getLoggedInUserProfile = cache(
       .maybeSingle();
 
     if (error) {
-      throw new Error("Não foi possível buscar o perfil do usuário.");
+      // 25/11: antes lançava, e quem abria o app com a sessão a meio de morrer via
+      // a tela de erro do servidor em vez do login. Sem perfil = sem sessão: a
+      // página manda para o login e, com sessão boa, o próximo pedido entra.
+      console.error("[perfil] falha ao ler lexia_usuarios_clientes:", error.message);
+      return { user: null, profile: null };
     }
 
     return {
