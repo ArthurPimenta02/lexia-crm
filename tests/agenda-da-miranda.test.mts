@@ -33,8 +33,6 @@ const CONTACTO_ID = "contacto-m1";
 const SERVICO_ID = "7";
 const TABELA = "servicos_miranda";
 const TELEFONE = "15081234567";
-const URL_DO_N8N = "https://n8n.exemplo.test/webhook/agenda";
-const SEGREDO = "b".repeat(40);
 
 /** Uma quarta-feira, longe de mudanças de hora em Boston. */
 const DIA = "2026-11-18";
@@ -44,10 +42,12 @@ const DIA = "2026-11-18";
  * próprio dia 18/11/2026: a marcação passava a "Esta hora já passou." e todos
  * os testes que esperam zero avisos falhavam sem nada no código ter mudado.
  */
-mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-10T12:00:00.000Z") });
+mock.timers.enable({
+  apis: ["Date"],
+  now: new Date("2026-11-10T12:00:00.000Z"),
+});
 
-process.env.N8N_AGENDA_WEBHOOK_URL = URL_DO_N8N;
-process.env.N8N_AGENDA_WEBHOOK_SECRET = SEGREDO;
+process.env.LEXIA_CONEXOES_CHAVE = Buffer.alloc(32, 5).toString("base64");
 
 function contactoBase(): Linha {
   return {
@@ -83,7 +83,7 @@ let central = new FakeSupabase({
 });
 let doCliente = new FakeSupabase({ [TABELA]: [servicoBase()] });
 
-let chamadas: { body: unknown; init: RequestInit; url: string }[] = [];
+let chamadas: { body: Record<string, string> }[] = [];
 
 const configReal = await import("@/lib/servicos/config");
 
@@ -95,24 +95,24 @@ mock.module("@/lib/servicos/config", {
   namedExports: { ...configReal, createServicosClient: () => doCliente },
 });
 
-globalThis.fetch = (async (entrada: string, init: RequestInit) => {
-  chamadas.push({
-    body: JSON.parse(String(init.body)),
-    init,
-    url: String(entrada),
-  });
+const googleReal = await import("@/lib/agenda/google");
 
-  return new Response(
-    JSON.stringify({
-      calendario_id: "smouramiranda@gmail.com",
-      event_id: "evento-miranda-1",
-      link_google: "https://calendar.google.com/evento-m1",
-      marcacao_id: "agendamento-m7",
-      status: "CRIADO",
-    }),
-    { headers: { "content-type": "application/json" }, status: 200 },
-  );
-}) as typeof fetch;
+mock.module("@/lib/agenda/google", {
+  namedExports: {
+    ...googleReal,
+    criarEvento: async (
+      calendarioId: string,
+      evento: Record<string, string>,
+    ) => {
+      chamadas.push({ body: { calendarioId, ...evento } });
+      return {
+        eventId: "evento-miranda-1",
+        link: "https://calendar.google.com/evento-m1",
+      };
+    },
+    ocupadoEntre: async () => [],
+  },
+});
 
 const marcar = await import("@/lib/agenda/marcar");
 const { getServicosAgendaveis } = await import("@/lib/servicos/read");
@@ -185,7 +185,12 @@ test("os serviços dela vêm da tabela dela, pelas colunas dela", async () => {
 
   // As colunas pedidas são as dela. Pedir uma coluna que não existe faz a
   // Supabase devolver erro, e o erro aqui vira uma lista vazia.
-  for (const coluna of ["preco", "ativo", "profissional", "duracao_agenda_min"]) {
+  for (const coluna of [
+    "preco",
+    "ativo",
+    "profissional",
+    "duracao_agenda_min",
+  ]) {
     assert.ok(
       leitura?.colunas?.includes(coluna),
       `não pediu a coluna ${coluna}`,
@@ -276,19 +281,19 @@ test("uma marcação dela entra no Google e deixa o espelho no fuso de Boston", 
   assert.deepEqual(preparacao.avisos, []);
   assert.equal(resultado?.ok, true, resultado?.erro ?? "");
 
-  const corpo = chamadas[0].body as Record<string, unknown>;
+  const corpo = chamadas[0].body;
 
-  assert.equal(corpo.cliente_slug, SLUG);
-  assert.equal(corpo.servico, "Limpeza de Pele");
-  // Com maiúscula, que é o que o workflow dela conhece e o que as 172 linhas
-  // que já lá estão têm.
-  assert.equal(corpo.executor, "Samuel");
-  assert.equal(corpo.duracao_min, 60);
+  // A agenda da clínica, que o Samuel e a Bruna partilham.
+  assert.equal(corpo.calendarioId, "smouramiranda@gmail.com");
+  assert.equal(corpo.fuso, "America/New_York");
   // 14:00 em Boston em Novembro são 19:00 em UTC.
-  assert.equal(corpo.inicio_iso, "2026-11-18T19:00:00.000Z");
-  assert.equal(corpo.fim_iso, "2026-11-18T20:00:00.000Z");
-  assert.equal(corpo.nome, "Ana Teste");
-  assert.equal(corpo.telefone, TELEFONE);
+  assert.equal(corpo.inicioIso, "2026-11-18T19:00:00.000Z");
+  assert.equal(corpo.fimIso, "2026-11-18T20:00:00.000Z");
+  assert.match(corpo.descricao, /^Cliente: Ana Teste$/m);
+  assert.match(corpo.descricao, new RegExp(`^Telefone: ${TELEFONE}$`, "m"));
+  assert.match(corpo.descricao, /^Serviço: Limpeza de Pele$/m);
+  // Ela cobra em dólares.
+  assert.match(corpo.descricao, /^Preço: \$150$/m);
 
   const linha = central.linhasDe("lexia_agendamentos")[0] as Linha;
 
@@ -350,7 +355,9 @@ test("um contacto do Detail não se marca na agenda dela", async () => {
   reiniciar();
   central = new FakeSupabase({
     lexia_agendamentos: [],
-    lexia_contactos: [{ ...contactoBase(), cliente_slug: "detail_by_cordeiro" }],
+    lexia_contactos: [
+      { ...contactoBase(), cliente_slug: "detail_by_cordeiro" },
+    ],
   });
 
   const { preparacao } = await marcarTudo();

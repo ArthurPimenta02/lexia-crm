@@ -1,8 +1,8 @@
 /**
  * Marcar um atendimento pela aba Agenda.
  *
- * Isto escreve em três sítios sem transacção entre eles — a agenda do Google
- * (pelo n8n), a tabela de marcações do cliente (também pelo n8n) e o espelho
+ * Isto escreve em dois sítios sem transacção entre eles — a agenda do Google
+ * (direto, desde 25/11/2026; antes era pelo n8n) e o espelho
  * `lexia_agendamentos`. O que estes testes guardam é a ordem e as recusas, que
  * são as duas coisas que, se cederem, estragam a agenda do Martim sem dar nas
  * vistas:
@@ -36,8 +36,6 @@ const CONTACTO_ID = "contacto-1";
 const SERVICO_ID = "servico-1";
 const AGENDAMENTO = "agendamento_servicos";
 const TELEFONE = "351912345678";
-const URL_DO_N8N = "https://n8n.exemplo.test/webhook/agenda";
-const SEGREDO = "a".repeat(40);
 
 /** Um dia de semana longe de feriados e de mudanças de hora. */
 const DIA = "2026-11-18";
@@ -47,10 +45,12 @@ const DIA = "2026-11-18";
  * próprio dia 18/11/2026: a marcação passava a "Esta hora já passou." e todos
  * os testes que esperam zero avisos falhavam sem nada no código ter mudado.
  */
-mock.timers.enable({ apis: ["Date"], now: new Date("2026-11-10T12:00:00.000Z") });
+mock.timers.enable({
+  apis: ["Date"],
+  now: new Date("2026-11-10T12:00:00.000Z"),
+});
 
-process.env.N8N_AGENDA_WEBHOOK_URL = URL_DO_N8N;
-process.env.N8N_AGENDA_WEBHOOK_SECRET = SEGREDO;
+process.env.LEXIA_CONEXOES_CHAVE = Buffer.alloc(32, 7).toString("base64");
 
 function contactoBase(): Linha {
   return {
@@ -85,9 +85,27 @@ let central = new FakeSupabase({
 });
 let doCliente = new FakeSupabase({ [AGENDAMENTO]: [servicoBase()] });
 
-/** O que o `fetch` foi chamado com, e o que respondeu. */
-let chamadas: { body: unknown; init: RequestInit; url: string }[] = [];
-let resposta: () => Response = () => respostaCriada();
+type EventoCriado = {
+  calendarioId: string;
+  descricao: string;
+  fimIso: string;
+  fuso: string;
+  inicioIso: string;
+  titulo: string;
+};
+
+/** Os eventos que se pediu ao Google para criar, e as consultas de ocupado. */
+let chamadas: { body: EventoCriado }[] = [];
+let consultas: string[] = [];
+let ocupado: () => {
+  fim: string | null;
+  inicio: string | null;
+  titulo: string | null;
+}[] = () => [];
+let criar: () => { eventId: string; link: string | null } = () => ({
+  eventId: "evento-google-1",
+  link: "https://calendar.google.com/evento-1",
+});
 
 const configReal = await import("@/lib/servicos/config");
 
@@ -99,39 +117,35 @@ mock.module("@/lib/servicos/config", {
   namedExports: { ...configReal, createServicosClient: () => doCliente },
 });
 
-globalThis.fetch = (async (entrada: string, init: RequestInit) => {
-  chamadas.push({
-    body: JSON.parse(String(init.body)),
-    init,
-    url: String(entrada),
-  });
+const googleReal = await import("@/lib/agenda/google");
 
-  return resposta();
-}) as typeof fetch;
+mock.module("@/lib/agenda/google", {
+  namedExports: {
+    ...googleReal,
+    criarEvento: async (
+      calendarioId: string,
+      evento: Omit<EventoCriado, "calendarioId">,
+    ) => {
+      chamadas.push({ body: { calendarioId, ...evento } });
+      return criar();
+    },
+    ocupadoEntre: async (calendarioId: string) => {
+      consultas.push(calendarioId);
+      return ocupado();
+    },
+  },
+});
 
 const marcar = await import("@/lib/agenda/marcar");
 
-function respostaCriada(extra: Record<string, unknown> = {}) {
-  return new Response(
-    JSON.stringify({
-      calendario_id: "detailbycordeiro@gmail.com",
-      event_id: "evento-google-1",
-      link_google: "https://calendar.google.com/evento-1",
-      marcacao_id: "marcacao-7",
-      status: "CRIADO",
-      ...extra,
-    }),
-    { headers: { "content-type": "application/json" }, status: 200 },
-  );
-}
+const minutos = (evento: EventoCriado) =>
+  (Date.parse(evento.fimIso) - Date.parse(evento.inicioIso)) / 60_000;
 
 function espelho() {
   return central.linhasDe("lexia_agendamentos");
 }
 
-function reiniciar(
-  opcoes: { contacto?: Linha | null; servico?: Linha } = {},
-) {
+function reiniciar(opcoes: { contacto?: Linha | null; servico?: Linha } = {}) {
   central = new FakeSupabase({
     lexia_agendamentos: [],
     lexia_contactos:
@@ -141,7 +155,12 @@ function reiniciar(
     [AGENDAMENTO]: [opcoes.servico ?? servicoBase()],
   });
   chamadas = [];
-  resposta = () => respostaCriada();
+  consultas = [];
+  ocupado = () => [];
+  criar = () => ({
+    eventId: "evento-google-1",
+    link: "https://calendar.google.com/evento-1",
+  });
 }
 
 const campos = {
@@ -197,24 +216,26 @@ test("uma marcação válida entra no Google e deixa o espelho do painel", async
   assert.equal(resultado?.ok, true, resultado?.erro ?? "");
   assert.equal(resultado?.linkGoogle, "https://calendar.google.com/evento-1");
 
-  // O Google é chamado uma vez e só uma.
+  // Vê-se primeiro se a hora está livre, e cria-se uma vez e só uma.
+  assert.deepEqual(consultas, ["detailbycordeiro@gmail.com"]);
   assert.equal(chamadas.length, 1);
-  assert.equal(chamadas[0].url, URL_DO_N8N);
 
-  const corpo = chamadas[0].body as Record<string, unknown>;
+  const corpo = chamadas[0].body;
 
-  assert.equal(corpo.cliente_slug, SLUG);
-  assert.equal(corpo.servico, "Lavagem Detalhada");
-  assert.equal(corpo.executor, "martim");
-  assert.equal(corpo.inicio_iso, "2026-11-18T09:00:00.000Z");
+  assert.equal(corpo.calendarioId, "detailbycordeiro@gmail.com");
+  assert.equal(corpo.titulo, "Lavagem Detalhada — Martim Teste");
+  assert.equal(corpo.inicioIso, "2026-11-18T09:00:00.000Z");
   // 225 minutos a partir das 09:00 dão 12:45.
-  assert.equal(corpo.fim_iso, "2026-11-18T12:45:00.000Z");
-  assert.equal(corpo.duracao_min, 225);
-  assert.equal(corpo.valor, 70);
+  assert.equal(corpo.fimIso, "2026-11-18T12:45:00.000Z");
+  assert.equal(corpo.fuso, "Europe/Lisbon");
 
-  // Da ficha, nunca do formulário: é o número que liga a marcação ao histórico.
-  assert.equal(corpo.nome, "Martim Teste");
-  assert.equal(corpo.telefone, TELEFONE);
+  // Da ficha, nunca do formulário: é o número que liga a marcação ao
+  // histórico, e é pela linha "Telefone:" que o agente e os lembretes
+  // reconhecem o cliente no evento.
+  assert.match(corpo.descricao, /^Cliente: Martim Teste$/m);
+  assert.match(corpo.descricao, new RegExp(`^Telefone: ${TELEFONE}$`, "m"));
+  assert.match(corpo.descricao, /^Serviço: Lavagem Detalhada$/m);
+  assert.match(corpo.descricao, /^Preço: 70€$/m);
 
   assert.equal(espelho().length, 1);
 
@@ -225,26 +246,13 @@ test("uma marcação válida entra no Google e deixa o espelho do painel", async
   assert.equal(linha.calendario_id, "detailbycordeiro@gmail.com");
   assert.equal(linha.inicio, "2026-11-18T09:00:00.000Z");
   assert.equal(linha.valor_previsto, 70);
-  assert.equal(linha.referencia_cliente, "marcacao-7");
+  // Já não se escreve na tabela de marcações do agente (ver marcarNaAgenda).
+  assert.equal(linha.referencia_cliente, null);
   assert.equal(linha.fuso, "Europe/Lisbon");
 
   // O que o gatilho da tabela protege da sincronização. Com "manual" aqui, a
   // marcação do painel passava a indistinguível de uma escrita à mão.
   assert.equal(linha.origem, "painel");
-});
-
-/** O segredo vai no cabeçalho e não no corpo, que é o que o n8n verifica. */
-test("a chamada ao n8n vai assinada", async () => {
-  reiniciar();
-
-  await marcarTudo();
-
-  const headers = chamadas[0].init.headers as Record<string, string>;
-
-  assert.equal(headers.authorization, `Bearer ${SEGREDO}`);
-  assert.equal(chamadas[0].init.method, "POST");
-  // Uma redirecção levava o segredo para outro sítio qualquer.
-  assert.equal(chamadas[0].init.redirect, "error");
 });
 
 /**
@@ -257,7 +265,11 @@ test("um contacto de outra empresa não se encontra, e nada vai ao Google", asyn
   const { preparacao } = await marcarTudo();
 
   assert.match(preparacao.erro ?? "", /não encontrado/i);
-  assert.equal(chamadas.length, 0, "foi ao Google com uma ficha de outra empresa");
+  assert.equal(
+    chamadas.length,
+    0,
+    "foi ao Google com uma ficha de outra empresa",
+  );
   assert.equal(espelho().length, 0);
 });
 
@@ -317,9 +329,16 @@ test("um executor que não faz este serviço é recusado, com quem o faz", async
 test("a duração em branco vem do catálogo, para aquele executor", async () => {
   reiniciar();
 
-  await marcarTudo({ executorBruto: "roberto" });
+  const { preparacao, resultado } = await marcarTudo({
+    executorBruto: "roberto",
+  });
 
-  assert.equal((chamadas[0].body as Record<string, unknown>).duracao_min, 285);
+  assert.equal(preparacao.marcacao?.duracaoMinutos, 285);
+  // O Roberto não tem agenda partilhada com a Lexia (25/11): não se escreve
+  // numa agenda que ninguém lê, diz-se.
+  assert.equal(resultado?.ok, false);
+  assert.match(resultado?.erro ?? "", /não tem agenda/);
+  assert.equal(chamadas.length, 0);
 });
 
 test("uma duração escrita à mão ganha ao catálogo", async () => {
@@ -327,10 +346,10 @@ test("uma duração escrita à mão ganha ao catálogo", async () => {
 
   await marcarTudo({ duracaoBruto: "90" });
 
-  const corpo = chamadas[0].body as Record<string, unknown>;
+  const corpo = chamadas[0].body;
 
-  assert.equal(corpo.duracao_min, 90);
-  assert.equal(corpo.fim_iso, "2026-11-18T10:30:00.000Z");
+  assert.equal(minutos(corpo), 90);
+  assert.equal(corpo.fimIso, "2026-11-18T10:30:00.000Z");
 });
 
 /**
@@ -373,7 +392,7 @@ test("sem valor escrito a marcação fica sem valor, e não com o do catálogo",
 
   await marcarTudo({ valorBruto: "" });
 
-  assert.equal((chamadas[0].body as Record<string, unknown>).valor, null);
+  assert.doesNotMatch(chamadas[0].body.descricao, /Preço/);
 });
 
 /**
@@ -436,20 +455,13 @@ test("um serviço de vários dias avisa que são horas seguidas", async () => {
  */
 test("um choque de horários devolve o que já lá está e não escreve nada", async () => {
   reiniciar();
-  resposta = () =>
-    new Response(
-      JSON.stringify({
-        conflitos: [
-          {
-            fim: "2026-11-18T10:00:00.000Z",
-            inicio: "2026-11-18T09:00:00.000Z",
-            titulo: "Lavagem Express — Outro Cliente",
-          },
-        ],
-        status: "CONFLITO",
-      }),
-      { headers: { "content-type": "application/json" }, status: 200 },
-    );
+  ocupado = () => [
+    {
+      fim: "2026-11-18T10:00:00.000Z",
+      inicio: "2026-11-18T09:00:00.000Z",
+      titulo: "Lavagem Express — Outro Cliente",
+    },
+  ];
 
   const { resultado } = await marcarTudo();
 
@@ -460,7 +472,12 @@ test("um choque de horários devolve o que já lá está e não escreve nada", a
     resultado?.conflitos[0].titulo,
     "Lavagem Express — Outro Cliente",
   );
-  assert.equal(espelho().length, 0, "escreveu o espelho de um evento que não existe");
+  assert.equal(chamadas.length, 0, "criou o evento por cima de outro trabalho");
+  assert.equal(
+    espelho().length,
+    0,
+    "escreveu o espelho de um evento que não existe",
+  );
 });
 
 /**
@@ -468,26 +485,15 @@ test("um choque de horários devolve o que já lá está e não escreve nada", a
  * fosse um só, confirmar "é domingo" marcava por cima de outro trabalho sem o
  * dono o chegar a ver.
  */
-test("insistir manda o ignorar_conflito ao n8n", async () => {
+test("insistir marca por cima, sem ir ver se está ocupado", async () => {
   reiniciar();
+  ocupado = () => [{ fim: null, inicio: null, titulo: "Outro trabalho" }];
 
-  await marcarTudo({}, { ignorarConflito: true });
+  const { resultado } = await marcarTudo({}, { ignorarConflito: true });
 
-  assert.equal(
-    (chamadas[0].body as Record<string, unknown>).ignorar_conflito,
-    true,
-  );
-});
-
-test("sem insistir, o ignorar_conflito vai desligado", async () => {
-  reiniciar();
-
-  await marcarTudo();
-
-  assert.equal(
-    (chamadas[0].body as Record<string, unknown>).ignorar_conflito,
-    false,
-  );
+  assert.equal(resultado?.ok, true, resultado?.erro ?? "");
+  assert.equal(consultas.length, 0);
+  assert.equal(chamadas.length, 1);
 });
 
 /**
@@ -506,61 +512,10 @@ test("se o espelho falhar, a marcação continua a valer", async () => {
   assert.equal(resultado?.linkGoogle, "https://calendar.google.com/evento-1");
 });
 
-/**
- * Sem `event_id` não se sabe que evento é que foi criado, e o espelho ficava
- * com uma chave inventada que a sincronização seguinte duplicava.
- */
-test("uma resposta sem event_id não finge que marcou", async () => {
+test("se o Google falhar, o dono não fica a achar que marcou", async () => {
   reiniciar();
-  resposta = () =>
-    new Response(JSON.stringify({ status: "CRIADO" }), {
-      headers: { "content-type": "application/json" },
-      status: 200,
-    });
-
-  const { resultado } = await marcarTudo();
-
-  assert.equal(resultado?.ok, false);
-  assert.match(resultado?.erro ?? "", /Confirma no Google/);
-  assert.equal(espelho().length, 0);
-});
-
-/** O "Respond to Webhook" do n8n devolve uma lista quando traz mais de um item. */
-test("uma resposta dentro de uma lista é lida à mesma", async () => {
-  reiniciar();
-  resposta = () =>
-    new Response(
-      JSON.stringify([
-        {
-          calendario_id: "detailbycordeiro@gmail.com",
-          event_id: "evento-google-2",
-          status: "CRIADO",
-        },
-      ]),
-      { headers: { "content-type": "application/json" }, status: 200 },
-    );
-
-  const { resultado } = await marcarTudo();
-
-  assert.equal(resultado?.ok, true, resultado?.erro ?? "");
-  assert.equal(espelho()[0]?.event_id, "evento-google-2");
-});
-
-test("um erro do n8n não deixa o dono a achar que marcou", async () => {
-  reiniciar();
-  resposta = () => new Response("erro", { status: 500 });
-
-  const { resultado } = await marcarTudo();
-
-  assert.equal(resultado?.ok, false);
-  assert.ok(resultado?.erro);
-  assert.equal(espelho().length, 0);
-});
-
-test("se o n8n não responder, diz-se para confirmar no Google", async () => {
-  reiniciar();
-  resposta = () => {
-    throw new Error("timeout");
+  criar = () => {
+    throw new Error("O Google respondeu 500.");
   };
 
   const { resultado } = await marcarTudo();
@@ -570,26 +525,27 @@ test("se o n8n não responder, diz-se para confirmar no Google", async () => {
   assert.equal(espelho().length, 0);
 });
 
-/**
- * Um segredo curto é um segredo que se adivinha, e esta porta cria eventos na
- * agenda real. Sem configuração a sério, o formulário não aparece.
- */
-test("sem a porta do n8n configurada, marcar está desligado", () => {
-  const url = process.env.N8N_AGENDA_WEBHOOK_URL;
-  const segredo = process.env.N8N_AGENDA_WEBHOOK_SECRET;
+test("se a consulta de ocupado falhar, não se marca às cegas", async () => {
+  reiniciar();
+  ocupado = () => {
+    throw new Error("timeout");
+  };
+
+  const { resultado } = await marcarTudo();
+
+  assert.equal(resultado?.ok, false);
+  assert.equal(chamadas.length, 0);
+});
+
+test("sem a chave do cofre, marcar está desligado", () => {
+  const chave = process.env.LEXIA_CONEXOES_CHAVE;
 
   try {
     assert.equal(marcar.marcarEstaLigado(), true);
-
-    process.env.N8N_AGENDA_WEBHOOK_SECRET = "curto";
-    assert.equal(marcar.marcarEstaLigado(), false);
-
-    process.env.N8N_AGENDA_WEBHOOK_SECRET = segredo;
-    delete process.env.N8N_AGENDA_WEBHOOK_URL;
+    delete process.env.LEXIA_CONEXOES_CHAVE;
     assert.equal(marcar.marcarEstaLigado(), false);
   } finally {
-    process.env.N8N_AGENDA_WEBHOOK_URL = url;
-    process.env.N8N_AGENDA_WEBHOOK_SECRET = segredo;
+    process.env.LEXIA_CONEXOES_CHAVE = chave;
   }
 });
 

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { normalizarTelefone, pareceTelefone } from "@/lib/clientes/telefone";
+import { agendaDe, criarEvento, ocupadoEntre } from "@/lib/agenda/google";
 import { getClientTimezone, instanteNoFuso } from "@/lib/clientes/timezone";
+import { getMoedaDoCliente } from "@/lib/servicos/config";
 import {
   getServicosAgendaveis,
   type ServicoAgendavel,
@@ -13,8 +15,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *
  * Quatro coisas medidas a 2026-10-19 que explicam a forma deste ficheiro.
  *
- * 1. O evento é criado no Google PRIMEIRO, pelo n8n, e só depois se escreve o
- *    espelho. A ordem não é estética: a `lexia_agendamentos` é uma cópia da
+ * 1. O evento é criado no Google PRIMEIRO e só depois se escreve o espelho.
+ *    (Até 25/11/2026 era pelo n8n; agora é direto, em `lib/agenda/google.ts`.) A ordem não é estética: a `lexia_agendamentos` é uma cópia da
  *    agenda do Google refrescada a cada 15 minutos. Uma linha escrita só aqui
  *    desaparecia na sincronização seguinte, e entretanto o painel mostrava uma
  *    marcação que não existe na agenda de ninguém.
@@ -27,7 +29,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *    executado contra a tabela real: inserido `painel`, o upsert com `manual`
  *    devolve `painel` e o com `agente` devolve `agente`.
  *
- * 3. Quem cria o evento é um workflow do n8n à parte, e não o `criar_marcacao`
+ * 3. (Histórico, era o workflow do n8n.) Quem cria o evento não é o `criar_marcacao`
  *    do agente. O `Validar Pedido` desse workflow tem regras que existem para
  *    travar a IA e que não se devem aplicar ao dono: não marca hoje, não marca
  *    ao domingo, exige grade de 30 minutos, exige nome com dois nomes, e força
@@ -172,7 +174,7 @@ function diaEHoraNoFuso(iso: string, timeZone: string) {
 
   return {
     diaDaSemana: semana.indexOf(valor("weekday")) + 1,
-    horaDecimal: Number(valor("hour")) % 24 + Number(valor("minute")) / 60,
+    horaDecimal: (Number(valor("hour")) % 24) + Number(valor("minute")) / 60,
   };
 }
 
@@ -275,7 +277,8 @@ export async function prepararNovaMarcacao({
     return recusar(
       `Escolha quem faz o serviço. "${servico.nome}" é feito por ${nomes.join(" ou ")}.`,
       {
-        chave: 'Escolha quem faz o serviço. "{servico}" é feito por {executores}.',
+        chave:
+          'Escolha quem faz o serviço. "{servico}" é feito por {executores}.',
         variaveis: { executores: nomes.join(" / "), servico: servico.nome },
       },
     );
@@ -331,7 +334,9 @@ export async function prepararNovaMarcacao({
   // preenchida. Vem da ficha quando lá estiver, e do que o dono escrever
   // enquanto não estiver.
   const viatura =
-    campos.viaturaBruto.trim().slice(0, 160) || contacto.viatura?.trim() || null;
+    campos.viaturaBruto.trim().slice(0, 160) ||
+    contacto.viatura?.trim() ||
+    null;
 
   const avisos: AvisoDaMarcacao[] = [];
   const { diaDaSemana, horaDecimal } = diaEHoraNoFuso(inicioIso, timeZone);
@@ -340,7 +345,10 @@ export async function prepararNovaMarcacao({
   const fimDecimal = horaDecimal + duracaoMinutos / 60;
 
   if (new Date(inicioIso).getTime() < Date.now()) {
-    avisos.push({ frase: { chave: "Esta hora já passou." }, texto: "Esta hora já passou." });
+    avisos.push({
+      frase: { chave: "Esta hora já passou." },
+      texto: "Esta hora já passou.",
+    });
   }
 
   if (horario && !janela) {
@@ -355,7 +363,11 @@ export async function prepararNovaMarcacao({
     avisos.push({
       frase: {
         chave: "Fica fora do horário de {executor} ({inicio}h–{fim}h).",
-        variaveis: { executor: executor.nome, fim: janela[1], inicio: janela[0] },
+        variaveis: {
+          executor: executor.nome,
+          fim: janela[1],
+          inicio: janela[0],
+        },
       },
       texto: `Fica fora do horário de ${executor.nome} (${janela[0]}h–${janela[1]}h).`,
     });
@@ -401,16 +413,6 @@ export type ConflitoNaAgenda = {
   titulo: string | null;
 };
 
-type RespostaDoWorkflow = {
-  calendario_id?: string;
-  conflitos?: ConflitoNaAgenda[];
-  event_id?: string;
-  link_google?: string;
-  marcacao_id?: string;
-  mensagem?: string;
-  status?: string;
-};
-
 export type ResultadoDaMarcacao = {
   /** Preenchido quando o executor já tem trabalho àquela hora. */
   conflitos: ConflitoNaAgenda[];
@@ -419,36 +421,64 @@ export type ResultadoDaMarcacao = {
   ok: boolean;
 };
 
-function lerConfiguracaoDoWorkflow() {
-  const url = process.env.N8N_AGENDA_WEBHOOK_URL?.trim();
-  const segredo = process.env.N8N_AGENDA_WEBHOOK_SECRET?.trim();
-
-  if (!url || !segredo || segredo.length < 32) {
-    return null;
-  }
-
-  return { segredo, url };
+/**
+ * Se o painel consegue marcar. Desde 25/11 fala direto com o Google, com a
+ * conta da Lexia guardada em `lexia_conexoes`; basta a chave do cofre.
+ */
+export function marcarEstaLigado() {
+  return Boolean(process.env.LEXIA_CONEXOES_CHAVE?.trim());
 }
 
-/** Se o painel já consegue marcar, ou se ainda falta ligar o workflow. */
-export function marcarEstaLigado() {
-  return lerConfiguracaoDoWorkflow() !== null;
+function precoEscrito(valor: number, clienteSlug: string) {
+  const moeda = getMoedaDoCliente(clienteSlug) ?? "EUR";
+  const numero = Number.isInteger(valor) ? String(valor) : valor.toFixed(2);
+
+  return moeda === "EUR" ? `${numero}€` : `$${numero}`;
 }
 
 /**
- * Cria o evento no Google e a linha na base do cliente, e só depois o espelho.
+ * A descrição do evento, no mesmo formato que o agente escreve.
  *
- * O trabalho é todo do n8n — aqui só se fala com ele. Não é preguiça: quem tem
- * as credenciais do Google é o n8n, e quem sabe qual dos dois calendários
- * pertence a que executor também. Refazer isso em TypeScript era uma segunda
- * cópia das mesmas regras, a divergir da primeira ao primeiro calendário novo.
+ * O agente e os lembretes reconhecem o cliente pelo **telefone escrito na
+ * descrição** (é assim que o Detail sabe das marcações feitas à mão), por
+ * isso o telefone vai numa linha própria, como nas marcações do agente.
+ */
+export function descricaoDoEvento(
+  marcacao: MarcacaoPreparada,
+  clienteSlug: string,
+) {
+  return [
+    "Marcação criada pela plataforma LEXIA.",
+    `Cliente: ${marcacao.nomeCliente}`,
+    `Telefone: ${marcacao.telefone}`,
+    marcacao.viatura ? `Viatura: ${marcacao.viatura}` : null,
+    `Serviço: ${marcacao.servicoNome}`,
+    marcacao.valor !== null
+      ? `Preço: ${precoEscrito(marcacao.valor, clienteSlug)}`
+      : null,
+    marcacao.observacoes ? `Observações: ${marcacao.observacoes}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
+ * Cria o evento no Google e só depois o espelho.
  *
- * O espelho é escrito aqui e não lá porque é aqui que se sabe que isto veio do
- * painel. Se a escrita do espelho falhar, a marcação **não** se desfaz: o
- * evento existe no Google e a venda está na base do cliente, que são as duas
- * fontes a sério. A próxima sincronização apanha a linha de qualquer maneira,
- * com `origem: 'manual'` em vez de `painel` — um rótulo pior, não um dado
- * perdido.
+ * Desde 25/11/2026 sem n8n: o painel fala direto com o Google (ver
+ * `lib/agenda/google.ts`).
+ *
+ * O que mudou de propósito em relação ao workflow antigo: **já não se escreve
+ * na tabela de marcações do agente** (`marcacoes` do Detail,
+ * `agendamentos_miranda_skin` da Miranda). Essas tabelas são o registo do que
+ * o AGENTE marcou — a sincronização usa-as para dizer "marcado pelo agente", e
+ * isso acendia o aviso "Nova marcação" no iPhone do dono por uma marcação que
+ * ele próprio acabou de fazer, e somava-a aos resultados do agente. O que liga
+ * a marcação ao cliente é o telefone na descrição e o espelho com
+ * `origem: 'painel'`, que o gatilho da `lexia_agendamentos` protege.
+ *
+ * Se a escrita do espelho falhar, a marcação **não** se desfaz: o evento
+ * existe no Google, que é a fonte, e a próxima sincronização apanha-o.
  */
 export async function marcarNaAgenda({
   clienteSlug,
@@ -459,50 +489,42 @@ export async function marcarNaAgenda({
   ignorarConflito: boolean;
   marcacao: MarcacaoPreparada;
 }): Promise<ResultadoDaMarcacao> {
-  const config = lerConfiguracaoDoWorkflow();
+  const calendarioId = agendaDe(clienteSlug, marcacao.executorChave);
 
-  if (!config) {
+  if (!calendarioId) {
     return {
       conflitos: [],
-      erro: "O agendamento pelo painel ainda não está ligado ao n8n.",
+      erro: "Este profissional ainda não tem agenda do Google ligada à Lexia.",
       linkGoogle: null,
       ok: false,
     };
   }
 
-  let resposta: Response;
+  const fuso = getClientTimezone(clienteSlug);
+  let criado: { eventId: string; link: string | null };
 
   try {
-    resposta = await fetch(config.url, {
-      body: JSON.stringify({
-        cliente_slug: clienteSlug,
-        duracao_min: marcacao.duracaoMinutos,
-        estado: "confirmada",
-        event: "lexia.agenda.marcacao.criada",
-        executor: marcacao.executorChave,
-        fim_iso: marcacao.fimIso,
-        ignorar_conflito: ignorarConflito,
-        inicio_iso: marcacao.inicioIso,
-        nome: marcacao.nomeCliente,
-        observacoes: marcacao.observacoes,
-        servico: marcacao.servicoNome,
-        telefone: marcacao.telefone,
-        tipo: "servico",
-        titulo: marcacao.titulo,
-        valor: marcacao.valor,
-        viatura: marcacao.viatura,
-        version: "1",
-      }),
-      headers: {
-        authorization: `Bearer ${config.segredo}`,
-        "content-type": "application/json",
-      },
-      method: "POST",
-      redirect: "error",
-      signal: AbortSignal.timeout(20_000),
+    if (!ignorarConflito) {
+      const conflitos = await ocupadoEntre(
+        calendarioId,
+        marcacao.inicioIso,
+        marcacao.fimIso,
+      );
+
+      if (conflitos.length > 0) {
+        return { conflitos, erro: null, linkGoogle: null, ok: false };
+      }
+    }
+
+    criado = await criarEvento(calendarioId, {
+      descricao: descricaoDoEvento(marcacao, clienteSlug),
+      fimIso: marcacao.fimIso,
+      fuso,
+      inicioIso: marcacao.inicioIso,
+      titulo: marcacao.titulo,
     });
   } catch (erro) {
-    console.error("[agenda] o workflow de marcação não respondeu", erro);
+    console.error("[agenda] o Google não aceitou a marcação", erro);
 
     return {
       conflitos: [],
@@ -512,74 +534,27 @@ export async function marcarNaAgenda({
     };
   }
 
-  if (!resposta.ok) {
-    console.error("[agenda] o workflow de marcação recusou", resposta.status);
-
-    return {
-      conflitos: [],
-      erro: "A agenda recusou o agendamento. Tente de novo daqui a pouco.",
-      linkGoogle: null,
-      ok: false,
-    };
-  }
-
-  let corpo: RespostaDoWorkflow;
-
-  try {
-    const lido: unknown = await resposta.json();
-
-    // O "Respond to Webhook" do n8n devolve uma lista quando o nó traz mais do
-    // que um item. Aceitar as duas formas evita que a marcação pareça falhada
-    // por causa de um par de parênteses rectos.
-    corpo = (Array.isArray(lido) ? lido[0] : lido) as RespostaDoWorkflow;
-  } catch {
-    return {
-      conflitos: [],
-      erro: "A agenda respondeu algo que não dá para ler. Confirma no Google antes de tentar de novo.",
-      linkGoogle: null,
-      ok: false,
-    };
-  }
-
-  if (corpo?.status === "CONFLITO") {
-    return {
-      conflitos: Array.isArray(corpo.conflitos) ? corpo.conflitos : [],
-      erro: null,
-      linkGoogle: null,
-      ok: false,
-    };
-  }
-
-  if (corpo?.status !== "CRIADO" || !corpo.event_id || !corpo.calendario_id) {
-    return {
-      conflitos: [],
-      erro:
-        corpo?.mensagem?.trim() ||
-        "A agenda não confirmou o agendamento. Confirma no Google antes de tentar de novo.",
-      linkGoogle: null,
-      ok: false,
-    };
-  }
-
-  const linkGoogle = corpo.link_google?.trim() || null;
   const admin = createAdminClient();
   const { error } = await admin.from("lexia_agendamentos").upsert(
     {
-      calendario_id: corpo.calendario_id,
+      calendario_id: calendarioId,
       cliente_slug: clienteSlug,
-      dados: { observacoes_cliente: marcacao.observacoes, viatura: marcacao.viatura },
-      descricao: marcacao.observacoes,
+      dados: {
+        observacoes_cliente: marcacao.observacoes,
+        viatura: marcacao.viatura,
+      },
+      descricao: descricaoDoEvento(marcacao, clienteSlug),
       dia_inteiro: false,
       estado: "confirmado",
-      event_id: corpo.event_id,
+      event_id: criado.eventId,
       executor: marcacao.executorChave,
       fim: marcacao.fimIso,
-      fuso: getClientTimezone(clienteSlug),
+      fuso,
       inicio: marcacao.inicioIso,
-      link_google: linkGoogle,
+      link_google: criado.link,
       nome_cliente: marcacao.nomeCliente,
       origem: "painel",
-      referencia_cliente: corpo.marcacao_id ?? null,
+      referencia_cliente: null,
       servico: marcacao.servicoNome,
       telefone: marcacao.telefone,
       titulo: marcacao.titulo,
@@ -594,5 +569,5 @@ export async function marcarNaAgenda({
     console.error("[agenda] a marcação entrou mas o espelho falhou", error);
   }
 
-  return { conflitos: [], erro: null, linkGoogle, ok: true };
+  return { conflitos: [], erro: null, linkGoogle: criado.link, ok: true };
 }
