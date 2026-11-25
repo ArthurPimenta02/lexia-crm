@@ -492,7 +492,10 @@ const PONTOS_NO_DIA = 3;
  */
 export type MarcarNaAgenda = {
   action: MarcarAction;
+  /** Confirmar pelo WhatsApp com o texto do agente (25/11). */
+  confirma: boolean;
   contactos: ContactoParaEscolha[];
+  idiomas: ("pt" | "en" | "es")[];
   /** "Veículo" só para quem trabalha com carros (lib/clientes/ficha.ts). */
   mostrarViatura: boolean;
   servicos: ServicoAgendavel[];
@@ -541,7 +544,9 @@ function PainelDeMarcar({
           dia={dia}
           fechar={fechar}
           moeda={moeda}
-          mostrarViatura={marcar.mostrarViatura}
+          confirma={marcar.confirma}
+              idiomas={marcar.idiomas}
+              mostrarViatura={marcar.mostrarViatura}
           servicos={marcar.servicos}
           timeZone={timeZone}
         />
@@ -642,6 +647,8 @@ function PainelDoDia({
               dia={dia.chave}
               fechar={() => setAMarcar(false)}
               moeda={moeda}
+              confirma={marcar.confirma}
+              idiomas={marcar.idiomas}
               mostrarViatura={marcar.mostrarViatura}
           servicos={marcar.servicos}
               timeZone={timeZone}

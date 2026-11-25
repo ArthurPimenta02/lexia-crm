@@ -6,6 +6,12 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "A mesma mensagem que o agente manda quando marca": "A mesma mensagem que o agente envia quando marca",
+    "Confirmar pelo WhatsApp": "Confirmar pelo WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmação enviada pelo WhatsApp.",
+    "Idioma da cliente": "Idioma da cliente",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.",
+    "Sem telefone para mandar a confirmação.": "Sem telefone para enviar a confirmação.",
     "1 atendimento para confirmar": "1 atendimento por confirmar",
     "{n} atendimentos para confirmar": "{n} atendimentos por confirmar",
     "1 falta": "1 falta",
@@ -247,6 +253,12 @@ const textos: TextosDaArea = {
     "Não foi possível preparar o envio do arquivo.": "Não foi possível preparar o envio do ficheiro.",
   },
   es: {
+    "A mesma mensagem que o agente manda quando marca": "El mismo mensaje que envía el agente al agendar",
+    "Confirmar pelo WhatsApp": "Confirmar por WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmación enviada por WhatsApp.",
+    "Idioma da cliente": "Idioma de la clienta",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "La cita quedó agendada, pero la confirmación por WhatsApp no salió.",
+    "Sem telefone para mandar a confirmação.": "Sin teléfono para enviar la confirmación.",
     "1 atendimento para confirmar": "1 cita por confirmar",
     "{n} atendimentos para confirmar": "{n} citas por confirmar",
     "1 falta": "1 ausencia",
@@ -488,6 +500,12 @@ const textos: TextosDaArea = {
     "Não foi possível preparar o envio do arquivo.": "No se pudo preparar el envío del archivo.",
   },
   en: {
+    "A mesma mensagem que o agente manda quando marca": "The same message the agent sends when it books",
+    "Confirmar pelo WhatsApp": "Confirm on WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmation sent on WhatsApp.",
+    "Idioma da cliente": "Client's language",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "The appointment is booked, but the WhatsApp confirmation didn't go out.",
+    "Sem telefone para mandar a confirmação.": "No phone number to send the confirmation.",
     "1 atendimento para confirmar": "1 appointment to confirm",
     "{n} atendimentos para confirmar": "{n} appointments to confirm",
     "1 falta": "1 no-show",

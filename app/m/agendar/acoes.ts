@@ -1,6 +1,7 @@
 "use server";
 
 import { horariosLivres, resolverContacto } from "@/lib/agenda/agendar-app";
+import { enviarConfirmacao } from "@/lib/agenda/confirmacao";
 import { marcarEstaLigado, marcarNaAgenda, prepararNovaMarcacao } from "@/lib/agenda/marcar";
 import { contextoMovel } from "@/lib/movel/contexto";
 import { ehContaDemo } from "@/lib/movel/demo";
@@ -83,6 +84,8 @@ export async function agendarMovel(formData: FormData): Promise<ResultadoAgendar
     clienteSlug: c.clienteSlug,
   });
   if (erro || !marcacao) return { avisos: [], conflitos: [], erro: t(erro ?? "Faltam dados para agendar."), ok: false };
+  const idioma = texto("idioma");
+  marcacao.idioma = idioma === "pt" || idioma === "en" || idioma === "es" ? idioma : null;
   if (avisos.length && texto("confirmado") !== "sim") return { avisos: avisos.map((a) => (a.frase ? t(a.frase.chave, a.frase.variaveis) : t(a.texto))), conflitos: [], erro: null, ok: false };
 
   const r = await marcarNaAgenda({ clienteSlug: c.clienteSlug, ignorarConflito: texto("ignorar_conflito") === "sim", marcacao });
@@ -94,5 +97,18 @@ export async function agendarMovel(formData: FormData): Promise<ResultadoAgendar
       ok: false,
     };
   }
-  return { avisos: [], conflitos: [], erro: null, ok: true, texto: ficha.criado ? t("Marcado! Ficha de {nome} criada.", { nome: ficha.nome }) : t("Marcado!") };
+  // Confirmação pelo WhatsApp: o mesmo texto do agente, sem pausar o agente (25/11).
+  let aviso: string | null = null;
+  let confirmada = false;
+  if (texto("confirmar") === "sim" && r.eventId) {
+    const c2 = await enviarConfirmacao({
+      carro: marcacao.viatura, clienteSlug: c.clienteSlug, eventId: r.eventId, executorChave: marcacao.executorChave, executorNome: marcacao.executorNome,
+      idioma: marcacao.idioma ?? "pt", inicioIso: marcacao.inicioIso, nome: marcacao.nomeCliente, servicoId: texto("servico_id"), servicoNome: marcacao.servicoNome,
+      telefone: marcacao.telefone, valor: marcacao.valor,
+    });
+    confirmada = c2.enviada;
+    aviso = c2.erro ? t(c2.erro) : null;
+  }
+  const base = ficha.criado ? t("Marcado! Ficha de {nome} criada.", { nome: ficha.nome }) : t("Marcado!");
+  return { avisos: aviso ? [aviso] : [], conflitos: [], erro: null, ok: true, texto: confirmada ? `${base} ${t("Confirmação enviada pelo WhatsApp.")}` : base };
 }

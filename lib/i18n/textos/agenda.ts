@@ -14,6 +14,12 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "A mesma mensagem que o agente manda quando marca": "A mesma mensagem que o agente envia quando marca",
+    "Confirmar pelo WhatsApp": "Confirmar pelo WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmação enviada pelo WhatsApp.",
+    "Idioma da cliente": "Idioma da cliente",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.",
+    "Sem telefone para mandar a confirmação.": "Sem telefone para enviar a confirmação.",
     // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
     "Procurando horários livres…": "A procurar horários livres…",
     "Cancelar agendamento": "Cancelar marcação",
@@ -234,6 +240,12 @@ const textos: TextosDaArea = {
     "Ainda não há ninguém no pipeline": "Ainda não há ninguém no pipeline",
   },
   es: {
+    "A mesma mensagem que o agente manda quando marca": "El mismo mensaje que envía el agente al agendar",
+    "Confirmar pelo WhatsApp": "Confirmar por WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmación enviada por WhatsApp.",
+    "Idioma da cliente": "Idioma de la clienta",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "La cita quedó agendada, pero la confirmación por WhatsApp no salió.",
+    "Sem telefone para mandar a confirmação.": "Sin teléfono para enviar la confirmación.",
     // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
     "Procurando horários livres…": "Buscando horarios libres…",
     "Cancelar agendamento": "Cancelar cita",
@@ -452,6 +464,12 @@ const textos: TextosDaArea = {
     "Ainda não há ninguém no pipeline": "Todavía no hay nadie en el pipeline",
   },
   en: {
+    "A mesma mensagem que o agente manda quando marca": "The same message the agent sends when it books",
+    "Confirmar pelo WhatsApp": "Confirm on WhatsApp",
+    "Confirmação enviada pelo WhatsApp.": "Confirmation sent on WhatsApp.",
+    "Idioma da cliente": "Client's language",
+    "A marcação ficou feita, mas a confirmação pelo WhatsApp não saiu.": "The appointment is booked, but the WhatsApp confirmation didn't go out.",
+    "Sem telefone para mandar a confirmação.": "No phone number to send the confirmation.",
     // 25/11 — agendar com ficha criada sozinha, horários livres, cancelar
     "Procurando horários livres…": "Looking for available times…",
     "Cancelar agendamento": "Cancel appointment",

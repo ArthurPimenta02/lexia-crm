@@ -10,6 +10,7 @@ import {
 } from "@/lib/agenda/marcar";
 import { horariosLivres, resolverContacto } from "@/lib/agenda/agendar-app";
 import { cancelarAgendamento } from "@/lib/agenda/alterar";
+import { enviarConfirmacao } from "@/lib/agenda/confirmacao";
 import { marcarPresenca, type Presenca } from "@/lib/agenda/presenca";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
@@ -45,6 +46,8 @@ export type MarcarResultado = {
   avisosFrases?: FraseParaTraduzir[];
   /** O que já está marcado àquela hora, se houver. */
   conflitos: ConflitoNaAgenda[];
+  /** A confirmação pelo WhatsApp saiu (25/11). */
+  confirmacaoEnviada?: boolean;
   linkGoogle: string | null;
   mensagem: string;
   mensagemFrase?: FraseParaTraduzir;
@@ -125,6 +128,9 @@ export async function marcarNaAgendaAction(
       : recusar("Faltam dados para agendar.");
   }
 
+  const idioma = texto("idioma");
+  marcacao.idioma = idioma === "pt" || idioma === "en" || idioma === "es" ? idioma : null;
+
   const confirmado = texto("confirmado") === "sim";
 
   // Nada é escrito nesta passagem: os avisos existem para serem lidos antes de
@@ -174,8 +180,21 @@ export async function marcarNaAgendaAction(
 
   revalidatePath(caminho);
 
+  // Confirmação pelo WhatsApp: o mesmo texto do agente, sem pausar o agente (25/11).
+  const confirmacao =
+    texto("confirmar_whatsapp") === "sim" && resultado.eventId
+      ? await enviarConfirmacao({
+          carro: marcacao.viatura, clienteSlug: perfil.clienteSlug, eventId: resultado.eventId, executorChave: marcacao.executorChave,
+          executorNome: marcacao.executorNome, idioma: marcacao.idioma ?? "pt", inicioIso: marcacao.inicioIso, nome: marcacao.nomeCliente,
+          servicoId: texto("servico_id"), servicoNome: marcacao.servicoNome, telefone: marcacao.telefone, valor: marcacao.valor,
+        })
+      : null;
+
   return {
     ...vazio,
+    avisos: confirmacao?.erro ? [confirmacao.erro] : [],
+    avisosFrases: confirmacao?.erro ? [{ chave: confirmacao.erro }] : undefined,
+    confirmacaoEnviada: confirmacao?.enviada ?? false,
     linkGoogle: resultado.linkGoogle,
     mensagem: `"${marcacao.servicoNome}" ficou agendado para ${marcacao.nomeCliente}.`,
     mensagemFrase: {

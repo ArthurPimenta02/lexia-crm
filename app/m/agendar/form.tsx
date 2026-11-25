@@ -11,7 +11,7 @@ type Executor = { chave: string; duracaoMinutos: number; nome: string };
 type Servico = { executores: Executor[]; id: string; nome: string; preco: number | null; precoTexto: string | null };
 type Contacto = { id: string; nome: string; telefone: string };
 type Textos = Record<
-  | "cancelar" | "cliente" | "clienteNovo" | "clienteNovoTexto" | "confirmar" | "de" | "deOpcional" | "deOutro" | "dia" | "duracao" | "escolher" | "fechar"
+  | "cancelar" | "cliente" | "clienteNovo" | "confirmarWhats" | "confirmarWhatsDica" | "idioma" | "clienteNovoTexto" | "confirmar" | "de" | "deOpcional" | "deOutro" | "dia" | "duracao" | "escolher" | "fechar"
   | "horario" | "jaCliente" | "jaMarcados" | "maisHorarios" | "marcar" | "marcarAs" | "naoLigado" | "nenhumLivre" | "nomeDoCliente" | "novo" | "observacao" | "ocupado"
   | "origens" | "outroDia" | "outroHorario" | "profissional" | "servico" | "telefone" | "valor",
   string
@@ -34,12 +34,14 @@ function mesmoNumero(a: string, b: string) {
 }
 
 export function FormAgendar(props: {
+  confirma: boolean;
   contactoInicial: string | null;
   contactos: Contacto[];
   dia: string;
   diaFixo: string | null;
   dias: { chave: string; rotulo: string }[];
   hoje: string;
+  idiomas: ("pt" | "en" | "es")[];
   indicativo: string;
   jaMarcados: { hora: string; nome: string; servico: string }[];
   ligado: boolean;
@@ -72,6 +74,8 @@ export function FormAgendar(props: {
   const [observacao, setObservacao] = useState("");
   const [origem, setOrigem] = useState("");
   const [origemNota, setOrigemNota] = useState("");
+  const [confirmar, setConfirmar] = useState(props.confirma);
+  const [idioma, setIdioma] = useState<"pt" | "en" | "es">(props.idiomas[0] ?? "pt");
   const [erro, setErro] = useState<string | null>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
   const [conflitos, setConflitos] = useState<string[]>([]);
@@ -141,14 +145,17 @@ export function FormAgendar(props: {
     f.set("hora", hora);
     f.set("valor", valor);
     f.set("observacao", observacao);
+    f.set("idioma", idioma);
+    if (confirmar) f.set("confirmar", "sim");
     if (avisos.length || conflitos.length) f.set("confirmado", "sim");
     if (conflitos.length) f.set("ignorar_conflito", "sim");
     setErro(null);
     inicia(async () => {
       const r = await agendarMovel(f);
       if (r.ok) {
-        setFeito(r.texto ?? t.marcar);
-        window.setTimeout(() => { router.push(props.volta); router.refresh(); }, 1200);
+        // Marcado; se a confirmação não saiu, o aviso vai na mesma mensagem (a marcação não se desfaz).
+        setFeito([r.texto ?? t.marcar, ...r.avisos].join(" "));
+        window.setTimeout(() => { router.push(props.volta); router.refresh(); }, r.avisos.length ? 3500 : 1600);
         return;
       }
       setAvisos(r.avisos);
@@ -287,6 +294,20 @@ export function FormAgendar(props: {
             {origens.map(([v, r]) => <button className={origem === v ? "on" : ""} key={v} onClick={() => setOrigem(origem === v ? "" : v)} type="button">{r}</button>)}
           </div>
           {origem === "outro" ? <input aria-label={t.deOutro} className="ag-inp" maxLength={200} onChange={(e) => setOrigemNota(e.target.value)} placeholder={t.deOutro} style={{ marginTop: 8 }} value={origemNota} /> : null}
+        </div>
+      ) : null}
+
+      {props.confirma ? (
+        <div className="ag-campo">
+          <label className="ag-interruptor">
+            <span><span style={{ display: "block" }}>{t.confirmarWhats}</span><small style={{ color: "var(--m-texto2)", fontSize: 13, fontWeight: 400 }}>{t.confirmarWhatsDica}</small></span>
+            <input checked={confirmar} onChange={(e) => setConfirmar(e.target.checked)} role="switch" type="checkbox" />
+          </label>
+          {confirmar && props.idiomas.length > 1 ? (
+            <div className="ag-pilulas" style={{ marginTop: 8 }} aria-label={t.idioma} role="group">
+              {props.idiomas.map((i) => <button className={idioma === i ? "on" : ""} key={i} onClick={() => setIdioma(i)} type="button">{i === "pt" ? "Português" : i === "en" ? "English" : "Español"}</button>)}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

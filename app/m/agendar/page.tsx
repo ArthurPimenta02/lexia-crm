@@ -5,6 +5,7 @@ import { ehContaDemo, SERVICOS_DEMO } from "@/lib/movel/demo";
 import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { indicativoPadrao } from "@/lib/agenda/agendar-app";
+import { CONFIRMA_PELO_WHATSAPP, idiomasDe } from "@/lib/agenda/confirmacao";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 
@@ -51,6 +52,7 @@ export default async function AgendarMovel({ searchParams }: { searchParams: Pro
 
   return (
     <FormAgendar
+      confirma={!demo && CONFIRMA_PELO_WHATSAPP.has(c.clienteSlug)}
       contactoInicial={typeof params.contacto === "string" ? params.contacto : null}
       contactos={contactos.map((x) => ({ id: x.id, nome: x.nome, telefone: x.telefone }))}
       dia={dia}
@@ -61,6 +63,7 @@ export default async function AgendarMovel({ searchParams }: { searchParams: Pro
         { chave: somarDias(hoje, 2), rotulo: rotuloDia(somarDias(hoje, 2)) },
       ]}
       hoje={hoje}
+      idiomas={idiomasDe(c.clienteSlug)}
       indicativo={indicativoPadrao(c.clienteSlug)}
       jaMarcados={(doDia?.eventos ?? [])
         .filter((e) => e.estado !== "cancelado" && e.dia === dia)
@@ -78,6 +81,9 @@ export default async function AgendarMovel({ searchParams }: { searchParams: Pro
       textos={{
         cancelar: t("Cancelar"),
         cliente: t("Cliente"),
+        confirmarWhats: t("Confirmar pelo WhatsApp"),
+        confirmarWhatsDica: t("A mesma mensagem que o agente manda quando marca"),
+        idioma: t("Idioma da cliente"),
         clienteNovo: t("Cliente novo."),
         clienteNovoTexto: t("A ficha é criada sozinha quando você marcar."),
         confirmar: t("Marcar mesmo assim"),

@@ -66,6 +66,8 @@ export type MarcacaoPreparada = {
   executorChave: string;
   executorNome: string;
   fimIso: string;
+  /** Idioma da cliente (25/11): vai na descrição ("Idioma: pt") para os lembretes do agente e da plataforma. */
+  idioma?: "pt" | "en" | "es" | null;
   inicioIso: string;
   nomeCliente: string;
   observacoes: string | null;
@@ -417,6 +419,8 @@ export type ResultadoDaMarcacao = {
   /** Preenchido quando o executor já tem trabalho àquela hora. */
   conflitos: ConflitoNaAgenda[];
   erro: string | null;
+  /** O id do evento no Google (25/11: chave da confirmação pelo WhatsApp). */
+  eventId?: string | null;
   linkGoogle: string | null;
   ok: boolean;
 };
@@ -447,7 +451,13 @@ export function descricaoDoEvento(
   marcacao: MarcacaoPreparada,
   clienteSlug: string,
 ) {
+  // 1.ª linha = "Serviço — preço" (25/11): o lembrete do Detail lê o serviço da 1.ª linha que não seja
+  // telefone/preço/"criada pelo agente" (nó "Montar Lembretes"); com o cabeçalho em 1.º, o lembrete dizia
+  // "Marcação criada pela plataforma LEXIA." no lugar do serviço.
   return [
+    marcacao.valor !== null
+      ? `${marcacao.servicoNome} — ${precoEscrito(marcacao.valor, clienteSlug)}`
+      : marcacao.servicoNome,
     "Marcação criada pela plataforma LEXIA.",
     `Cliente: ${marcacao.nomeCliente}`,
     `Telefone: ${marcacao.telefone}`,
@@ -456,6 +466,7 @@ export function descricaoDoEvento(
     marcacao.valor !== null
       ? `Preço: ${precoEscrito(marcacao.valor, clienteSlug)}`
       : null,
+    marcacao.idioma ? `Idioma: ${marcacao.idioma}` : null,
     marcacao.observacoes ? `Observações: ${marcacao.observacoes}` : null,
   ]
     .filter(Boolean)
@@ -569,5 +580,5 @@ export async function marcarNaAgenda({
     console.error("[agenda] a marcação entrou mas o espelho falhou", error);
   }
 
-  return { conflitos: [], erro: null, linkGoogle: criado.link, ok: true };
+  return { conflitos: [], erro: null, eventId: criado.eventId, linkGoogle: criado.link, ok: true };
 }

@@ -316,7 +316,9 @@ export function NovaMarcacaoForm({
   action,
   contactos,
   dia,
+  confirma,
   fechar,
+  idiomas,
   moeda,
   mostrarViatura,
   servicos,
@@ -327,6 +329,8 @@ export function NovaMarcacaoForm({
   /** O dia que o painel tem aberto, como `AAAA-MM-DD`. */
   dia: string;
   fechar: () => void;
+  confirma: boolean;
+  idiomas: ("pt" | "en" | "es")[];
   moeda: string | null;
   mostrarViatura: boolean;
   servicos: ServicoAgendavel[];
@@ -449,6 +453,12 @@ export function NovaMarcacaoForm({
     return (
       <div className="flex flex-col gap-3 rounded-2xl border border-positive/20 bg-positive-soft px-4 py-4">
         <p className="text-sm font-semibold text-positive">{mensagem}</p>
+        {resultado.confirmacaoEnviada ? (
+          <p className="text-xs font-semibold text-positive">{t("Confirmação enviada pelo WhatsApp.")}</p>
+        ) : null}
+        {resultado.avisos.map((aviso) => (
+          <p className="text-xs font-semibold text-danger" key={aviso}>{t(aviso)}</p>
+        ))}
         <p className="text-xs text-positive/80">
           {t(
             "Já está na agenda do Google e aparece aqui assim que a página recarregar.",
@@ -736,6 +746,28 @@ export function NovaMarcacaoForm({
               ))}
             </div>
           )}
+        </div>
+      ) : null}
+
+      {confirma ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-foreground" htmlFor="marcar-confirmar">
+            <input defaultChecked id="marcar-confirmar" name="confirmar_whatsapp" type="checkbox" value="sim" />
+            {t("Confirmar pelo WhatsApp")}
+          </label>
+          {idiomas.length > 1 ? (
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground" htmlFor="marcar-idioma">
+              {t("Idioma da cliente")}
+              <select className={inputClass} defaultValue={idiomas[0]} id="marcar-idioma" name="idioma">
+                <option value="pt">Português</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </label>
+          ) : (
+            <input name="idioma" type="hidden" value={idiomas[0] ?? "pt"} />
+          )}
+          <span className="w-full text-xs text-muted-foreground">{t("A mesma mensagem que o agente manda quando marca")}</span>
         </div>
       ) : null}
 
