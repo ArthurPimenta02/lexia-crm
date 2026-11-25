@@ -237,3 +237,21 @@ export async function apagarEvento(calendarioId: string, eventId: string) {
     throw new ErroDoGoogle(`O Google respondeu ${resposta.status}.`);
   }
 }
+
+/** Muda só a hora de um evento (remarcar), sem avisar ninguém. */
+export async function mudarHorarioDoEvento(
+  calendarioId: string,
+  eventId: string,
+  horario: { fimIso: string; fuso: string; inicioIso: string },
+) {
+  await pedir<EventoGoogle>(
+    `/calendars/${encodeURIComponent(calendarioId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+    {
+      body: JSON.stringify({
+        end: { dateTime: horario.fimIso, timeZone: horario.fuso },
+        start: { dateTime: horario.inicioIso, timeZone: horario.fuso },
+      }),
+      method: "PATCH",
+    },
+  );
+}

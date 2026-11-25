@@ -9,7 +9,7 @@ import { getMoedaDoCliente } from "@/lib/servicos/config";
 import { getServicosAgendaveis } from "@/lib/servicos/read";
 import { ehContaDemo } from "@/lib/movel/demo";
 
-import { IcSeta, IcVoltar } from "../_c/icones";
+import { IcBloquear, IcSeta, IcVoltar } from "../_c/icones";
 import { DiaAgenda } from "./dia";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +69,7 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
     <main className="m-pagina m6 m6-agenda">
       <header className="m6-cab">
         <h1 style={{ textTransform: "capitalize" }}>{titulo}</h1>
+        {podeMarcar && !demo ? <Link aria-label={t("Bloquear horário")} className="ag-x" href={`/m/agenda/bloquear?dia=${dia >= hoje ? dia : hoje}`} style={{ marginLeft: "auto" }}><IcBloquear tamanho={18} /></Link> : null}
         <nav aria-label={t("Ver por")} className="m6-seg">
           <Link aria-current={vista === "dia" ? "true" : undefined} href={url({ vista: "dia" })} replace>{t("Dia")}</Link>
           <Link aria-current={vista === "semana" ? "true" : undefined} href={url({ vista: "semana" })} replace>{t("Semana")}</Link>

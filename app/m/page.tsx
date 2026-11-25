@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
+import { itensParaConfirmar } from "@/lib/movel/confirmar";
 import { hojeRapido } from "@/lib/movel/cache";
 import { clientesAtivos, contextoMovel } from "@/lib/movel/contexto";
 import { esperasPorEmpresa } from "@/lib/movel/esperas";
@@ -9,6 +10,7 @@ import type { DadosHoje } from "@/lib/movel/hoje";
 import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
 import { IcAnuncios, IcBusca, IcCheck, IcConversa, IcMais, IcPessoas, IcSeta, IcSino } from "./_c/icones";
+import { ListaConfirmar } from "./_c/confirmar";
 import { Iniciais, Moldado } from "./_c/pecas";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,8 @@ export default async function HojeMovel() {
   }
 
   const pode = (ecra: string) => ecraPermitido(c.clienteSlug, ecra);
+  // Compareceu/faltou dos últimos 7 dias (25/11): o que falta confirmar.
+  const confirmar = pode("/app/agenda") ? await itensParaConfirmar(c, agora) : [];
   const dinheiro = (v: number) => moeda(v, c.locale, d?.moeda ?? moedaPadraoDoCliente(c.clienteSlug));
   const hhmm = (iso: string) => partesNoFuso(iso, c.fuso).hora;
   const semNome = (canal: string) => (canal === "instagram" ? t("Cliente do Instagram") : canal === "messenger" ? t("Cliente do Messenger") : t("Cliente"));
@@ -109,6 +113,10 @@ export default async function HojeMovel() {
 
       {pode("/app/agenda") ? (
         <Link className="ag-grande" href="/m/agendar"><IcMais tamanho={22} />{t("Novo agendamento")}</Link>
+      ) : null}
+
+      {confirmar.length ? (
+        <ListaConfirmar compacto itens={confirmar} textos={{ compareceu: t("Veio"), faltou: t("Faltou"), titulo: confirmar.length === 1 ? t("1 atendimento para confirmar") : t("{n} atendimentos para confirmar"), verTodos: t("Ver todos") }} />
       ) : null}
 
       <section aria-label={t("Agendamentos hoje")} className="m6-bloco">
