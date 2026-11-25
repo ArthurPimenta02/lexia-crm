@@ -144,15 +144,27 @@ export async function gravarTextoDoArquivo(admin: Admin, clienteSlug: string, ar
 
 // ------------------------------------------------------------------ o caderno (diário)
 
+/**
+ * O Supabase devolve no máximo 1.000 linhas por pedido, SEM erro. O caderno passa disso num negócio com muitos
+ * serviços (a K-Glow, com 51, já tem 667 campos atuais): sem paginar, a entrevista perdia campos em silêncio.
+ */
+export const PAGINA = 1000;
+export async function todasAsPaginas<T>(pedir: (de: number, ate: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>, onde: string): Promise<T[]> {
+  const todas: T[] = [];
+  for (let de = 0; ; de += PAGINA) {
+    const { data, error } = await pedir(de, de + PAGINA - 1);
+    if (error) throw new Error(`${onde}: ${error.message}`);
+    todas.push(...(data ?? []));
+    if ((data ?? []).length < PAGINA) return todas;
+  }
+}
+
 export async function lerItens(admin: Admin, clienteSlug: string, onboardingId: string): Promise<ItemDoCaderno[]> {
-  const { data, error } = await admin
-    .from("lexia_onboarding_itens")
-    .select("id, grupo, ordem, removido_em")
-    .eq("cliente_slug", clienteSlug)
-    .eq("onboarding_id", onboardingId)
-    .order("ordem");
-  if (error) throw new Error(`itens: ${error.message}`);
-  return ((data ?? []) as { id: string; grupo: GrupoQueRepete; ordem: number; removido_em: string | null }[]).map((i) => ({ id: i.id, grupo: i.grupo, ordem: i.ordem, removido: !!i.removido_em }));
+  const data = await todasAsPaginas<{ id: string; grupo: GrupoQueRepete; ordem: number; removido_em: string | null }>(
+    (de, ate) => admin.from("lexia_onboarding_itens").select("id, grupo, ordem, removido_em").eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).order("ordem").order("id").range(de, ate),
+    "itens",
+  );
+  return data.map((i) => ({ id: i.id, grupo: i.grupo, ordem: i.ordem, removido: !!i.removido_em }));
 }
 
 export async function criarItem(admin: Admin, clienteSlug: string, onboardingId: string, grupo: GrupoQueRepete, ordem: number): Promise<string> {
@@ -167,13 +179,10 @@ export async function criarItem(admin: Admin, clienteSlug: string, onboardingId:
 
 /** As linhas mais recentes de cada campo (o estado atual do caderno). */
 export async function lerLinhas(admin: Admin, clienteSlug: string, onboardingId: string): Promise<LinhaDoCaderno[]> {
-  const { data, error } = await admin
-    .from("lexia_onboarding_campos_atual")
-    .select("campo, item_id, valor, estado, fonte, perguntas, evidencia")
-    .eq("cliente_slug", clienteSlug)
-    .eq("onboarding_id", onboardingId);
-  if (error) throw new Error(`caderno: ${error.message}`);
-  return (data ?? []) as LinhaDoCaderno[];
+  return todasAsPaginas<LinhaDoCaderno>(
+    (de, ate) => admin.from("lexia_onboarding_campos_atual").select("campo, item_id, valor, estado, fonte, perguntas, evidencia").eq("cliente_slug", clienteSlug).eq("onboarding_id", onboardingId).order("campo").order("item_id", { nullsFirst: true }).range(de, ate),
+    "caderno",
+  );
 }
 
 export type NovaLinha = {
