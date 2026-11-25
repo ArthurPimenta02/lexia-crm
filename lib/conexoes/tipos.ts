@@ -241,6 +241,22 @@ export const TIPOS_CONEXAO: TipoConexao[] = [
     ],
   },
   {
+    tipo: "elevenlabs",
+    titulo: "Vozes (ElevenLabs)",
+    descricao:
+      "A conta da ElevenLabs da Lexia: clona a voz do dono (com autorização dele) e gera os áudios personalizados do follow-up. Ligada uma vez, serve para todos.",
+    ambito: "global",
+    campos: [
+      {
+        nome: "api_key",
+        label: "Chave de API",
+        segredo: true,
+        ajuda: "Em elevenlabs.io: Developers > API Keys > Create API Key. Permissões: Text to Speech e Voices (escrita).",
+        exemplo: "sk_…",
+      },
+    ],
+  },
+  {
     tipo: "ia",
     titulo: "Chaves de IA",
     descricao:
