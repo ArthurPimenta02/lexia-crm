@@ -1068,31 +1068,53 @@ const duracaoEmMinutos = (evento: EventoAgenda) =>
       60_000
     : 60;
 
+/** Oito horas ou mais: vai para a faixa do topo em vez de ocupar a coluna. */
+const LONGO_MIN = 8 * 60;
+
 /**
- * Só o dia inteiro (sem hora) fica na faixa do topo. Tudo o que tem hora —
- * mesmo o carro que fica três dias na oficina — desenha-se na grelha a ocupar
- * as horas que ocupa de facto, para a agenda mostrar o Martim ocupado até às
- * 18h e não um dia livre com uma etiqueta lá em cima.
+ * Fica na faixa do topo: o dia inteiro, os trabalhos longos e os de vários
+ * dias (o carro que fica três dias na oficina). Desenhados como blocos na
+ * coluna espremiam os outros atendimentos em tiras ilegíveis (25/11). As horas
+ * que eles ocupam marcam-se na grelha por baixo, a sombreado — ver
+ * `pedacoNoDia`.
  */
-const vaiParaOTopo = (evento: EventoAgenda) => evento.diaInteiro;
+const vaiParaOTopo = (evento: EventoAgenda) =>
+  evento.diaInteiro ||
+  evento.continuaDeAntes ||
+  evento.continuaDepois ||
+  duracaoEmMinutos(evento) >= LONGO_MIN;
+
+/**
+ * As horas (em minutos do dia) que um evento ocupa NESTE dia: o primeiro dia
+ * da hora de início à meia-noite, os do meio o dia todo, o último da
+ * meia-noite à hora de fim. `null` no dia inteiro sem hora (aniversário,
+ * férias), que não tem horas para marcar.
+ */
+function pedacoNoDia(evento: EventoAgenda, timeZone: string) {
+  if (evento.diaInteiro) {
+    return null;
+  }
+
+  const inicio = evento.continuaDeAntes
+    ? 0
+    : minutosNoFuso(evento.inicio, timeZone);
+  const fim = evento.continuaDepois
+    ? 24 * 60
+    : evento.continuaDeAntes && evento.fim
+      ? minutosNoFuso(evento.fim, timeZone)
+      : Math.min(24 * 60, inicio + Math.max(15, duracaoEmMinutos(evento)));
+
+  return { fim, inicio };
+}
 
 function arrumarDia(eventos: EventoAgenda[], timeZone: string): Bloco[] {
   const blocos: Bloco[] = eventos
     .filter((evento) => !vaiParaOTopo(evento))
     .map((evento) => {
-      // Num evento de vários dias cada dia leva só o seu pedaço: o primeiro
-      // da hora de início até à meia-noite, os do meio o dia todo, o último
-      // da meia-noite até à hora de fim.
-      const inicio = evento.continuaDeAntes
-        ? 0
-        : minutosNoFuso(evento.inicio, timeZone);
+      const inicio = minutosNoFuso(evento.inicio, timeZone);
       // Sem hora de fim, conta como uma hora: é o que o Google mostra.
       const duracao = Math.max(15, duracaoEmMinutos(evento));
-      const fim = evento.continuaDepois
-        ? 24 * 60
-        : evento.continuaDeAntes && evento.fim
-          ? minutosNoFuso(evento.fim, timeZone)
-          : Math.min(24 * 60, inicio + duracao);
+      const fim = Math.min(24 * 60, inicio + duracao);
 
       return {
         evento,
@@ -1191,30 +1213,44 @@ function SemanaPorHora({
 }) {
   const { locale, t } = useIdioma();
 
-  const porDia = agenda.dias.map((dia) => ({
-    blocos: arrumarDia(dia.eventos, timeZone),
-    dia,
-    diaInteiro: dia.eventos.filter(vaiParaOTopo),
-  }));
+  const porDia = agenda.dias.map((dia) => {
+    const diaInteiro = dia.eventos.filter(vaiParaOTopo);
+
+    return {
+      blocos: arrumarDia(dia.eventos, timeZone),
+      dia,
+      diaInteiro,
+      // Juntam-se os pedaços que se tocam: três carros na quarta são uma
+      // faixa só, senão as riscas somavam-se e a coluna escurecia.
+      ocupado: diaInteiro
+        .map((evento) => pedacoNoDia(evento, timeZone))
+        .filter((pedaco) => pedaco !== null)
+        .sort((a, b) => a.inicio - b.inicio)
+        .reduce<{ fim: number; inicio: number }[]>((juntos, pedaco) => {
+          const ultimo = juntos[juntos.length - 1];
+
+          if (ultimo && pedaco.inicio <= ultimo.fim) {
+            ultimo.fim = Math.max(ultimo.fim, pedaco.fim);
+          } else {
+            juntos.push({ ...pedaco });
+          }
+
+          return juntos;
+        }, []),
+    };
+  });
 
   const todos = porDia.flatMap(({ blocos }) => blocos);
   // A grelha vai das 8h às 19h, e cresce se houver atendimento fora disso.
-  // A meia-noite de um evento de vários dias não conta: é só o corte do dia,
-  // e alargava a grelha para 24 horas por causa de um carro na oficina.
+  // O sombreado dos trabalhos longos não a alarga: a meia-noite de um carro
+  // na oficina é só o corte do dia.
   const primeiraHora = Math.min(
     8,
-    ...todos
-      .filter((bloco) => !bloco.evento.continuaDeAntes)
-      .map((bloco) => Math.floor(bloco.inicio / 60)),
+    ...todos.map((bloco) => Math.floor(bloco.inicio / 60)),
   );
   const ultimaHora = Math.min(
     24,
-    Math.max(
-      19,
-      ...todos
-        .filter((bloco) => !bloco.evento.continuaDepois)
-        .map((bloco) => Math.ceil(bloco.fim / 60)),
-    ),
+    Math.max(19, ...todos.map((bloco) => Math.ceil(bloco.fim / 60))),
   );
   const horasNaGrelha = Array.from(
     { length: ultimaHora - primeiraHora },
@@ -1315,7 +1351,7 @@ function SemanaPorHora({
             ))}
           </div>
 
-          {porDia.map(({ blocos, dia }) => (
+          {porDia.map(({ blocos, dia, ocupado }) => (
             <div
               className={`relative border-l border-border ${
                 dia.hoje
@@ -1329,6 +1365,34 @@ function SemanaPorHora({
                 backgroundSize: `100% ${HORA_PX}px`,
               }}
             >
+              {/*
+               * As horas ocupadas pelos trabalhos da faixa do topo, a
+               * sombreado e sem texto: o nome já está lá em cima, e aqui só
+               * se quer ver que a quarta está tomada até às 18h.
+               */}
+              {ocupado.map((pedaco, i) => {
+                const de = Math.max(pedaco.inicio, primeiraHora * 60);
+                const ate = Math.min(pedaco.fim, ultimaHora * 60);
+
+                if (ate <= de) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0"
+                    key={`ocupado-${i}`}
+                    style={{
+                      backgroundImage:
+                        "repeating-linear-gradient(135deg, color-mix(in oklab, var(--ds-texto) 7%, transparent) 0 6px, transparent 6px 12px)",
+                      height: ((ate - de) / 60) * HORA_PX,
+                      top: ((de - primeiraHora * 60) / 60) * HORA_PX,
+                    }}
+                  />
+                );
+              })}
+
               {blocos.map(
                 ({
                   evento,
