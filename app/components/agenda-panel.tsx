@@ -172,17 +172,19 @@ function rotuloDoPeriodo(agenda: AgendaResultado, locale: string) {
   // O `formatRange` junta as duas pontas como cada língua as junta — "3 – 9
   // de novembro de 2026", "November 3 – 9, 2026" — e só repete o mês quando
   // a semana passa de um para o outro.
-  return new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  })
-    .formatRange(inicio, fim)
-    // O Node e o Chrome põem espaços invisíveis diferentes à volta do "–"
-    // (fino, sem quebra…). Sem isto o texto do servidor e o do navegador não
-    // batem e o React reclama de hidratação.
-    .replace(/[\u2009\u202f\u00a0]/g, " ");
+  return (
+    new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "long",
+      timeZone: "UTC",
+      year: "numeric",
+    })
+      .formatRange(inicio, fim)
+      // O Node e o Chrome põem espaços invisíveis diferentes à volta do "–"
+      // (fino, sem quebra…). Sem isto o texto do servidor e o do navegador não
+      // batem e o React reclama de hidratação.
+      .replace(/[\u2009\u202f\u00a0]/g, " ")
+  );
 }
 
 function horas(
@@ -763,11 +765,11 @@ function PainelDoEvento({
 
   const temDetalhe = Boolean(
     evento.servico ||
-      evento.telefone ||
-      evento.localizacao ||
-      evento.executor ||
-      tituloNoGoogle ||
-      (evento.valorPrevisto !== null && moeda),
+    evento.telefone ||
+    evento.localizacao ||
+    evento.executor ||
+    tituloNoGoogle ||
+    (evento.valorPrevisto !== null && moeda),
   );
 
   return (
@@ -970,10 +972,7 @@ function GrelhaMes({
             */}
             <span className="flex flex-wrap items-center justify-center gap-0.5 sm:hidden">
               {pontos.map((evento) => (
-                <Ponto
-                  doAgente={evento.origem === "agente"}
-                  key={evento.id}
-                />
+                <Ponto doAgente={evento.origem === "agente"} key={evento.id} />
               ))}
               {dia.eventos.length > pontos.length ? (
                 <span className="text-[9px] leading-none font-semibold text-muted-foreground tabular-nums">
@@ -1063,38 +1062,43 @@ type Bloco = {
  * Põe os eventos de um dia na coluna. Dois atendimentos à mesma hora ficam
  * lado a lado (cada um numa faixa), em vez de um tapar o outro.
  */
-/** Oito horas ou mais: vai para a faixa do topo em vez de ocupar a coluna. */
-const LONGO_MIN = 8 * 60;
-
 const duracaoEmMinutos = (evento: EventoAgenda) =>
   evento.fim
-    ? (new Date(evento.fim).getTime() - new Date(evento.inicio).getTime()) / 60_000
+    ? (new Date(evento.fim).getTime() - new Date(evento.inicio).getTime()) /
+      60_000
     : 60;
 
 /**
- * Fica na faixa do topo: o dia inteiro e os trabalhos longos (no Detail um
- * carro pode ficar o dia todo, ou vários dias). Dentro das colunas eles
- * tapavam a semana inteira e espremiam os outros atendimentos.
+ * Só o dia inteiro (sem hora) fica na faixa do topo. Tudo o que tem hora —
+ * mesmo o carro que fica três dias na oficina — desenha-se na grelha a ocupar
+ * as horas que ocupa de facto, para a agenda mostrar o Martim ocupado até às
+ * 18h e não um dia livre com uma etiqueta lá em cima.
  */
-const vaiParaOTopo = (evento: EventoAgenda) =>
-  evento.diaInteiro ||
-  evento.continuaDeAntes ||
-  evento.continuaDepois ||
-  duracaoEmMinutos(evento) >= LONGO_MIN;
+const vaiParaOTopo = (evento: EventoAgenda) => evento.diaInteiro;
 
 function arrumarDia(eventos: EventoAgenda[], timeZone: string): Bloco[] {
   const blocos: Bloco[] = eventos
     .filter((evento) => !vaiParaOTopo(evento))
     .map((evento) => {
-      const inicio = minutosNoFuso(evento.inicio, timeZone);
+      // Num evento de vários dias cada dia leva só o seu pedaço: o primeiro
+      // da hora de início até à meia-noite, os do meio o dia todo, o último
+      // da meia-noite até à hora de fim.
+      const inicio = evento.continuaDeAntes
+        ? 0
+        : minutosNoFuso(evento.inicio, timeZone);
       // Sem hora de fim, conta como uma hora: é o que o Google mostra.
       const duracao = Math.max(15, duracaoEmMinutos(evento));
+      const fim = evento.continuaDepois
+        ? 24 * 60
+        : evento.continuaDeAntes && evento.fim
+          ? minutosNoFuso(evento.fim, timeZone)
+          : Math.min(24 * 60, inicio + duracao);
 
       return {
         evento,
         faixa: 0,
         faixas: 1,
-        fim: Math.min(24 * 60, inicio + duracao),
+        fim,
         inicio,
       };
     })
@@ -1195,13 +1199,22 @@ function SemanaPorHora({
 
   const todos = porDia.flatMap(({ blocos }) => blocos);
   // A grelha vai das 8h às 19h, e cresce se houver atendimento fora disso.
+  // A meia-noite de um evento de vários dias não conta: é só o corte do dia,
+  // e alargava a grelha para 24 horas por causa de um carro na oficina.
   const primeiraHora = Math.min(
     8,
-    ...todos.map((bloco) => Math.floor(bloco.inicio / 60)),
+    ...todos
+      .filter((bloco) => !bloco.evento.continuaDeAntes)
+      .map((bloco) => Math.floor(bloco.inicio / 60)),
   );
   const ultimaHora = Math.min(
     24,
-    Math.max(19, ...todos.map((bloco) => Math.ceil(bloco.fim / 60))),
+    Math.max(
+      19,
+      ...todos
+        .filter((bloco) => !bloco.evento.continuaDepois)
+        .map((bloco) => Math.ceil(bloco.fim / 60)),
+    ),
   );
   const horasNaGrelha = Array.from(
     { length: ultimaHora - primeiraHora },
@@ -1210,7 +1223,9 @@ function SemanaPorHora({
   const altura = horasNaGrelha.length * HORA_PX;
   const temDiaInteiro = porDia.some(({ diaInteiro }) => diaInteiro.length > 0);
 
-  const minutoAgora = agora ? minutosNoFuso(agora.toISOString(), timeZone) : null;
+  const minutoAgora = agora
+    ? minutosNoFuso(agora.toISOString(), timeZone)
+    : null;
   const topoAgora =
     minutoAgora !== null &&
     minutoAgora >= primeiraHora * 60 &&
@@ -1314,56 +1329,77 @@ function SemanaPorHora({
                 backgroundSize: `100% ${HORA_PX}px`,
               }}
             >
-              {blocos.map(({ evento, faixa, faixas, fim, inicio }) => {
-                const topo = ((inicio - primeiraHora * 60) / 60) * HORA_PX;
-                const alto = Math.max(22, ((fim - inicio) / 60) * HORA_PX - 3);
-                const doAgente = evento.origem === "agente";
-                const titulo = tituloDoEvento(evento, t);
-                const hora = horaCurta(evento.inicio, timeZone, locale);
-                const detalhe = [
-                  hora,
-                  evento.servico,
-                  executorEscolhido === "" && evento.executor
-                    ? nomeExecutor(evento.executor)
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ");
+              {blocos.map(
+                ({
+                  evento,
+                  faixa,
+                  faixas,
+                  fim: fimReal,
+                  inicio: inicioReal,
+                }) => {
+                  // O pedaço que cai fora da grelha corta-se nas pontas dela.
+                  const inicio = Math.max(inicioReal, primeiraHora * 60);
+                  const fim = Math.min(fimReal, ultimaHora * 60);
 
-                return (
-                  <button
-                    className={`absolute flex flex-col justify-start overflow-hidden rounded-lg border-l-[3px] px-2 py-1 text-left leading-tight transition hover:z-10 hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)] ${corDoEvento(
-                      doAgente,
-                    )}`}
-                    key={evento.id}
-                    onClick={() => abrirEvento(evento.id)}
-                    style={{
-                      height: alto,
-                      left: `calc(${(faixa / faixas) * 100}% + 3px)`,
-                      top: topo + 1,
-                      width: `calc(${100 / faixas}% - 6px)`,
-                    }}
-                    title={`${titulo} · ${detalhe}`}
-                    type="button"
-                  >
-                    {alto < 34 ? (
-                      <span className="block truncate text-[11px] text-foreground">
-                        <span className="font-semibold tabular-nums">{hora}</span>{" "}
-                        {titulo}
-                      </span>
-                    ) : (
-                      <>
-                        <span className="block truncate text-xs font-semibold text-foreground">
+                  if (fim <= inicio) {
+                    return null;
+                  }
+
+                  const topo = ((inicio - primeiraHora * 60) / 60) * HORA_PX;
+                  const alto = Math.max(
+                    22,
+                    ((fim - inicio) / 60) * HORA_PX - 3,
+                  );
+                  const doAgente = evento.origem === "agente";
+                  const titulo = tituloDoEvento(evento, t);
+                  const hora = horaNoDia(evento, timeZone, locale, t);
+                  const detalhe = [
+                    hora,
+                    evento.servico,
+                    executorEscolhido === "" && evento.executor
+                      ? nomeExecutor(evento.executor)
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ");
+
+                  return (
+                    <button
+                      className={`absolute flex flex-col justify-start overflow-hidden rounded-lg border-l-[3px] px-2 py-1 text-left leading-tight transition hover:z-10 hover:shadow-[0_4px_14px_rgb(0_0_0/0.12)] ${corDoEvento(
+                        doAgente,
+                      )}`}
+                      key={evento.id}
+                      onClick={() => abrirEvento(evento.id)}
+                      style={{
+                        height: alto,
+                        left: `calc(${(faixa / faixas) * 100}% + 3px)`,
+                        top: topo + 1,
+                        width: `calc(${100 / faixas}% - 6px)`,
+                      }}
+                      title={`${titulo} · ${detalhe}`}
+                      type="button"
+                    >
+                      {alto < 34 ? (
+                        <span className="block truncate text-[11px] text-foreground">
+                          <span className="font-semibold tabular-nums">
+                            {hora}
+                          </span>{" "}
                           {titulo}
                         </span>
-                        <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                          {detalhe}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                );
-              })}
+                      ) : (
+                        <>
+                          <span className="block truncate text-xs font-semibold text-foreground">
+                            {titulo}
+                          </span>
+                          <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                            {detalhe}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  );
+                },
+              )}
 
               {dia.hoje && topoAgora !== null ? (
                 <div
@@ -1573,7 +1609,9 @@ export function AgendaPanel({
    * nenhuma consulta nova. "Hoje" só aparece quando hoje está no período à
    * vista, porque é o único caso em que os dados de hoje estão na mão.
    */
-  const diasDoPeriodo = agenda.dias.filter((candidato) => !candidato.foraDoPeriodo);
+  const diasDoPeriodo = agenda.dias.filter(
+    (candidato) => !candidato.foraDoPeriodo,
+  );
   const hoje = diasDoPeriodo.find((candidato) => candidato.hoje) ?? null;
   const proximoHoje =
     hoje && agora
@@ -1584,7 +1622,9 @@ export function AgendaPanel({
       : null;
   const maisCheio = diasDoPeriodo.reduce<DiaAgenda | null>(
     (melhor, candidato) =>
-      candidato.eventos.length > (melhor?.eventos.length ?? 0) ? candidato : melhor,
+      candidato.eventos.length > (melhor?.eventos.length ?? 0)
+        ? candidato
+        : melhor,
     null,
   );
   const diasLivres = diasDoPeriodo.filter(
@@ -1619,7 +1659,10 @@ export function AgendaPanel({
               opcoes={[
                 {
                   ativo: agenda.vista === "semana",
-                  href: ligacao({ dia: agenda.diaDeReferencia, vista: "semana" }),
+                  href: ligacao({
+                    dia: agenda.diaDeReferencia,
+                    vista: "semana",
+                  }),
                   label: t("Semana"),
                 },
                 {
@@ -1737,7 +1780,10 @@ export function AgendaPanel({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
-          <Botao href={ligacao({ dia: agenda.anterior })} titulo={t("Anterior")}>
+          <Botao
+            href={ligacao({ dia: agenda.anterior })}
+            titulo={t("Anterior")}
+          >
             <ChevronLeft aria-hidden="true" className="h-4 w-4" />
           </Botao>
           <Botao href={ligacao({})}>{t("Hoje")}</Botao>
@@ -1796,7 +1842,11 @@ export function AgendaPanel({
           />
         </div>
       ) : agenda.vista === "mes" ? (
-        <GrelhaMes abrirDia={setDiaAberto} agenda={agenda} timeZone={timeZone} />
+        <GrelhaMes
+          abrirDia={setDiaAberto}
+          agenda={agenda}
+          timeZone={timeZone}
+        />
       ) : (
         <>
           <div className="ds-bloco hidden overflow-hidden lg:block">
@@ -1835,7 +1885,9 @@ export function AgendaPanel({
             {t("A linha vermelha é a hora atual.")}
           </span>
         ) : null}
-        <span>{t("Clique em um dia, ou em um atendimento, para ver os detalhes.")}</span>
+        <span>
+          {t("Clique em um dia, ou em um atendimento, para ver os detalhes.")}
+        </span>
       </p>
 
       {marcar && aMarcarDoTopo ? (
