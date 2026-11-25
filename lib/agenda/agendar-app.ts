@@ -137,8 +137,8 @@ const PASSO_MINUTOS = 30;
  * a VPS refresca de 2 em 2 minutos); a confirmação final contra o Google
  * acontece na hora de marcar, como sempre.
  *
- * Numa agenda partilhada (Samuel e Bruna, as quatro do spa da Claudia) conta
- * só o que é DESTE profissional, para a marcação de uma não tapar a da outra.
+ * Numa agenda partilhada (Samuel e Bruna, as quatro do spa da Claudia) uma
+ * marcação de um profissional não tapa o outro; o que foi posto à mão tapa todos.
  */
 export async function horariosLivres({
   clienteSlug,
@@ -164,7 +164,7 @@ export async function horariosLivres({
 
   const consulta = createAdminClient()
     .from("lexia_agendamentos")
-    .select("inicio, fim, executor, calendario_id, estado, dia_inteiro")
+    .select("inicio, fim, executor, calendario_id, estado, dia_inteiro, origem")
     .eq("cliente_slug", clienteSlug)
     .neq("estado", "cancelado")
     .lt("inicio", fimDia)
@@ -172,7 +172,11 @@ export async function horariosLivres({
   const { data } = await consulta.eq("calendario_id", calendario).limit(500);
 
   const ocupados = (data ?? [])
-    .filter((l) => !partilhada || !l.executor || String(l.executor).toLowerCase() === executor.toLowerCase())
+    // Numa agenda partilhada, uma marcação do agente ou do painel/app é só de
+    // quem a faz; um evento posto à mão no Google ("Thanksgiving", "Fechado")
+    // vale para a clínica toda — o espelho dá-lhe um profissional por omissão,
+    // e confiar nisso deixava marcar a outra pessoa num feriado.
+    .filter((l) => !partilhada || l.origem === "manual" || !l.executor || String(l.executor).toLowerCase() === executor.toLowerCase())
     .map((l) => [Date.parse(String(l.inicio)), Date.parse(String(l.fim))] as const);
 
   const diaDaSemana = new Date(`${dia}T12:00:00Z`).getUTCDay() || 7;

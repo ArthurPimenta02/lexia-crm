@@ -38,12 +38,14 @@ export default async function AgendarMovel({ searchParams }: { searchParams: Pro
     : [[], [], null];
   const codigoMoeda = moedaDoCliente(getMoedaDoCliente(c.clienteSlug), c.fuso);
 
+  // "Sex 27": curto, para caber na fila de botões.
   const rotuloDia = (k: string) => {
-    const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "short", timeZone: "UTC", weekday: "short" }).format(new Date(`${k}T12:00:00Z`)).replace(/\./g, "");
-    return r.charAt(0).toUpperCase() + r.slice(1);
+    const data = new Date(`${k}T12:00:00Z`);
+    const sem = new Intl.DateTimeFormat(c.locale, { timeZone: "UTC", weekday: "short" }).format(data).replace(/\./g, "");
+    return `${sem.charAt(0).toUpperCase()}${sem.slice(1)} ${Number(k.slice(8))}`;
   };
   const tituloDia = (() => {
-    const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "long", timeZone: "UTC", weekday: "long" }).format(new Date(`${dia}T12:00:00Z`));
+    const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "long", timeZone: "UTC", weekday: "short" }).format(new Date(`${dia}T12:00:00Z`)).replace(/\./g, "");
     return r.charAt(0).toUpperCase() + r.slice(1);
   })();
 
@@ -89,6 +91,7 @@ export default async function AgendarMovel({ searchParams }: { searchParams: Pro
         horario: t("Horário livre"),
         jaCliente: t("Já é cliente:"),
         jaMarcados: t("Já marcados neste dia"),
+        maisHorarios: t("Mais horários"),
         marcar: t("Marcar"),
         marcarAs: t("Marcar {dia} às {hora}"),
         naoLigado: t("Ainda não dá para marcar pelo app nesta empresa."),

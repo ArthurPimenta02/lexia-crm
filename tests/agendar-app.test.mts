@@ -18,7 +18,7 @@
 import assert from "node:assert/strict";
 import test, { mock } from "node:test";
 
-import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mts";
+import { FakeSupabase, type Linha } from "./helpers/fake-supabase.mjs";
 
 const MIRANDA = "miranda_skin_experts";
 const DETAIL = "detail_by_cordeiro";
@@ -31,9 +31,11 @@ function estadoInicial(): Record<string, Linha[]> {
   return {
     lexia_agendamentos: [
       // Terça, 05/03/2030 (Boston em UTC-5): Samuel ocupado das 10h às 11h.
-      { calendario_id: "smouramiranda@gmail.com", cliente_slug: MIRANDA, estado: "confirmado", executor: "Samuel", fim: "2030-03-05T16:00:00.000Z", inicio: "2030-03-05T15:00:00.000Z" },
+      { calendario_id: "smouramiranda@gmail.com", cliente_slug: MIRANDA, estado: "confirmado", executor: "Samuel", fim: "2030-03-05T16:00:00.000Z", inicio: "2030-03-05T15:00:00.000Z", origem: "agente" },
       // Cancelado às 14h: não ocupa.
       { calendario_id: "smouramiranda@gmail.com", cliente_slug: MIRANDA, estado: "cancelado", executor: "Samuel", fim: "2030-03-05T20:00:00.000Z", inicio: "2030-03-05T19:00:00.000Z" },
+      // Posto à mão no Google às 18h, com o Samuel por omissão: tapa todos.
+      { calendario_id: "smouramiranda@gmail.com", cliente_slug: MIRANDA, estado: "confirmado", executor: "Samuel", fim: "2030-03-06T00:00:00.000Z", inicio: "2030-03-05T23:00:00.000Z", origem: "manual" },
       // Outra empresa, mesma hora (16h Boston): não conta.
       { calendario_id: "smouramiranda@gmail.com", cliente_slug: DETAIL, estado: "confirmado", executor: "Samuel", fim: "2030-03-05T22:00:00.000Z", inicio: "2030-03-05T21:00:00.000Z" },
     ],
@@ -124,7 +126,7 @@ test("sem nome ou sem telefone: recusa", async () => {
   assert.equal(inseridas().length, 0);
 });
 
-test("horários livres: o ocupado do Samuel não tapa a Bruna (agenda partilhada); cancelado e outra empresa não ocupam", async () => {
+test("horários livres: marcação do Samuel não tapa a Bruna, evento posto à mão tapa os dois; cancelado e outra empresa não ocupam", async () => {
   base = new FakeSupabase(estadoInicial());
   const samuel = await horariosLivres({ clienteSlug: MIRANDA, dia: "2030-03-05", duracaoMinutos: 60, executor: "Samuel" });
   const bruna = await horariosLivres({ clienteSlug: MIRANDA, dia: "2030-03-05", duracaoMinutos: 60, executor: "Bruna" });
@@ -136,7 +138,9 @@ test("horários livres: o ocupado do Samuel não tapa a Bruna (agenda partilhada
   assert.ok(samuel.includes("14:00"), "o cancelado das 14h não ocupa");
   assert.ok(samuel.includes("16:00"), "a marcação de outra empresa não ocupa");
   assert.equal(samuel.at(-1), "21:00", "a Miranda trabalha até às 22h");
-  assert.ok(bruna.includes("10:00"));
+  assert.ok(bruna.includes("10:00"), "a marcação do agente para o Samuel não tapa a Bruna");
+  assert.ok(!bruna.includes("18:00"), "o evento posto à mão (18h) tapa a Bruna também");
+  assert.ok(!samuel.includes("18:00"));
 });
 
 test("horários livres: domingo na Miranda não tem horário; Roberto (sem agenda do Google) não tem horários", async () => {

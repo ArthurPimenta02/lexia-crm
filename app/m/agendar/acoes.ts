@@ -63,7 +63,7 @@ export async function agendarMovel(formData: FormData): Promise<ResultadoAgendar
 
   if (demo) {
     const erroDemo = await marcarDemo({ clienteSlug: c.clienteSlug, contactoId: ficha.contactoId, dia: texto("data"), duracaoMinutos: Number(texto("duracao")), executor: texto("executor"), fuso: c.fuso, hora: texto("hora"), servicoId: texto("servico_id") });
-    return erroDemo ? { avisos: [], conflitos: [], erro: t(erroDemo), ok: false } : { avisos: [], conflitos: [], erro: null, ok: true, texto: t("Marcado!") };
+    return erroDemo ? { avisos: [], conflitos: [], erro: t(erroDemo), ok: false } : { avisos: [], conflitos: [], erro: null, ok: true, texto: ficha.criado ? t("Marcado! Ficha de {nome} criada.", { nome: ficha.nome }) : t("Marcado!") };
   }
 
   const { avisos, erro, marcacao } = await prepararNovaMarcacao({

@@ -12,7 +12,7 @@ type Servico = { executores: Executor[]; id: string; nome: string; preco: number
 type Contacto = { id: string; nome: string; telefone: string };
 type Textos = Record<
   | "cancelar" | "cliente" | "clienteNovo" | "clienteNovoTexto" | "confirmar" | "de" | "deOpcional" | "deOutro" | "dia" | "duracao" | "escolher" | "fechar"
-  | "horario" | "jaCliente" | "jaMarcados" | "marcar" | "marcarAs" | "naoLigado" | "nenhumLivre" | "nomeDoCliente" | "novo" | "observacao" | "ocupado"
+  | "horario" | "jaCliente" | "jaMarcados" | "maisHorarios" | "marcar" | "marcarAs" | "naoLigado" | "nenhumLivre" | "nomeDoCliente" | "novo" | "observacao" | "ocupado"
   | "origens" | "outroDia" | "outroHorario" | "profissional" | "servico" | "telefone" | "valor",
   string
 >;
@@ -66,6 +66,7 @@ export function FormAgendar(props: {
   const [duracao, setDuracao] = useState(60);
   const [hora, setHora] = useState("");
   const [outroHorario, setOutroHorario] = useState(false);
+  const [todosHorarios, setTodosHorarios] = useState(false);
   const [livresDe, setLivresDe] = useState<{ lista: string[]; pergunta: string } | null>(null);
   const [valor, setValor] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -79,9 +80,16 @@ export function FormAgendar(props: {
 
   // Sugestões pelo nome (fichas que já existem).
   const sugestoes = useMemo(() => {
+    // Pelo começo das palavras ("Ana" acha "Ana Souza" e "Maria Ana", não "Orellana").
     const q = semAcentos(nome.trim());
     if (contacto || q.length < 2) return [];
-    return props.contactos.filter((c) => semAcentos(c.nome).includes(q)).slice(0, 5);
+    const partes = q.split(/\s+/);
+    return props.contactos
+      .filter((c) => {
+        const palavras = semAcentos(c.nome).split(/[\s._-]+/);
+        return partes.every((p) => palavras.some((w) => w.startsWith(p)));
+      })
+      .slice(0, 5);
   }, [nome, contacto, props.contactos]);
 
   // O número escrito já é de alguém?
@@ -258,7 +266,8 @@ export function FormAgendar(props: {
           {livres === null ? <div className="ag-pilulas ag-carregando"><span /><span /><span /><span /></div> : (
             <div className="ag-horas">
               {livres.length === 0 && !outroHorario ? <p className="ag-nada">{t.nenhumLivre}</p> : null}
-              {!outroHorario && livres.map((h) => <button className={hora === h ? "on" : ""} key={h} onClick={() => { setHora(h); limparConfirmacao(); }} type="button">{h}</button>)}
+              {!outroHorario && (todosHorarios ? livres : livres.slice(0, 8)).map((h) => <button className={hora === h ? "on" : ""} key={h} onClick={() => { setHora(h); limparConfirmacao(); }} type="button">{h}</button>)}
+              {!outroHorario && !todosHorarios && livres.length > 8 ? <button className="ag-outro" onClick={() => setTodosHorarios(true)} type="button">{t.maisHorarios}</button> : null}
               <button className={`ag-outro${outroHorario ? " on" : ""}`} onClick={() => { setOutroHorario(!outroHorario); setHora(""); }} type="button">{t.outroHorario}</button>
             </div>
           )}
@@ -281,15 +290,15 @@ export function FormAgendar(props: {
         </div>
       ) : null}
 
-      {avisos.length || conflitos.length ? (
-        <div className="ag-alerta" role="alert">
-          {conflitos.length ? <b>{t.ocupado}</b> : null}
-          {[...conflitos, ...avisos].map((a) => <span key={a}>{a}</span>)}
-        </div>
-      ) : null}
-      {erro ? <p className="ag-erro" role="alert">{erro}</p> : null}
-
+      {/* Avisos e erros ficam colados ao botão: lá em cima do formulário ninguém os via. */}
       <div className="ag-rodape">
+        {avisos.length || conflitos.length ? (
+          <div className="ag-alerta" role="alert">
+            {conflitos.length ? <b>{t.ocupado}</b> : null}
+            {[...conflitos, ...avisos].map((a) => <span key={a}>{a}</span>)}
+          </div>
+        ) : null}
+        {erro ? <p className="ag-erro" role="alert">{erro}</p> : null}
         <button className="m-botao verde" disabled={pendente || !servico || !hora || (!contacto && !donoDoNumero && (!nome.trim() || digitos(telefone).length < 8))} onClick={enviar} type="button">
           {avisos.length || conflitos.length ? t.confirmar : hora ? t.marcarAs.replace("{dia}", rotuloDoDia).replace("{hora}", hora) : t.marcar}
         </button>
