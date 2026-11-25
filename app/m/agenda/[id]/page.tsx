@@ -38,7 +38,7 @@ export default async function AgendamentoMovel({ params, searchParams }: { param
   const linhas: [string, string][] = [
     [t("Serviço"), a.servico ?? a.titulo ?? "—"],
     ...(a.executor ? [[t("Profissional"), a.executor] as [string, string]] : []),
-    [t("Duração"), `${new Intl.NumberFormat(c.locale, { maximumFractionDigits: 1 }).format(horas)} h`],
+    [t("Duração"), `${new Intl.NumberFormat(c.locale, { maximumFractionDigits: 2 }).format(horas)} h`],
     ...(a.valor !== null ? [[t("Valor"), moeda(a.valor, c.locale, codigoMoeda)] as [string, string]] : []),
     [t("Marcado por"), a.origem === "agente" ? t("Agente") : a.origem === "painel" ? t("Equipe, pela Lexia") : t("Equipe, no Google")],
   ];

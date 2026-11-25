@@ -53,7 +53,7 @@ export default async function RemarcarMovel({ params }: { params: Promise<{ id: 
         outroHorario: t("Outro horário"),
         remarcado: t("Remarcado!"),
         titulo: t("Remarcar"),
-        hojeEsta: t("Hoje está em {quando}"),
+        agoraEsta: t("Agora está em {quando}"),
       }}
     />
   );

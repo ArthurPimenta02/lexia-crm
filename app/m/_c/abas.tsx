@@ -55,7 +55,7 @@ export function AbasMovel({ rotulos, podeAgenda }: { rotulos: Rotulos; podeAgend
   }, []);
 
   // O chat, a ficha, a área de testes e os ajustes ocupam a tela inteira, como no WhatsApp.
-  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/agendar") || caminho.startsWith("/m/ajustes") || /^\/m\/testes\/.+/.test(caminho) || caminho.startsWith("/m/ajudante")) return null;
+  if (/^\/m\/conversas\/.+/.test(caminho) || caminho.startsWith("/m/agendar") || /^\/m\/agenda\/.+/.test(caminho) || caminho.startsWith("/m/ajustes") || /^\/m\/testes\/.+/.test(caminho) || caminho.startsWith("/m/ajudante")) return null;
 
   const aba = (href: string, icone: React.ReactNode, rotulo: string, activa: boolean, emblema = 0) => (
     <Link aria-current={activa ? "page" : undefined} className={`m-aba${activa ? " on" : ""}`} href={href} key={href} prefetch>

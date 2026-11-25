@@ -8,13 +8,14 @@ import { IcFechar } from "../../../_c/icones";
 import { livresAgendar } from "../../../agendar/acoes";
 import { remarcarMovel } from "../acoes";
 
-type Textos = Record<"confirmar" | "dia" | "escolha" | "fechar" | "hojeEsta" | "horario" | "maisHorarios" | "mesmoAssim" | "nenhumLivre" | "ocupado" | "outroDia" | "outroHorario" | "remarcado" | "titulo", string>;
+type Textos = Record<"confirmar" | "dia" | "escolha" | "fechar" | "agoraEsta" | "horario" | "maisHorarios" | "mesmoAssim" | "nenhumLivre" | "ocupado" | "outroDia" | "outroHorario" | "remarcado" | "titulo", string>;
 
 export function FormRemarcar(props: { agora: string; dia: string; dias: { chave: string; rotulo: string }[]; duracaoMinutos: number; executor: string; hoje: string; id: string; nome: string; textos: Textos }) {
   const { textos: t } = props;
   const router = useRouter();
-  const [dia, setDia] = useState(props.dias.some((d) => d.chave === props.dia) ? props.dia : props.dias[0].chave);
-  const [outroDia, setOutroDia] = useState(!props.dias.some((d) => d.chave === props.dia));
+  // Começa no dia em que está marcado (é o mais comum: mudar só a hora).
+  const [dia, setDia] = useState(props.dia < props.hoje ? props.hoje : props.dia);
+  const [outroDia, setOutroDia] = useState(!props.dias.some((d) => d.chave === props.dia) && props.dia >= props.hoje);
   const [hora, setHora] = useState("");
   const [outroHorario, setOutroHorario] = useState(false);
   const [todos, setTodos] = useState(false);
@@ -54,7 +55,7 @@ export function FormRemarcar(props: { agora: string; dia: string; dias: { chave:
         <div className="ag-titulo"><small>{props.nome}</small><b>{t.titulo}</b></div>
         <span />
       </header>
-      <p className="ag-dica" style={{ margin: "4px 0 0" }}>{t.hojeEsta.replace("{quando}", props.agora)}</p>
+      <p className="ag-dica" style={{ margin: "4px 0 0" }}>{t.agoraEsta.replace("{quando}", props.agora)}</p>
 
       <div className="ag-campo">
         <span className="ag-rot">{t.dia}</span>
