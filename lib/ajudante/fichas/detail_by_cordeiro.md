@@ -48,16 +48,14 @@ Versão em produção de 24/11/2026. Horas no fuso de Lisboa.
 - Só nas que o agente marcou e seguem no horário dele; feitas ou movidas pelo Martim vão para ele.
 
 ## Follow-up (quem parou de responder)
-- WhatsApp: 1 h, 24 h e 3 dias. Depois disso, a cadência depende da temperatura do lead (configurável, interruptor "follow-ups longos").
-  - Frio: 1 h e 24 h.
-  - Morno: mais um aos 7 dias.
-  - Quente: mais um aos 3 dias e outro aos 7 dias.
-  - Os de 3 e 7 dias saem devagar: no máximo 10 por dia, de segunda a sábado, das 10h às 18h.
-- Instagram e Messenger: 1 h e cerca de 23 h. Fechada a janela de 24 h da Meta, o Martim recebe um aviso para retomar à mão.
-- Quem adia ("vou pensar", "lá pro fim do mês marco"): no WhatsApp só o de 3 dias; no Instagram e Messenger, o de 24 h. Adiar com pergunta concreta não conta.
-- Prazo no mesmo dia ("confirmo-lhe à tarde"): o curto só sai depois desse prazo.
-- Não sai a quem já tem marcação na agenda, a quem está com o Martim nem a quem disse que não quer.
-- O follow-up nunca propõe horários. Cada um muda de abordagem e não repete a pergunta do anterior.
+- Nunca há follow-up de 1 h (desde 25/11). WhatsApp: 20 h, 3 dias e 7 dias (os longos pela temperatura, com o interruptor "follow-ups longos"; frio só o de 20 h). Os longos: até 10/dia, seg–sáb, 10h–18h.
+- Instagram e Messenger: só o de ~20 h (janela de 24 h da Meta); depois o Martim recebe aviso.
+- Na dúvida não sai. Não sai a quem: tem marcação na agenda, está com o Martim, disse que não quer, disse que ia pensar ou dizia depois sem data, respondeu "já respondi"/"outra vez?", fechou com "ok, obrigado", ou já levou 3 seguidos.
+- Deu data ("semana que vem aviso"): uma mensagem nessa data e mais nenhuma.
+- Nunca propõe horários nem repete nada da conversa (pergunta já respondida, o carro já dito, follow-up anterior).
+
+## Escrita
+- Não repete na conversa a abertura, a pergunta das vagas nem o emoji; pontuação solta. Sem o carro, dá a faixa de preço da tabela (citadino e carro grande).
 
 ## Pausas
 - Quando passa a conversa ao Martim, o agente fica calado 24 h: o Martim assume. Escolha do Martim.
