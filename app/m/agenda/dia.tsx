@@ -21,6 +21,10 @@ type Evento = {
   nome: string;
   origem: string;
   passou: boolean;
+  /** O que mostrar em vez da hora nos dias de continuação de um evento de vários dias. */
+  rotuloHora?: string | null;
+  /** Início e fim com as datas, quando o evento dura vários dias. */
+  periodo?: string | null;
   pendenteSinal: boolean;
   servico: string | null;
   telefone: string | null;
@@ -56,11 +60,11 @@ export function DiaAgenda(props: {
           const novoDia = props.agrupar && (i === 0 || ativos[i - 1].dia !== e.dia);
           const cancelado = e.estado === "cancelado";
           return (
-            <div key={e.id}>
+            <div key={`${e.id}-${e.dia}`}>
               {novoDia ? <p className="m6-rotulo m6-grupo">{e.rotuloDia}</p> : null}
               {linhaAgora ? <div aria-label={`${t.agora}, ${horaAgora}`} className="m6-agora"><span>{horaAgora}</span><i /></div> : null}
               <button className={`m6-ev${e.passou || cancelado ? " passou" : ""}${cancelado ? " cancelado" : ""}`} onClick={() => setAberto(e)} type="button">
-                <span className="h">{e.hora}</span>
+                <span className="h">{e.rotuloHora ?? e.hora}</span>
                 <span className="n">{e.nome || "—"}</span>
                 {cancelado ? <span className="v">{t.cancelado}</span> : e.origem === "agente" ? <span className="v ag">{t.agenteTag}</span> : <span className="v">{e.valorTexto ?? ""}</span>}
                 <span className="d">{[e.servico, e.executor, e.pendenteSinal ? t.faltaSinal : null].filter(Boolean).join(" · ") || " "}</span>
@@ -79,7 +83,7 @@ export function DiaAgenda(props: {
           <div aria-label={aberto.nome} className="m-folha" role="dialog">
             <div className="m-pega" />
             <h3>{aberto.nome || "—"}</h3>
-            <p className="d">{[`${aberto.hora}–${aberto.horaFim}`, aberto.servico, aberto.executor, aberto.valorTexto].filter(Boolean).join(" · ")}<br />{aberto.origem === "agente" ? t.agente : t.manual}{aberto.pendenteSinal ? ` · ${t.faltaSinal}` : ""}</p>
+            <p className="d">{[aberto.periodo ?? `${aberto.hora}–${aberto.horaFim}`, aberto.servico, aberto.executor, aberto.valorTexto].filter(Boolean).join(" · ")}<br />{aberto.origem === "agente" ? t.agente : t.manual}{aberto.pendenteSinal ? ` · ${t.faltaSinal}` : ""}</p>
             <div className="m-grade-acoes" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
               {aberto.conversa ? <Link href={`/m/conversas/${encodeURIComponent(aberto.conversa)}`}><span className="c"><IcConversa /></span>{t.conversa}</Link> : <span style={{ opacity: 0.4 }}><span className="c"><IcConversa /></span>{t.conversa}</span>}
               {aberto.telefone ? <a href={`tel:+${aberto.telefone}`}><span className="c"><IcTelefone /></span>{t.ligar}</a> : <span style={{ opacity: 0.4 }}><span className="c"><IcTelefone /></span>{t.ligar}</span>}

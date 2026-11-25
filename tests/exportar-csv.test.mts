@@ -303,6 +303,8 @@ test("as marcações do cliente contam-se, e o ficheiro leva as datas no fuso de
 
 function evento(parciais: Partial<EventoAgenda> = {}): EventoAgenda {
   return {
+    continuaDeAntes: false,
+    continuaDepois: false,
     diaInteiro: false,
     executor: "Martim",
     fim: "2026-11-02T11:00:00.000Z",

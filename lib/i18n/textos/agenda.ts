@@ -23,6 +23,7 @@ const textos: TextosDaArea = {
 
     // Agenda
     "Dia inteiro": "Dia todo",
+    "até {hora}": "até {hora}",
     "Nada agendado neste dia.": "Nada marcado neste dia.",
     "1 agendamento, {agente} pelo agente.": "1 marcação, {agente} pelo agente.",
     "{n} agendamentos, {agente} pelo agente.": "{n} marcações, {agente} pelo agente.",
@@ -213,6 +214,7 @@ const textos: TextosDaArea = {
 
     // Agenda
     "Dia inteiro": "Todo el día",
+    "até {hora}": "hasta las {hora}",
     "Nada agendado neste dia.": "Nada agendado este día.",
     "1 agendamento, {agente} pelo agente.": "1 cita, {agente} por el agente.",
     "{n} agendamentos, {agente} pelo agente.": "{n} citas, {agente} por el agente.",
@@ -403,6 +405,7 @@ const textos: TextosDaArea = {
 
     // Agenda
     "Dia inteiro": "All day",
+    "até {hora}": "until {hora}",
     "Nada agendado neste dia.": "Nothing booked on this day.",
     "1 agendamento, {agente} pelo agente.": "1 booking, {agente} by the agent.",
     "{n} agendamentos, {agente} pelo agente.": "{n} bookings, {agente} by the agent.",
