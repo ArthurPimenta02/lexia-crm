@@ -586,7 +586,10 @@ export async function turno(repo: Repositorio, ia: Inteligencia, resposta: Respo
     // Duas respostas seguidas sem tocar em nenhuma pergunta do passo: a primeira foi de graça, esta fecha o assunto
     // (o passo já lhe apareceu duas vezes; não aparece uma terceira).
     const perguntas = segundaVezSemResposta && perguntados.has(k) ? 2 : (c.linha?.estado === "vago" ? c.linha.perguntas : 0) + 1;
-    novas.push({ campo: c.campo.chave, itemId: c.itemId, valor: perguntados.has(k) ? null : (c.linha?.valor ?? null), estado: "vago", fonte: "cliente", evidencia: { mensagem: recebida.id }, perguntas });
+    // O valor que já lá estava (do Moxie, do site, de uma resposta anterior) NUNCA se apaga: "vago" só diz que ela não
+    // confirmou. Caso K-Glow, 25/11: o preço e a duração do Moxie de dois serviços ficaram em branco por isto.
+    // A passagem ao agente só leva confirmado/respondido, por isso guardar o valor não o faz passar por resposta dela.
+    novas.push({ campo: c.campo.chave, itemId: c.itemId, valor: c.linha?.valor ?? null, estado: "vago", fonte: "cliente", evidencia: { mensagem: recebida.id }, perguntas });
     if (perguntas >= 2) paraALexia.push(c.campo.pergunta);
   }
 

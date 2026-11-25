@@ -560,3 +560,24 @@ test("sessão expirada: o servidor diz 401, a resposta fica guardada no aparelho
   concluirEnvio(a, undefined, guardado, r2);
   assert.equal(lerPendente(a, chaveDoPendente(undefined)), null, "confirmado: sai do aparelho");
 });
+
+test("caso K-Glow (25/11): resposta que não confirma o valor do Moxie NUNCA o apaga — fica 'vago' com o valor", async () => {
+  const b = comServico();
+  await b.repo.gravarAndamento({ listas: ["servicos"], gruposPerguntados: [], tabelas: ["servicos"] });
+  // Como ficou depois da tabela: ela não tocou na linha do serviço, os valores do Moxie ficaram "vago" (1.ª pergunta).
+  await b.repo.acrescentarLinhas([
+    { campo: "duracao_media", itemId: "s1", valor: "1h20", estado: "vago", fonte: "cliente", perguntas: 1 },
+    { campo: "tipo_de_preco", itemId: "s1", valor: "Preço fixo", estado: "vago", fonte: "cliente", perguntas: 1 },
+    { campo: "valor", itemId: "s1", valor: "130", estado: "vago", fonte: "cliente", perguntas: 1 },
+  ]);
+  // No cartão do serviço ela respondeu só à descrição (#81 da conversa real) e seguiu.
+  const i = ia(() => ({ ...NADA, campos: [{ chave: "descricao_e_indicacao", item: "servicos#1", valor: "Facial à medida da pele.", lista: [], estado: "respondido" }] }));
+  await turno(b.repo, i, msg({ texto: "a descrição é esta" }), "");
+  await turno(b.repo, ia(), msg({ texto: "ok" }), "");
+  for (const [campo, v] of [["duracao_media", "1h20"], ["tipo_de_preco", "Preço fixo"], ["valor", "130"]] as const) {
+    const l = (await atual(b, campo, "s1"))!;
+    assert.equal(l.valor, v, `${campo}: o valor do Moxie não se perde`);
+    assert.notEqual(l.estado, "confirmado", `${campo}: e não passa por confirmado por ela`);
+  }
+  assert.ok(!b.diario.some((l) => l.itemId === "s1" && ["duracao_media", "tipo_de_preco", "valor"].includes(l.campo) && l.valor === null), "nenhuma linha em branco por cima");
+});
