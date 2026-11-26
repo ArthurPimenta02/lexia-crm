@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { IcFechar } from "../../../_c/icones";
 import { livresAgendar } from "../../../agendar/acoes";
 import { remarcarMovel } from "../acoes";
+import { atualizarWidgetDoIphone } from "@/app/components/ponte-do-app";
 
 type Textos = Record<"confirmar" | "dia" | "escolha" | "fechar" | "agoraEsta" | "horario" | "maisHorarios" | "mesmoAssim" | "nenhumLivre" | "ocupado" | "outroDia" | "outroHorario" | "remarcado" | "titulo", string>;
 
@@ -42,7 +43,7 @@ export function FormRemarcar(props: { agora: string; dia: string; dias: { chave:
     setErro(null);
     inicia(async () => {
       const r = await remarcarMovel(props.id, dia, hora, conflitos.length > 0);
-      if (r.ok) { setFeito(true); window.setTimeout(() => { router.push(`/m/agenda/${props.id}`); router.refresh(); }, 1000); return; }
+      if (r.ok) { atualizarWidgetDoIphone(); setFeito(true); window.setTimeout(() => { router.push(`/m/agenda/${props.id}`); router.refresh(); }, 1000); return; }
       setConflitos(r.conflitos ?? []);
       setErro(r.erro);
     });

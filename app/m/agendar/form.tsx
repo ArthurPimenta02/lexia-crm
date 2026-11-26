@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { IcFechar } from "../_c/icones";
+import { atualizarWidgetDoIphone } from "@/app/components/ponte-do-app";
+
 import { agendarMovel, livresAgendar } from "./acoes";
 
 type Executor = { chave: string; duracaoMinutos: number; nome: string };
@@ -153,6 +155,7 @@ export function FormAgendar(props: {
     inicia(async () => {
       const r = await agendarMovel(f);
       if (r.ok) {
+        atualizarWidgetDoIphone();
         // Marcado; se a confirmação não saiu, o aviso vai na mesma mensagem (a marcação não se desfaz).
         setFeito([r.texto ?? t.marcar, ...r.avisos].join(" "));
         window.setTimeout(() => { router.push(props.volta); router.refresh(); }, r.avisos.length ? 3500 : 1600);

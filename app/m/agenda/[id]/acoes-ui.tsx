@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { IcCalendario, IcCheck, IcConversa, IcFechar, IcTelefone } from "../../_c/icones";
 import { cancelarMovel, presencaMovel } from "./acoes";
+import { atualizarWidgetDoIphone } from "@/app/components/ponte-do-app";
 
 type Presenca = "compareceu" | "faltou";
 type Textos = Record<"cancelar" | "cancelarPergunta" | "cancelarTexto" | "compareceu" | "desfazer" | "faltou" | "ligar" | "manter" | "pergunta" | "remarcar" | "simCancelar" | "whatsapp", string>;
@@ -32,6 +33,7 @@ export function AcoesAgendamento(props: { children: React.ReactNode; conversa: s
     const r = await cancelarMovel(props.id);
     if (!r.ok) { setErro(r.erro); setConfirmarCancelar(false); return; }
     setConfirmarCancelar(false);
+    atualizarWidgetDoIphone();
     router.refresh();
   });
 
