@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { lerAgendamentoDaEmpresa } from "./alterar";
+import { eventoDeCliente, nomeDoEvento } from "./evento-cliente";
 
 /**
  * Compareceu / Faltou (25/11/2026). Guardado em lexia_presencas pela chave do
@@ -46,14 +47,15 @@ export type ParaConfirmar = { calendario_id: string; event_id: string; fim: stri
 
 /**
  * Atendimentos que já acabaram (últimos 7 dias) e ainda não têm compareceu/
- * faltou. Só os que são de um cliente (com nome ou telefone): "Thanksgiving",
- * bloqueios e eventos pessoais não pedem confirmação.
+ * faltou. Só os que são de um cliente (com nome ou telefone, ou o nome no
+ * título de um evento posto à mão — 26/11): "Thanksgiving", bloqueios e
+ * eventos pessoais não pedem confirmação.
  */
 export async function paraConfirmar(clienteSlug: string, agora = new Date()): Promise<ParaConfirmar[]> {
   const desde = new Date(agora.getTime() - 7 * 86_400_000).toISOString();
   const { data } = await createAdminClient()
     .from("lexia_agendamentos")
-    .select("id, calendario_id, event_id, inicio, fim, nome_cliente, telefone_digitos, servico, estado, dia_inteiro, dados")
+    .select("id, calendario_id, event_id, inicio, fim, nome_cliente, telefone_digitos, titulo, servico, estado, dia_inteiro, dados")
     .eq("cliente_slug", clienteSlug)
     .neq("estado", "cancelado")
     .eq("dia_inteiro", false)
@@ -61,12 +63,12 @@ export async function paraConfirmar(clienteSlug: string, agora = new Date()): Pr
     .lt("fim", agora.toISOString())
     .order("inicio", { ascending: false })
     .limit(300);
-  const linhas = (data ?? []).filter((l) => (l.nome_cliente || l.telefone_digitos) && !(l.dados as { bloqueio?: boolean } | null)?.bloqueio);
+  const linhas = (data ?? []).filter((l) => eventoDeCliente(l) && !(l.dados as { bloqueio?: boolean } | null)?.bloqueio);
   const feitas = await presencasDe(clienteSlug, linhas as { calendario_id: string; event_id: string }[]);
   return linhas
     .filter((l) => !feitas.has(chavePresenca(String(l.calendario_id), String(l.event_id))))
     .map((l) => ({
       calendario_id: String(l.calendario_id), event_id: String(l.event_id), fim: String(l.fim), id: String(l.id), inicio: String(l.inicio),
-      nome: String(l.nome_cliente ?? "").trim(), servico: (l.servico as string | null) ?? null, telefone: (l.telefone_digitos as string | null) ?? null,
+      nome: nomeDoEvento(l), servico: (l.servico as string | null) ?? null, telefone: (l.telefone_digitos as string | null) ?? null,
     }));
 }

@@ -71,6 +71,7 @@ export default async function AjustesMovel() {
       <PreferenciasAvisos
         textos={{
           agenda: t("Agendamentos"),
+          confirmar: t("Confirmar quem veio (20h30)"),
           espera: t("Clientes esperando"),
           resumos: t("Resumos"),
           todos: t("Todas as empresas"),

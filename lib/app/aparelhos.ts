@@ -27,6 +27,7 @@ export const TIPOS_DE_AVISO = [
   "resumo_manha",
   "resumo_semana",
   "meta_batida",
+  "confirmar_presenca",
   "todos_os_clientes",
 ] as const;
 

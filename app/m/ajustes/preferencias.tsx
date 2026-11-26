@@ -11,7 +11,7 @@ type Prefs = Record<string, boolean>;
  * 14/11: os marcados à mão nunca avisam (sem interruptor); cada linha liga ou
  * desliga um grupo de tipos.
  */
-export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; textos: Record<"agenda" | "espera" | "resumos" | "todos" | "erro", string> }) {
+export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; textos: Record<"agenda" | "confirmar" | "espera" | "resumos" | "todos" | "erro", string> }) {
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [erro, setErro] = useState(false);
 
@@ -51,6 +51,7 @@ export function PreferenciasAvisos({ admin, textos: t }: { admin: boolean; texto
       <div className="m-caixa">
         {linha("espera", ["a_espera", "pediu_pessoa", "irritado"], <IcConversa />, t.espera)}
         {linha("agenda", ["agendamento_novo", "agendamento_remarcado", "agendamento_cancelado"], <IcCalendario />, t.agenda)}
+        {linha("confirmar", ["confirmar_presenca"], <IcCalendario />, t.confirmar)}
         {linha("resumos", ["resumo_manha", "resumo_semana", "meta_batida"], <IcRelogio />, t.resumos)}
         {admin ? linha("todos", ["todos_os_clientes"], <IcEmpresa />, t.todos) : null}
       </div>

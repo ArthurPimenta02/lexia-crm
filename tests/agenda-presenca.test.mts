@@ -37,6 +37,11 @@ function estado(): Record<string, Linha[]> {
       ag({ event_id: "e5", fim: "2030-01-10T16:00:00.000Z", id: ID(5), inicio: "2030-01-10T15:00:00.000Z" }),
       // Outra empresa.
       ag({ calendario_id: "detailbycordeiro@gmail.com", cliente_slug: B, event_id: "e6", fim: "2026-11-24T16:00:00.000Z", id: ID(6), inicio: "2026-11-24T15:00:00.000Z" }),
+      // Posto à mão no Google: o nome só está no título (26/11).
+      ag({ event_id: "e8", fim: "2026-11-24T20:00:00.000Z", id: ID(8), inicio: "2026-11-24T19:00:00.000Z", nome_cliente: null, servico: null, telefone_digitos: null, titulo: "(Samuel) Atendimento Alex Vidal (first laser)" }),
+      // À mão mas pessoal / sem título: nunca.
+      ag({ event_id: "e9", fim: "2026-11-24T21:00:00.000Z", id: ID(9), inicio: "2026-11-24T20:00:00.000Z", nome_cliente: null, servico: null, telefone_digitos: null, titulo: "Thanksgiving" }),
+      ag({ event_id: "e10", fim: "2026-11-24T22:00:00.000Z", id: ID(10), inicio: "2026-11-24T21:00:00.000Z", nome_cliente: null, servico: null, telefone_digitos: null, titulo: "" }),
       // Agenda que a Lexia não gere para esta empresa.
       ag({ calendario_id: "outra@gmail.com", event_id: "e7", fim: "2026-12-01T16:00:00.000Z", id: ID(7), inicio: "2026-12-01T15:00:00.000Z" }),
     ],
@@ -67,9 +72,9 @@ const { clientesSumidos } = await import("@/lib/movel/sumidos");
 test("para confirmar: só atendimentos de cliente, já acabados, não cancelados, sem resposta, desta empresa", async () => {
   base = new FakeSupabase(estado());
   const lista = await paraConfirmar(A, AGORA);
-  assert.deepEqual(lista.map((l) => l.id), [ID(1)]);
+  assert.deepEqual(lista.map((l) => [l.id, l.nome]), [[ID(8), "Alex Vidal"], [ID(1), "Maria"]]);
   await marcarPresenca({ clienteSlug: A, id: ID(1), presenca: "compareceu", userId: "u" });
-  assert.deepEqual(await paraConfirmar(A, AGORA), [], "com resposta, sai da lista");
+  assert.deepEqual((await paraConfirmar(A, AGORA)).map((l) => l.id), [ID(8)], "com resposta, sai da lista");
 });
 
 test("presença: grava pela chave do Google; desfazer apaga; outra empresa e futuro são recusados", async () => {
