@@ -318,6 +318,7 @@ export function NovaMarcacaoForm({
   dia,
   confirma,
   fechar,
+  horaInicial,
   idiomas,
   moeda,
   mostrarViatura,
@@ -330,6 +331,8 @@ export function NovaMarcacaoForm({
   dia: string;
   fechar: () => void;
   confirma: boolean;
+  /** A hora em que se clicou na grelha da semana (26/11). */
+  horaInicial?: string | null;
   idiomas: ("pt" | "en" | "es")[];
   moeda: string | null;
   mostrarViatura: boolean;
@@ -348,7 +351,7 @@ export function NovaMarcacaoForm({
   const [telefone, setTelefone] = useState("");
   const [origem, setOrigem] = useState("");
   const [dataSel, setDataSel] = useState(dia);
-  const [hora, setHora] = useState("");
+  const [hora, setHora] = useState(horaInicial ?? "");
   const [livresDe, setLivresDe] = useState<{ lista: string[]; pergunta: string } | null>(null);
   const [servicoId, setServicoId] = useState("");
   const [executor, setExecutor] = useState("");
