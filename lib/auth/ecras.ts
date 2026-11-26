@@ -71,7 +71,9 @@ const ecrasPorCliente: Record<string, readonly EcraDoPainel[]> = {
   // Antes (16/11) a conta só abria o onboarding.
   jessica_beauty: ["/app/area-testes", "/app/feedbacks"],
   // 24/11: Kelly (K-Glow Aesthetics, Philadelphia) começa o onboarding com o entrevistador, como a Jessica a 16/11.
-  kglow_aesthetics: ["/app/onboarding"],
+  // 26/11: onboarding acabado; a Kelly entra para testar a Anna (agente em código, /lexia-agente-kglow/) e dar
+  // feedback. Aterra na Área de testes; o onboarding continua aberto para ela rever o que respondeu.
+  kglow_aesthetics: ["/app/area-testes", "/app/feedbacks", "/app/onboarding"],
   clinica_teste: [
     "/app", "/app/conversas", "/app/agenda", "/app/pipeline", "/app/clientes", "/app/campanhas",
     "/app/servicos", "/app/produtos", "/app/handoffs", "/app/feedbacks", "/app/analista", "/app/configuracoes", "/app/followups",
