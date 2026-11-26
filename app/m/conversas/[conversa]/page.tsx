@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { lerConversa } from "@/lib/movel/conversas";
 import { iniciais, partesNoFuso } from "@/lib/movel/formato";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
@@ -10,7 +10,7 @@ import { Chat } from "./chat";
 export const dynamic = "force-dynamic";
 
 export default async function ConversaMovel({ params }: { params: Promise<{ conversa: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const conversa = decodeURIComponent((await params).conversa);
   if (!isValidConversationId(conversa)) notFound();
 

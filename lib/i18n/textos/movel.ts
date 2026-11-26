@@ -6,6 +6,9 @@ import type { TextosDaArea } from "../traduzir";
  */
 const textos: TextosDaArea = {
   "pt-PT": {
+    "Marcar agendamento": "Marcar",
+    "Ver agendamentos do dia": "Ver as marcações do dia",
+    "Toque num dia para ver ou marcar": "Toque num dia para ver ou marcar",
     "A mesma mensagem que o agente manda quando marca": "A mesma mensagem que o agente envia quando marca",
     "Confirmar pelo WhatsApp": "Confirmar pelo WhatsApp",
     "Confirmação enviada pelo WhatsApp.": "Confirmação enviada pelo WhatsApp.",
@@ -253,6 +256,9 @@ const textos: TextosDaArea = {
     "Não foi possível preparar o envio do arquivo.": "Não foi possível preparar o envio do ficheiro.",
   },
   es: {
+    "Marcar agendamento": "Agendar cita",
+    "Ver agendamentos do dia": "Ver citas del día",
+    "Toque num dia para ver ou marcar": "Toque un día para ver o agendar",
     "A mesma mensagem que o agente manda quando marca": "El mismo mensaje que envía el agente al agendar",
     "Confirmar pelo WhatsApp": "Confirmar por WhatsApp",
     "Confirmação enviada pelo WhatsApp.": "Confirmación enviada por WhatsApp.",
@@ -500,6 +506,9 @@ const textos: TextosDaArea = {
     "Não foi possível preparar o envio do arquivo.": "No se pudo preparar el envío del archivo.",
   },
   en: {
+    "Marcar agendamento": "Book appointment",
+    "Ver agendamentos do dia": "See the day's appointments",
+    "Toque num dia para ver ou marcar": "Tap a day to see or book",
     "A mesma mensagem que o agente manda quando marca": "The same message the agent sends when it books",
     "Confirmar pelo WhatsApp": "Confirm on WhatsApp",
     "Confirmação enviada pelo WhatsApp.": "Confirmation sent on WhatsApp.",

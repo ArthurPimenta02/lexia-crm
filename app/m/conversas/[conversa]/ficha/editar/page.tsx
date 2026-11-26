@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { canaisDeAquisicao } from "@/lib/clientes/ficha";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { lerFicha } from "@/lib/movel/ficha";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 /** De onde veio + notas (desenho aprovado a 25/11, tela 12). */
 export default async function EditarFichaMovel({ params }: { params: Promise<{ conversa: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const conversa = decodeURIComponent((await params).conversa);
   if (!isValidConversationId(conversa)) notFound();

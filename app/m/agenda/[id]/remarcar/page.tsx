@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { somarDias } from "@/lib/movel/agenda";
 import { lerAgendamento } from "@/lib/movel/agendamento";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, partesNoFuso } from "@/lib/movel/formato";
 
 import { FormRemarcar } from "./form";
@@ -10,7 +10,7 @@ import { FormRemarcar } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function RemarcarMovel({ params }: { params: Promise<{ id: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const { id } = await params;
   const a = await lerAgendamento(c.clienteSlug, id).catch(() => null);

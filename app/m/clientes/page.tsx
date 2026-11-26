@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { canalDe, telefoneLegivel } from "@/lib/movel/conversas";
 import { iniciais, quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  * continua no painel do computador.
  */
 export default async function ClientesMovel({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   if (!ecraPermitido(c.clienteSlug, "/app/clientes")) redirect("/m/mais");
   const q = String((await searchParams).q ?? "").trim().slice(0, 60);

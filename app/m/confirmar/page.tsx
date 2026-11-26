@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { itensParaConfirmar } from "@/lib/movel/confirmar";
 
 import { ListaConfirmar } from "../_c/confirmar";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 /** Todos os atendimentos dos últimos 7 dias sem compareceu/faltou. */
 export default async function ConfirmarMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const itens = await itensParaConfirmar(c);
   return (

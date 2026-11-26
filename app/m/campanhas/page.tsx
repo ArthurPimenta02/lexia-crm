@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { getPainelCampanhas, type PainelCampanhas } from "@/lib/campaigns/read";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda } from "@/lib/movel/formato";
 import { diasDoIntervalo, intervaloDe } from "@/lib/movel/resultados";
 import { limitesDoDia, somarDias } from "@/lib/movel/hoje";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * caminho do painel (`getPainelCampanhas`, com as regras de acesso da base).
  */
 export default async function CampanhasMovel({ searchParams }: { searchParams: Promise<{ p?: string; de?: string; ate?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   if (!ecraPermitido(c.clienteSlug, "/app/campanhas")) redirect("/m/mais");
   const params = await searchParams;

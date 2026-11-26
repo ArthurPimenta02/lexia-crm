@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { resultadosRapido } from "@/lib/movel/cache";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda } from "@/lib/movel/formato";
 import { intervaloDe, type DadosResultados } from "@/lib/movel/resultados";
 import { moedaPadraoDoCliente } from "@/lib/servicos/config";
@@ -48,7 +48,7 @@ function barras(leadsPorDia: { dia: string; n: number }[]) {
 const EM_BREVE = true;
 
 export default async function ResultadosMovel({ searchParams }: { searchParams: Promise<{ p?: string; de?: string; ate?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   if (EM_BREVE) {
     return (

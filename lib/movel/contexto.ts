@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
@@ -124,3 +125,15 @@ export const contextoMovel = cache(async (): Promise<ContextoMovel | null> => {
     userId: user.id,
   };
 });
+
+/**
+ * O contexto das telas do app, ou o login (26/11). As páginas correm ao mesmo
+ * tempo que o layout: com a sessão a morrer, o redirect do layout chegava
+ * tarde e a página rebentava ("Cannot destructure property 't' … null"),
+ * mostrando erro em vez do login. Visto em produção a 26/11 00:12–00:26.
+ */
+export async function exigirContextoMovel(): Promise<ContextoMovel> {
+  const c = await contextoMovel();
+  if (!c) redirect("/login?destino=/m");
+  return c;
+}
