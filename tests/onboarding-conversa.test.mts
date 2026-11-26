@@ -348,7 +348,7 @@ test("entrevista inteira: termina sempre, nada é perguntado mais de duas vezes 
       const ref = p.tipo === "item" ? c.itens.find((x) => x.nome === p.nome)?.ref ?? "" : "";
       const campos = p.tipo === "item" ? p.faltam : p.tipo === "pergunta" ? p.campos : [];
       const horarios = campos.some((f) => f.campo === "horario_por_dia") ? [{ dia: "Seg", abre: "9:00", fecha: "18:00" }] : [];
-      return { ...NADA, horarios, campos: campos.filter((f) => f.campo !== "horario_por_dia").map((f) => ({ chave: f.campo, item: ref, valor: f.opcoes?.[0] ?? "resposta", lista: f.tipo === "multi" ? [f.opcoes?.[0] ?? "Microblading"] : [], estado: "respondido" as const })) };
+      return { ...NADA, horarios, campos: campos.filter((f) => f.campo !== "horario_por_dia").map((f) => ({ chave: f.campo, item: ref, valor: f.opcoes?.[0] ?? (f.tipo === "date" ? "31 de dezembro de 2026" : "resposta"), lista: f.tipo === "multi" ? [f.opcoes?.[0] ?? "Microblading"] : [], estado: "respondido" as const })) };
     });
     await abrirConversa(b.repo, i, "Jessica");
     let turnos = 0;
@@ -356,7 +356,7 @@ test("entrevista inteira: termina sempre, nada é perguntado mais de duas vezes 
       const c = b.ultimoCartao();
       conta(c);
       const cartao = c.tipo === "item" ? [...c.confirmar, ...c.cartoes] : c.tipo === "confirmar" || c.tipo === "cartoes" ? c.campos : [];
-      const valores = colabora ? cartao.map((f) => ({ campo: f.campo, itemId: f.itemId, valor: f.valor ?? f.recomendado ?? (f.tipo === "multi" ? [f.opcoes![0]] : f.opcoes?.[0]) ?? "ok" })) : [];
+      const valores = colabora ? cartao.map((f) => ({ campo: f.campo, itemId: f.itemId, valor: f.valor ?? f.recomendado ?? (f.tipo === "multi" ? [f.opcoes![0]] : f.opcoes?.[0]) ?? (f.tipo === "date" ? "2026-12-31" : "ok") })) : [];
       await turno(b.repo, i, msg({ texto: c.tipo === "item" || c.tipo === "pergunta" || c.tipo === "itens" ? "resposta em áudio" : colabora ? undefined : "hmm", valores, lista: c.tipo === "lista" && colabora ? { manter: c.itens.map((x) => x.id), novos: [] } : undefined }), "Jessica");
     }
     assert.ok(b.terminou(), `colabora=${colabora}: a entrevista não terminou em ${turnos} turnos`);

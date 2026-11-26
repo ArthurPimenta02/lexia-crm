@@ -255,7 +255,45 @@ const HORA = /^([01]?\d|2[0-3]):[0-5]\d$/;
 const limpo = (v: unknown) => String(v ?? "").trim();
 
 /** Um valor só entra no caderno se couber no campo. `undefined` = não entra. */
+const MESES: Record<string, number> = {
+  janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12,
+  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6, july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+  jan: 1, feb: 2, fev: 2, mar: 3, apr: 4, abr: 4, jun: 6, jul: 7, aug: 8, ago: 8, sep: 9, sept: 9, set: 9, oct: 10, out: 10, nov: 11, dec: 12, dez: 12,
+  enero: 1, febrero: 2, marzo: 3, mayo: 5, junio: 6, julio: 7, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+};
+const ok = (a: number, m: number, d: number) => {
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  return dt.getUTCFullYear() === a && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d ? `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : undefined;
+};
+/**
+ * Uma data dita ou escrita por ela, em AAAA-MM-DD (o formato que a base do agente exige). Caso K-Glow, 25/11:
+ * "31 de dezembro 2026" ficou gravado tal e qual e a passagem ao agente recusou a promoção. Ambíguo (03/04/2026,
+ * que nos EUA é março e no Brasil é abril) ou sem ano = não se adivinha: fica por responder e volta a ser perguntado.
+ */
+export function dataIso(texto: string): string | undefined {
+  const t = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/(\d)(st|nd|rd|th|º|ª|o)(?=[\s,.]|$)/g, "$1").trim();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return ok(+m[1], +m[2], +m[3]);
+  m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (m) {
+    const [a, b, ano] = [+m[1], +m[2], +m[3]];
+    if (a > 12 && b <= 12) return ok(ano, b, a);
+    if (b > 12 && a <= 12) return ok(ano, a, b);
+    return a === b ? ok(ano, a, b) : undefined;
+  }
+  const palavras = t.replace(/[,]/g, " ").split(/\s+/).filter((w) => w && !["de", "del", "of", "the"].includes(w));
+  const mes = palavras.map((w) => MESES[w]).find(Boolean);
+  const nums = palavras.filter((w) => /^\d+$/.test(w)).map(Number);
+  const ano = nums.find((n) => n >= 2000 && n <= 2100);
+  const dia = nums.find((n) => n >= 1 && n <= 31);
+  return mes && ano && dia ? ok(ano, mes, dia) : undefined;
+}
+
 export function conferir(campo: CampoOnboarding, valor: unknown): unknown | undefined {
+  if (campo.tipo === "date") {
+    const v = limpo(Array.isArray(valor) ? valor[0] : valor);
+    return v ? dataIso(v) : undefined;
+  }
   if (campo.tipo === "horarios") {
     if (!valor || typeof valor !== "object" || Array.isArray(valor)) return undefined;
     const bons = Object.entries(valor as Record<string, unknown>).filter(([d, h]) => DIAS.includes(d) && Array.isArray(h) && h.length === 2 && h.every((x) => HORA.test(limpo(x))));
