@@ -48,16 +48,30 @@ export default async function FichaMovel({ params }: { params: Promise<{ convers
       <nav aria-label={t("Ações")} className="m6-atalhos tres">
         <Link className="m6-atalho" href={chat}><span className="c"><IcConversa tamanho={21} /></span>{t("Conversa")}</Link>
         {d.telefone ? <a className="m6-atalho" href={`tel:+${d.telefone}`}><span className="c"><IcTelefone tamanho={21} /></span>{t("Ligar")}</a> : null}
-        {podeMarcar ? <Link className="m6-atalho" href={`/m/agenda?nova=1${d.contactoId ? `&contacto=${encodeURIComponent(d.contactoId)}` : ""}`}><span className="c"><IcCalendarioMais tamanho={21} /></span>{t("Marcar")}</Link> : null}
+        {podeMarcar ? <Link className="m6-atalho" href={`/m/agendar?volta=${encodeURIComponent(`/m/conversas/${encodeURIComponent(conversa)}/ficha`)}${d.contactoId ? `&contacto=${encodeURIComponent(d.contactoId)}` : ""}`}><span className="c"><IcCalendarioMais tamanho={21} /></span>{t("Marcar")}</Link> : null}
       </nav>
 
       <dl className="m6-pares">
-        <div><dt>{t("Chegou por")}</dt><dd>{d.deAnuncio ? (d.anuncio ? t("Anúncio · {nome}", { nome: d.anuncio }) : t("Anúncio")) : canal}</dd></div>
+        <div>
+          <dt>{t("De onde veio")}</dt>
+          <dd>
+            {d.origemManual ? [d.origemManual.rotulo === "Meta" ? t("Anúncio") : t(d.origemManual.rotulo), d.origemManual.nota].filter(Boolean).join(" · ") : d.deAnuncio ? (d.anuncio ? t("Anúncio · {nome}", { nome: d.anuncio }) : t("Anúncio")) : t("Orgânico")}
+            {d.contactoId ? <> · <Link className="ac" href={`${chat}/ficha/editar`}>{t("Alterar")}</Link></> : null}
+          </dd>
+        </div>
         {d.primeiroContato ? <div><dt>{t("Primeiro contato")}</dt><dd>{dataCurta(d.primeiroContato)}</dd></div> : null}
         {d.gasto.visitas ? (
           <div><dt>{t("Já gastou")}</dt><dd>{d.gasto.total ? <b>{dinheiro(d.gasto.total)} </b> : null}<span className="cinza">{d.gasto.total ? "· " : ""}{d.gasto.visitas === 1 ? t("1 visita") : t("{n} visitas", { n: d.gasto.visitas })}</span></dd></div>
         ) : null}
+        {d.faltas ? <div><dt>{t("Faltas")}</dt><dd className="falta">{d.faltas === 1 ? t("1 falta") : t("{n} faltas", { n: d.faltas })}</dd></div> : null}
       </dl>
+
+      {d.contactoId ? (
+        <section aria-label={t("Notas")}>
+          <p className="m6-rotulo" style={{ display: "flex", justifyContent: "space-between" }}>{t("Notas")}<Link className="ac" href={`${chat}/ficha/editar`} style={{ letterSpacing: 0, textTransform: "none" }}>{d.notas ? t("Editar") : t("Escrever")}</Link></p>
+          {d.notas ? <p className="m6-notas">{d.notas}</p> : null}
+        </section>
+      ) : null}
 
       {d.agendamentos.futuros.length || d.agendamentos.passados.length ? (
         <section aria-label={t("Agendamentos")}>
@@ -65,11 +79,11 @@ export default async function FichaMovel({ params }: { params: Promise<{ convers
           {[...d.agendamentos.futuros, ...d.agendamentos.passados].map((m) => {
             const futuro = d.agendamentos.futuros.includes(m);
             return (
-              <div className={`m6-ag${futuro ? "" : " passou"}`} key={m.id}>
+              <Link className={`m6-ag${futuro ? "" : " passou"}`} href={`/m/agenda/${m.id}?volta=${encodeURIComponent(`${chat}/ficha`)}`} key={m.id} prefetch={false}>
                 <span className="d">{ddmm(m.inicio)}</span>
-                <span className="s">{m.servico || m.titulo || t("Agendamento")}{futuro ? <span className="cinza"> · {partesNoFuso(m.inicio, c.fuso).hora}</span> : null}</span>
-                {m.id === proximo ? <span className="m6-tag">{t("próximo")}</span> : !futuro && m.valor ? <span className="v">{dinheiro(m.valor)}</span> : null}
-              </div>
+                <span className="s">{m.servico || m.titulo || t("Agendamento")}{futuro ? <span className="cinza"> · {partesNoFuso(m.inicio, c.fuso).hora}</span> : !futuro && m.valor && m.presenca !== "faltou" ? <span className="cinza"> · {dinheiro(m.valor)}</span> : null}</span>
+                {m.id === proximo ? <span className="m6-tag">{t("próximo")}</span> : m.presenca === "compareceu" ? <span className="ag-tag sim">{t("Veio")}</span> : m.presenca === "faltou" ? <span className="ag-tag nao">{t("Faltou")}</span> : null}
+              </Link>
             );
           })}
         </section>

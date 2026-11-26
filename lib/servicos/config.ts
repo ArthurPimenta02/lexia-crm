@@ -215,7 +215,6 @@ const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
   // Claudia Leite Spa (13/11/2026): 98 serviços na Supabase dela (servicos_claudia, colunas em
   // lexia-agente/clientes/claudia/cerebro/catalogo.ts). A coluna `profissional` pode ter dois nomes
   // ("Claudia Leite ou Jessica"). As chaves são as do espelho da agenda (lexia_agendamentos.executor).
-  // Só leitura: as marcações são da Carla (Google direto), o "Marcar" do painel fica desligado.
   claudia_leite_spa: {
     activoColumn: "ativo",
     catalogo: {
@@ -237,7 +236,8 @@ const agendaveisConfigs: Record<string, ServicosAgendaveisConfig> = {
       ],
       modo: "texto",
     },
-    marcarPeloPainel: false,
+    // 25/11: o app e o painel marcam para todos os clientes com Google (pedido do Arthur);
+    // antes ficava só leitura porque as marcações eram só da Carla.
     moeda: "USD",
     precoColumn: "preco",
     tabela: "servicos_claudia",

@@ -6,7 +6,7 @@ import { contextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, diferencaDias, iniciais, moeda } from "@/lib/movel/formato";
 import type { DadosMais } from "@/lib/movel/mais";
 
-import { IcAnuncios, IcCalendario, IcEngrenagem, IcEstrela, IcFrasco, IcPessoas, IcSeta, IcSino } from "../_c/icones";
+import { IcAnuncios, IcBarras, IcEngrenagem, IcEstrela, IcFrasco, IcPessoas, IcSeta, IcSino } from "../_c/icones";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,9 @@ export default async function MaisMovel() {
   const telas = [
     pode("/app/campanhas") ? item("/m/campanhas", <IcAnuncios tamanho={18} />, t("Campanhas"), d?.anuncios ? moeda(d.anuncios.gasto, c.locale, d.anuncios.moeda) : null) : null,
     pode("/app/clientes") ? item("/m/clientes", <IcPessoas tamanho={18} />, t("Clientes")) : null,
-    pode("/app/agenda") ? item("/m/agenda", <IcCalendario tamanho={18} />, t("Agenda")) : null,
+    pode("/app/agenda") ? item("/m/clientes/sumidos", <IcPessoas tamanho={18} />, t("Clientes sumidos")) : null,
+    // Agenda passou para a barra de baixo (25/11); Resultados veio para aqui, "em breve".
+    item("/m/resultados", <IcBarras tamanho={18} />, t("Resultados"), t("Em breve")),
     pode("/app/area-testes") ? item("/m/testes", <IcFrasco tamanho={18} />, t("Testar o agente")) : null,
     pode("/app/analista") ? item("/m/ajudante?tela=/m/mais", <IcEstrela tamanho={18} />, t("Analista Lexia")) : null,
   ].filter(Boolean);

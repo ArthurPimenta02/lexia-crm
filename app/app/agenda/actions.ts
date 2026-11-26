@@ -8,6 +8,10 @@ import {
   type ConflitoNaAgenda,
   type FraseParaTraduzir,
 } from "@/lib/agenda/marcar";
+import { horariosLivres, resolverContacto } from "@/lib/agenda/agendar-app";
+import { cancelarAgendamento } from "@/lib/agenda/alterar";
+import { enviarConfirmacao } from "@/lib/agenda/confirmacao";
+import { marcarPresenca, type Presenca } from "@/lib/agenda/presenca";
 import { getLoggedInUserProfile, isClientRole } from "@/lib/auth/profile";
 
 /**
@@ -42,6 +46,8 @@ export type MarcarResultado = {
   avisosFrases?: FraseParaTraduzir[];
   /** O que já está marcado àquela hora, se houver. */
   conflitos: ConflitoNaAgenda[];
+  /** A confirmação pelo WhatsApp saiu (25/11). */
+  confirmacaoEnviada?: boolean;
   linkGoogle: string | null;
   mensagem: string;
   mensagemFrase?: FraseParaTraduzir;
@@ -58,7 +64,7 @@ function recusar(
 }
 
 async function perfilDoCliente() {
-  const { profile } = await getLoggedInUserProfile();
+  const { profile, user } = await getLoggedInUserProfile();
 
   if (
     !profile ||
@@ -69,7 +75,7 @@ async function perfilDoCliente() {
     return null;
   }
 
-  return { clienteSlug: profile.cliente_slug };
+  return { clienteSlug: profile.cliente_slug, userId: user?.id ?? null };
 }
 
 export async function marcarNaAgendaAction(
@@ -84,9 +90,25 @@ export async function marcarNaAgendaAction(
 
   const texto = (campo: string) => String(formData.get(campo) ?? "");
 
+  // 25/11 (o mesmo do app): sem ficha escolhida, a ficha é encontrada pelo
+  // número ou criada sozinha com o nome e o número escritos.
+  const ficha = await resolverContacto({
+    clienteSlug: perfil.clienteSlug,
+    contactoId: texto("contacto_id"),
+    nomeBruto: texto("nome"),
+    origemBruto: texto("origem"),
+    origemNotaBruto: texto("origem_nota"),
+    telefoneBruto: texto("telefone"),
+    userId: perfil.userId,
+  });
+
+  if (!ficha.ok) {
+    return recusar(ficha.erro);
+  }
+
   const { avisos, erro, erroFrase, marcacao } = await prepararNovaMarcacao({
     campos: {
-      contactoId: texto("contacto_id"),
+      contactoId: ficha.contactoId,
       dataBruto: texto("data"),
       duracaoBruto: texto("duracao"),
       executorBruto: texto("executor"),
@@ -105,6 +127,9 @@ export async function marcarNaAgendaAction(
       ? recusar(erro, erroFrase)
       : recusar("Faltam dados para agendar.");
   }
+
+  const idioma = texto("idioma");
+  marcacao.idioma = idioma === "pt" || idioma === "en" || idioma === "es" ? idioma : null;
 
   const confirmado = texto("confirmado") === "sim";
 
@@ -155,8 +180,21 @@ export async function marcarNaAgendaAction(
 
   revalidatePath(caminho);
 
+  // Confirmação pelo WhatsApp: o mesmo texto do agente, sem pausar o agente (25/11).
+  const confirmacao =
+    texto("confirmar_whatsapp") === "sim" && resultado.eventId
+      ? await enviarConfirmacao({
+          carro: marcacao.viatura, clienteSlug: perfil.clienteSlug, eventId: resultado.eventId, executorChave: marcacao.executorChave,
+          executorNome: marcacao.executorNome, idioma: marcacao.idioma ?? "pt", inicioIso: marcacao.inicioIso, nome: marcacao.nomeCliente,
+          servicoId: texto("servico_id"), servicoNome: marcacao.servicoNome, telefone: marcacao.telefone, valor: marcacao.valor,
+        })
+      : null;
+
   return {
     ...vazio,
+    avisos: confirmacao?.erro ? [confirmacao.erro] : [],
+    avisosFrases: confirmacao?.erro ? [{ chave: confirmacao.erro }] : undefined,
+    confirmacaoEnviada: confirmacao?.enviada ?? false,
     linkGoogle: resultado.linkGoogle,
     mensagem: `"${marcacao.servicoNome}" ficou agendado para ${marcacao.nomeCliente}.`,
     mensagemFrase: {
@@ -165,4 +203,34 @@ export async function marcarNaAgendaAction(
     },
     ok: true,
   };
+}
+
+/** Horários livres de meia em meia hora (o mesmo cálculo do app). */
+export async function horariosLivresAction(dia: string, executor: string, duracaoMinutos: number): Promise<string[]> {
+  const perfil = await perfilDoCliente();
+  if (!perfil) return [];
+  try {
+    return await horariosLivres({ clienteSlug: perfil.clienteSlug, dia, duracaoMinutos, executor });
+  } catch {
+    return [];
+  }
+}
+
+/** Compareceu / faltou (o mesmo do app). `null` desfaz. */
+export async function presencaAction(id: string, presenca: Presenca | null) {
+  const perfil = await perfilDoCliente();
+  if (!perfil?.userId) return { erro: "Sessão sem permissão.", ok: false };
+  if (presenca !== null && presenca !== "compareceu" && presenca !== "faltou") return { erro: "Escolha uma opção.", ok: false };
+  const r = await marcarPresenca({ clienteSlug: perfil.clienteSlug, id, presenca, userId: perfil.userId });
+  if (r.ok) revalidatePath(caminho);
+  return r;
+}
+
+/** Cancelar: sai do Google (o cliente não é avisado). */
+export async function cancelarAction(id: string) {
+  const perfil = await perfilDoCliente();
+  if (!perfil) return { erro: "Sessão sem permissão.", ok: false };
+  const r = await cancelarAgendamento({ clienteSlug: perfil.clienteSlug, id });
+  if (r.ok) revalidatePath(caminho);
+  return { erro: r.erro, ok: r.ok };
 }

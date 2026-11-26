@@ -26,10 +26,42 @@ type PushPlugin = {
   register: () => Promise<void>;
   requestPermissions: () => Promise<{ receive: string }>;
 };
+type WidgetPlugin = {
+  atualizarWidget?: () => Promise<void>;
+  definirWidget?: (o: { base: string; token: string }) => Promise<{ ok: boolean }>;
+};
 type Capacitor = {
   isNativePlatform?: () => boolean;
-  Plugins?: { PushNotifications?: PushPlugin };
+  Plugins?: { LexiaNativo?: WidgetPlugin; PushNotifications?: PushPlugin };
 };
+
+/**
+ * Liga o widget do iPhone (25/11): pede uma chave nova quando não há, quando
+ * mudou a empresa ou passados 7 dias, e entrega-a ao nativo. Versões do app
+ * sem widget não têm `definirWidget` e isto não faz nada.
+ */
+async function ligarWidget(nativo: WidgetPlugin | undefined) {
+  if (!nativo?.definirWidget) return;
+  let marca: { em: number; slug: string } | null = null;
+  try { marca = JSON.parse(localStorage.getItem("lexia_widget") ?? "null"); } catch { marca = null; }
+  if (marca && Date.now() - marca.em < 7 * 86_400_000) {
+    void nativo.atualizarWidget?.();
+    return;
+  }
+  const r = await fetch("/api/app/widget/token", { method: "POST" }).catch(() => null);
+  if (!r?.ok) return;
+  const d = (await r.json()) as { base: string; slug: string; token: string };
+  const feito = await nativo.definirWidget({ base: d.base, token: d.token }).catch(() => null);
+  if (feito?.ok) {
+    try { localStorage.setItem("lexia_widget", JSON.stringify({ em: Date.now(), slug: d.slug })); } catch { /* sem armazenamento: pede de novo na próxima */ }
+  }
+}
+
+/** Depois de marcar/remarcar/cancelar: o widget atualiza já, sem esperar 15 min. */
+export function atualizarWidgetDoIphone() {
+  const nativo = (window as unknown as { Capacitor?: Capacitor }).Capacitor?.Plugins?.LexiaNativo;
+  void nativo?.atualizarWidget?.().catch(() => undefined);
+}
 
 /**
  * Para onde vai um toque num aviso. Só telas do próprio painel: um aviso nunca
@@ -77,6 +109,8 @@ export function PonteDoApp() {
       window.location.replace(destinoNoApp);
       return;
     }
+
+    void ligarWidget(capacitor?.Plugins?.LexiaNativo);
 
     if (!push) {
       return;

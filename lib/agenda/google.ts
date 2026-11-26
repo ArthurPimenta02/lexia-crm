@@ -46,6 +46,11 @@ const AGENDAS: Record<string, Record<string, string> | undefined> = {
   },
 };
 
+/** Todas as agendas do Google de um cliente, por profissional. */
+export function agendasDe(clienteSlug: string): Record<string, string> {
+  return { ...(AGENDAS[clienteSlug] ?? {}) };
+}
+
 /** A agenda do Google onde se marca para este profissional, ou `null`. */
 export function agendaDe(clienteSlug: string, executorChave: string) {
   return AGENDAS[clienteSlug]?.[executorChave] ?? null;
@@ -231,4 +236,22 @@ export async function apagarEvento(calendarioId: string, eventId: string) {
   if (!resposta.ok && resposta.status !== 410) {
     throw new ErroDoGoogle(`O Google respondeu ${resposta.status}.`);
   }
+}
+
+/** Muda só a hora de um evento (remarcar), sem avisar ninguém. */
+export async function mudarHorarioDoEvento(
+  calendarioId: string,
+  eventId: string,
+  horario: { fimIso: string; fuso: string; inicioIso: string },
+) {
+  await pedir<EventoGoogle>(
+    `/calendars/${encodeURIComponent(calendarioId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`,
+    {
+      body: JSON.stringify({
+        end: { dateTime: horario.fimIso, timeZone: horario.fuso },
+        start: { dateTime: horario.inicioIso, timeZone: horario.fuso },
+      }),
+      method: "PATCH",
+    },
+  );
 }

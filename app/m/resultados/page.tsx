@@ -8,6 +8,7 @@ import { intervaloDe, type DadosResultados } from "@/lib/movel/resultados";
 import { moedaPadraoDoCliente } from "@/lib/servicos/config";
 
 import { IcSeta } from "../_c/icones";
+import { VazioMascote } from "../_c/vazio";
 import { Moldado } from "../_c/pecas";
 import { Periodos } from "../_c/periodos";
 
@@ -39,9 +40,27 @@ function barras(leadsPorDia: { dia: string; n: number }[]) {
   return { escala: "mes" as const, lista: meses.slice(Math.max(0, primeiro)).map(([m, n]) => ({ de: `${m}-01`, n })) };
 }
 
+/**
+ * 25/11: o Arthur pôs Resultados "em breve" enquanto o app passa a ser a
+ * agenda do dia a dia (faturamento real e faltas virão daqui). A tela antiga
+ * fica no código, por baixo, para voltar quando ele pedir: basta pôr isto a false.
+ */
+const EM_BREVE = true;
+
 export default async function ResultadosMovel({ searchParams }: { searchParams: Promise<{ p?: string; de?: string; ate?: string }> }) {
   const c = (await contextoMovel())!;
   const { t } = c;
+  if (EM_BREVE) {
+    return (
+      <main className="m-pagina m6">
+        <header className="m6-cab"><h1>{t("Resultados")}</h1></header>
+        <VazioMascote>
+          <b style={{ display: "block", fontSize: 13, letterSpacing: ".05em", textTransform: "uppercase" }}>{t("Em breve")}</b>
+          {t("Faturamento real, faltas e de onde vieram seus clientes vão aparecer aqui.")}
+        </VazioMascote>
+      </main>
+    );
+  }
   const params = await searchParams;
   const hoje = chaveDoDia(new Date(), c.fuso);
   const intervalo = intervaloDe(params.p ?? "semana", params.de, params.ate, hoje);

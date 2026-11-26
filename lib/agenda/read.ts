@@ -53,6 +53,8 @@ export type EventoAgenda = {
   nomeCliente: string | null;
   /** `agente` quando foi o agente de IA a marcar; `manual` quando foi à mão. */
   origem: string | null;
+  /** Compareceu/faltou marcado no app ou no painel (25/11); `null` = ainda sem resposta. */
+  presenca?: "compareceu" | "faltou" | null;
   servico: string | null;
   telefone: string | null;
   titulo: string | null;
@@ -101,7 +103,9 @@ export type AgendaResultado = {
 };
 
 type AgendamentoRow = {
+  calendario_id?: string | null;
   dia_inteiro: boolean | null;
+  event_id?: string | null;
   executor: string | null;
   fim: string | null;
   id: string;
@@ -323,7 +327,7 @@ export async function getAgenda({
       const result = await admin
         .from("lexia_agendamentos")
         .select(
-          "id, inicio, fim, dia_inteiro, titulo, servico, nome_cliente, telefone, executor, origem, link_google, localizacao, valor_previsto",
+          "id, inicio, fim, dia_inteiro, titulo, servico, nome_cliente, telefone, executor, origem, link_google, localizacao, valor_previsto, calendario_id, event_id",
         )
         .eq("cliente_slug", clienteSlug)
         .neq("estado", "cancelado")
@@ -341,6 +345,22 @@ export async function getAgenda({
 
   if (error) {
     return { ...vazio, erro: "Não foi possível carregar a agenda." };
+  }
+
+  // Compareceu/faltou (lexia_presencas, chave = a do Google). Sem a tabela,
+  // a agenda abre igual, só sem a resposta.
+  const presencas = new Map<string, "compareceu" | "faltou">();
+  const eventIds = [...new Set(data.map((l) => l.event_id).filter(Boolean))] as string[];
+  for (let i = 0; i < eventIds.length; i += 200) {
+    const { data: linhas, error: erroP } = await admin
+      .from("lexia_presencas")
+      .select("calendario_id, event_id, presenca")
+      .eq("cliente_slug", clienteSlug)
+      .in("event_id", eventIds.slice(i, i + 200));
+    if (erroP) break;
+    for (const l of (linhas ?? []) as { calendario_id: string; event_id: string; presenca: "compareceu" | "faltou" }[]) {
+      presencas.set(`${l.calendario_id}|${l.event_id}`, l.presenca);
+    }
   }
 
   const porDia = new Map<string, EventoAgenda[]>(chaves.map((c) => [c, []]));
@@ -411,6 +431,7 @@ export async function getAgenda({
         localizacao: linha.localizacao,
         nomeCliente: linha.nome_cliente,
         origem: linha.origem,
+        presenca: presencas.get(`${linha.calendario_id}|${linha.event_id}`) ?? null,
         servico: linha.servico,
         telefone: linha.telefone,
         titulo: linha.titulo,

@@ -674,3 +674,122 @@
 .m-aba .emb { position: absolute; top: -5px; left: 14px; min-width: 17px; height: 17px; padding: 0 5px; border-radius: 9px; background: var(--m-alerta); color: var(--m-fundo); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
 .m6-conversas { gap: 18px; }
 .m6-agenda.m-pagina { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 170px); }
+
+/* ── Novo agendamento (/m/agendar), desenho aprovado a 25/11 ─────────────── */
+.m-pagina.ag { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 110px); }
+.ag-cab { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 8px; padding: 0 0 8px; text-align: center; }
+.ag-cab > b { font-size: 17px; font-weight: 600; }
+.ag-x { width: 36px; height: 36px; border-radius: 18px; background: var(--m-sup); display: flex; align-items: center; justify-content: center; }
+.ag-titulo small { display: block; font-size: 13px; color: var(--m-texto2); }
+.ag-titulo b { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.ag-ja { margin: 6px 0 4px; padding: 8px 12px; border-radius: 12px; background: var(--m-sup); }
+.ag-ja div { display: flex; gap: 10px; font-size: 13px; padding: 4px 0; color: var(--m-texto2); }
+.ag-ja b { color: var(--m-texto); width: 44px; font-variant-numeric: tabular-nums; flex: none; }
+.ag-campo { padding-top: 12px; position: relative; }
+.ag-dois { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ag-rot { display: block; font-size: 12px; color: var(--m-texto2); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.ag-rot i { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.ag-inp { width: 100%; height: 46px; border-radius: 12px; border: 1px solid var(--m-fio); background: var(--m-sup); padding: 0 14px; font-size: 16px; color: var(--m-texto); outline: 0; -webkit-appearance: none; appearance: none; }
+.ag-inp:focus { border-color: var(--m-acento); background: var(--m-fundo); }
+select.ag-inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b716e' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+.ag-sug { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--m-fundo); border-radius: 12px; box-shadow: 0 8px 28px var(--m-sombra); z-index: 20; overflow: hidden; }
+.ag-sug button, .ag-escolhido { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 14px; text-align: left; }
+.ag-sug button + button { border-top: 1px solid var(--m-fio); }
+.ag-escolhido { border-radius: 12px; background: var(--m-acento-sup); }
+.ag-escolhido > button { margin-left: auto; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--m-texto2); }
+.ag .av { width: 32px; height: 32px; border-radius: 16px; background: var(--m-sup2); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none; }
+.ag .tx { display: flex; flex-direction: column; min-width: 0; }
+.ag .tx b { font-weight: 500; }
+.ag .tx small { font-size: 13px; color: var(--m-texto2); }
+.ag-faixa { display: block; width: 100%; text-align: left; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--m-acento-sup); color: var(--m-texto); font-size: 13px; }
+.ag-faixa b { color: var(--m-acento); }
+.ag-pilulas, .ag-horas { display: flex; gap: 8px; flex-wrap: wrap; }
+.ag-horas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ag-pilulas button, .ag-horas button { height: 38px; padding: 0 14px; border-radius: 19px; background: var(--m-sup); font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.ag-pilulas button.on, .ag-horas button.on { background: var(--m-texto); color: var(--m-fundo); }
+.ag-horas .ag-outro { grid-column: span 2; }
+.ag-nada { grid-column: 1 / -1; margin: 0 0 4px; font-size: 14px; color: var(--m-texto2); }
+.ag-carregando span { height: 38px; width: 70px; border-radius: 19px; background: var(--m-sup); animation: ag-pulso 1s ease-in-out infinite alternate; }
+@keyframes ag-pulso { from { opacity: .5; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ag-carregando span { animation: none; } }
+.ag-alerta { margin: 0 auto 10px; max-width: 560px; padding: 12px 14px; border-radius: 12px; background: var(--m-alerta-sup); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.ag-erro { color: var(--m-vermelho); font-size: 14px; margin: 0 auto 10px; max-width: 560px; }
+.ag-rodape { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 20px calc(env(safe-area-inset-bottom, 0px) + 12px); background: var(--m-fundo); border-top: 1px solid var(--m-fio); z-index: 30; }
+.ag-rodape .m-botao { border-radius: 14px; max-width: 560px; margin: 0 auto; }
+
+/* Barra de abas com o + do meio (25/11): Hoje · Agenda · (+) · Conversas · Mais */
+.m-aba-mais { display: flex; align-items: center; justify-content: center; }
+.m-aba-mais span { width: 50px; height: 50px; border-radius: 25px; background: var(--m-acento); color: var(--m-no-acento); display: flex; align-items: center; justify-content: center; margin-top: -4px; box-shadow: 0 4px 14px var(--m-sombra); transition: transform 120ms ease-out; }
+.m-aba-mais:active span { transform: scale(0.94); }
+.ag-grande { display: flex; align-items: center; justify-content: center; gap: 10px; height: 58px; border-radius: 16px; background: var(--m-texto); color: var(--m-fundo); font-weight: 600; font-size: 17px; transition: transform 120ms ease-out; }
+.ag-grande:active { transform: scale(0.98); }
+.ag-dica { margin: -12px 0 0; font-size: 13px; color: var(--m-texto2); text-align: center; }
+.ag-vazio-toque { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 12px; border-radius: 16px; }
+.ag-vazio-toque > span { font-size: 14px; font-weight: 600; color: var(--m-acento); }
+.ag-rodape .m-botao.verde { background: var(--m-acento); color: var(--m-no-acento); }
+
+/* ── Agendamento (/m/agenda/[id]) ─────────────────────────────────────────── */
+.ag-det .ag-x { margin-bottom: 14px; }
+.ag-det-data { margin: 0; font-size: 13px; color: var(--m-texto2); }
+.ag-det-hora { margin: 2px 0 0; font-size: 40px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ag-det-hora.cancelado { text-decoration: line-through; color: var(--m-texto3); }
+.ag-det-tag { margin: 6px 0 0; font-size: 13px; font-weight: 600; color: var(--m-vermelho); }
+.ag-det-cliente { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.ag-det-cliente .av { width: 40px; height: 40px; border-radius: 20px; font-size: 14px; }
+.ag-det-cliente .tx b { font-size: 17px; font-weight: 600; }
+.ag-presenca { margin-top: 20px; padding: 16px; border-radius: 16px; background: var(--m-alerta-sup); }
+.ag-presenca > b { color: var(--m-alerta); font-weight: 600; }
+.ag-presenca > div { display: flex; gap: 10px; margin-top: 12px; }
+.ag-presenca > div button { flex: 1; height: 50px; border-radius: 12px; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.ag-presenca .sim { background: var(--m-acento); color: var(--m-no-acento); }
+.ag-presenca .nao { background: var(--m-fundo); color: var(--m-vermelho); border: 1px solid var(--m-fio); }
+.ag-presenca.feito { display: flex; align-items: center; justify-content: space-between; background: var(--m-acento-sup); }
+.ag-presenca.feito.faltou { background: rgba(217, 58, 58, 0.1); }
+.ag-presenca.feito span { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--m-acento); }
+.ag-presenca.feito.faltou span { color: var(--m-vermelho); }
+.ag-presenca.feito button { font-size: 14px; color: var(--m-texto2); padding: 6px 4px; }
+.ag-det-linhas { margin: 14px 0 0; }
+.ag-det-linhas div { display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--m-fio); }
+.ag-det-linhas dt { color: var(--m-texto2); }
+.ag-det-linhas dd { margin: 0; text-align: right; }
+.ag-det-acoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 10px; margin-top: 20px; }
+.ag-det-acoes > * { height: 66px; border-radius: 14px; background: var(--m-sup); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 13px; font-weight: 500; }
+.ag-det-acoes .perigo { color: var(--m-vermelho); }
+.m-botao.ag-perigo { background: var(--m-vermelho); color: #fff; }
+
+/* ── Para confirmar (Hoje e /m/confirmar) ─────────────────────────────────── */
+.ag-conf.compacto { padding: 14px 16px; border-radius: 14px; background: var(--m-alerta-sup); }
+.ag-conf-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ag-conf-cab b { color: var(--m-alerta); font-weight: 600; }
+.ag-conf-cab a { font-size: 13px; color: var(--m-alerta); white-space: nowrap; }
+.ag-conf-linha { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--m-fio); }
+.ag-conf.compacto .ag-conf-linha { padding: 10px 0 0; border-bottom: 0; }
+.ag-conf-linha .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ag-conf-linha .tx b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-conf-linha .tx small { font-size: 13px; color: var(--m-texto2); }
+.ag-conf-linha button { height: 36px; padding: 0 14px; border-radius: 18px; font-size: 14px; font-weight: 600; flex: none; }
+.ag-conf-linha .sim { background: var(--m-acento); color: var(--m-no-acento); }
+.ag-conf-linha .nao { background: var(--m-fundo); color: var(--m-vermelho); border: 1px solid var(--m-fio); }
+.ag-radios { display: flex; flex-direction: column; }
+.ag-radios label { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--m-fio); font-size: 16px; }
+.ag-radios input { width: 22px; height: 22px; accent-color: var(--m-acento); margin: 0; flex: none; }
+.ag-area { height: 120px; padding: 12px 14px; resize: vertical; line-height: 1.4; }
+.ag-tag { font-size: 12px; font-weight: 600; border-radius: 10px; padding: 3px 9px; align-self: center; }
+.ag-tag.sim { background: var(--m-acento-sup); color: var(--m-acento); }
+.ag-tag.nao { background: rgba(217, 58, 58, 0.1); color: var(--m-vermelho); }
+.m6-notas { margin: 6px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--m-sup); font-size: 15px; line-height: 1.4; white-space: pre-wrap; }
+.m6-pares .falta { color: var(--m-vermelho); font-weight: 600; }
+.ag-interruptor { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--m-fio); font-weight: 500; }
+.ag-interruptor input { appearance: none; -webkit-appearance: none; width: 50px; height: 30px; border-radius: 15px; background: var(--m-fio); position: relative; transition: background 150ms ease-out; margin: 0; flex: none; }
+.ag-interruptor input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform 150ms ease-out; }
+.ag-interruptor input:checked { background: var(--m-acento); }
+.ag-interruptor input:checked::after { transform: translateX(20px); }
+.ag-rodape .m-botao:not(.verde) { border-radius: 14px; }
+.m6-cab-acoes { display: flex; gap: 8px; align-items: center; }
+.ag-pil { height: 38px; padding: 0 14px; border-radius: 19px; background: var(--m-sup); font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; }
+.ag-pil.on { background: var(--m-texto); color: var(--m-fundo); }
+.ag-sumido { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--m-fio); }
+.ag-sumido .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ag-sumido .tx b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-sumido .tx small { font-size: 13px; color: var(--m-texto2); }
+.ag-sumido .chamar { height: 36px; padding: 0 12px; border-radius: 18px; background: var(--m-acento-sup); color: var(--m-acento); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex: none; }

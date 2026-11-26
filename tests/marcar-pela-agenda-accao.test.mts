@@ -57,6 +57,19 @@ const marcacaoFalsa = {
   viatura: null,
 };
 
+// 25/11: a acção passou a encontrar/criar a ficha antes de marcar
+// (lib/agenda/agendar-app, testado em agendar-app.test.mts). Aqui a ficha
+// escolhida passa direito, como antes.
+mock.module("server-only", { namedExports: {} });
+mock.module("@/lib/agenda/agendar-app", {
+  namedExports: {
+    horariosLivres: async () => [],
+    resolverContacto: async ({ contactoId }: { contactoId: string }) =>
+      contactoId ? { contactoId, criado: false, nome: "Martim Teste", ok: true, telefone: "351912345678" } : { erro: "Escreva o nome do cliente.", ok: false },
+  },
+});
+mock.module("@/lib/agenda/alterar", { namedExports: { cancelarAgendamento: async () => ({ erro: null, ok: true }) } });
+mock.module("@/lib/agenda/presenca", { namedExports: { marcarPresenca: async () => ({ erro: null, ok: true }) } });
 mock.module("next/cache", {
   namedExports: {
     revalidatePath: (caminho: string) => revalidados.push(caminho),
