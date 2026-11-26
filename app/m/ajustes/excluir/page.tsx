@@ -1,4 +1,4 @@
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 
 import { BotaoVoltar } from "../../_c/voltar";
 import { excluirMinhaConta } from "../acoes";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /** Excluir a própria conta: o que acontece, uma confirmação e o botão. */
 export default async function ExcluirConta({ searchParams }: { searchParams: Promise<{ aviso?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const { aviso } = await searchParams;
 

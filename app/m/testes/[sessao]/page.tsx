@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { partesNoFuso } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * nada a um cliente real.
  */
 export default async function ConversaTeste({ params }: { params: Promise<{ sessao: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const t = c.t;
   const { sessao: bruto } = await params;
   const nova = bruto === "nova";

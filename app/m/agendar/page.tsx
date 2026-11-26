@@ -1,6 +1,6 @@
 import { getContactosParaEscolha } from "@/lib/clientes/read";
 import { agendaDoDia, diaValido, somarDias } from "@/lib/movel/agenda";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { ehContaDemo, SERVICOS_DEMO } from "@/lib/movel/demo";
 import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  * ficha de um cliente.
  */
 export default async function AgendarMovel({ searchParams }: { searchParams: Promise<{ contacto?: string; dia?: string; volta?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const params = await searchParams;
   const agora = new Date();

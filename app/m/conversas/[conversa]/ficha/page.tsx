@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { lerFicha } from "@/lib/movel/ficha";
 import { iniciais, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { isValidConversationId } from "@/lib/redis/agent-locks";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 /** Ficha do cliente (desenho v6, 14/11): quem é, de onde veio, quanto já gastou e as marcações. */
 export default async function FichaMovel({ params }: { params: Promise<{ conversa: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const conversa = decodeURIComponent((await params).conversa);
   if (!isValidConversationId(conversa)) notFound();

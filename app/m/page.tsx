@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { itensParaConfirmar } from "@/lib/movel/confirmar";
 import { hojeRapido } from "@/lib/movel/cache";
-import { clientesAtivos, contextoMovel } from "@/lib/movel/contexto";
+import { clientesAtivos, exigirContextoMovel } from "@/lib/movel/contexto";
 import { esperasPorEmpresa } from "@/lib/movel/esperas";
 import { duracaoCurta, iniciais, moeda, partesNoFuso } from "@/lib/movel/formato";
 import type { DadosHoje } from "@/lib/movel/hoje";
@@ -24,7 +24,7 @@ const primeiroNome = (nome: string) => nome.split(/\s+/)[0] ?? nome;
  * dia e o que já ficou resolvido. Sem textos de explicação.
  */
 export default async function HojeMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const agora = new Date();
   let d: DadosHoje | null = null;

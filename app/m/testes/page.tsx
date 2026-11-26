@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * conversa nova em destaque. Conversas sem nenhuma mensagem não aparecem.
  */
 export default async function ListaTestes() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   if (!ecraPermitido(c.clienteSlug, "/app/area-testes")) redirect("/m/mais");
   const origem = c.admin ? "painel_admin" : "painel_cliente";

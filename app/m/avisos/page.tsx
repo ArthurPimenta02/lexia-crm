@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -21,7 +21,7 @@ const TIPOS_ESPERA = new Set(["a_espera", "pediu_pessoa", "irritado"]);
  * aviso abria. Ligar e desligar cada tipo fica nos Ajustes.
  */
 export default async function AvisosMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const agora = new Date();
   const { data, error } = await createAdminClient()

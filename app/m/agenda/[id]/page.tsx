@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { lerAgendamento } from "@/lib/movel/agendamento";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 /** Um agendamento (desenho aprovado a 25/11, tela 6): compareceu/faltou e as ações. */
 export default async function AgendamentoMovel({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ volta?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const { id } = await params;
   const { volta } = await searchParams;

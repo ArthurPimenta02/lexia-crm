@@ -1,5 +1,5 @@
 
-import { clientesAtivos, contextoMovel } from "@/lib/movel/contexto";
+import { clientesAtivos, exigirContextoMovel } from "@/lib/movel/contexto";
 import { esperasPorEmpresa } from "@/lib/movel/esperas";
 import { iniciais } from "@/lib/movel/formato";
 import { NOME_DO_IDIOMA } from "@/lib/i18n/idiomas";
@@ -19,7 +19,7 @@ import { BotaoVoltar } from "../_c/voltar";
 export const dynamic = "force-dynamic";
 
 export default async function AjustesMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const empresas = c.admin ? await clientesAtivos() : [];
   // Para a Lexia: onde estão as conversas à espera (o ícone do iPhone soma todas).

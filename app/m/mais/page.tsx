@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { ecraPermitido } from "@/lib/auth/ecras";
 import { maisRapido } from "@/lib/movel/cache";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, diferencaDias, iniciais, moeda } from "@/lib/movel/formato";
 import type { DadosMais } from "@/lib/movel/mais";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 /** Mais (desenho v6, 14/11): o perfil, a meta do mês e as outras telas, numa lista com fios. */
 export default async function MaisMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   let d: DadosMais | null = null;
   try {

@@ -793,3 +793,15 @@ select.ag-inp { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://w
 .ag-sumido .tx b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-sumido .tx small { font-size: 13px; color: var(--m-texto2); }
 .ag-sumido .chamar { height: 36px; padding: 0 12px; border-radius: 18px; background: var(--m-acento-sup); color: var(--m-acento); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex: none; }
+
+/* Tocar num dia do mês (26/11): ver ou marcar */
+.m6-mes button.dia { font: inherit; color: inherit; background: none; }
+.ag-escolha h3 { margin: 0; font-size: 20px; font-weight: 600; }
+.ag-escolha .d { margin: 4px 0 16px; color: var(--m-texto2); font-size: 14px; }
+.ag-escolha-op { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 16px; border-radius: 14px; background: var(--m-sup); font-size: 16px; font-weight: 600; margin-bottom: 10px; transition: transform 120ms ease-out; }
+.ag-escolha-op:active { transform: scale(0.98); }
+.ag-escolha-op .c { width: 32px; height: 32px; border-radius: 16px; background: var(--m-fundo); display: flex; align-items: center; justify-content: center; }
+.ag-escolha-op.verde { background: var(--m-acento); color: var(--m-no-acento); }
+.ag-escolha-op.verde .c { background: rgba(255, 255, 255, 0.18); }
+.ag-linha-dica { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: -12px; font-size: 13px; color: var(--m-texto2); }
+.ag-bloquear { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--m-sup); color: var(--m-texto); font-weight: 500; flex: none; }

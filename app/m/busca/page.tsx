@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { canalDe, telefoneLegivel } from "@/lib/movel/conversas";
 import { iniciais, quandoCurto } from "@/lib/movel/formato";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -17,7 +17,7 @@ function termo(q: string) {
 }
 
 export default async function BuscaMovel({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const q = termo(String((await searchParams).q ?? ""));
   const agora = new Date();

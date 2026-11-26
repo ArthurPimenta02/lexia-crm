@@ -1,6 +1,6 @@
 import { agendasDe } from "@/lib/agenda/google";
 import { diaValido } from "@/lib/movel/agenda";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia } from "@/lib/movel/formato";
 import { getServicosAgendaveisConfig } from "@/lib/servicos/config";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /** Bloquear horário (desenho aprovado a 25/11, tela 8). */
 export default async function BloquearMovel({ searchParams }: { searchParams: Promise<{ dia?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const hoje = chaveDoDia(new Date(), c.fuso);
   const { dia } = await searchParams;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { agendaDoDia, diaValido, somarDias, type Vista } from "@/lib/movel/agenda";
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { chaveDoDia, moeda, moedaDoCliente, partesNoFuso } from "@/lib/movel/formato";
 import { marcarEstaLigado } from "@/lib/agenda/marcar";
 import { getMoedaDoCliente } from "@/lib/servicos/config";
@@ -11,11 +11,12 @@ import { ehContaDemo } from "@/lib/movel/demo";
 
 import { IcBloquear, IcSeta, IcVoltar } from "../_c/icones";
 import { DiaAgenda } from "./dia";
+import { GradeMes } from "./grade-mes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AgendaMovel({ searchParams }: { searchParams: Promise<{ contacto?: string; dia?: string; nova?: string; prof?: string; vista?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const params = await searchParams;
   const agora = new Date();
@@ -69,7 +70,6 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
     <main className="m-pagina m6 m6-agenda">
       <header className="m6-cab">
         <h1 style={{ textTransform: "capitalize" }}>{titulo}</h1>
-        {podeMarcar && !demo ? <Link aria-label={t("Bloquear horário")} className="ag-x" href={`/m/agenda/bloquear?dia=${dia >= hoje ? dia : hoje}`} style={{ marginLeft: "auto" }}><IcBloquear tamanho={18} /></Link> : null}
         <nav aria-label={t("Ver por")} className="m6-seg">
           <Link aria-current={vista === "dia" ? "true" : undefined} href={url({ vista: "dia" })} replace>{t("Dia")}</Link>
           <Link aria-current={vista === "semana" ? "true" : undefined} href={url({ vista: "semana" })} replace>{t("Semana")}</Link>
@@ -80,20 +80,21 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
       <div className="m6-semana-nav">
         <Link aria-label={t("Anterior")} className="seta" href={anterior} replace><IcVoltar tamanho={16} /></Link>
         {vista === "mes" && dados ? (
-          <div className="m6-mes">
-            {dados.semana.map((k) => <span className="cab" key={`c-${k}`}>{nomeDia(k).slice(0, 3)}</span>)}
-            {dados.grelha.map((k) => {
-              const n = dados!.contagem[k] ?? 0;
-              const fora = k < dados!.mes.inicio || k > dados!.mes.fim;
-              return (
-                // Tocar num dia de hoje em diante abre a marcação nesse dia (como no Google Agenda).
-                <Link aria-current={k === dia ? "date" : undefined} className={`dia${fora ? " fora" : ""}${k === hoje ? " hoje" : ""}`} href={marcarEm(k) ?? url({ dia: k })} key={k} replace={!marcarEm(k)}>
-                  <b>{Number(k.slice(8))}</b>
-                  <i style={n ? undefined : { visibility: "hidden" }} />
-                </Link>
-              );
-            })}
-          </div>
+          <GradeMes
+            cabecalho={dados.semana.map((k) => nomeDia(k).slice(0, 3))}
+            dias={dados.grelha.map((k) => ({
+              atual: k === dia,
+              chave: k,
+              fora: k < dados!.mes.inicio || k > dados!.mes.fim,
+              hoje: k === hoje,
+              marcarHref: marcarEm(k),
+              n: dados!.contagem[k] ?? 0,
+              numero: Number(k.slice(8)),
+              titulo: (() => { const r = new Intl.DateTimeFormat(c.locale, { day: "numeric", month: "long", timeZone: "UTC", weekday: "long" }).format(new Date(`${k}T12:00:00Z`)); return r.charAt(0).toUpperCase() + r.slice(1); })(),
+              verHref: url({ dia: k, vista: "dia" }),
+            }))}
+            textos={{ fechar: t("Fechar"), marcar: t("Marcar agendamento"), nenhum: t("Nenhum agendamento neste dia."), um: t("1 agendamento"), varios: t("{n} agendamentos"), ver: t("Ver agendamentos do dia") }}
+          />
         ) : (
           <nav aria-label={t("Dias da semana")} className="m6-dias">
             {(dados?.semana ?? []).map((k) => (
@@ -107,7 +108,12 @@ export default async function AgendaMovel({ searchParams }: { searchParams: Prom
         )}
         <Link aria-label={t("Seguinte")} className="seta" href={seguinte} replace><IcSeta tamanho={16} /></Link>
       </div>
-      {vista === "mes" && podeMarcar ? <p className="ag-dica">{t("Toque em qualquer dia para marcar nele")}</p> : null}
+      {vista === "mes" || (podeMarcar && !demo) ? (
+        <div className="ag-linha-dica">
+          {vista === "mes" ? <span>{t("Toque num dia para ver ou marcar")}</span> : <span />}
+          {podeMarcar && !demo ? <Link className="ag-bloquear" href={`/m/agenda/bloquear?dia=${dia >= hoje ? dia : hoje}`}><IcBloquear tamanho={14} />{t("Bloquear horário")}</Link> : null}
+        </div>
+      ) : null}
 
       {dados ? (
         <div className="m6-resumo">

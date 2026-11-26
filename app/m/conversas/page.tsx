@@ -1,4 +1,4 @@
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { conversasRapido } from "@/lib/movel/cache";
 import { diferencaDias, duracaoCurta, iniciais, quandoCurto } from "@/lib/movel/formato";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * lib/movel/esperas.ts), depois Hoje / Ontem / Anteriores.
  */
 export default async function ConversasMovel() {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const agora = new Date();
   let itens: ItemLista[] = [];

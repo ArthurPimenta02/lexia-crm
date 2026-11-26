@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 import { clientesSumidos } from "@/lib/movel/sumidos";
 import { telefoneLegivel } from "@/lib/movel/conversas";
 
@@ -13,7 +13,7 @@ const PERIODOS = [30, 60, 90] as const;
 
 /** Clientes sumidos (desenho aprovado a 25/11, tela 9). */
 export default async function SumidosMovel({ searchParams }: { searchParams: Promise<{ dias?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const pedido = Number((await searchParams).dias);
   const dias = (PERIODOS as readonly number[]).includes(pedido) ? pedido : 60;

@@ -1,4 +1,4 @@
-import { contextoMovel } from "@/lib/movel/contexto";
+import { exigirContextoMovel } from "@/lib/movel/contexto";
 
 import { ConversaAjudante } from "./conversa";
 
@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Analista Lexia no iPhone (o mesmo do painel do computador). */
 export default async function AjudanteMovel({ searchParams }: { searchParams: Promise<{ tela?: string }> }) {
-  const c = (await contextoMovel())!;
+  const c = await exigirContextoMovel();
   const { t } = c;
   const tela = (await searchParams).tela;
   return (
