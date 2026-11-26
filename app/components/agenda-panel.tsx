@@ -570,6 +570,7 @@ function PainelDoDia({
   dia,
   executorEscolhido,
   fechar,
+  horaInicial,
   linkDaSemana,
   marcar,
   moeda,
@@ -580,6 +581,7 @@ function PainelDoDia({
   dia: DiaAgenda;
   executorEscolhido: string;
   fechar: () => void;
+  horaInicial: string | null;
   linkDaSemana: string | null;
   marcar: MarcarNaAgenda | null;
   moeda: string | null;
@@ -646,6 +648,7 @@ function PainelDoDia({
               contactos={marcar.contactos}
               dia={dia.chave}
               fechar={() => setAMarcar(false)}
+              horaInicial={horaInicial}
               moeda={moeda}
               confirma={marcar.confirma}
               idiomas={marcar.idiomas}
@@ -1296,9 +1299,12 @@ function SemanaPorHora({
   agenda,
   agora,
   executorEscolhido,
+  marcarNaHora,
   timeZone,
 }: {
   abrirDia: (chave: string) => void;
+  /** 26/11: clicar num espaço livre da grelha abre a marcação nesse dia e hora (como no Google Agenda). */
+  marcarNaHora?: (chave: string, hora: string) => void;
   abrirEvento: (id: string) => void;
   agenda: AgendaResultado;
   agora: Date | null;
@@ -1451,8 +1457,21 @@ function SemanaPorHora({
                 dia.hoje
                   ? "bg-[color-mix(in_oklab,var(--ds-acao)_4%,transparent)]"
                   : ""
-              }`}
+              }${marcarNaHora ? " cursor-pointer" : ""}`}
               key={dia.chave}
+              onClick={
+                marcarNaHora
+                  ? (evento) => {
+                      // Só o fundo da coluna: um clique num evento abre o evento.
+                      if (evento.target !== evento.currentTarget) return;
+                      const y = evento.clientY - evento.currentTarget.getBoundingClientRect().top;
+                      const minuto = primeiraHora * 60 + Math.floor(((y / HORA_PX) * 60) / 30) * 30;
+                      // Nas horas a riscas (ocupadas pelos trabalhos do topo) não se marca.
+                      if (ocupado.some((p) => minuto >= p.inicio && minuto < p.fim)) return;
+                      marcarNaHora(dia.chave, `${String(Math.floor(minuto / 60)).padStart(2, "0")}:${String(minuto % 60).padStart(2, "0")}`);
+                    }
+                  : undefined
+              }
               style={{
                 backgroundImage:
                   "linear-gradient(to bottom, var(--border) 1px, transparent 1px)",
@@ -1712,6 +1731,8 @@ export function AgendaPanel({
 }) {
   const { locale, t } = useIdioma();
   const [diaAberto, setDiaAberto] = useState<string | null>(null);
+  const [horaInicial, setHoraInicial] = useState<string | null>(null);
+  const abrirDiaSemHora = (chave: string | null) => { setHoraInicial(null); setDiaAberto(chave); };
   const [eventoAberto, setEventoAberto] = useState<string | null>(null);
   const [aMarcarDoTopo, setAMarcarDoTopo] = useState(false);
   const agora = useAgora();
@@ -2001,7 +2022,7 @@ export function AgendaPanel({
         </div>
       ) : agenda.vista === "mes" ? (
         <GrelhaMes
-          abrirDia={setDiaAberto}
+          abrirDia={abrirDiaSemHora}
           agenda={agenda}
           timeZone={timeZone}
         />
@@ -2009,17 +2030,18 @@ export function AgendaPanel({
         <>
           <div className="ds-bloco hidden overflow-hidden lg:block">
             <SemanaPorHora
-              abrirDia={setDiaAberto}
+              abrirDia={abrirDiaSemHora}
               abrirEvento={setEventoAberto}
               agenda={agenda}
               agora={agora}
               executorEscolhido={executorEscolhido}
+              marcarNaHora={marcar ? (chave, hora) => { setHoraInicial(hora); setDiaAberto(chave); } : undefined}
               timeZone={timeZone}
             />
           </div>
           <div className="lg:hidden">
             <SemanaEmLista
-              abrirDia={setDiaAberto}
+              abrirDia={abrirDiaSemHora}
               abrirEvento={setEventoAberto}
               agenda={agenda}
               executorEscolhido={executorEscolhido}
@@ -2063,7 +2085,8 @@ export function AgendaPanel({
           abrirEvento={setEventoAberto}
           dia={dia}
           executorEscolhido={executorEscolhido}
-          fechar={() => setDiaAberto(null)}
+          fechar={() => abrirDiaSemHora(null)}
+          horaInicial={horaInicial}
           // Na semana, o dia já está à vista e o link não levava a sítio
           // nenhum. No mês, é o atalho para ver o dia com o resto da semana.
           linkDaSemana={
