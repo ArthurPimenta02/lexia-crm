@@ -56,7 +56,7 @@ Versão em produção de 27/11/2026. Horas no fuso de Lisboa.
 - Não repete na conversa a abertura, a pergunta das vagas nem o emoji; pontuação solta. Sem o carro, dá a faixa de preço da tabela (citadino e carro grande).
 
 ## Áudios (desde 27/11)
-- Às vezes responde em áudio na voz clonada do Martim (1.ª pessoa, 15% mais rápida); preço e horários seguem em texto. Conversa (WhatsApp/Instagram): só respostas longas, nunca a 1.ª nem dados (marcação, sinal, morada), máx. 1 por conversa a cada 24 h, 1 em cada 2. Follow-up: só o de 3 dias e o da data pedida. Falha → texto.
+- Às vezes responde em áudio na voz clonada do Martim (1.ª pessoa, 15% mais rápida), só o áudio: diz também preços, dias e horários. Conversa (WhatsApp/Instagram): só respostas longas, nunca a 1.ª nem dados (marcação, sinal, morada), máx. 1 por conversa a cada 24 h, 1 em cada 2. Follow-up: só o de 3 dias e o da data pedida. Falha → texto.
 
 ## Pausas
 - Quando passa a conversa ao Martim, o agente fica calado 24 h: o Martim assume. Escolha do Martim.
