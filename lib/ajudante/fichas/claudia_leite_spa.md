@@ -1,22 +1,21 @@
 # Como funciona a Carla, agente da Claudia Leite Spa
 
-Lido do agente publicado (23/11/2026), ainda em **modo de teste**. Horas de Nova Iorque.
+Versão de 27/11/2026, em produção desde 24/11. Horas de Nova Iorque.
 
 ## Canais e idiomas
 - Atende no WhatsApp, no Instagram e no Messenger.
-- Junta as mensagens seguidas da cliente (60 segundos).
-- Responde em português do Brasil, inglês ou espanhol, na língua da cliente (textos fixos também). No primeiro contato pelo Instagram pergunta o idioma.
+- Português do Brasil, inglês ou espanhol, na língua da cliente (+55 → português), uma língua por mensagem. No Instagram, se pedirem, dá o WhatsApp +1 617-820-1023.
 
 ## Agenda
-- A fonte são as agendas Google das profissionais. Só oferece horários que a agenda devolveu.
+- A fonte são as agendas Google das profissionais. Só oferece horários que a agenda devolveu. Duração sempre a do catálogo.
 - Cada profissional tem o seu horário:
   - **Claudia**: segunda a quarta das 9h às 19h; quinta e sexta das 9h às 18h.
   - **Jessica**: quarta a sexta das 9h às 19h; sábado das 9h às 14h.
   - **Suellen**: segunda a sexta das 9h às 17h30.
-  - **Priscilla** (enfermeira): sexta das 13h às 18h.
+  - **Priscilla** (enfermeira): sexta das 12h30 às 18h30.
 - Atendimentos ao mesmo tempo: 2 na segunda e na terça, 3 de quarta a sexta, 1 no sábado. 15 minutos entre atendimentos da mesma pessoa.
 - Marca de amanhã até 60 dias à frente.
-- Fechado aos domingos e nos feriados: Thanksgiving, Natal, Ano Novo e 4 de Julho. Nesses dias diz o motivo e oferece os dias mais próximos.
+- Fechado aos domingos, Thanksgiving, Natal, Ano Novo e 4 de Julho.
 - Cada serviço vai para quem o faz. Ex.: cílios com a Suellen, procedimentos médicos com a Priscilla, PRP capilar só à sexta à tarde.
 - Respeita os horários que a cliente disse que não pode e não repete um serviço que ela já tem marcado.
 
@@ -58,8 +57,7 @@ Lido do agente publicado (23/11/2026), ainda em **modo de teste**. Horas de Nova
 
 ## Lista de espera
 - Configurável (interruptor "lista de espera").
-- Quem queria um dia cheio é avisada se abrir vaga nesse dia: uma pessoa de cada vez, por ordem de chegada.
-- Sem resposta em 2 horas, a vaga passa para a próxima. A vaga não fica reservada.
+- Quem queria um dia cheio é avisada se abrir vaga: uma de cada vez, 2 h para responder, sem reserva.
 
 ## Pausas
 - Quando a equipe escreve, a Carla fica calada 1 hora.
