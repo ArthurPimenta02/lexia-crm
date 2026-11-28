@@ -46,7 +46,7 @@ import { getIdioma, getT } from "@/lib/i18n/servidor";
 import { createClient } from "@/lib/supabase/server";
 import { AtualizacaoAutomatica } from "@/app/components/atualizacao-automatica";
 import { sinalDaTela } from "@/lib/sinais/sinal-da-tela";
-import { FILTRO_OCULTOS } from "@/lib/clientes/ocultos";
+import { FILTRO_OCULTOS, NO_AR_OU_EM_TESTE } from "@/lib/clientes/ocultos";
 
 type AdminConversationsPageProps = {
   searchParams: Promise<{
@@ -188,7 +188,7 @@ export default async function AdminConversationsPage({
     .from("lexia_clientes")
     .select("id, nome, slug")
     .not("slug", "in", FILTRO_OCULTOS)
-    .eq("status", "ativo")
+    .or(NO_AR_OU_EM_TESTE)
     .order("nome");
 
   if (clientsError) {
